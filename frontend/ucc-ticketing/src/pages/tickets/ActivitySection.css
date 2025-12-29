@@ -1,0 +1,485 @@
+/* Activity Section Styles */
+
+.activity-section {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 600px;
+}
+
+.activity-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.activity-header h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-lg);
+    font-weight: 600;
+    margin: 0;
+}
+
+.activity-count {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    background: var(--bg-tertiary);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+}
+
+.activity-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12);
+    color: var(--text-muted);
+}
+
+.activity-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.no-activities {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12);
+    color: var(--text-muted);
+    text-align: center;
+    gap: var(--space-2);
+}
+
+.no-activities svg {
+    opacity: 0.3;
+}
+
+.no-activities p {
+    font-weight: 500;
+}
+
+.no-activities span {
+    font-size: var(--text-xs);
+}
+
+/* Activity Item */
+.activity-item {
+    display: flex;
+    gap: var(--space-3);
+    animation: fadeIn 0.3s ease-out;
+}
+
+.activity-item.own {
+    flex-direction: row-reverse;
+}
+
+.activity-item.own .activity-content {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.activity-item.internal .activity-content {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.activity-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: var(--gradient-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: var(--text-xs);
+    color: white;
+    flex-shrink: 0;
+}
+
+.activity-content {
+    flex: 1;
+    max-width: 85%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3);
+}
+
+.activity-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+    flex-wrap: wrap;
+}
+
+.activity-user {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+
+.activity-role {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    font-weight: 500;
+}
+
+.activity-role.role-admin {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.activity-role.role-supervisor {
+    background: rgba(168, 85, 247, 0.15);
+    color: #a855f7;
+}
+
+.activity-role.role-dispatcher {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+}
+
+.activity-role.role-l1 {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.activity-role.role-l2 {
+    background: rgba(6, 182, 212, 0.15);
+    color: #06b6d4;
+}
+
+.activity-role.role-client {
+    background: rgba(156, 163, 175, 0.15);
+    color: #9ca3af;
+}
+
+.internal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    background: rgba(245, 158, 11, 0.2);
+    color: var(--warning-500);
+    font-weight: 500;
+}
+
+.activity-type-icon {
+    font-size: 12px;
+}
+
+.activity-text {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.activity-time {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    margin-top: var(--space-2);
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.activity-exact-time {
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    margin-left: var(--space-2);
+}
+
+.activity-item:hover .activity-exact-time {
+    opacity: 1;
+}
+
+/* Attachments */
+.activity-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+.attachment-item {
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.attachment-image {
+    position: relative;
+    max-width: 200px;
+    cursor: pointer;
+}
+
+.attachment-image img {
+    width: 100%;
+    height: auto;
+    max-height: 150px;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+}
+
+.attachment-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.attachment-image:hover .attachment-overlay {
+    opacity: 1;
+}
+
+.attachment-overlay button {
+    padding: var(--space-2) var(--space-3);
+    background: white;
+    color: var(--bg-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.attachment-file {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background var(--transition-fast);
+}
+
+.attachment-file:hover {
+    background: var(--bg-card-hover);
+}
+
+.attachment-file svg:first-child {
+    color: var(--primary-400);
+}
+
+.attachment-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.attachment-name {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    color: var(--text-primary);
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attachment-size {
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+/* Input Area */
+.activity-input-area {
+    padding: var(--space-3);
+    border-top: 1px solid var(--border-light);
+    background: var(--bg-secondary);
+}
+
+.selected-files {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-bottom: var(--space-2);
+}
+
+.selected-file {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: 4px 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-xs);
+}
+
+.selected-file span {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.selected-file button {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+}
+
+.selected-file button:hover {
+    color: var(--danger-500);
+}
+
+.input-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-2);
+}
+
+.input-row textarea {
+    flex: 1;
+    resize: none;
+    min-height: 40px;
+    max-height: 120px;
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    font-size: var(--text-sm);
+    font-family: inherit;
+    line-height: 1.4;
+}
+
+.input-row textarea:focus {
+    outline: none;
+    border-color: var(--primary-500);
+}
+
+.input-row textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.attach-btn,
+.send-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-lg);
+    border: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.attach-btn {
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+}
+
+.attach-btn:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.send-btn {
+    background: var(--gradient-primary);
+    color: white;
+}
+
+.send-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+}
+
+.send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.internal-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color var(--transition-fast);
+}
+
+.internal-toggle input {
+    display: none;
+}
+
+.internal-toggle:has(input:checked) {
+    color: var(--warning-500);
+}
+
+.input-hint {
+    margin-top: var(--space-2);
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+/* Closed Ticket Notice */
+.activity-closed-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    margin: var(--space-3);
+    background: rgba(107, 114, 128, 0.1);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+}
+
+.activity-closed-notice svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.activity-closed-notice strong {
+    display: block;
+    color: var(--text-secondary);
+    margin-bottom: var(--space-1);
+}
+
+.activity-closed-notice p {
+    font-size: var(--text-sm);
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .activity-section {
+        max-height: 400px;
+    }
+
+    .activity-content {
+        max-width: 90%;
+    }
+
+    .attachment-image {
+        max-width: 150px;
+    }
+}
