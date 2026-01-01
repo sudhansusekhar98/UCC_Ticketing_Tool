@@ -153,6 +153,7 @@ export default function SitesList() {
                             <thead>
                                 <tr>
                                     <th>Site Name</th>
+                                    <th>Site Unique ID</th>
                                     <th>City</th>
                                     <th>Zone / Ward</th>
                                     <th>Address</th>
@@ -166,6 +167,9 @@ export default function SitesList() {
                                     <tr key={site.siteId}>
                                         <td>
                                             <div className="cell-primary">{site.siteName}</div>
+                                        </td>
+                                        <td>
+                                            <div className="cell-primary">{site.siteUniqueID}</div>
                                         </td>
                                         <td>{site.city}</td>
                                         <td>

@@ -146,7 +146,7 @@ public class AssetsController : ControllerBase
     }
 
     /// <summary>
-    /// Bulk import assets from CSV
+    /// Bulk import assets from CSV or Excel file
     /// </summary>
     [HttpPost("import")]
     [Authorize(Roles = "Admin,Supervisor")]
@@ -157,15 +157,18 @@ public class AssetsController : ControllerBase
             return BadRequest(ApiResponse<BulkImportResult>.FailResponse("Please select a file to upload"));
         }
 
-        if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+        var isCsv = file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase);
+        var isXlsx = file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase);
+
+        if (!isCsv && !isXlsx)
         {
-            return BadRequest(ApiResponse<BulkImportResult>.FailResponse("Only CSV files are supported"));
+            return BadRequest(ApiResponse<BulkImportResult>.FailResponse("Only CSV and XLSX files are supported"));
         }
 
         var userId = int.Parse(User.FindFirst("userId")?.Value ?? "0");
         
         using var stream = file.OpenReadStream();
-        var result = await _assetService.BulkImportAsync(stream, userId);
+        var result = await _assetService.BulkImportAsync(stream, userId, isXlsx);
 
         if (!result.Success)
         {

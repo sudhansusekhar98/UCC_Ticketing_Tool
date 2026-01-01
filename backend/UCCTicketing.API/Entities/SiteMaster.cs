@@ -12,6 +12,10 @@ public class SiteMaster
     public string SiteName { get; set; } = string.Empty;
 
     [Required]
+    [MaxLength(50)]
+    public string SiteUniqueID { get; set; } = string.Empty;
+
+    [Required]
     [MaxLength(100)]
     public string City { get; set; } = string.Empty;
 

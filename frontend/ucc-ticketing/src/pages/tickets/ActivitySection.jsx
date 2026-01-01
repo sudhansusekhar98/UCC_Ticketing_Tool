@@ -193,8 +193,15 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
     return (
         <div className="activity-section glass-card">
             <div className="activity-header">
-                <h3><MessageSquare size={18} /> Activity & Comments</h3>
-                <span className="activity-count">{activities.length} entries</span>
+                <div className="activity-header-left">
+                    <h3><MessageSquare size={18} /> Activity & Comments</h3>
+                    <span className="activity-count">{activities.length} entries</span>
+                </div>
+                <div className="activity-header-right">
+                    <span className={`status-badge status-${ticketStatus?.toLowerCase().replace(' ', '-')}`}>
+                        {ticketStatus}
+                    </span>
+                </div>
             </div>
 
             <div className="activity-messages">
@@ -264,7 +271,6 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                                         })}
                                     </div>
                                 )}
-
 
                                 <div className="activity-time">
                                     <Clock size={12} />

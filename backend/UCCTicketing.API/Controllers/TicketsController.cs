@@ -161,7 +161,7 @@ public class TicketsController : ControllerBase
     /// Close ticket
     /// </summary>
     [HttpPost("{id}/close")]
-    [Authorize(Roles = $"{UserRoles.Dispatcher},{UserRoles.Supervisor},{UserRoles.Admin}")]
+    [Authorize(Roles = $"{UserRoles.Admin}")]
     public async Task<ActionResult<ApiResponse<TicketDto>>> CloseTicket(int id, [FromBody] CloseTicketRequest request)
     {
         var userId = GetCurrentUserId();
@@ -177,11 +177,11 @@ public class TicketsController : ControllerBase
     /// Reopen closed ticket
     /// </summary>
     [HttpPost("{id}/reopen")]
-    [Authorize(Roles = $"{UserRoles.Supervisor},{UserRoles.Admin}")]
     public async Task<ActionResult<ApiResponse<TicketDto>>> ReopenTicket(int id, [FromQuery] string reason)
     {
         var userId = GetCurrentUserId();
-        var result = await _ticketService.ReopenTicketAsync(id, userId, reason);
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+        var result = await _ticketService.ReopenTicketAsync(id, userId, userRole, reason);
         if (!result.Success)
         {
             return BadRequest(result);

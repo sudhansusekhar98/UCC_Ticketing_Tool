@@ -421,6 +421,9 @@ export default function TicketDetail() {
                                         <div className="audit-details">
                                             {audit.newValue && `${audit.oldValue ? audit.oldValue + ' → ' : ''}${audit.newValue}`}
                                         </div>
+                                        {audit.remarks && (
+                                            <div className="audit-remarks">{audit.remarks}</div>
+                                        )}
                                     </div>
                                     <div className="audit-time">
                                         {format(new Date(audit.performedOn), 'MMM dd, HH:mm')}

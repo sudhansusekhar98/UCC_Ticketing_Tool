@@ -171,8 +171,9 @@ export default function AssetsList() {
     const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (file) {
-            if (!file.name.endsWith('.csv')) {
-                toast.error('Please select a CSV file');
+            const isValidExtension = file.name.endsWith('.csv') || file.name.endsWith('.xlsx');
+            if (!isValidExtension) {
+                toast.error('Please select a CSV or XLSX file');
                 return;
             }
             setImportFile(file);
@@ -453,16 +454,16 @@ export default function AssetsList() {
                                 <h4>Instructions:</h4>
                                 <ol>
                                     <li>Download the import template using the "Template" button</li>
-                                    <li>Fill in the asset data in the CSV file</li>
+                                    <li>Fill in the asset data in the CSV or Excel file</li>
                                     <li>Fields marked with * are required</li>
-                                    <li>Upload the completed CSV file below</li>
+                                    <li>Upload the completed file below</li>
                                 </ol>
                             </div>
 
                             <div className="file-upload-area">
                                 <input
                                     type="file"
-                                    accept=".csv"
+                                    accept=".csv,.xlsx"
                                     onChange={handleFileChange}
                                     ref={fileInputRef}
                                     id="csv-file-input"
@@ -470,8 +471,8 @@ export default function AssetsList() {
                                 />
                                 <label htmlFor="csv-file-input" className="file-upload-label">
                                     <FileSpreadsheet size={32} />
-                                    <span>{importFile ? importFile.name : 'Click to select CSV file'}</span>
-                                    <small>Only .csv files are supported</small>
+                                    <span>{importFile ? importFile.name : 'Click to select file'}</span>
+                                    <small>.csv and .xlsx files are supported</small>
                                 </label>
                             </div>
 

@@ -19,7 +19,7 @@ public interface ITicketService
     Task<ApiResponse<TicketDto>> ResolveTicketAsync(int ticketId, ResolveTicketRequest request, int resolvedBy);
     Task<ApiResponse<TicketDto>> VerifyTicketAsync(int ticketId, int verifiedBy);
     Task<ApiResponse<TicketDto>> CloseTicketAsync(int ticketId, CloseTicketRequest request, int closedBy);
-    Task<ApiResponse<TicketDto>> ReopenTicketAsync(int ticketId, int reopenedBy, string reason);
+    Task<ApiResponse<TicketDto>> ReopenTicketAsync(int ticketId, int reopenedBy, string userRole, string reason);
     Task<List<AuditTrailDto>> GetTicketAuditTrailAsync(int ticketId);
     Task<DashboardStatsDto> GetDashboardStatsAsync(int userId, string userRole);
 }
@@ -45,15 +45,38 @@ public class TicketService : ITicketService
             .Include(t => t.Assignee)
             .AsQueryable();
 
-        // Filter by user's site if not admin
-        if (!string.IsNullOrEmpty(userRole) && userRole != UserRoles.Admin && userId > 0)
+        // Filter by user role
+        if (userId > 0 && !string.IsNullOrEmpty(userRole) && userRole != UserRoles.Admin)
         {
-            var user = await _context.Users.FindAsync(userId);
-            if (user?.SiteId != null)
+            switch (userRole)
             {
-                query = query.Where(t => t.Asset != null && t.Asset.SiteId == user.SiteId.Value);
+                case UserRoles.ClientViewer:
+                    query = query.Where(t => t.CreatedBy == userId);
+                    break;
+                case UserRoles.L1Engineer:
+                case UserRoles.L2Engineer:
+                    query = query.Where(t => t.AssignedTo == userId);
+                    break;
+                case UserRoles.Supervisor:
+                case UserRoles.Dispatcher:
+                    var user = await _context.Users.FindAsync(userId);
+                    if (user?.SiteId != null)
+                    {
+                        query = query.Where(t => t.Asset != null && t.Asset.SiteId == user.SiteId.Value);
+                    }
+                    else
+                    {
+                        // If a supervisor/dispatcher has no site, they see no tickets.
+                        query = query.Where(t => false);
+                    }
+                    break;
+                default:
+                    // For any other role, they see no tickets unless they are admin.
+                    query = query.Where(t => false);
+                    break;
             }
         }
+
 
         // Apply filters
         if (!string.IsNullOrEmpty(filter.Status))
@@ -551,7 +574,7 @@ public class TicketService : ITicketService
         }
     }
 
-    public async Task<ApiResponse<TicketDto>> ReopenTicketAsync(int ticketId, int reopenedBy, string reason)
+    public async Task<ApiResponse<TicketDto>> ReopenTicketAsync(int ticketId, int reopenedBy, string userRole, string reason)
     {
         try
         {
@@ -561,17 +584,39 @@ public class TicketService : ITicketService
                 return ApiResponse<TicketDto>.FailResponse("Ticket not found");
             }
 
+            // Authorization check
+            bool isAuthorized = userRole == UserRoles.Admin ||
+                                userRole == UserRoles.Supervisor ||
+                                ticket.CreatedBy == reopenedBy;
+
+            if (!isAuthorized)
+            {
+                return ApiResponse<TicketDto>.FailResponse("You are not authorized to reopen this ticket.");
+            }
+
             var oldStatus = ticket.Status;
-            ticket.Status = TicketStatuses.Open;
-            ticket.ResolvedOn = null;
-            ticket.ClosedOn = null;
-            ticket.VerifiedOn = null;
-            ticket.VerifiedBy = null;
+            
+            // If there's an assignee, set to Assigned so they must acknowledge again
+            // Otherwise set to Open for assignment
+            string newStatus = ticket.AssignedTo.HasValue ? TicketStatuses.Assigned : TicketStatuses.Open;
+            ticket.Status = newStatus;
+            
+            // Reset only the acknowledgment to enforce the re-acknowledgment workflow
+            // Historical timestamps (ResolvedOn, ClosedOn, VerifiedBy, VerifiedOn) are preserved for traceability
+            ticket.AcknowledgedOn = null;
             ticket.ModifiedOn = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
 
-            await AddAuditTrailAsync(ticketId, AuditActions.Reopened, oldStatus, TicketStatuses.Open, reason, reopenedBy);
+            await AddAuditTrailAsync(ticketId, AuditActions.Reopened, oldStatus, newStatus, reason, reopenedBy);
+
+            // Notify via SignalR if assigned
+            if (ticket.AssignedTo.HasValue)
+            {
+                await _hubContext.Clients.User(ticket.AssignedTo.Value.ToString()).SendAsync("TicketReopened", ticket.TicketNumber);
+            }
+
+            _logger.LogInformation("Ticket {TicketId} reopened by {UserId}. Status set to {Status}", ticketId, reopenedBy, newStatus);
 
             var dto = await GetTicketByIdAsync(ticket.TicketId);
             return ApiResponse<TicketDto>.SuccessResponse(dto!, "Ticket reopened successfully");

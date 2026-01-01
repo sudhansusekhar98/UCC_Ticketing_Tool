@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using UCCTicketing.API.Data;
 using UCCTicketing.API.DTOs;
 using UCCTicketing.API.Entities;
 
@@ -10,27 +12,38 @@ namespace UCCTicketing.API.Controllers;
 [Authorize]
 public class LookupsController : ControllerBase
 {
-    /// <summary>
-    /// Get all dropdown options for forms
-    /// </summary>
-    [HttpGet]
-    public ActionResult<DropdownOptionsDto> GetAllOptions()
+    private readonly UCCDbContext _context;
+
+    public LookupsController(UCCDbContext context)
     {
+        _context = context;
+    }
+
+    // Get all dropdown options for forms
+    [HttpGet]
+    public async Task<ActionResult<DropdownOptionsDto>> GetAllOptions()
+    {
+        // Get distinct asset types from the database
+        var assetTypesFromDb = await _context.Assets
+            .Where(a => a.IsActive && !string.IsNullOrEmpty(a.AssetType))
+            .Select(a => a.AssetType)
+            .Distinct()
+            .OrderBy(t => t)
+            .ToListAsync();
+
         var options = new DropdownOptionsDto
         {
             Statuses = TicketStatuses.AllStatuses.Select(s => new DropdownOption { Value = s, Label = FormatLabel(s) }).ToList(),
             Priorities = TicketPriorities.AllPriorities.Select(p => new DropdownOption { Value = p, Label = GetPriorityLabel(p) }).ToList(),
             Categories = TicketCategories.AllCategories.Select(c => new DropdownOption { Value = c, Label = c }).ToList(),
-            AssetTypes = AssetTypes.AllTypes.Select(t => new DropdownOption { Value = t, Label = t }).ToList(),
+            AssetTypes = assetTypesFromDb.Select(t => new DropdownOption { Value = t, Label = t }).ToList(),
             Roles = UserRoles.AllRoles.Select(r => new DropdownOption { Value = r, Label = FormatLabel(r) }).ToList()
         };
 
         return Ok(options);
     }
 
-    /// <summary>
-    /// Get ticket statuses
-    /// </summary>
+    // Get ticket statuses
     [HttpGet("statuses")]
     public ActionResult<List<DropdownOption>> GetStatuses()
     {
@@ -40,9 +53,7 @@ public class LookupsController : ControllerBase
         return Ok(statuses);
     }
 
-    /// <summary>
-    /// Get ticket priorities
-    /// </summary>
+    // Get ticket priorities
     [HttpGet("priorities")]
     public ActionResult<List<DropdownOption>> GetPriorities()
     {
@@ -52,9 +63,7 @@ public class LookupsController : ControllerBase
         return Ok(priorities);
     }
 
-    /// <summary>
-    /// Get ticket categories
-    /// </summary>
+    // Get ticket categories
     [HttpGet("categories")]
     public ActionResult<List<DropdownOption>> GetCategories()
     {
@@ -64,21 +73,23 @@ public class LookupsController : ControllerBase
         return Ok(categories);
     }
 
-    /// <summary>
-    /// Get asset types
-    /// </summary>
+    // Get asset types (dynamically from database)
     [HttpGet("asset-types")]
-    public ActionResult<List<DropdownOption>> GetAssetTypes()
+    public async Task<ActionResult<List<DropdownOption>>> GetAssetTypes()
     {
-        var types = AssetTypes.AllTypes
+        // Get distinct asset types from the database
+        var types = await _context.Assets
+            .Where(a => a.IsActive && !string.IsNullOrEmpty(a.AssetType))
+            .Select(a => a.AssetType)
+            .Distinct()
+            .OrderBy(t => t)
             .Select(t => new DropdownOption { Value = t, Label = t })
-            .ToList();
+            .ToListAsync();
+
         return Ok(types);
     }
 
-    /// <summary>
-    /// Get asset statuses
-    /// </summary>
+    // Get asset statuses
     [HttpGet("asset-statuses")]
     public ActionResult<List<DropdownOption>> GetAssetStatuses()
     {

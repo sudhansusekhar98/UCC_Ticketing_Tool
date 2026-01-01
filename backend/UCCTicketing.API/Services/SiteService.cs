@@ -50,6 +50,7 @@ public class SiteService : ISiteService
             {
                 SiteId = s.SiteId,
                 SiteName = s.SiteName,
+                SiteUniqueID = s.SiteUniqueID,
                 City = s.City,
                 Zone = s.Zone,
                 Ward = s.Ward,
@@ -84,6 +85,7 @@ public class SiteService : ISiteService
             {
                 SiteId = s.SiteId,
                 SiteName = s.SiteName,
+                SiteUniqueID = s.SiteUniqueID,
                 City = s.City,
                 Zone = s.Zone,
                 Ward = s.Ward,
@@ -107,6 +109,7 @@ public class SiteService : ISiteService
             var site = new SiteMaster
             {
                 SiteName = request.SiteName,
+                SiteUniqueID = request.SiteUniqueID,
                 City = request.City,
                 Zone = request.Zone,
                 Ward = request.Ward,
@@ -145,6 +148,7 @@ public class SiteService : ISiteService
             }
 
             site.SiteName = request.SiteName;
+            site.SiteUniqueID = request.SiteUniqueID;
             site.City = request.City;
             site.Zone = request.Zone;
             site.Ward = request.Ward;

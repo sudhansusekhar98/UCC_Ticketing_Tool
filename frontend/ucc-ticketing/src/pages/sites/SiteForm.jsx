@@ -15,6 +15,7 @@ export default function SiteForm() {
 
     const [formData, setFormData] = useState({
         siteName: '',
+        siteUniqueID: '',
         city: '',
         zone: '',
         ward: '',
@@ -39,6 +40,7 @@ export default function SiteForm() {
             const site = response.data.data;
             setFormData({
                 siteName: site.siteName,
+                siteUniqueID: site.SiteUniqueID,               
                 city: site.city,
                 zone: site.zone || '',
                 ward: site.ward || '',
@@ -123,6 +125,18 @@ export default function SiteForm() {
                             value={formData.siteName}
                             onChange={(e) => handleChange('siteName', e.target.value)}
                             placeholder="Enter site name"
+                            required
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">Site Unique ID *</label>
+                        <input
+                            type="text"
+                            className="form-input"
+                            value={formData.siteUniqueID}
+                            onChange={(e) => handleChange('siteUniqueID', e.target.value)}
+                            placeholder="Enter site unique ID"
                             required
                         />
                     </div>

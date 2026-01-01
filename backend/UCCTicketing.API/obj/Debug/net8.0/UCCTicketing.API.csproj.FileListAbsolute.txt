@@ -152,3 +152,11 @@ D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\obj\Debug\ne
 D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\obj\Debug\net8.0\UCCTicketing.API.genruntimeconfig.cache
 D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\obj\Debug\net8.0\ref\UCCTicketing.API.dll
 D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\bin\Debug\net8.0\CloudinaryDotNet.dll
+D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\obj\Debug\net8.0\UCCTicketing.API.sourcelink.json
+D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\bin\Debug\net8.0\ClosedXML.dll
+D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\bin\Debug\net8.0\DocumentFormat.OpenXml.dll
+D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\bin\Debug\net8.0\ExcelNumberFormat.dll
+D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\bin\Debug\net8.0\Irony.dll
+D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\bin\Debug\net8.0\SixLabors.Fonts.dll
+D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\bin\Debug\net8.0\System.IO.Packaging.dll
+D:\VL Access\CODES\VLAccess Ticketing Tool\backend\UCCTicketing.API\bin\Debug\net8.0\XLParser.dll

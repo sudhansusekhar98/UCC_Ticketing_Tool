@@ -1,3 +1,4 @@
+using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using UCCTicketing.API.Data;
@@ -19,7 +20,7 @@ public interface IAssetService
     // Bulk operations
     byte[] GenerateTemplate();
     Task<byte[]> ExportAssetsAsync(int? siteId = null, string? assetType = null, string? status = null);
-    Task<ApiResponse<BulkImportResult>> BulkImportAsync(Stream fileStream, int createdByUserId);
+    Task<ApiResponse<BulkImportResult>> BulkImportAsync(Stream fileStream, int createdByUserId, bool isXlsx = false);
 }
 
 public class AssetService : IAssetService
@@ -157,10 +158,10 @@ public class AssetService : IAssetService
                 return ApiResponse<AssetDto>.FailResponse("Asset code already exists");
             }
 
-            // Validate asset type
-            if (!AssetTypes.AllTypes.Contains(request.AssetType))
+            // Validate asset type is not empty
+            if (string.IsNullOrWhiteSpace(request.AssetType))
             {
-                return ApiResponse<AssetDto>.FailResponse("Invalid asset type");
+                return ApiResponse<AssetDto>.FailResponse("Asset type is required");
             }
 
             // Validate site exists
@@ -415,18 +416,25 @@ public class AssetService : IAssetService
         return Encoding.UTF8.GetBytes(sb.ToString());
     }
 
-    public async Task<ApiResponse<BulkImportResult>> BulkImportAsync(Stream fileStream, int createdByUserId)
+    public async Task<ApiResponse<BulkImportResult>> BulkImportAsync(Stream fileStream, int createdByUserId, bool isXlsx = false)
     {
         var result = new BulkImportResult();
         var errors = new List<string>();
 
         try
         {
-            using var reader = new StreamReader(fileStream);
-            var content = await reader.ReadToEndAsync();
-            var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            List<string[]> dataRows;
 
-            if (lines.Length < 2)
+            if (isXlsx)
+            {
+                dataRows = ParseXlsxFile(fileStream);
+            }
+            else
+            {
+                dataRows = await ParseCsvFileAsync(fileStream);
+            }
+
+            if (dataRows.Count < 1)
             {
                 return ApiResponse<BulkImportResult>.FailResponse("File is empty or contains only headers");
             }
@@ -438,12 +446,11 @@ public class AssetService : IAssetService
             var existingAssetCodes = await _context.Assets.Select(a => a.AssetCode).ToListAsync();
 
             var assetsToCreate = new List<AssetMaster>();
-            var rowNumber = 1;
+            var rowNumber = 1; // Start at 1 since headers are already skipped
 
-            foreach (var line in lines.Skip(1)) // Skip header
+            foreach (var columns in dataRows)
             {
                 rowNumber++;
-                var columns = ParseCsvLine(line);
 
                 if (columns.Length < 3)
                 {
@@ -481,13 +488,6 @@ public class AssetService : IAssetService
                 if (!validSiteIds.Contains(siteId))
                 {
                     errors.Add($"Row {rowNumber}: Site with ID {siteId} not found");
-                    result.FailedCount++;
-                    continue;
-                }
-
-                if (!AssetTypes.AllTypes.Contains(assetType))
-                {
-                    errors.Add($"Row {rowNumber}: Invalid AssetType '{assetType}'. Valid types: {string.Join(", ", AssetTypes.AllTypes)}");
                     result.FailedCount++;
                     continue;
                 }
@@ -556,6 +556,53 @@ public class AssetService : IAssetService
             _logger.LogError(ex, "Error during bulk import");
             return ApiResponse<BulkImportResult>.FailResponse($"Import failed: {ex.Message}");
         }
+    }
+
+    private List<string[]> ParseXlsxFile(Stream fileStream)
+    {
+        var dataRows = new List<string[]>();
+        
+        using var workbook = new XLWorkbook(fileStream);
+        var worksheet = workbook.Worksheet(1); // Get the first worksheet
+        var rows = worksheet.RowsUsed().ToList();
+        
+        // Skip header row (first row)
+        foreach (var row in rows.Skip(1))
+        {
+            var cells = row.CellsUsed().ToList();
+            if (cells.Count == 0) continue; // Skip empty rows
+            
+            var maxColumn = row.LastCellUsed()?.Address.ColumnNumber ?? 0;
+            var rowData = new string[maxColumn];
+            
+            for (int col = 1; col <= maxColumn; col++)
+            {
+                var cell = row.Cell(col);
+                rowData[col - 1] = cell.GetString()?.Trim() ?? "";
+            }
+            
+            dataRows.Add(rowData);
+        }
+        
+        return dataRows;
+    }
+
+    private async Task<List<string[]>> ParseCsvFileAsync(Stream fileStream)
+    {
+        var dataRows = new List<string[]>();
+        
+        using var reader = new StreamReader(fileStream);
+        var content = await reader.ReadToEndAsync();
+        var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+        
+        // Skip header row (first line)
+        foreach (var line in lines.Skip(1))
+        {
+            var columns = ParseCsvLine(line);
+            dataRows.Add(columns);
+        }
+        
+        return dataRows;
     }
 
     // Helper methods

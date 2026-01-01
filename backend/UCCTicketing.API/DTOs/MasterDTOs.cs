@@ -8,6 +8,7 @@ public class SiteDto
 {
     public int SiteId { get; set; }
     public string SiteName { get; set; } = string.Empty;
+    public string SiteUniqueID { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
     public string? Zone { get; set; }
     public string? Ward { get; set; }
@@ -27,6 +28,10 @@ public class CreateSiteRequest
     [Required]
     [MaxLength(100)]
     public string SiteName { get; set; } = string.Empty;
+
+    [Required]
+    [MaxLength(100)]
+    public string SiteUniqueID { get; set; } = string.Empty;
 
     [Required]
     [MaxLength(100)]
