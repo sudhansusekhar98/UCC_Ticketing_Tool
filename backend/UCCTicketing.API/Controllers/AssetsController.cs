@@ -24,6 +24,7 @@ public class AssetsController : ControllerBase
     public async Task<ActionResult<PagedResponse<AssetDto>>> GetAssets(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
         [FromQuery] int? siteId = null,
         [FromQuery] string? assetType = null,
         [FromQuery] string? status = null,
@@ -31,7 +32,7 @@ public class AssetsController : ControllerBase
     {
         var userId = GetCurrentUserId();
         var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
-        var result = await _assetService.GetAssetsAsync(page, pageSize, siteId, assetType, status, isActive, userId, userRole);
+        var result = await _assetService.GetAssetsAsync(page, pageSize, search, siteId, assetType, status, isActive, userId, userRole);
         return Ok(result);
     }
 

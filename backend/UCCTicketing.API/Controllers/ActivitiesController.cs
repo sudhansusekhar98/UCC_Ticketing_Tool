@@ -40,7 +40,7 @@ public class ActivitiesController : ControllerBase
     }
 
     [HttpPost("attachments")]
-    public async Task<IActionResult> UploadAttachment(int ticketId, [FromQuery] int? activityId, IFormFile file)
+    public async Task<IActionResult> UploadAttachment(int ticketId, [FromQuery] int? activityId, [FromForm] IFormFile file)
     {
         var result = await _activityService.UploadAttachmentAsync(ticketId, activityId, file, GetUserId());
         if (!result.Success)

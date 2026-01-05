@@ -39,6 +39,7 @@ export default function AssetsList() {
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchValue, setDebouncedSearchValue] = useState('');
     const [siteFilter, setSiteFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
@@ -67,9 +68,20 @@ export default function AssetsList() {
         loadDropdowns();
     }, []);
 
+    // Handle search debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchValue(searchTerm);
+            setPage(1);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    // Fetch assets when filters or page change
     useEffect(() => {
         fetchAssets();
-    }, [page, siteFilter, typeFilter, statusFilter]);
+    }, [page, debouncedSearchValue, siteFilter, typeFilter, statusFilter]);
 
     const loadDropdowns = async () => {
         try {
@@ -78,9 +90,21 @@ export default function AssetsList() {
                 lookupsApi.getAssetTypes(),
                 lookupsApi.getAssetStatuses(),
             ]);
-            setSites(sitesRes.data);
-            setAssetTypes(typesRes.data);
-            setAssetStatuses(statusesRes.data);
+            // Handle Express response format
+            const siteData = sitesRes.data.data || sitesRes.data || [];
+            setSites(siteData.map(s => ({
+                value: s._id || s.value || s.siteId,
+                label: s.siteName || s.label
+            })));
+            
+            const typeData = typesRes.data.data || typesRes.data || [];
+            setAssetTypes(typeData.map ? typeData.map(t => ({
+                value: t.value || t,
+                label: t.label || t
+            })) : []);
+            
+            const statusData = statusesRes.data.data || statusesRes.data || [];
+            setAssetStatuses(statusData);
         } catch (error) {
             console.error('Failed to load dropdowns', error);
         }
@@ -91,14 +115,27 @@ export default function AssetsList() {
         try {
             const response = await assetsApi.getAll({
                 page,
-                pageSize,
+                limit: pageSize,
+                search: debouncedSearchValue || undefined,
                 siteId: siteFilter || undefined,
                 assetType: typeFilter || undefined,
                 status: statusFilter || undefined,
                 isActive: true,
             });
-            setAssets(response.data.items);
-            setTotalCount(response.data.totalCount);
+            // Handle both Express and .NET response formats
+            const assetData = response.data.data || response.data.items || response.data || [];
+            const total = response.data.pagination?.total || response.data.totalCount || assetData.length;
+            
+            // Map to expected format
+            const mappedAssets = assetData.map(a => ({
+                ...a,
+                assetId: a._id || a.assetId,
+                locationName: a.locationDescription || a.siteId?.siteName || a.locationName,
+                macAddress: a.mac || a.macAddress
+            }));
+            
+            setAssets(mappedAssets);
+            setTotalCount(total);
         } catch (error) {
             toast.error('Failed to load assets');
         } finally {
@@ -141,6 +178,7 @@ export default function AssetsList() {
         setExporting(true);
         try {
             const response = await assetsApi.exportAssets({
+                search: searchTerm || undefined,
                 siteId: siteFilter || undefined,
                 assetType: typeFilter || undefined,
                 status: statusFilter || undefined,
@@ -218,12 +256,6 @@ export default function AssetsList() {
             fileInputRef.current.value = '';
         }
     };
-
-    const filteredAssets = assets.filter(asset =>
-        asset.assetCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        asset.makeModel?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        asset.siteName?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
 
     const getStatusClass = (status) => {
         switch (status) {
@@ -349,7 +381,7 @@ export default function AssetsList() {
                     <div className="loading-state">
                         <div className="spinner"></div>
                     </div>
-                ) : filteredAssets.length === 0 ? (
+                ) : assets.length === 0 ? (
                     <div className="empty-state">
                         <Monitor size={48} />
                         <p>No assets found</p>
@@ -374,7 +406,7 @@ export default function AssetsList() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredAssets.map((asset) => (
+                                {assets.map((asset) => (
                                     <tr key={asset.assetId}>
                                         <td title={asset.managementIP || ''}>{asset.managementIP || '—'}</td>
                                         <td title={asset.locationName || ''}>{asset.locationName || '—'}</td>

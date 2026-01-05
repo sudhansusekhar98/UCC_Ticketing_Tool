@@ -53,6 +53,13 @@ public class ActivityService : IActivityService
 
             var activities = await query.ToListAsync();
 
+            // Also fetch unlinked attachments (those with TicketId but no ActivityId)
+            var unlinkedAttachments = await _context.TicketAttachments
+                .Include(att => att.Uploader)
+                .Where(att => att.TicketId == ticketId && att.ActivityId == null)
+                .OrderBy(att => att.UploadedOn)
+                .ToListAsync();
+
             var result = activities.Select(a => new TicketActivityDto
             {
                 ActivityId = a.ActivityId,
@@ -76,6 +83,40 @@ public class ActivityService : IActivityService
                     UploadedByName = att.Uploader?.FullName ?? "Unknown"
                 }).ToList()
             }).ToList();
+
+            // Add unlinked attachments as virtual "Attachment" activities
+            foreach (var att in unlinkedAttachments)
+            {
+                result.Add(new TicketActivityDto
+                {
+                    ActivityId = 0, // Virtual activity
+                    TicketId = ticketId,
+                    UserId = att.UploadedBy,
+                    UserName = att.Uploader?.FullName ?? "Unknown",
+                    UserRole = att.Uploader?.Role ?? "Unknown",
+                    ActivityType = "Attachment",
+                    Content = $"Uploaded attachment: {att.FileName}",
+                    IsInternal = false,
+                    CreatedOn = att.UploadedOn,
+                    Attachments = new List<AttachmentDto>
+                    {
+                        new AttachmentDto
+                        {
+                            AttachmentId = att.AttachmentId,
+                            FileName = att.FileName,
+                            ContentType = att.ContentType,
+                            FileSize = att.FileSize,
+                            StorageType = att.StorageType,
+                            Url = att.StorageType == "Cloudinary" ? att.CloudinaryUrl : $"/api/activities/attachments/{att.AttachmentId}/download",
+                            UploadedOn = att.UploadedOn,
+                            UploadedByName = att.Uploader?.FullName ?? "Unknown"
+                        }
+                    }
+                });
+            }
+
+            // Sort result by CreatedOn
+            result = result.OrderBy(a => a.CreatedOn).ToList();
 
             return ApiResponse<List<TicketActivityDto>>.SuccessResponse(result);
         }
@@ -163,7 +204,7 @@ public class ActivityService : IActivityService
             if (!isImage && !isDocument)
             {
                 _logger.LogWarning("Unsupported file type: {Extension}", extension);
-                return ApiResponse<UploadAttachmentResponse>.FailResponse("Unsupported file type. Allowed: images (jpg, png, gif, webp) and documents (pdf, doc, docx, xls, xlsx)");
+                return ApiResponse<UploadAttachmentResponse>.FailResponse("Unsupported file type. Allowed: images (jpg, png, gif, webp, bmp) and documents (pdf, doc, docx, xls, xlsx, txt, csv)");
             }
 
             var attachment = new TicketAttachment
@@ -174,27 +215,62 @@ public class ActivityService : IActivityService
                 FileName = file.FileName,
                 ContentType = file.ContentType,
                 FileSize = file.Length,
+                AttachmentType = isImage ? "image" : "document",
+                FilePath = file.FileName, // Will be updated with actual URL after upload
                 UploadedOn = DateTime.UtcNow
             };
 
-            // Store all files in database for reliability
-            _logger.LogInformation("Storing file in database...");
-            using var memoryStream = new MemoryStream();
-            await file.CopyToAsync(memoryStream);
-            
-            attachment.StorageType = "Database";
-            attachment.FileData = memoryStream.ToArray();
+            // Use Cloudinary for images, database for documents
+            if (isImage)
+            {
+                _logger.LogInformation("Uploading image to Cloudinary...");
+                using var stream = file.OpenReadStream();
+                var uploadResult = await _cloudinaryService.UploadImageAsync(stream, file.FileName);
+                
+                if (uploadResult.HasValue)
+                {
+                    attachment.StorageType = "Cloudinary";
+                    attachment.CloudinaryUrl = uploadResult.Value.Url;
+                    attachment.CloudinaryPublicId = uploadResult.Value.PublicId;
+                    attachment.FilePath = uploadResult.Value.Url; // Store the Cloudinary URL as FilePath
+                    _logger.LogInformation("Image uploaded to Cloudinary successfully. URL: {Url}", uploadResult.Value.Url);
+                }
+                else
+                {
+                    // Fallback to database if Cloudinary fails
+                    _logger.LogWarning("Cloudinary upload failed, falling back to database storage");
+                    using var memoryStream = new MemoryStream();
+                    await file.CopyToAsync(memoryStream);
+                    attachment.StorageType = "Database";
+                    attachment.FileData = memoryStream.ToArray();
+                    attachment.FilePath = $"/api/activities/attachments/{file.FileName}"; // Placeholder path
+                }
+            }
+            else
+            {
+                // Store documents in database
+                _logger.LogInformation("Storing document in database...");
+                using var memoryStream = new MemoryStream();
+                await file.CopyToAsync(memoryStream);
+                
+                attachment.StorageType = "Database";
+                attachment.FileData = memoryStream.ToArray();
+                attachment.FilePath = $"/api/activities/attachments/{file.FileName}"; // API path for download
+            }
 
             _context.TicketAttachments.Add(attachment);
             await _context.SaveChangesAsync();
             
-            _logger.LogInformation("Attachment saved successfully. AttachmentId: {AttachmentId}", attachment.AttachmentId);
+            _logger.LogInformation("Attachment saved successfully. AttachmentId: {AttachmentId}, StorageType: {StorageType}", 
+                attachment.AttachmentId, attachment.StorageType);
 
             var response = new UploadAttachmentResponse
             {
                 AttachmentId = attachment.AttachmentId,
                 FileName = attachment.FileName,
-                Url = $"/api/activities/attachments/{attachment.AttachmentId}/download",
+                Url = attachment.StorageType == "Cloudinary" 
+                    ? attachment.CloudinaryUrl 
+                    : $"/api/activities/attachments/{attachment.AttachmentId}/download",
                 StorageType = attachment.StorageType
             };
 
@@ -202,8 +278,11 @@ public class ActivityService : IActivityService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception in UploadAttachmentAsync for ticket {TicketId}, file: {FileName}", ticketId, file?.FileName);
-            return ApiResponse<UploadAttachmentResponse>.FailResponse("Failed to upload file: " + ex.Message);
+            var innerMessage = ex.InnerException?.Message ?? "No inner exception";
+            var innerInnerMessage = ex.InnerException?.InnerException?.Message ?? "No inner-inner exception";
+            _logger.LogError(ex, "Exception in UploadAttachmentAsync for ticket {TicketId}, file: {FileName}. Inner: {Inner}. InnerInner: {InnerInner}", 
+                ticketId, file?.FileName, innerMessage, innerInnerMessage);
+            return ApiResponse<UploadAttachmentResponse>.FailResponse($"Failed to upload file: {ex.Message} | Inner: {innerMessage}");
         }
     }
 

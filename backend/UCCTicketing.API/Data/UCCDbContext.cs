@@ -124,6 +124,28 @@ public class UCCDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        // Activity configuration
+        modelBuilder.Entity<TicketActivity>(entity =>
+        {
+            entity.HasIndex(e => e.TicketId);
+            entity.HasIndex(e => e.CreatedOn);
+
+            entity.HasOne(e => e.Ticket)
+                .WithMany(t => t.Activities)
+                .HasForeignKey(e => e.TicketId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(e => e.Attachments)
+                .WithOne(a => a.Activity)
+                .HasForeignKey(a => a.ActivityId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
         // Attachments configuration
         modelBuilder.Entity<TicketAttachment>(entity =>
         {
@@ -131,6 +153,8 @@ public class UCCDbContext : DbContext
                 .WithMany(t => t.Attachments)
                 .HasForeignKey(e => e.TicketId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // Note: UploadedBy FK is not enforced at DB level, only as navigation property
         });
 
         modelBuilder.Entity<WorkOrderAttachment>(entity =>

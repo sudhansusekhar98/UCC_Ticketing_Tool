@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("UCCTicketing.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e4bcc6d85f1c2c493c54353579dadb9fb95fdd6d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2e2fb44c3789c97de724f000ef9b0af00709cf0c")]
 [assembly: System.Reflection.AssemblyProductAttribute("UCCTicketing.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("UCCTicketing.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

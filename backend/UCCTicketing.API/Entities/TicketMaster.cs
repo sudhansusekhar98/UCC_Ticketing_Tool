@@ -107,6 +107,7 @@ public class TicketMaster
 
     // Navigation properties
     public virtual ICollection<TicketAuditTrail> AuditTrails { get; set; } = new List<TicketAuditTrail>();
+    public virtual ICollection<TicketActivity> Activities { get; set; } = new List<TicketActivity>();
     public virtual ICollection<WorkOrder> WorkOrders { get; set; } = new List<WorkOrder>();
     public virtual ICollection<TicketAttachment> Attachments { get; set; } = new List<TicketAttachment>();
 }

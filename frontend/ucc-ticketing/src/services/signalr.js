@@ -1,117 +1,43 @@
-import * as signalR from '@microsoft/signalr';
+/**
+ * SignalR Service - DISABLED for Express.js backend
+ * 
+ * The Express.js backend uses Socket.IO instead of SignalR.
+ * This is a stub service to prevent frontend errors.
+ * Real-time updates will be handled differently.
+ */
 
 class SignalRService {
     constructor() {
         this.connection = null;
-        this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = 5;
+        console.log('[SignalR] Service is disabled - using Socket.IO backend');
     }
 
     async start(accessToken) {
-        if (this.connection) {
-            await this.stop();
-        }
-
-        this.connection = new signalR.HubConnectionBuilder()
-            .withUrl('http://localhost:5119/hubs/tickets', {
-                accessTokenFactory: () => accessToken,
-            })
-            .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-            .configureLogging(signalR.LogLevel.Information)
-            .build();
-
-        this.connection.onreconnecting((error) => {
-            console.log('SignalR Reconnecting...', error);
-        });
-
-        this.connection.onreconnected((connectionId) => {
-            console.log('SignalR Reconnected:', connectionId);
-            this.reconnectAttempts = 0;
-        });
-
-        this.connection.onclose((error) => {
-            console.log('SignalR Connection closed:', error);
-            this.handleReconnect();
-        });
-
-        try {
-            await this.connection.start();
-            console.log('SignalR Connected');
-            this.reconnectAttempts = 0;
-            return true;
-        } catch (error) {
-            console.error('SignalR Connection failed:', error);
-            return false;
-        }
+        // Do nothing - SignalR is disabled
+        console.log('[SignalR] Start called but service is disabled');
+        return false;
     }
 
     async stop() {
-        if (this.connection) {
-            await this.connection.stop();
-            this.connection = null;
-        }
+        // Do nothing
     }
 
     async handleReconnect() {
-        if (this.reconnectAttempts < this.maxReconnectAttempts) {
-            this.reconnectAttempts++;
-            const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-            console.log(`Attempting to reconnect in ${delay}ms...`);
-            setTimeout(async () => {
-                const token = localStorage.getItem('accessToken');
-                if (token) {
-                    await this.start(token);
-                }
-            }, delay);
-        }
+        // Do nothing
     }
 
-    // Event handlers
-    onTicketCreated(callback) {
-        if (this.connection) {
-            this.connection.on('TicketCreated', callback);
-        }
-    }
+    // Event handlers - no-op
+    onTicketCreated(callback) {}
+    onTicketUpdated(callback) {}
+    onTicketAssigned(callback) {}
+    onTicketResolved(callback) {}
+    onDirectNotification(callback) {}
 
-    onTicketUpdated(callback) {
-        if (this.connection) {
-            this.connection.on('TicketUpdated', callback);
-        }
-    }
-
-    onTicketAssigned(callback) {
-        if (this.connection) {
-            this.connection.on('TicketAssigned', callback);
-        }
-    }
-
-    onTicketResolved(callback) {
-        if (this.connection) {
-            this.connection.on('TicketResolved', callback);
-        }
-    }
-
-    onDirectNotification(callback) {
-        if (this.connection) {
-            this.connection.on('DirectNotification', callback);
-        }
-    }
-
-    // Join site-specific group
-    async joinSiteGroup(siteId) {
-        if (this.connection?.state === signalR.HubConnectionState.Connected) {
-            await this.connection.invoke('JoinSiteGroup', siteId);
-        }
-    }
-
-    async leaveSiteGroup(siteId) {
-        if (this.connection?.state === signalR.HubConnectionState.Connected) {
-            await this.connection.invoke('LeaveSiteGroup', siteId);
-        }
-    }
+    async joinSiteGroup(siteId) {}
+    async leaveSiteGroup(siteId) {}
 
     isConnected() {
-        return this.connection?.state === signalR.HubConnectionState.Connected;
+        return false;
     }
 }
 

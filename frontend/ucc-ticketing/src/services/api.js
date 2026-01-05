@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5119/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -37,11 +37,11 @@ api.interceptors.response.use(
                         refreshToken,
                     });
 
-                    const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-                    localStorage.setItem('accessToken', accessToken);
-                    localStorage.setItem('refreshToken', newRefreshToken);
+                    // Express.js returns { token } instead of { accessToken }
+                    const { token } = response.data.data;
+                    localStorage.setItem('accessToken', token);
 
-                    originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+                    originalRequest.headers.Authorization = `Bearer ${token}`;
                     return api(originalRequest);
                 }
             } catch (refreshError) {
@@ -79,6 +79,7 @@ export const usersApi = {
     delete: (id) => api.delete(`/users/${id}`),
     getDropdown: (role) => api.get('/users/dropdown', { params: { role } }),
     getEngineers: () => api.get('/users/engineers'),
+    getContacts: () => api.get('/users/contacts'),
 };
 
 // Sites API

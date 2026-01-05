@@ -53,7 +53,8 @@ export default function Dashboard() {
         try {
             if (showToast) setRefreshing(true);
             const response = await ticketsApi.getDashboardStats();
-            setStats(response.data);
+            // Handle Express response format (data nested in data.data)
+            setStats(response.data.data || response.data);
             if (showToast) toast.success('Dashboard refreshed');
         } catch (error) {
             console.error('Failed to fetch dashboard stats:', error);
@@ -67,7 +68,12 @@ export default function Dashboard() {
     const fetchEngineers = async () => {
         try {
             const response = await usersApi.getEngineers();
-            setEngineers(response.data.data || response.data || []);
+            const engineerData = response.data.data || response.data || [];
+            // Map to expected format with value/label
+            setEngineers(engineerData.map(e => ({
+                value: e._id || e.userId || e.value,
+                label: e.fullName || e.label
+            })));
         } catch (error) {
             console.error('Failed to fetch engineers:', error);
         }
@@ -75,8 +81,17 @@ export default function Dashboard() {
 
     const fetchAssets = async () => {
         try {
-            const response = await assetsApi.getAll({ pageSize: 50 });
-            const assetData = response.data.items || response.data.data?.items || response.data || [];
+            const response = await assetsApi.getAll({ limit: 50 });
+            // Handle both Express (data.data) and .NET (data.items) formats
+            let assetData = response.data.data || response.data.items || response.data || [];
+            // Map to expected format
+            assetData = assetData.map(a => ({
+                ...a,
+                assetId: a._id || a.assetId,
+                assetName: a.assetCode || a.assetName,
+                assetTypeName: a.assetType,
+                status: a.status === 'Operational' ? 'Online' : 'Offline'
+            }));
             setAssets(assetData);
         } catch (error) {
             console.error('Failed to fetch assets:', error);
@@ -177,7 +192,7 @@ export default function Dashboard() {
                             View All <ArrowUpRight size={14} />
                         </Link>
                     </div>
-                    <div className="stat-value">{assets.length || stats?.totalAssets || 0}</div>
+                    <div className="stat-value">{stats?.totalAssets || 0}</div>
                     <div className="stat-label">Total Assets</div>
                     <div className="stat-footer">
                         <span className="text-danger">{stats?.offlineAssets || 0} offline</span>

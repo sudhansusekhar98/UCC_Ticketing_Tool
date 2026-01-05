@@ -43,7 +43,8 @@ export default function SitesList() {
     const loadCities = async () => {
         try {
             const response = await sitesApi.getCities();
-            setCities(response.data);
+            // Handle Express response format
+            setCities(response.data.data || response.data || []);
         } catch (error) {
             console.error('Failed to load cities', error);
         }
@@ -54,12 +55,22 @@ export default function SitesList() {
         try {
             const response = await sitesApi.getAll({
                 page,
-                pageSize,
+                limit: pageSize,
                 city: cityFilter || undefined,
                 isActive: true,
             });
-            setSites(response.data.items);
-            setTotalCount(response.data.totalCount);
+            // Handle Express response format
+            const siteData = response.data.data || response.data.items || response.data || [];
+            const total = response.data.pagination?.total || response.data.totalCount || siteData.length;
+            
+            // Map to expected format
+            const mappedSites = siteData.map(s => ({
+                ...s,
+                siteId: s._id || s.siteId
+            }));
+            
+            setSites(mappedSites);
+            setTotalCount(total);
         } catch (error) {
             toast.error('Failed to load sites');
         } finally {

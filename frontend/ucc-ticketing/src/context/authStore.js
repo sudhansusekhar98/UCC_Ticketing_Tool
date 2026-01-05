@@ -18,14 +18,24 @@ const useAuthStore = create(
                     const response = await authApi.login(username, password);
 
                     if (response.data.success) {
-                        const { userId, username: uname, fullName, email, role, accessToken, refreshToken } = response.data.data;
+                        // Express.js returns: { user: { id, username, fullName, email, role }, token, refreshToken }
+                        const { user, token, refreshToken } = response.data.data;
+                        
+                        // Map 'token' to 'accessToken' for consistency
+                        const accessToken = token;
 
                         // Store tokens in localStorage for API interceptor
                         localStorage.setItem('accessToken', accessToken);
                         localStorage.setItem('refreshToken', refreshToken);
 
                         set({
-                            user: { userId, username: uname, fullName, email, role },
+                            user: { 
+                                userId: user.id, 
+                                username: user.username, 
+                                fullName: user.fullName, 
+                                email: user.email, 
+                                role: user.role 
+                            },
                             accessToken,
                             refreshToken,
                             isAuthenticated: true,
@@ -70,14 +80,14 @@ const useAuthStore = create(
                 try {
                     const response = await authApi.refresh(refreshToken);
                     if (response.data.success) {
-                        const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
+                        // Express.js returns { token } (no new refresh token)
+                        const { token } = response.data.data;
+                        const newAccessToken = token;
 
                         localStorage.setItem('accessToken', newAccessToken);
-                        localStorage.setItem('refreshToken', newRefreshToken);
 
                         set({
                             accessToken: newAccessToken,
-                            refreshToken: newRefreshToken,
                         });
 
                         return true;

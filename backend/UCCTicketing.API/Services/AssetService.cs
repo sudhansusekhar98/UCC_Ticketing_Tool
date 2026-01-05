@@ -9,7 +9,7 @@ namespace UCCTicketing.API.Services;
 
 public interface IAssetService
 {
-    Task<PagedResponse<AssetDto>> GetAssetsAsync(int page, int pageSize, int? siteId = null, string? assetType = null, string? status = null, bool? isActive = null, int userId = 0, string userRole = "");
+    Task<PagedResponse<AssetDto>> GetAssetsAsync(int page, int pageSize, string? search = null, int? siteId = null, string? assetType = null, string? status = null, bool? isActive = null, int userId = 0, string userRole = "");
     Task<AssetDto?> GetAssetByIdAsync(int assetId);
     Task<ApiResponse<AssetDto>> CreateAssetAsync(CreateAssetRequest request);
     Task<ApiResponse<AssetDto>> UpdateAssetAsync(int assetId, UpdateAssetRequest request);
@@ -34,12 +34,29 @@ public class AssetService : IAssetService
         _logger = logger;
     }
 
-    public async Task<PagedResponse<AssetDto>> GetAssetsAsync(int page, int pageSize, int? siteId = null, string? assetType = null, string? status = null, bool? isActive = null, int userId = 0, string userRole = "")
+    public async Task<PagedResponse<AssetDto>> GetAssetsAsync(int page, int pageSize, string? search = null, int? siteId = null, string? assetType = null, string? status = null, bool? isActive = null, int userId = 0, string userRole = "")
     {
         var query = _context.Assets
             .Include(a => a.Site)
             .Include(a => a.Tickets.Where(t => TicketStatuses.ActiveStatuses.Contains(t.Status)))
             .AsQueryable();
+
+        // Search filter
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            search = search.ToLower().Trim();
+            query = query.Where(a => 
+                a.AssetCode.ToLower().Contains(search) ||
+                (a.Make != null && a.Make.ToLower().Contains(search)) ||
+                (a.Model != null && a.Model.ToLower().Contains(search)) ||
+                (a.SerialNumber != null && a.SerialNumber.ToLower().Contains(search)) ||
+                (a.ManagementIP != null && a.ManagementIP.ToLower().Contains(search)) ||
+                (a.MAC != null && a.MAC.ToLower().Contains(search)) ||
+                (a.LocationName != null && a.LocationName.ToLower().Contains(search)) ||
+                (a.DeviceType != null && a.DeviceType.ToLower().Contains(search)) ||
+                (a.UsedFor != null && a.UsedFor.ToLower().Contains(search))
+            );
+        }
 
         // Filter by user's site if not admin
         if (!string.IsNullOrEmpty(userRole) && userRole != UserRoles.Admin && userId > 0)

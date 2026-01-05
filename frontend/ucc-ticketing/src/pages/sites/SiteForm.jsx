@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Loader } from 'lucide-react';
-import { sitesApi } from '../../services/api';
+import { sitesApi, usersApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import './Sites.css';
 
@@ -12,6 +12,7 @@ export default function SiteForm() {
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [contacts, setContacts] = useState([]);
 
     const [formData, setFormData] = useState({
         siteName: '',
@@ -28,10 +29,25 @@ export default function SiteForm() {
     });
 
     useEffect(() => {
+        loadContacts();
         if (isEditing) {
             loadSite();
         }
     }, [id]);
+
+    const loadContacts = async () => {
+        try {
+            const response = await usersApi.getContacts();
+            // Handle Express response format
+            const contactData = response.data.data || response.data || [];
+            setContacts(contactData.map(c => ({
+                ...c,
+                userId: c._id || c.userId
+            })));
+        } catch (error) {
+            console.error('Failed to load contacts', error);
+        }
+    };
 
     const loadSite = async () => {
         setLoading(true);
@@ -40,7 +56,7 @@ export default function SiteForm() {
             const site = response.data.data;
             setFormData({
                 siteName: site.siteName,
-                siteUniqueID: site.SiteUniqueID,               
+                siteUniqueID: site.siteUniqueID || '',               
                 city: site.city,
                 zone: site.zone || '',
                 ward: site.ward || '',
@@ -61,6 +77,15 @@ export default function SiteForm() {
 
     const handleChange = (field, value) => {
         setFormData({ ...formData, [field]: value });
+    };
+
+    const handleContactPersonChange = (selectedName) => {
+        const selectedContact = contacts.find(c => c.fullName === selectedName);
+        setFormData({
+            ...formData,
+            contactPerson: selectedName,
+            contactPhone: selectedContact?.mobileNumber || ''
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -103,7 +128,7 @@ export default function SiteForm() {
     }
 
     return (
-        <div className="page-container animate-fade-in">
+        <div className="page-container form-view animate-fade-in">
             <Link to="/sites" className="back-link">
                 <ArrowLeft size={18} />
                 Back to Sites
@@ -212,13 +237,18 @@ export default function SiteForm() {
 
                     <div className="form-group">
                         <label className="form-label">Contact Person</label>
-                        <input
-                            type="text"
-                            className="form-input"
+                        <select
+                            className="form-select"
                             value={formData.contactPerson}
-                            onChange={(e) => handleChange('contactPerson', e.target.value)}
-                            placeholder="Enter contact name"
-                        />
+                            onChange={(e) => handleContactPersonChange(e.target.value)}
+                        >
+                            <option value="">Select contact person</option>
+                            {contacts.map((contact) => (
+                                <option key={contact.userId} value={contact.fullName}>
+                                    {contact.fullName}
+                                </option>
+                            ))}
+                        </select>
                     </div>
 
                     <div className="form-group">
@@ -228,7 +258,7 @@ export default function SiteForm() {
                             className="form-input"
                             value={formData.contactPhone}
                             onChange={(e) => handleChange('contactPhone', e.target.value)}
-                            placeholder="Enter phone number"
+                            placeholder="Auto-filled from selected contact"
                         />
                     </div>
 

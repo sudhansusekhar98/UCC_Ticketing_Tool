@@ -13,6 +13,7 @@ public interface IUserService
     Task<ApiResponse<UserDto>> UpdateUserAsync(int userId, UpdateUserRequest request);
     Task<ApiResponse<bool>> DeleteUserAsync(int userId);
     Task<List<DropdownOption>> GetUsersDropdownAsync(string? role = null);
+    Task<List<UserContactDto>> GetUsersContactDropdownAsync();
     Task<List<DropdownOption>> GetEngineersDropdownAsync(int userId, string userRole);
 }
 
@@ -224,6 +225,20 @@ public class UserService : IUserService
             {
                 Value = u.UserId.ToString(),
                 Label = u.FullName
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<UserContactDto>> GetUsersContactDropdownAsync()
+    {
+        return await _context.Users
+            .Where(u => u.IsActive)
+            .OrderBy(u => u.FullName)
+            .Select(u => new UserContactDto
+            {
+                UserId = u.UserId,
+                FullName = u.FullName,
+                MobileNumber = u.MobileNumber
             })
             .ToListAsync();
     }

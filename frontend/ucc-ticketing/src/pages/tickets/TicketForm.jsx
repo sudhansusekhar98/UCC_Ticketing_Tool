@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Loader } from 'lucide-react';
 import { ticketsApi, assetsApi, sitesApi, lookupsApi, usersApi } from '../../services/api';
+import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import './Tickets.css';
 
@@ -9,6 +10,7 @@ export default function TicketForm() {
     const { id } = useParams();
     const navigate = useNavigate();
     const isEditing = Boolean(id);
+    const { user } = useAuthStore();
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -31,6 +33,7 @@ export default function TicketForm() {
     const [assets, setAssets] = useState([]);
     const [sites, setSites] = useState([]);
     const [engineers, setEngineers] = useState([]);
+    const [allUsers, setAllUsers] = useState([]);
     const [selectedSiteId, setSelectedSiteId] = useState('');
 
     useEffect(() => {
@@ -51,14 +54,33 @@ export default function TicketForm() {
 
     const loadDropdowns = async () => {
         try {
-            const [categoriesRes, sitesRes, engineersRes] = await Promise.all([
+            const [categoriesRes, sitesRes, engineersRes, usersRes] = await Promise.all([
                 lookupsApi.getCategories(),
                 sitesApi.getDropdown(),
                 usersApi.getEngineers(),
+                usersApi.getDropdown(), // Get all active users
             ]);
-            setCategories(categoriesRes.data);
-            setSites(sitesRes.data);
-            setEngineers(engineersRes.data);
+            // Handle Express response format
+            const catData = categoriesRes.data.data || categoriesRes.data || [];
+            setCategories(catData);
+            
+            const siteData = sitesRes.data.data || sitesRes.data || [];
+            setSites(siteData.map(s => ({
+                value: s._id || s.value || s.siteId,
+                label: s.siteName || s.label
+            })));
+            
+            const engData = engineersRes.data.data || engineersRes.data || [];
+            setEngineers(engData.map(e => ({
+                value: e._id || e.value || e.userId,
+                label: e.fullName || e.label
+            })));
+            
+            const userData = usersRes.data.data || usersRes.data || [];
+            setAllUsers(userData.map(u => ({
+                value: u._id || u.value || u.userId,
+                label: u.fullName || u.label
+            })));
         } catch (error) {
             console.error('Failed to load dropdowns', error);
         }
@@ -67,7 +89,11 @@ export default function TicketForm() {
     const loadAllAssets = async () => {
         try {
             const response = await assetsApi.getDropdown();
-            setAssets(response.data);
+            const assetData = response.data.data || response.data || [];
+            setAssets(assetData.map(a => ({
+                value: a._id || a.value || a.assetId,
+                label: a.assetCode || a.label
+            })));
         } catch (error) {
             console.error('Failed to load assets', error);
         }
@@ -76,7 +102,11 @@ export default function TicketForm() {
     const loadAssets = async (siteId) => {
         try {
             const response = await assetsApi.getDropdown(siteId);
-            setAssets(response.data);
+            const assetData = response.data.data || response.data || [];
+            setAssets(assetData.map(a => ({
+                value: a._id || a.value || a.assetId,
+                label: a.assetCode || a.label
+            })));
         } catch (error) {
             console.error('Failed to load assets', error);
         }
@@ -86,16 +116,19 @@ export default function TicketForm() {
         setLoading(true);
         try {
             const response = await ticketsApi.getById(id);
-            const ticket = response.data.data;
+            const ticket = response.data.data || response.data;
+            // Get IDs - could be objects or strings
+            const assetIdValue = typeof ticket.assetId === 'object' ? ticket.assetId?._id : ticket.assetId;
+            const assignedToValue = typeof ticket.assignedTo === 'object' ? ticket.assignedTo?._id : ticket.assignedTo;
             setFormData({
-                assetId: ticket.assetId?.toString() || '',
+                assetId: assetIdValue || '',
                 category: ticket.category,
                 subCategory: ticket.subCategory || '',
                 title: ticket.title,
                 description: ticket.description || '',
                 impact: ticket.impact,
                 urgency: ticket.urgency,
-                assignedTo: ticket.assignedTo?.toString() || '',
+                assignedTo: assignedToValue || '',
                 tags: ticket.tags || '',
             });
         } catch (error) {
@@ -122,8 +155,8 @@ export default function TicketForm() {
         try {
             const payload = {
                 ...formData,
-                assetId: formData.assetId ? parseInt(formData.assetId) : null,
-                assignedTo: formData.assignedTo ? parseInt(formData.assignedTo) : null,
+                assetId: formData.assetId || null, // Keep as string for MongoDB ObjectId
+                assignedTo: formData.assignedTo || null, // Keep as string for MongoDB ObjectId
                 impact: parseInt(formData.impact),
                 urgency: parseInt(formData.urgency),
             };
@@ -134,7 +167,8 @@ export default function TicketForm() {
             } else {
                 const response = await ticketsApi.create(payload);
                 toast.success('Ticket created successfully');
-                navigate(`/tickets/${response.data.data.ticketId}`);
+                const newTicketId = response.data.data?._id || response.data.data?.ticketId || response.data._id;
+                navigate(`/tickets/${newTicketId}`);
                 return;
             }
 
@@ -294,9 +328,28 @@ export default function TicketForm() {
                                 onChange={(e) => handleChange('assignedTo', e.target.value)}
                             >
                                 <option value="">Unassigned</option>
-                                {engineers.map((eng) => (
-                                    <option key={eng.value} value={eng.value}>{eng.label}</option>
-                                ))}
+                                {user && (
+                                    <option value={user.userId}>
+                                        👤 Assign to Myself ({user.fullName})
+                                    </option>
+                                )}
+                                <optgroup label="Engineers">
+                                    {engineers
+                                        .filter(eng => eng.value !== user?.userId?.toString())
+                                        .map((eng) => (
+                                            <option key={eng.value} value={eng.value}>{eng.label}</option>
+                                        ))}
+                                </optgroup>
+                                <optgroup label="Other Employees">
+                                    {allUsers
+                                        .filter(u => 
+                                            u.value !== user?.userId?.toString() && 
+                                            !engineers.some(e => e.value === u.value)
+                                        )
+                                        .map((u) => (
+                                            <option key={u.value} value={u.value}>{u.label}</option>
+                                        ))}
+                                </optgroup>
                             </select>
                         </div>
                     )}

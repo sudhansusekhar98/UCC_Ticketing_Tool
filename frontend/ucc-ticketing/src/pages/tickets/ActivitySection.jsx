@@ -41,6 +41,16 @@ const getActivityTypeIcon = (type) => {
     }
 };
 
+// Helper function to properly parse UTC dates from backend
+const parseUTCDate = (dateString) => {
+    if (!dateString) return new Date();
+    // If the date string doesn't have a timezone indicator, treat it as UTC
+    if (!dateString.endsWith('Z') && !dateString.includes('+')) {
+        return new Date(dateString + 'Z');
+    }
+    return new Date(dateString);
+};
+
 export default function ActivitySection({ ticketId, ticketStatus }) {
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -67,7 +77,21 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
     const fetchActivities = async () => {
         try {
             const response = await activitiesApi.getByTicket(ticketId);
-            setActivities(response.data.data || []);
+            const activityData = response.data.data || response.data || [];
+            // Map Express.js fields to frontend expected fields
+            const mappedActivities = activityData.map(a => ({
+                ...a,
+                activityId: a._id || a.activityId,
+                userId: typeof a.userId === 'object' ? a.userId?._id : a.userId,
+                userName: a.userId?.fullName || a.userName || 'Unknown',
+                userRole: a.userId?.role || a.userRole || '',
+                createdOn: a.createdAt || a.createdOn,
+                attachments: (a.attachments || []).map(att => ({
+                    ...att,
+                    attachmentId: att._id || att.attachmentId
+                }))
+            }));
+            setActivities(mappedActivities);
         } catch (error) {
             console.error('Failed to load activities', error);
         } finally {
@@ -218,7 +242,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                             className={`activity-item ${activity.userId === user?.userId ? 'own' : ''} ${activity.isInternal ? 'internal' : ''}`}
                         >
                             <div className="activity-avatar">
-                                {activity.userName.charAt(0).toUpperCase()}
+                                {(activity.userName || 'U').charAt(0).toUpperCase()}
                             </div>
                             <div className="activity-content">
                                 <div className="activity-meta">
@@ -243,7 +267,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                                             // Construct full URL for database-stored files
                                             const fullUrl = att.storageType === 'Cloudinary' 
                                                 ? att.url 
-                                                : `http://localhost:5119${att.url}`;
+                                                : `http://localhost:5000${att.url}`;
                                             
                                             return (
                                                 <div key={att.attachmentId} className="attachment-item">
@@ -251,7 +275,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                                                         <div className="attachment-image">
                                                             <img src={fullUrl} alt={att.fileName} />
                                                             <div className="attachment-overlay">
-                                                                <button onClick={() => window.open(fullUrl, '_blank')}>
+                                                                <button style={{ color: "white", backgroundColor: "transparent", border: "none" }} onClick={() => window.open(fullUrl, '_blank')}>
                                                                     View Full
                                                                 </button>
                                                             </div>
@@ -274,9 +298,9 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
 
                                 <div className="activity-time">
                                     <Clock size={12} />
-                                    {formatDistanceToNow(new Date(activity.createdOn), { addSuffix: true })}
+                                    {formatDistanceToNow(parseUTCDate(activity.createdOn), { addSuffix: true })}
                                     <span className="activity-exact-time">
-                                        {format(new Date(activity.createdOn), 'MMM dd, yyyy HH:mm')}
+                                        {format(parseUTCDate(activity.createdOn), 'MMM dd, yyyy HH:mm')}
                                     </span>
                                 </div>
                             </div>

@@ -41,7 +41,9 @@ export default function TicketDetail() {
 
     const canEdit = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
     const canAssign = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
-    const canAcknowledge = hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']) && ticket?.assignedTo === user?.userId;
+    // Compare using string IDs for MongoDB
+    const assignedToId = typeof ticket?.assignedTo === 'object' ? ticket?.assignedTo?._id : ticket?.assignedTo;
+    const canAcknowledge = hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']) && assignedToId === user?.userId;
     const canResolve = hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']);
     const canClose = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
     const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
@@ -55,7 +57,21 @@ export default function TicketDetail() {
     const fetchTicket = async () => {
         try {
             const response = await ticketsApi.getById(id);
-            setTicket(response.data.data);
+            const ticketData = response.data.data || response.data;
+            // Map fields for Express response
+            setTicket({
+                ...ticketData,
+                ticketId: ticketData._id || ticketData.ticketId,
+                createdOn: ticketData.createdAt || ticketData.createdOn,
+                assetCode: ticketData.assetId?.assetCode || ticketData.assetCode,
+                assetType: ticketData.assetId?.assetType || ticketData.assetType,
+                siteName: ticketData.assetId?.siteId?.siteName || ticketData.siteName,
+                createdByName: ticketData.createdBy?.fullName || ticketData.createdByName,
+                assignedToName: ticketData.assignedTo?.fullName || ticketData.assignedToName,
+                assignedTo: typeof ticketData.assignedTo === 'object' ? ticketData.assignedTo?._id : ticketData.assignedTo,
+                slaStatus: ticketData.isSLARestoreBreached ? 'Breached' : 
+                           (ticketData.isSLAResponseBreached ? 'AtRisk' : 'OnTrack')
+            });
         } catch (error) {
             toast.error('Failed to load ticket');
             navigate('/tickets');
@@ -67,7 +83,15 @@ export default function TicketDetail() {
     const fetchAuditTrail = async () => {
         try {
             const response = await ticketsApi.getAuditTrail(id);
-            setAuditTrail(response.data);
+            const activities = response.data.data || response.data || [];
+            // Map fields for Express response
+            setAuditTrail(activities.map(a => ({
+                ...a,
+                auditId: a._id || a.auditId || a.activityId,
+                action: a.activityType || a.action,
+                performedOn: a.createdOn || a.performedOn || a.createdAt,
+                remarks: a.content || a.remarks
+            })));
         } catch (error) {
             console.error('Failed to load audit trail', error);
         }
@@ -76,7 +100,11 @@ export default function TicketDetail() {
     const loadEngineers = async () => {
         try {
             const response = await usersApi.getEngineers();
-            setEngineers(response.data);
+            const engData = response.data.data || response.data || [];
+            setEngineers(engData.map(e => ({
+                value: e._id || e.value || e.userId,
+                label: e.fullName || e.label
+            })));
         } catch (error) {
             console.error('Failed to load engineers', error);
         }
@@ -182,8 +210,8 @@ export default function TicketDetail() {
         }
     };
 
-    const getPriorityClass = (priority) => `priority-${priority.toLowerCase()}`;
-    const getSLAStatusClass = (status) => `sla-${status.toLowerCase()}`;
+    const getPriorityClass = (priority) => priority ? `priority-${priority.toLowerCase()}` : '';
+    const getSLAStatusClass = (status) => status ? `sla-${status.toLowerCase()}` : '';
 
     if (loading) {
         return (
@@ -436,7 +464,7 @@ export default function TicketDetail() {
 
                 {/* Activity Section - Right Side */}
                 <div className="detail-activity">
-                    <ActivitySection ticketId={parseInt(id)} ticketStatus={ticket.status} />
+                    <ActivitySection ticketId={id} ticketStatus={ticket.status} />
                 </div>
             </div>
 

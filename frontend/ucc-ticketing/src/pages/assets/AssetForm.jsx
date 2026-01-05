@@ -59,9 +59,18 @@ export default function AssetForm() {
                 lookupsApi.getAssetTypes(),
                 lookupsApi.getAssetStatuses(),
             ]);
-            setSites(sitesRes.data);
-            setAssetTypes(typesRes.data);
-            setAssetStatuses(statusesRes.data);
+            // Handle Express response format
+            const siteData = sitesRes.data.data || sitesRes.data || [];
+            setSites(siteData.map(s => ({
+                value: s._id || s.value || s.siteId,
+                label: s.siteName || s.label
+            })));
+            
+            const typeData = typesRes.data.data || typesRes.data || [];
+            setAssetTypes(typeData);
+            
+            const statusData = statusesRes.data.data || statusesRes.data || [];
+            setAssetStatuses(statusData);
         } catch (error) {
             console.error('Failed to load dropdowns', error);
         }
@@ -71,7 +80,9 @@ export default function AssetForm() {
         setLoading(true);
         try {
             const response = await assetsApi.getById(id);
-            const asset = response.data.data;
+            const asset = response.data.data || response.data;
+            // Get siteId - could be object or string
+            const siteIdValue = typeof asset.siteId === 'object' ? asset.siteId?._id : asset.siteId;
             setFormData({
                 assetCode: asset.assetCode,
                 assetType: asset.assetType,
@@ -82,7 +93,7 @@ export default function AssetForm() {
                 managementIP: asset.managementIP || '',
 
                 mac: asset.mac || '',
-                siteId: asset.siteId?.toString() || '',
+                siteId: siteIdValue || '',
                 locationDescription: asset.locationDescription || '',
                 locationName: asset.locationName || '',
                 deviceType: asset.deviceType || '',
@@ -122,7 +133,7 @@ export default function AssetForm() {
         try {
             const payload = {
                 ...formData,
-                siteId: parseInt(formData.siteId),
+                siteId: formData.siteId, // Keep as string for MongoDB ObjectId
                 criticality: parseInt(formData.criticality),
                 installationDate: formData.installationDate || null,
                 warrantyEndDate: formData.warrantyEndDate || null,
@@ -153,7 +164,7 @@ export default function AssetForm() {
     }
 
     return (
-        <div className="page-container animate-fade-in">
+        <div className="page-container form-view animate-fade-in">
             <Link to="/assets" className="back-link">
                 <ArrowLeft size={18} />
                 Back to Assets

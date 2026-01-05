@@ -64,11 +64,24 @@ export default function TicketsList() {
                 usersApi.getEngineers(),
                 sitesApi.getDropdown(),
             ]);
-            setStatuses(statusRes.data);
-            setPriorities(priorityRes.data);
-            setCategories(categoryRes.data);
-            setEngineers(engineersRes.data);
-            setSites(sitesRes.data);
+            // Handle both Express (data.data) and .NET (data) response formats
+            setStatuses(statusRes.data.data || statusRes.data || []);
+            setPriorities(priorityRes.data.data || priorityRes.data || []);
+            setCategories(categoryRes.data.data || categoryRes.data || []);
+            
+            // Map engineers to expected format
+            const engineerData = engineersRes.data.data || engineersRes.data || [];
+            setEngineers(engineerData.map(e => ({
+                value: e._id || e.value || e.userId,
+                label: e.fullName || e.label
+            })));
+            
+            // Map sites to expected format
+            const siteData = sitesRes.data.data || sitesRes.data || [];
+            setSites(siteData.map(s => ({
+                value: s._id || s.value || s.siteId,
+                label: s.siteName || s.label
+            })));
         } catch (error) {
             console.error('Failed to load dropdowns', error);
         }
@@ -79,10 +92,27 @@ export default function TicketsList() {
         try {
             const response = await ticketsApi.getAll({
                 ...filters,
+                search: filters.searchTerm, // Map searchTerm to search
                 isSLABreached: searchParams.get('slaBreached') === 'true' ? true : undefined,
             });
-            setTickets(response.data.items);
-            setTotalCount(response.data.totalCount);
+            // Handle both Express.js and .NET response formats
+            const ticketData = response.data.data || response.data.items || response.data || [];
+            const total = response.data.pagination?.total || response.data.totalCount || ticketData.length;
+            
+            // Map Express.js fields to frontend expected fields
+            const mappedTickets = Array.isArray(ticketData) ? ticketData.map(t => ({
+                ...t,
+                ticketId: t._id || t.ticketId,
+                createdOn: t.createdAt || t.createdOn,
+                assetCode: t.assetId?.assetCode || t.assetCode,
+                siteName: t.assetId?.siteId?.siteName || t.siteName,
+                assignedToName: t.assignedTo?.fullName || t.assignedToName,
+                slaStatus: t.isSLARestoreBreached ? 'Breached' : 
+                           (t.isSLAResponseBreached ? 'AtRisk' : 'OnTrack')
+            })) : [];
+            
+            setTickets(mappedTickets);
+            setTotalCount(total);
         } catch (error) {
             toast.error('Failed to load tickets');
             console.error(error);

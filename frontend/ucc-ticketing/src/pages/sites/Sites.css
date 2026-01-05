@@ -2,10 +2,17 @@
 
 /* Page Container - Fit to Screen */
 .page-container {
-    height: calc(100vh - 64px - 48px);
+    /* Adjusted to ensure bottom scrollbar is visible. 
+       100vh - Header(64px) - Padding(48px) - Buffer(28px) = ~140px subtraction */
+    height: calc(100vh - 140px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+/* Allow scrolling for form views */
+.page-container.form-view {
+    overflow-y: auto;
 }
 
 /* Compact Filter Bar */
@@ -171,6 +178,8 @@
     max-width: 1200px;
     padding: var(--space-5);
     flex: 1;
+    overflow-y: auto;
+    max-height: calc(100vh - 180px);
 }
 
 .form-section-title {
@@ -258,38 +267,40 @@
 
 /* Assets Table Specific Styles */
 .assets-table {
-    table-layout: fixed;
+    table-layout: auto;
     width: 100%;
+    min-width: 100%;
 }
 
 .assets-table th,
 .assets-table td {
-    padding: var(--space-2) var(--space-2);
+    padding: var(--space-2) var(--space-1);
     font-size: var(--text-xs);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    max-width: 120px;
 }
 
 .assets-table th {
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
 }
 
-/* Column widths for assets table */
-.assets-table .col-ip { width: 110px; }
-.assets-table .col-location { width: 120px; }
-.assets-table .col-make { width: 80px; }
-.assets-table .col-model { width: 90px; }
-.assets-table .col-mac { width: 110px; }
-.assets-table .col-serial { width: 100px; }
-.assets-table .col-device { width: 90px; }
-.assets-table .col-used { width: 90px; }
-.assets-table .col-user { width: 80px; }
-.assets-table .col-pass { width: 70px; }
-.assets-table .col-remark { width: 100px; }
-.assets-table .col-actions { width: 70px; }
+/* Column widths for assets table - percentage based to fit screen */
+.assets-table .col-ip { width: 9%; min-width: 80px; }
+.assets-table .col-location { width: 10%; min-width: 85px; }
+.assets-table .col-make { width: 7%; min-width: 55px; }
+.assets-table .col-model { width: 8%; min-width: 65px; }
+.assets-table .col-mac { width: 10%; min-width: 90px; }
+.assets-table .col-serial { width: 9%; min-width: 75px; }
+.assets-table .col-device { width: 8%; min-width: 60px; }
+.assets-table .col-used { width: 9%; min-width: 70px; }
+.assets-table .col-user { width: 7%; min-width: 55px; }
+.assets-table .col-pass { width: 5%; min-width: 45px; }
+.assets-table .col-remark { width: 12%; min-width: 80px; }
+.assets-table .col-actions { width: 6%; min-width: 50px; }
 
 /* Tooltip on hover for truncated text */
 .assets-table td[title] {

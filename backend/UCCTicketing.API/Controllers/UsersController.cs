@@ -113,6 +113,16 @@ public class UsersController : ControllerBase
         var result = await _userService.GetEngineersDropdownAsync(userId, userRole);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Get users with contact info for Site form
+    /// </summary>
+    [HttpGet("contacts")]
+    public async Task<ActionResult<List<UserContactDto>>> GetUsersWithContacts()
+    {
+        var result = await _userService.GetUsersContactDropdownAsync();
+        return Ok(result);
+    }
     
     private int GetCurrentUserId()
     {

@@ -171,6 +171,13 @@ public class CompleteWorkOrderRequest
 
 // ============ Dropdown Options ============
 
+public class UserContactDto
+{
+    public int UserId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string? MobileNumber { get; set; }
+}
+
 public class DropdownOption
 {
     public string Value { get; set; } = string.Empty;

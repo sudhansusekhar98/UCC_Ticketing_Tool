@@ -47,8 +47,15 @@ export default function UserForm() {
                 sitesApi.getDropdown(),
                 lookupsApi.getRoles(),
             ]);
-            setSites(sitesRes.data);
-            setRoles(rolesRes.data);
+            // Handle Express response format
+            const siteData = sitesRes.data.data || sitesRes.data || [];
+            setSites(siteData.map(s => ({
+                value: s._id || s.value || s.siteId,
+                label: s.siteName || s.label
+            })));
+            
+            const roleData = rolesRes.data.data || rolesRes.data || [];
+            setRoles(roleData);
         } catch (error) {
             console.error('Failed to load dropdowns', error);
         }
@@ -58,7 +65,9 @@ export default function UserForm() {
         setLoading(true);
         try {
             const response = await usersApi.getById(id);
-            const user = response.data.data;
+            const user = response.data.data || response.data;
+            // Get siteId - could be object or string
+            const siteIdValue = typeof user.siteId === 'object' ? user.siteId?._id : user.siteId;
             setFormData({
                 fullName: user.fullName,
                 email: user.email,
@@ -68,7 +77,7 @@ export default function UserForm() {
                 role: user.role,
                 mobileNumber: user.mobileNumber || '',
                 designation: user.designation || '',
-                siteId: user.siteId?.toString() || '',
+                siteId: siteIdValue || '',
                 isActive: user.isActive,
             });
         } catch (error) {
@@ -145,7 +154,7 @@ export default function UserForm() {
                 role: formData.role,
                 mobileNumber: formData.mobileNumber || null,
                 designation: formData.designation || null,
-                siteId: formData.siteId ? parseInt(formData.siteId) : null,
+                siteId: formData.siteId || null, // Keep as string for MongoDB ObjectId
                 isActive: formData.isActive,
             };
 
@@ -171,7 +180,7 @@ export default function UserForm() {
         }
     };
 
-    const isEditingSelf = isEditing && parseInt(id) === currentUser?.userId;
+    const isEditingSelf = isEditing && id === currentUser?.userId;
 
     if (loading) {
         return (

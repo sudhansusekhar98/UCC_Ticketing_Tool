@@ -59,7 +59,8 @@ export default function UsersList() {
     const loadRoles = async () => {
         try {
             const response = await lookupsApi.getRoles();
-            setRoles(response.data);
+            // Handle Express response format
+            setRoles(response.data.data || response.data || []);
         } catch (error) {
             console.error('Failed to load roles', error);
         }
@@ -70,12 +71,23 @@ export default function UsersList() {
         try {
             const response = await usersApi.getAll({
                 page,
-                pageSize,
+                limit: pageSize,
                 role: roleFilter || undefined,
                 isActive: statusFilter === '' ? undefined : statusFilter === 'true',
             });
-            setUsers(response.data.items);
-            setTotalCount(response.data.totalCount);
+            // Handle Express response format
+            const userData = response.data.data || response.data.items || response.data || [];
+            const total = response.data.pagination?.total || response.data.totalCount || userData.length;
+            
+            // Map to expected format
+            const mappedUsers = userData.map(u => ({
+                ...u,
+                userId: u._id || u.userId,
+                siteName: u.siteId?.siteName || u.siteName
+            }));
+            
+            setUsers(mappedUsers);
+            setTotalCount(total);
         } catch (error) {
             toast.error('Failed to load users');
         } finally {
