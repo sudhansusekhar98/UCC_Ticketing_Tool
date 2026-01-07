@@ -23,7 +23,7 @@ import {
   downloadAttachment,
   deleteAttachment
 } from '../controllers/activity.controller.js';
-import { protect, authorize } from '../middleware/auth.middleware.js';
+import { protect, allowAccess } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
@@ -61,20 +61,20 @@ router.get('/dashboard/stats', getDashboardStats);
 // CRUD routes
 router.route('/')
   .get(getTickets)
-  .post(createTicket);
+  .post(allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'CREATE_TICKET' }), createTicket);
 
 router.route('/:id')
   .get(getTicketById)
-  .put(updateTicket);
+  .put(allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'EDIT_TICKET' }), updateTicket);
 
 // Ticket lifecycle routes
-router.post('/:id/assign', authorize('Admin', 'Dispatcher', 'Supervisor'), assignTicket);
-router.post('/:id/acknowledge', acknowledgeTicket);
-router.post('/:id/start', startTicket);
-router.post('/:id/resolve', resolveTicket);
-router.post('/:id/verify', authorize('Admin', 'Dispatcher', 'Supervisor'), verifyTicket);
-router.post('/:id/close', authorize('Admin', 'Dispatcher', 'Supervisor'), closeTicket);
-router.post('/:id/reopen', authorize('Admin', 'Dispatcher', 'Supervisor'), reopenTicket);
+router.post('/:id/assign', allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'EDIT_TICKET' }), assignTicket);
+router.post('/:id/acknowledge', acknowledgeTicket); // Logic handled in controller for assignee
+router.post('/:id/start', startTicket); // Logic handled in controller for assignee
+router.post('/:id/resolve', resolveTicket); // Logic handled in controller for assignee
+router.post('/:id/verify', allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'EDIT_TICKET' }), verifyTicket);
+router.post('/:id/close', allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'DELETE_TICKET' }), closeTicket);
+router.post('/:id/reopen', allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'EDIT_TICKET' }), reopenTicket);
 
 // Audit trail
 router.get('/:id/audit', getAuditTrail);

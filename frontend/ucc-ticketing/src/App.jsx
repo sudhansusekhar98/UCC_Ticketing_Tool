@@ -20,19 +20,25 @@ import AssetsList from './pages/assets/AssetsList';
 import AssetForm from './pages/assets/AssetForm';
 import UsersList from './pages/users/UsersList';
 import UserForm from './pages/users/UserForm';
+import UserRights from './pages/admin/UserRights';
 import Settings from './pages/settings/Settings';
 import Profile from './pages/profile/Profile';
 
 // Protected Route Component
-function ProtectedRoute({ children, allowedRoles }) {
+function ProtectedRoute({ children, allowedRoles, requiredRight }) {
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
-    return <Navigate to="/dashboard" replace />;
+  if (allowedRoles || requiredRight) {
+    const hasRole = !allowedRoles || allowedRoles.includes(user?.role);
+    const hasPermission = !requiredRight || (user?.rights?.includes(requiredRight));
+
+    if (!hasRole && !hasPermission) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <Layout>{children}</Layout>;
@@ -144,7 +150,10 @@ function App() {
           <Route
             path="/tickets/new"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}>
+              <ProtectedRoute 
+                allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
+                requiredRight="CREATE_TICKET"
+              >
                 <TicketForm />
               </ProtectedRoute>
             }
@@ -196,7 +205,7 @@ function App() {
           <Route
             path="/assets"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer', 'L1Engineer', 'L2Engineer']}>
                 <AssetsList />
               </ProtectedRoute>
             }
@@ -222,7 +231,7 @@ function App() {
           <Route
             path="/users"
             element={
-              <ProtectedRoute allowedRoles={['Admin']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
                 <UsersList />
               </ProtectedRoute>
             }
@@ -240,6 +249,16 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Admin']}>
                 <UserForm />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* User Rights */}
+          <Route
+            path="/user-rights"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <UserRights />
               </ProtectedRoute>
             }
           />

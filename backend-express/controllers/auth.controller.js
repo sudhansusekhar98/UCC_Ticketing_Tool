@@ -1,4 +1,5 @@
 import User from '../models/User.model.js';
+import UserRight from '../models/UserRight.model.js';
 import { 
   generateToken, 
   generateRefreshToken, 
@@ -76,7 +77,9 @@ export const login = async (req, res, next) => {
           role: user.role,
           designation: user.designation,
           mobileNumber: user.mobileNumber,
-          siteId: user.siteId
+          mobileNumber: user.mobileNumber,
+          siteId: user.siteId,
+          rights: (await UserRight.findOne({ user: user._id }))?.rights || []
         },
         token,
         refreshToken
@@ -94,9 +97,15 @@ export const getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id).populate('siteId', 'siteName siteUniqueID');
 
+    const userRight = await UserRight.findOne({ user: req.user.id });
+    
+    // Convert to object to append rights
+    const userObj = user.toObject();
+    userObj.rights = userRight ? userRight.rights : [];
+
     res.json({
       success: true,
-      data: user
+      data: userObj
     });
   } catch (error) {
     next(error);

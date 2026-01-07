@@ -13,6 +13,7 @@ import {
     Bell,
     ChevronDown,
     Search,
+    Shield,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import './Layout.css';
@@ -20,9 +21,10 @@ import './Layout.css';
 const menuItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
     { path: '/tickets', icon: Ticket, label: 'Tickets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
-    { path: '/assets', icon: Monitor, label: 'Assets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer'] },
+    { path: '/assets', icon: Monitor, label: 'Assets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer', 'L1Engineer', 'L2Engineer'] },
     { path: '/sites', icon: MapPin, label: 'Sites', roles: ['Admin', 'Supervisor', 'Dispatcher'] },
-    { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor'] },
+    { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },
+    { path: '/user-rights', icon: Shield, label: 'User Rights', roles: ['Admin'] },
     { path: '/settings', icon: Settings, label: 'Settings', roles: ['Admin'] },
 ];
 

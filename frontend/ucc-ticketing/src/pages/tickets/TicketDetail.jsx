@@ -24,7 +24,7 @@ import './Tickets.css';
 export default function TicketDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user, hasRole } = useAuthStore();
+    const { user, hasRole, hasRight } = useAuthStore();
     const [ticket, setTicket] = useState(null);
     const [auditTrail, setAuditTrail] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -39,14 +39,14 @@ export default function TicketDetail() {
     const [resolveData, setResolveData] = useState({ rootCause: '', resolutionSummary: '' });
     const [reopenReason, setReopenReason] = useState('');
 
-    const canEdit = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
-    const canAssign = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
+    const canEdit = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET');
+    const canAssign = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET');
     // Compare using string IDs for MongoDB
     const assignedToId = typeof ticket?.assignedTo === 'object' ? ticket?.assignedTo?._id : ticket?.assignedTo;
     const canAcknowledge = hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']) && assignedToId === user?.userId;
     const canResolve = hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']);
-    const canClose = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
-    const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
+    const canClose = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('DELETE_TICKET');
+    const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET');
 
     useEffect(() => {
         fetchTicket();

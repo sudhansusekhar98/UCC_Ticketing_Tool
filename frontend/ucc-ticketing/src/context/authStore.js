@@ -34,7 +34,9 @@ const useAuthStore = create(
                                 username: user.username, 
                                 fullName: user.fullName, 
                                 email: user.email, 
-                                role: user.role 
+                                email: user.email, 
+                                role: user.role,
+                                rights: user.rights || []
                             },
                             accessToken,
                             refreshToken,
@@ -114,6 +116,11 @@ const useAuthStore = create(
             isSupervisor: () => get().user?.role === 'Supervisor',
             isDispatcher: () => get().user?.role === 'Dispatcher',
             isEngineer: () => ['L1Engineer', 'L2Engineer'].includes(get().user?.role),
+
+            hasRight: (rightName) => {
+                const { user } = get();
+                return user?.rights?.includes(rightName) || false;
+            },
         }),
         {
             name: 'auth-storage',

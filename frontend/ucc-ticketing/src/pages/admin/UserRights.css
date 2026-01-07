@@ -1,0 +1,253 @@
+.user-rights-page {
+  height: calc(100vh - 80px); /* Adjust based on header */
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rights-container {
+  display: flex;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 0; /* Important for scroll */
+}
+
+/* User List Section */
+.users-list-section {
+  width: 320px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.search-bar {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-tertiary);
+}
+
+.search-bar input {
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  color: var(--text-primary);
+}
+
+.users-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.user-item {
+  padding: 1rem;
+  display: flex;
+  gap: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-light);
+  transition: all 0.2s;
+}
+
+.user-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.user-item.active {
+  background: var(--primary-500);
+  color: white;
+}
+
+.user-item.active .role-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.user-item.active .meta {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.user-avatar-small {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary-100);
+  color: var(--primary-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-info .name {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.user-info .meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.role-badge {
+  background: var(--bg-tertiary);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.rights-count {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+/* Rights Editor Section */
+.rights-editor-section {
+  flex: 1;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-content {
+  padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.save-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--primary-500);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.permissions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.permission-card {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  cursor: pointer;
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  transition: all 0.2s;
+}
+
+.permission-card:hover {
+  border-color: var(--primary-300);
+  background: var(--bg-tertiary);
+}
+
+.permission-card.enabled {
+  border-color: var(--primary-500);
+  background: var(--primary-50);
+}
+
+/* Dark mode adjustment for enabled card */
+:global(body.dark-mode) .permission-card.enabled {
+  background: rgba(var(--primary-rgb), 0.1);
+}
+
+.checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--text-tertiary);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: white;
+}
+
+.permission-card.enabled .checkbox {
+  background: var(--primary-500);
+  border-color: var(--primary-500);
+}
+
+.permission-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.permission-info .label {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.permission-info .code {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-family: monospace;
+}
+
+.info-box {
+  margin-top: auto;
+  background: var(--info-50);
+  color: var(--info-700);
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  font-size: 0.9rem;
+}
+
+:global(body.dark-mode) .info-box {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60a5fa;
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.empty-state svg {
+  margin-bottom: 1rem;
+  color: var(--text-disabled);
+}

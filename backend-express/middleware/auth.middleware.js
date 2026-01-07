@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.model.js';
+import UserRight from '../models/UserRight.model.js';
 
 export const protect = async (req, res, next) => {
   try {
@@ -38,6 +39,10 @@ export const protect = async (req, res, next) => {
         });
       }
 
+      // Fetch user rights
+      const userRights = await UserRight.findOne({ user: req.user._id });
+      req.user.rights = userRights ? userRights.rights : [];
+
       next();
     } catch (error) {
       return res.status(401).json({
@@ -50,7 +55,28 @@ export const protect = async (req, res, next) => {
   }
 };
 
-// Grant access to specific roles
+// Grant access to specific roles OR permissions
+export const allowAccess = ({ roles = [], right = '' }) => {
+  return (req, res, next) => {
+    // Check if user has one of the allowed roles
+    const hasRole = roles.length === 0 || roles.includes(req.user.role);
+    
+    // Check if user has the specific right
+    const hasRight = right && req.user.rights && req.user.rights.includes(right);
+
+    if (hasRole || hasRight) {
+      return next();
+    }
+
+    return res.status(403).json({
+      success: false,
+      message: 'Not authorized to access this route'
+    });
+  };
+};
+
+// Deprecated: verify where this is used and replace with allowAccess if needed, 
+// or keep for simple role-only checks
 export const authorize = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {

@@ -1078,7 +1078,7 @@ export default function Settings() {
                     {appearanceSettings.theme === 'light' && <CheckCircle size={16} className="check-icon" />}
                 </div>
 
-                <div
+                {/* <div
                     className={`theme-option ${appearanceSettings.theme === 'system' ? 'selected' : ''}`}
                     onClick={() => handleChange('appearance', 'theme', 'system')}
                 >
@@ -1094,7 +1094,7 @@ export default function Settings() {
                         <span>System</span>
                     </div>
                     {appearanceSettings.theme === 'system' && <CheckCircle size={16} className="check-icon" />}
-                </div>
+                </div> */}
             </div>
 
 

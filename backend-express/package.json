@@ -21,6 +21,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "async-handler": "^0.0.3",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.8.0",
     "compression": "^1.7.4",
@@ -30,7 +31,7 @@
     "express-validator": "^7.2.1",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.9.4",
+    "mongoose": "^8.21.0",
     "morgan": "^1.10.0",
     "mssql": "^12.2.0",
     "multer": "^1.4.5-lts.1",

@@ -24,13 +24,14 @@ router.get('/dropdown', getUsersDropdown);
 router.get('/engineers', getEngineers);
 router.get('/contacts', getContacts);
 
-// Admin only routes
+// User routes - GET operations allow all roles (site-filtered in controller)
+// Only Admin can create/update/delete
 router.route('/')
-  .get(authorize('Admin', 'Supervisor'), getUsers)
+  .get(getUsers)  // Site-based filtering in controller
   .post(authorize('Admin'), createUser);
 
 router.route('/:id')
-  .get(authorize('Admin', 'Supervisor'), getUserById)
+  .get(getUserById)  // Site-based filtering in controller  
   .put(authorize('Admin'), updateUser)
   .delete(authorize('Admin'), deleteUser);
 

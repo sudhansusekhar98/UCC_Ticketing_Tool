@@ -169,3 +169,11 @@ export const settingsApi = {
     updateSingle: (category, key, value) => 
         api.patch(`/settings/${category}/${key}`, { value }),
 };
+
+// User Rights API
+export const userRightsApi = {
+    getAll: () => api.get('/user-rights'),
+    getByUser: (userId) => api.get(`/user-rights/${userId}`),
+    update: (userId, rights) => api.put(`/user-rights/${userId}`, { rights }),
+};
+

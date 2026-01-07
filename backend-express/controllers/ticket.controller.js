@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Ticket from '../models/Ticket.model.js';
+import Asset from '../models/Asset.model.js';
 import TicketActivity from '../models/TicketActivity.model.js';
 import SLAPolicy from '../models/SLAPolicy.model.js';
 
@@ -17,13 +18,17 @@ export const getTickets = async (req, res, next) => {
     
     // Role-based filtering
     const user = req.user;
-    if (user.role === 'L1Engineer' || user.role === 'L2Engineer') {
-      query.assignedTo = user._id;
-    } else if (user.role === 'ClientViewer') {
-      // Client can only see tickets for their site
-      if (user.siteId) {
-        query['asset.siteId'] = user.siteId;
-      }
+    
+    // Admin sees all. Others see based on site/assignment logic.
+    if (user.role !== 'Admin') {
+      const siteAssetIds = await Asset.find({ siteId: user.siteId }).distinct('_id');
+      
+      // Keep existing query criteria but restrict scope
+      query.$or = [
+        { assignedTo: user._id },
+        { createdBy: user._id },
+        { assetId: { $in: siteAssetIds } }
+      ];
     }
     
     if (status) {
@@ -39,11 +44,25 @@ export const getTickets = async (req, res, next) => {
     if (assignedTo) query.assignedTo = assignedTo;
     if (createdBy) query.createdBy = createdBy;
     if (search) {
-      query.$or = [
-        { ticketNumber: { $regex: search, $options: 'i' } },
-        { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+      const searchRegex = { $regex: search, $options: 'i' };
+      const searchCriteria = [
+        { ticketNumber: searchRegex },
+        { title: searchRegex },
+        { description: searchRegex }
       ];
+      
+      if (query.$or) {
+        // If we already have an $or (for scope), we need to maintain it AND matches search
+        // (ScopeA OR ScopeB) AND (SearchA OR SearchB)
+        // MongoDB doesn't support implicit AND with top-level $or easily in this structure without $and
+        query.$and = [
+          { $or: query.$or },
+          { $or: searchCriteria }
+        ];
+        delete query.$or;
+      } else {
+        query.$or = searchCriteria;
+      }
     }
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -508,8 +527,13 @@ export const getDashboardStats = async (req, res, next) => {
     let matchQuery = {};
     
     // Role-based filtering
-    if (user.role === 'L1Engineer' || user.role === 'L2Engineer') {
-      matchQuery.assignedTo = user._id;
+    if (user.role !== 'Admin') {
+      const siteAssetIds = await Asset.find({ siteId: user.siteId }).distinct('_id');
+      matchQuery.$or = [
+        { assignedTo: user._id },
+        { createdBy: user._id },
+        { assetId: { $in: siteAssetIds } }
+      ];
     }
     
     const [
@@ -542,9 +566,13 @@ export const getDashboardStats = async (req, res, next) => {
         slaRestoreDue: { $lte: new Date(Date.now() + 30 * 60 * 1000) }, // Within 30 minutes
         status: { $nin: ['Closed', 'Cancelled', 'Resolved'] } 
       }),
-      // Asset counts
-      mongoose.connection.collection('assets').countDocuments({ isActive: true }),
-      mongoose.connection.collection('assets').countDocuments({ isActive: true, status: 'Offline' }),
+      // Asset counts (filtered by site for non-admins)
+      user.role === 'Admin' 
+        ? mongoose.connection.collection('assets').countDocuments({ isActive: true })
+        : mongoose.connection.collection('assets').countDocuments({ isActive: true, siteId: user.siteId }),
+      user.role === 'Admin'
+        ? mongoose.connection.collection('assets').countDocuments({ isActive: true, status: 'Offline' })
+        : mongoose.connection.collection('assets').countDocuments({ isActive: true, status: 'Offline', siteId: user.siteId }),
       // Priority breakdown
       Ticket.aggregate([
         { $match: { ...matchQuery, status: { $nin: ['Closed', 'Cancelled'] } } },

@@ -9,6 +9,19 @@ export const getUsers = async (req, res, next) => {
     const { role, siteId, isActive, search, page = 1, limit = 50 } = req.query;
     
     const query = {};
+    const user = req.user;
+
+    // Restrict non-admins to their own site
+    if (user.role !== 'Admin') {
+       if (!user.siteId) {
+           return res.json({
+               success: true,
+               data: [],
+               pagination: { page: 1, limit: parseInt(limit), total: 0, pages: 0 }
+           });
+       }
+       query.siteId = user.siteId;
+    }
     
     if (role) query.role = role;
     if (siteId) query.siteId = siteId;
@@ -176,6 +189,11 @@ export const getUsersDropdown = async (req, res, next) => {
     const query = { isActive: true };
     
     if (role) query.role = role;
+
+    if (req.user.role !== 'Admin') {
+        if (!req.user.siteId) return res.json({ success: true, data: [] });
+        query.siteId = req.user.siteId;
+    }
     
     const users = await User.find(query)
       .select('fullName username role')
@@ -195,10 +213,20 @@ export const getUsersDropdown = async (req, res, next) => {
 // @access  Private
 export const getEngineers = async (req, res, next) => {
   try {
-    const engineers = await User.find({
+    let engineerQuery = {
       role: { $in: ['L1Engineer', 'L2Engineer'] },
       isActive: true
-    })
+    };
+
+    if (req.user.role !== 'Admin') {
+      if (req.user.siteId) {
+        engineerQuery.siteId = req.user.siteId;
+      } else {
+        return res.json({ success: true, data: [] });
+      }
+    }
+
+    const engineers = await User.find(engineerQuery)
       .select('fullName username role siteId mobileNumber')
       .populate('siteId', 'siteName')
       .sort({ fullName: 1 });
@@ -211,6 +239,7 @@ export const getEngineers = async (req, res, next) => {
     next(error);
   }
 };
+
 
 // @desc    Get contacts (supervisors and above)
 // @route   GET /api/users/contacts

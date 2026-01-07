@@ -11,6 +11,21 @@ export const getAssets = async (req, res, next) => {
     } = req.query;
     
     const query = {};
+    const user = req.user;
+    
+    // Restrict non-admins to their own site
+    if (user.role !== 'Admin') {
+      if (!user.siteId) {
+        // If user has no site but is not admin, they see nothing (or handle appropriate error)
+        // Returning empty result for safety
+        return res.json({
+          success: true,
+          data: [],
+          pagination: { page: 1, limit: parseInt(limit), total: 0, pages: 0 }
+        });
+      }
+      query.siteId = user.siteId;
+    }
     
     if (siteId) query.siteId = siteId;
     if (assetType) query.assetType = assetType;
@@ -107,8 +122,15 @@ export const createAsset = async (req, res, next) => {
 // @access  Private (Admin, Dispatcher)
 export const updateAsset = async (req, res, next) => {
   try {
-    const asset = await Asset.findByIdAndUpdate(
-      req.params.id,
+    const query = { _id: req.params.id };
+    
+    // Non-admins can only update assets of their own site
+    if (req.user.role !== 'Admin') {
+      query.siteId = req.user.siteId;
+    }
+
+    const asset = await Asset.findOneAndUpdate(
+      query,
       { ...req.body, updatedAt: new Date() },
       { new: true, runValidators: true }
     ).populate('siteId', 'siteName siteUniqueID');
@@ -135,7 +157,13 @@ export const updateAsset = async (req, res, next) => {
 // @access  Private (Admin)
 export const deleteAsset = async (req, res, next) => {
   try {
-    const asset = await Asset.findByIdAndDelete(req.params.id);
+    const query = { _id: req.params.id };
+     // Admin only deletion usually, but if other roles allowed, restrict to site
+    if (req.user.role !== 'Admin') {
+       query.siteId = req.user.siteId;
+    }
+
+    const asset = await Asset.findOneAndDelete(query);
     
     if (!asset) {
       return res.status(404).json({
@@ -191,7 +219,11 @@ export const getAssetsDropdown = async (req, res, next) => {
     const { siteId } = req.query;
     const query = { isActive: true };
     
-    if (siteId) query.siteId = siteId;
+    if (req.user.role !== 'Admin') {
+      query.siteId = req.user.siteId;
+    } else if (siteId) {
+      query.siteId = siteId;
+    }
     
     const assets = await Asset.find(query)
       .select('assetCode assetType locationDescription siteId')
