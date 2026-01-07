@@ -1,0 +1,123 @@
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import compression from 'compression';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import connectDB from './config/database.js';
+
+// Load environment variables
+dotenv.config();
+
+// Initialize Express app
+const app = express();
+const httpServer = createServer(app);
+
+// Initialize Socket.IO
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+  }
+});
+
+// Connect to MongoDB
+connectDB();
+
+// Middleware
+app.use(helmet()); // Security headers
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true
+}));
+app.use(compression()); // Compress responses
+app.use(morgan('dev')); // Logging
+app.use(express.json()); // Parse JSON bodies
+app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+
+// Make io accessible to routes
+app.set('io', io);
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static('uploads'));
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'OK',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV
+  });
+});
+
+// API Routes
+import authRoutes from './routes/auth.routes.js';
+import siteRoutes from './routes/site.routes.js';
+import assetRoutes from './routes/asset.routes.js';
+import ticketRoutes from './routes/ticket.routes.js';
+import userRoutes from './routes/user.routes.js';
+import lookupRoutes from './routes/lookup.routes.js';
+import activityRoutes from './routes/activity.routes.js';
+import settingsRoutes from './routes/settings.routes.js';
+import userRightRoutes from './routes/userRight.routes.js';
+
+app.use('/api/auth', authRoutes);
+app.use('/api/sites', siteRoutes);
+app.use('/api/assets', assetRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/lookups', lookupRoutes);
+app.use('/api/activities', activityRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/user-rights', userRightRoutes);
+
+// Static files for uploads
+app.use('/uploads', express.static('uploads'));
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  
+  res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+});
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('🔌 Client connected:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('🔌 Client disconnected:', socket.id);
+  });
+
+  // Join room for user-specific notifications
+  socket.on('join', (userId) => {
+    socket.join(`user_${userId}`);
+    console.log(`User ${userId} joined their room`);
+  });
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
+});
+
+export default app;

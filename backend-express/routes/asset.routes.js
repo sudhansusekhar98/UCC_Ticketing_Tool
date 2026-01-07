@@ -1,0 +1,39 @@
+import express from 'express';
+import {
+  getAssets,
+  getAssetById,
+  createAsset,
+  updateAsset,
+  deleteAsset,
+  updateAssetStatus,
+  getAssetsDropdown,
+  bulkImportAssets,
+  exportAssets,
+  downloadTemplate
+} from '../controllers/asset.controller.js';
+import { protect, authorize } from '../middleware/auth.middleware.js';
+
+const router = express.Router();
+
+// All routes require authentication
+router.use(protect);
+
+// Utility routes (before :id routes)
+router.get('/dropdown', getAssetsDropdown);
+router.get('/template', downloadTemplate);
+router.get('/export', exportAssets);
+router.post('/import', authorize('Admin'), bulkImportAssets);
+
+// CRUD routes
+router.route('/')
+  .get(getAssets)
+  .post(authorize('Admin', 'Dispatcher'), createAsset);
+
+router.route('/:id')
+  .get(getAssetById)
+  .put(authorize('Admin', 'Dispatcher'), updateAsset)
+  .delete(authorize('Admin'), deleteAsset);
+
+router.patch('/:id/status', updateAssetStatus);
+
+export default router;
