@@ -92,6 +92,7 @@ export default function TicketsList() {
         try {
             const response = await ticketsApi.getAll({
                 ...filters,
+                limit: filters.pageSize, // Map pageSize to limit for backend
                 search: filters.searchTerm, // Map searchTerm to search
                 isSLABreached: searchParams.get('slaBreached') === 'true' ? true : undefined,
             });

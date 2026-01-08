@@ -67,7 +67,7 @@ export const authApi = {
     refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
     changePassword: (currentPassword, newPassword) =>
         api.post('/auth/change-password', { currentPassword, newPassword }),
-    getProfile: () => api.get('/auth/profile'),
+    getProfile: () => api.get('/auth/me'),
 };
 
 // Users API

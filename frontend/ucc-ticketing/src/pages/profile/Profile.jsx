@@ -69,8 +69,8 @@ export default function Profile() {
                 mobileNumber: data.mobileNumber || '',
                 username: data.username || '',
                 role: data.role || '',
-                siteName: data.siteName || '',
-                createdOn: data.createdOn || '',
+                siteName: data.siteId?.siteName || '',
+                createdOn: data.createdAt || data.createdOn || '',
                 lastLoginOn: data.lastLoginOn || '',
             });
         } catch (error) {

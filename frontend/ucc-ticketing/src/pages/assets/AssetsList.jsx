@@ -490,6 +490,7 @@ export default function AssetsList() {
                                     disabled={page === 1}
                                 >
                                     <ChevronLeft size={18} />
+                                    Previous
                                 </button>
                                 <span className="page-info">
                                     Page {page} of {totalPages}
@@ -499,6 +500,7 @@ export default function AssetsList() {
                                     onClick={() => setPage(p => p + 1)}
                                     disabled={page === totalPages}
                                 >
+                                    Next
                                     <ChevronRight size={18} />
                                 </button>
                             </div>
