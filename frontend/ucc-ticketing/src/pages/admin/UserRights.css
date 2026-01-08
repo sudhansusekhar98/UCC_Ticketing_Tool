@@ -2,7 +2,7 @@
   height: calc(100vh - 80px); /* Adjust based on header */
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .rights-container {
@@ -131,8 +131,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-light);
 }
 
@@ -158,7 +158,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1rem;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .permission-card {
@@ -183,8 +183,9 @@
 }
 
 /* Dark mode adjustment for enabled card */
-:global(body.dark-mode) .permission-card.enabled {
-  background: rgba(var(--primary-rgb), 0.1);
+/* Dark mode adjustment for enabled card */
+[data-theme="dark"] .permission-card.enabled {
+  background: var(--sidebar-active);
 }
 
 .checkbox {
@@ -232,9 +233,22 @@
   font-size: 0.9rem;
 }
 
-:global(body.dark-mode) .info-box {
+[data-theme="dark"] .info-box {
   background: rgba(59, 130, 246, 0.1);
   color: #60a5fa;
+}
+.user-rights-header {
+  margin-bottom: -0.5rem !important;
+   font-size: 0.9rem !important;
+}
+
+/* Optional: fine-tune heading and paragraph */
+.user-rights-header h1 {
+  font-size: 1.75rem !important; /* reduced from typical 1.5–2rem */
+}
+
+.user-rights-header p {
+  font-size: 0.85rem !important; /* smaller subtitle */
 }
 
 .empty-state {

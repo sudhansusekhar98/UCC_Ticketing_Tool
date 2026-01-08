@@ -29,7 +29,7 @@ const menuItems = [
 ];
 
 export default function Layout({ children }) {
-    const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
@@ -49,18 +49,12 @@ export default function Layout({ children }) {
             {/* Sidebar */}
             <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
                 <div className="sidebar-header">
-                    <div className="logo">
+                    <div className="logo" onClick={() => setSidebarOpen(!sidebarOpen)} style={{ cursor: 'pointer' }}>
                         <div className="logo-icon">
                             <Ticket size={24} />
                         </div>
                         {sidebarOpen && <span className="logo-text">UCC Ticketing</span>}
                     </div>
-                    <button
-                        className="sidebar-toggle"
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                    >
-                        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-                    </button>
                 </div>
 
                 <nav className="sidebar-nav">

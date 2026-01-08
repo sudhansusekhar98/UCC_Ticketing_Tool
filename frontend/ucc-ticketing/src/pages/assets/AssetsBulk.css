@@ -272,3 +272,69 @@
         max-width: calc(100vw - var(--space-8));
     }
 }
+
+/* Password Reveal Styles */
+.password-cell {
+    min-width: 130px;
+    overflow: visible !important;
+    white-space: nowrap;
+}
+
+.password-reveal {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    position: relative;
+}
+
+.password-text {
+    font-family: monospace;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+}
+
+.password-toggle {
+    padding: 2px 4px !important;
+    min-width: auto !important;
+    color: var(--text-muted);
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    right: -22px !important;
+}
+
+.password-toggle:hover {
+    opacity: 1;
+    color: var(--primary-400);
+    background: rgba(var(--primary-rgb), 0.1);
+}
+
+/* Assets Page Layout for Sticky Pagination */
+.assets-page {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 64px - 48px);
+    overflow: hidden;
+}
+
+.assets-page .table-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    min-height: 0;
+}
+
+.assets-page .pagination {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-light);
+    padding: var(--space-3) var(--space-4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    z-index: 10;
+    margin-top: auto;
+    flex-shrink: 0;
+}

@@ -22,11 +22,8 @@ export default function AssetForm() {
         assetType: 'Camera',
         make: '',
         model: '',
-
-
         serialNumber: '',
-        managementIP: '',
-
+        ipAddress: '',
         mac: '',
         siteId: '',
         locationDescription: '',
@@ -88,10 +85,8 @@ export default function AssetForm() {
                 assetType: asset.assetType,
                 make: asset.make || '',
                 model: asset.model || '',
-
                 serialNumber: asset.serialNumber || '',
-                managementIP: asset.managementIP || '',
-
+                ipAddress: asset.ipAddress || asset.managementIP || '',
                 mac: asset.mac || '',
                 siteId: siteIdValue || '',
                 locationDescription: asset.locationDescription || '',
@@ -313,17 +308,15 @@ export default function AssetForm() {
                 <h3 className="form-section-title">Network Information</h3>
                 <div className="form-grid">
                     <div className="form-group">
-                        <label className="form-label">Management IP</label>
+                        <label className="form-label">IP Address</label>
                         <input
                             type="text"
                             className="form-input"
-                            value={formData.managementIP}
-                            onChange={(e) => handleChange('managementIP', e.target.value)}
+                            value={formData.ipAddress}
+                            onChange={(e) => handleChange('ipAddress', e.target.value)}
                             placeholder="e.g., 192.168.1.100"
                         />
                     </div>
-
-
 
                     <div className="form-group">
                         <label className="form-label">MAC Address</label>

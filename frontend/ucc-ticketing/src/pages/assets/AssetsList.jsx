@@ -18,6 +18,8 @@ import {
     X,
     CheckCircle,
     AlertCircle,
+    Eye,
+    EyeOff,
 } from 'lucide-react';
 import { assetsApi, sitesApi, lookupsApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
@@ -58,6 +60,9 @@ export default function AssetsList() {
     const [importResult, setImportResult] = useState(null);
     const [exporting, setExporting] = useState(false);
     const fileInputRef = useRef(null);
+    
+    // Password visibility state
+    const [visiblePasswords, setVisiblePasswords] = useState({});
 
     const canCreate = hasRole(['Admin', 'Supervisor']);
     const canEdit = hasRole(['Admin', 'Supervisor']);
@@ -159,17 +164,25 @@ export default function AssetsList() {
     const handleDownloadTemplate = async () => {
         try {
             const response = await assetsApi.downloadTemplate();
-            const blob = new Blob([response.data], { type: 'text/csv' });
+            const blob = new Blob([response.data], { 
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+            });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'assets_import_template.csv';
+            a.download = 'assets_import_template.xlsx';
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            
+            // Clean up
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }, 100);
+            
             toast.success('Template downloaded successfully');
         } catch (error) {
+            console.error('Download error:', error);
             toast.error('Failed to download template');
         }
     };
@@ -183,17 +196,25 @@ export default function AssetsList() {
                 assetType: typeFilter || undefined,
                 status: statusFilter || undefined,
             });
-            const blob = new Blob([response.data], { type: 'text/csv' });
+            const blob = new Blob([response.data], { 
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+            });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `assets_export_${new Date().toISOString().slice(0, 10)}.csv`;
+            a.download = `assets_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            
+            // Clean up
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }, 100);
+
             toast.success('Assets exported successfully');
         } catch (error) {
+            console.error('Export error:', error);
             toast.error('Failed to export assets');
         } finally {
             setExporting(false);
@@ -280,7 +301,7 @@ export default function AssetsList() {
     const totalPages = Math.ceil(totalCount / pageSize);
 
     return (
-        <div className="page-container animate-fade-in">
+        <div className="page-container animate-fade-in assets-page">
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Assets</h1>
@@ -391,7 +412,7 @@ export default function AssetsList() {
                         <table className="data-table compact assets-table">
                             <thead>
                                 <tr>
-                                    <th className="col-ip">Mgmt IP</th>
+                                    <th className="col-ip">IP Address</th>
                                     <th className="col-location">Location</th>
                                     <th className="col-make">Make</th>
                                     <th className="col-model">Model</th>
@@ -408,7 +429,7 @@ export default function AssetsList() {
                             <tbody>
                                 {assets.map((asset) => (
                                     <tr key={asset.assetId}>
-                                        <td title={asset.managementIP || ''}>{asset.managementIP || '—'}</td>
+                                        <td title={asset.ipAddress || asset.managementIP || ''}>{asset.ipAddress || asset.managementIP || '—'}</td>
                                         <td title={asset.locationName || ''}>{asset.locationName || '—'}</td>
                                         <td title={asset.make || ''}>{asset.make || '—'}</td>
                                         <td title={asset.model || ''}>{asset.model || '—'}</td>
@@ -417,7 +438,26 @@ export default function AssetsList() {
                                         <td title={asset.deviceType || asset.assetType || ''}>{asset.deviceType || asset.assetType || '—'}</td>
                                         <td title={asset.usedFor || ''}>{asset.usedFor || '—'}</td>
                                         <td title={asset.userName || ''}>{asset.userName || '—'}</td>
-                                        <td>{asset.password ? '••••' : '—'}</td>
+                                        <td className="password-cell">
+                                            {asset.password ? (
+                                                <div className="password-reveal">
+                                                    <span className="password-text">
+                                                        {visiblePasswords[asset._id || asset.assetId] ? asset.password : '•••••'}
+                                                    </span>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-icon btn-ghost password-toggle"
+                                                        onClick={() => setVisiblePasswords(prev => ({
+                                                            ...prev,
+                                                            [asset._id || asset.assetId]: !prev[asset._id || asset.assetId]
+                                                        }))}
+                                                        title={visiblePasswords[asset._id || asset.assetId] ? 'Hide password' : 'Show password'}
+                                                    >
+                                                        {visiblePasswords[asset._id || asset.assetId] ? <EyeOff size={14} /> : <Eye size={14} />}
+                                                    </button>
+                                                </div>
+                                            ) : '—'}
+                                        </td>
                                         <td title={asset.remark || ''}>{asset.remark || '—'}</td>
                                         <td className="col-actions">
                                             <div className="action-buttons">

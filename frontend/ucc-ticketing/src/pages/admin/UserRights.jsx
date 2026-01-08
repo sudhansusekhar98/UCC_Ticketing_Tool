@@ -83,7 +83,7 @@ export default function UserRights() {
 
     return (
         <div className="user-rights-page">
-            <div className="page-header">
+            <div className="page-header user-rights-header">
                 <div>
                     <h1>User Rights Management</h1>
                     <p>Manage specific capabilities and overrides for users</p>

@@ -12,17 +12,21 @@ import {
   downloadTemplate
 } from '../controllers/asset.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
+import multer from 'multer';
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(protect);
 
+// Configure upload
+const upload = multer({ dest: 'uploads/' });
+
 // Utility routes (before :id routes)
 router.get('/dropdown', getAssetsDropdown);
 router.get('/template', downloadTemplate);
 router.get('/export', exportAssets);
-router.post('/import', authorize('Admin'), bulkImportAssets);
+router.post('/import', authorize('Admin'), upload.single('file'), bulkImportAssets);
 
 // CRUD routes
 router.route('/')

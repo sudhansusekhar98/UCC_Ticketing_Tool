@@ -9,13 +9,18 @@ export const getAllLookups = async (req, res, next) => {
       Asset.distinct('assetType')
     ]);
     
+    // Format asset types consistently
+    const formattedAssetTypes = assetTypes.length > 0 
+      ? assetTypes.filter(type => type).map(type => ({ value: type, label: type }))
+      : getDefaultAssetTypes();
+    
     res.json({
       success: true,
       data: {
         statuses: getStatuses(),
         priorities: getPriorities(),
         categories: getCategories(),
-        assetTypes: assetTypes.length > 0 ? assetTypes : getDefaultAssetTypes(),
+        assetTypes: formattedAssetTypes,
         assetStatuses: getAssetStatuses(),
         roles: getRoles()
       }
@@ -75,9 +80,14 @@ export const getAssetTypesEndpoint = async (req, res, next) => {
     // Get unique asset types from database
     const assetTypes = await Asset.distinct('assetType');
     
+    // Always return in consistent { value, label } format
+    const formattedTypes = assetTypes.length > 0 
+      ? assetTypes.filter(type => type).map(type => ({ value: type, label: type }))
+      : getDefaultAssetTypes();
+    
     res.json({
       success: true,
-      data: assetTypes.length > 0 ? assetTypes : getDefaultAssetTypes()
+      data: formattedTypes
     });
   } catch (error) {
     next(error);

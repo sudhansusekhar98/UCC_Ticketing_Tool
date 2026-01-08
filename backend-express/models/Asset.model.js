@@ -11,8 +11,8 @@ const assetSchema = new mongoose.Schema({
   assetType: {
     type: String,
     required: [true, 'Asset type is required'],
-    enum: ['Camera', 'NVR', 'Switch', 'Router', 'Server', 'Other'],
-    maxlength: 50
+    maxlength: 50,
+    trim: true
   },
   serialNumber: {
     type: String,
@@ -20,6 +20,11 @@ const assetSchema = new mongoose.Schema({
     trim: true
   },
   mac: {
+    type: String,
+    maxlength: 50,
+    trim: true
+  },
+  ipAddress: {
     type: String,
     maxlength: 50,
     trim: true
@@ -72,11 +77,6 @@ const assetSchema = new mongoose.Schema({
     maxlength: 150,
     trim: true
   },
-  managementIP: {
-    type: String,
-    maxlength: 50,
-    trim: true
-  },
   locationName: {
     type: String,
     maxlength: 150,
@@ -99,8 +99,8 @@ const assetSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    maxlength: 255,
-    select: false // Don't include in queries by default
+    maxlength: 255
+    // Note: This is device/asset password, not user credentials - acceptable for all users to see
   },
   remark: {
     type: String,
