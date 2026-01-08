@@ -23,6 +23,8 @@ import UserForm from './pages/users/UserForm';
 import UserRights from './pages/admin/UserRights';
 import Settings from './pages/settings/Settings';
 import Profile from './pages/profile/Profile';
+import NotificationsManagement from './pages/notifications/NotificationsManagement';
+import NotificationsList from './pages/notifications/NotificationsList';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles, requiredRight }) {
@@ -56,8 +58,16 @@ function PublicRoute({ children }) {
 }
 
 function App() {
-  const { isAuthenticated, accessToken } = useAuthStore();
-  const { initTheme, setupSystemThemeListener } = useThemeStore();
+  const { isAuthenticated, accessToken, user } = useAuthStore();
+  const { initTheme, setupSystemThemeListener, setTheme } = useThemeStore();
+
+  // Sync theme from user preferences
+  useEffect(() => {
+    if (isAuthenticated && user?.preferences?.theme) {
+      setTheme(user.preferences.theme);
+    }
+  }, [isAuthenticated, user, setTheme]);
+
 
   // Initialize theme on app load
   useEffect(() => {
@@ -267,8 +277,28 @@ function App() {
           <Route
             path="/settings"
             element={
-              <ProtectedRoute allowedRoles={['Admin']}>
+              <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Notifications Management - Admin Only */}
+          <Route
+            path="/notifications/manage"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <NotificationsManagement />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Notifications List - All Users */}
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsList />
               </ProtectedRoute>
             }
           />

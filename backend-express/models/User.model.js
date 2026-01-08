@@ -61,6 +61,17 @@ const userSchema = new mongoose.Schema({
   refreshTokenExpiry: {
     type: Date,
     select: false
+  },
+  preferences: {
+    theme: { type: String, default: 'light' },
+    compactMode: { type: Boolean, default: false },
+    showWelcomeMessage: { type: Boolean, default: true },
+    dashboardLayout: { type: String, default: 'default' },
+    timezone: { type: String, default: 'Asia/Kolkata' },
+    dateFormat: { type: String, default: 'DD/MM/YYYY' },
+    timeFormat: { type: String, default: '24h' },
+    language: { type: String, default: 'en' },
+    autoRefreshInterval: { type: Number, default: 30 }
   }
 }, {
   timestamps: true, // Automatically adds createdAt and updatedAt

@@ -68,6 +68,7 @@ export const authApi = {
     changePassword: (currentPassword, newPassword) =>
         api.post('/auth/change-password', { currentPassword, newPassword }),
     getProfile: () => api.get('/auth/me'),
+    updatePreferences: (preferences) => api.put('/auth/preferences', { preferences }),
 };
 
 // Users API
@@ -126,7 +127,7 @@ export const ticketsApi = {
     resolve: (id, data) => api.post(`/tickets/${id}/resolve`, data),
     verify: (id) => api.post(`/tickets/${id}/verify`),
     close: (id, data) => api.post(`/tickets/${id}/close`, data),
-    reopen: (id, reason) => api.post(`/tickets/${id}/reopen`, null, { params: { reason } }),
+    reopen: (id, reason) => api.post(`/tickets/${id}/reopen`, { reason }),
     getAuditTrail: (id) => api.get(`/tickets/${id}/audit`),
     getDashboardStats: () => api.get('/tickets/dashboard/stats'),
 };
@@ -177,3 +178,12 @@ export const userRightsApi = {
     update: (userId, rights) => api.put(`/user-rights/${userId}`, { rights }),
 };
 
+// Notifications API
+export const notificationsApi = {
+    getAll: (params) => api.get('/notifications', { params }),
+    getUnreadCount: () => api.get('/notifications/unread-count'),
+    markAsRead: (id) => api.put(`/notifications/${id}/read`),
+    markAllAsRead: () => api.put('/notifications/read-all'),
+    create: (data) => api.post('/notifications', data),
+    delete: (id) => api.delete(`/notifications/${id}`),
+};

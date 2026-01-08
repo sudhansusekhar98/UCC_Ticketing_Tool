@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
     Send,
     Paperclip,
@@ -11,8 +11,10 @@ import {
     MessageSquare,
     Lock,
     Clock,
+    RefreshCw,
 } from 'lucide-react';
 import { activitiesApi } from '../../services/api';
+import socketService from '../../services/socket';
 import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -54,6 +56,7 @@ const parseUTCDate = (dateString) => {
 export default function ActivitySection({ ticketId, ticketStatus }) {
     const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [sending, setSending] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [message, setMessage] = useState('');
@@ -66,15 +69,9 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
     const canComment = ticketStatus !== 'Closed';
     const canSeeInternal = hasRole(['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer']);
 
-    useEffect(() => {
-        fetchActivities();
-    }, [ticketId]);
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [activities]);
-
-    const fetchActivities = async () => {
+    // Fetch activities function wrapped in useCallback for socket handler
+    const fetchActivities = useCallback(async (showRefreshing = false) => {
+        if (showRefreshing) setRefreshing(true);
         try {
             const response = await activitiesApi.getByTicket(ticketId);
             const activityData = response.data.data || response.data || [];
@@ -96,7 +93,42 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
             console.error('Failed to load activities', error);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
+    }, [ticketId]);
+
+    // Initial load and Socket.IO connection
+    useEffect(() => {
+        fetchActivities();
+        
+        // Connect to socket and set up listener
+        const socket = socketService.connect();
+        
+        // Handler for activity created events
+        const handleActivityCreated = (data) => {
+            // Only refresh if the activity is for this ticket
+            if (data.ticketId === ticketId) {
+                console.log('🔔 New activity received for ticket:', ticketId);
+                fetchActivities();
+            }
+        };
+        
+        // Subscribe to activity events
+        socketService.onActivityCreated(handleActivityCreated);
+        
+        // Cleanup on unmount
+        return () => {
+            socketService.offActivityCreated(handleActivityCreated);
+        };
+    }, [ticketId, fetchActivities]);
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [activities]);
+
+    // Manual refresh function
+    const handleManualRefresh = () => {
+        fetchActivities(true);
     };
 
     const scrollToBottom = () => {
@@ -175,10 +207,20 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
     };
 
     const handleDownload = async (attachment) => {
-        if (attachment.storageType === 'Cloudinary') {
-            window.open(attachment.url, '_blank');
-        } else {
-            try {
+        try {
+            if (attachment.storageType === 'Cloudinary') {
+                // Fetch the file from Cloudinary and download with original filename
+                const response = await fetch(attachment.url);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', attachment.fileName);
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+            } else {
                 const response = await activitiesApi.downloadAttachment(attachment.attachmentId);
                 const url = window.URL.createObjectURL(new Blob([response.data]));
                 const link = document.createElement('a');
@@ -187,9 +229,11 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
-            } catch (error) {
-                toast.error('Failed to download file');
+                window.URL.revokeObjectURL(url);
             }
+        } catch (error) {
+            console.error('Download error:', error);
+            toast.error('Failed to download file');
         }
     };
 
@@ -220,6 +264,14 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                 <div className="activity-header-left">
                     <h3><MessageSquare size={18} /> Activity & Comments</h3>
                     <span className="activity-count">{activities.length} entries</span>
+                    <button 
+                        className="refresh-btn" 
+                        onClick={handleManualRefresh}
+                        disabled={refreshing}
+                        title="Refresh activities"
+                    >
+                        <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+                    </button>
                 </div>
                 <div className="activity-header-right">
                     <span className={`status-badge status-${ticketStatus?.toLowerCase().replace(' ', '-')}`}>

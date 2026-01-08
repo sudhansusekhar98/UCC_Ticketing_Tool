@@ -4,7 +4,8 @@ import {
   getMe, 
   refreshToken, 
   logout, 
-  changePassword 
+  changePassword,
+  updatePreferences
 } from '../controllers/auth.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 
@@ -18,5 +19,6 @@ router.post('/refresh', refreshToken);
 router.get('/me', protect, getMe);
 router.post('/logout', protect, logout);
 router.put('/change-password', protect, changePassword);
+router.put('/preferences', protect, updatePreferences);
 
 export default router;

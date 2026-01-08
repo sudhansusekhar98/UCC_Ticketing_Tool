@@ -211,7 +211,7 @@ export const updateTicket = async (req, res, next) => {
 // @access  Private (Dispatcher, Admin)
 export const assignTicket = async (req, res, next) => {
   try {
-    const { assignedTo, notes } = req.body;
+    const { assignedTo, remarks } = req.body;
     
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
@@ -231,12 +231,17 @@ export const assignTicket = async (req, res, next) => {
       });
     }
     
-    // Create activity
+    // Create activity with assignment details
+    let activityContent = `Ticket assigned to ${ticket.assignedTo.fullName}`;
+    if (remarks && remarks.trim()) {
+      activityContent += `\nRemarks: ${remarks.trim()}`;
+    }
+    
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'Assignment',
-      content: `Ticket assigned to ${ticket.assignedTo.fullName}${notes ? '. Notes: ' + notes : ''}`
+      content: activityContent
     });
     
     // Emit socket event
@@ -461,7 +466,7 @@ export const closeTicket = async (req, res, next) => {
 // @access  Private (Dispatcher, Supervisor)
 export const reopenTicket = async (req, res, next) => {
   try {
-    const { reason } = req.query;
+    const { reason } = req.body;
     
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,

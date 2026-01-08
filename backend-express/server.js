@@ -64,6 +64,7 @@ import lookupRoutes from './routes/lookup.routes.js';
 import activityRoutes from './routes/activity.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import userRightRoutes from './routes/userRight.routes.js';
+import notificationRoutes from './routes/notification.routes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/sites', siteRoutes);
@@ -74,6 +75,7 @@ app.use('/api/lookups', lookupRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/user-rights', userRightRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Static files for uploads
 app.use('/uploads', express.static('uploads'));

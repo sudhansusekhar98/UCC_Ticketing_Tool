@@ -79,7 +79,8 @@ export const login = async (req, res, next) => {
           mobileNumber: user.mobileNumber,
           mobileNumber: user.mobileNumber,
           siteId: user.siteId,
-          rights: (await UserRight.findOne({ user: user._id }))?.rights || []
+          rights: (await UserRight.findOne({ user: user._id }))?.rights || [],
+          preferences: user.preferences
         },
         token,
         refreshToken
@@ -178,6 +179,41 @@ export const logout = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Logged out successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update user preferences
+// @route   PUT /api/auth/preferences
+// @access  Private
+export const updatePreferences = async (req, res, next) => {
+  try {
+    const { preferences } = req.body;
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    user.preferences = {
+      ...user.preferences,
+      ...preferences
+    };
+
+    await user.save();
+
+    res.json({
+      success: true,
+      data: {
+        preferences: user.preferences
+      },
+      message: 'Preferences updated successfully'
     });
   } catch (error) {
     next(error);

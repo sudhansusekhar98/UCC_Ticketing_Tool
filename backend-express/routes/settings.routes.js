@@ -12,8 +12,8 @@ const router = express.Router();
 router.use(protect);
 
 router.route('/')
-  .get(authorize('Admin'), getSettings)
-  .put(authorize('Admin'), updateSettings);
+  .get(getSettings)
+  .put(updateSettings);
 
 router.get('/:category', getSettingsByCategory);
 router.patch('/:category/:key', authorize('Admin'), updateSingleSetting);

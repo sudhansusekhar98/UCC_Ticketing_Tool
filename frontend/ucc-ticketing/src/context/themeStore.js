@@ -4,8 +4,8 @@ import { persist } from 'zustand/middleware';
 const useThemeStore = create(
     persist(
         (set, get) => ({
-            theme: 'dark', // 'light', 'dark', or 'system'
-            resolvedTheme: 'dark', // The actual theme being used (light or dark)
+            theme: 'light', // 'light', 'dark', or 'system'
+            resolvedTheme: 'light', // The actual theme being used (light or dark)
 
             // Initialize theme on app load
             initTheme: () => {

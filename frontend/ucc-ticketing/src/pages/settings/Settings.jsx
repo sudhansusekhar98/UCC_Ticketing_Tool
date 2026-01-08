@@ -18,7 +18,8 @@ import {
     Moon,
     Monitor,
 } from 'lucide-react';
-import { settingsApi } from '../../services/api';
+import { settingsApi, authApi } from '../../services/api';
+import useAuthStore from '../../context/authStore';
 import useThemeStore from '../../context/themeStore';
 import toast from 'react-hot-toast';
 import './Settings.css';
@@ -54,21 +55,30 @@ const stringifyValue = (value) => {
 };
 
 export default function Settings() {
+    const { user, setUserPreferences } = useAuthStore();
+    const isAdmin = user?.role === 'Admin';
+
+    // Filter tabs based on role
+    const visibleTabs = isAdmin 
+        ? settingsTabs 
+        : settingsTabs.filter(tab => ['general', 'appearance'].includes(tab.id));
+
     const [activeTab, setActiveTab] = useState('general');
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
     const [hasChanges, setHasChanges] = useState(false);
 
-    // General Settings State
-    const [generalSettings, setGeneralSettings] = useState({
+
+    // General Settings State - Initialize regional fields from user preferences if available
+    const [generalSettings, setGeneralSettings] = useState(() => ({
         companyName: 'UCC Ticketing',
         companyAddress: '',
-        timezone: 'Asia/Kolkata',
-        dateFormat: 'DD/MM/YYYY',
-        timeFormat: '24h',
-        language: 'en',
-        autoRefreshInterval: 30,
-    });
+        timezone: user?.preferences?.timezone || 'Asia/Kolkata',
+        dateFormat: user?.preferences?.dateFormat || 'DD/MM/YYYY',
+        timeFormat: user?.preferences?.timeFormat || '24h',
+        language: user?.preferences?.language || 'en',
+        autoRefreshInterval: user?.preferences?.autoRefreshInterval ?? 30,
+    }));
 
     // Notification Settings State
     const [notificationSettings, setNotificationSettings] = useState({
@@ -123,13 +133,13 @@ export default function Settings() {
         forcePasswordChange: 90,
     });
 
-    // Appearance Settings State
-    const [appearanceSettings, setAppearanceSettings] = useState({
-        theme: 'dark',
-        compactMode: false,
-        showWelcomeMessage: true,
-        dashboardLayout: 'default',
-    });
+    // Appearance Settings State - Initialize from user preferences if available
+    const [appearanceSettings, setAppearanceSettings] = useState(() => ({
+        theme: user?.preferences?.theme || 'light',
+        compactMode: user?.preferences?.compactMode ?? false,
+        showWelcomeMessage: user?.preferences?.showWelcomeMessage ?? true,
+        dashboardLayout: user?.preferences?.dashboardLayout || 'default',
+    }));
 
     // Key mapping from backend PascalCase to frontend camelCase
     const keyMappings = {
@@ -185,14 +195,15 @@ export default function Settings() {
     // Get theme store
     const { setTheme, theme: currentTheme } = useThemeStore();
 
-    // Load settings on mount
+    // Load settings on mount and when user preferences change
     useEffect(() => {
         loadSettings();
-    }, []);
+    }, [user?.userId, user?.preferences]);
 
     const loadSettings = async () => {
         setLoading(true);
         try {
+            // Load global settings
             const response = await settingsApi.getAll();
             const data = response.data.data;
 
@@ -209,6 +220,7 @@ export default function Settings() {
                 return result;
             };
 
+            // 1. Set from Global Settings
             if (data.General) {
                 setGeneralSettings(prev => mapSettings(data.General, keyMappings.General, prev));
             }
@@ -224,14 +236,45 @@ export default function Settings() {
             if (data.Appearance) {
                 const appearanceData = mapSettings(data.Appearance, keyMappings.Appearance, appearanceSettings);
                 setAppearanceSettings(appearanceData);
-                // Sync theme with theme store (apply saved theme from server)
-                if (appearanceData.theme && appearanceData.theme !== currentTheme) {
+                
+                // Fallback sync theme if no user preference
+                if (!user?.preferences?.theme && appearanceData.theme && appearanceData.theme !== currentTheme) {
                     setTheme(appearanceData.theme);
                 }
             }
+
+            // 2. Override with User Preferences if available
+            if (user?.preferences) {
+                const prefs = user.preferences;
+                
+                // Appearance preferences
+                setAppearanceSettings(prev => ({
+                    ...prev,
+                    theme: prefs.theme || prev.theme,
+                    compactMode: prefs.compactMode !== undefined ? prefs.compactMode : prev.compactMode,
+                    showWelcomeMessage: prefs.showWelcomeMessage !== undefined ? prefs.showWelcomeMessage : prev.showWelcomeMessage,
+                    dashboardLayout: prefs.dashboardLayout || prev.dashboardLayout,
+                }));
+
+                // Regional/General preferences stored in user profile
+                setGeneralSettings(prev => ({
+                    ...prev,
+                    timezone: prefs.timezone || prev.timezone,
+                    dateFormat: prefs.dateFormat || prev.dateFormat,
+                    timeFormat: prefs.timeFormat || prev.timeFormat,
+                    language: prefs.language || prev.language,
+                    autoRefreshInterval: prefs.autoRefreshInterval !== undefined ? prefs.autoRefreshInterval : prev.autoRefreshInterval,
+                }));
+
+                // Apply theme from user preferences immediately
+                if (prefs.theme && prefs.theme !== currentTheme) {
+                    setTheme(prefs.theme);
+                }
+            }
+
         } catch (error) {
             console.error('Failed to load settings', error);
-            toast.error('Failed to load settings');
+            // toast.error('Failed to load settings');
         } finally {
             setLoading(false);
         }
@@ -302,8 +345,44 @@ export default function Settings() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const payload = buildSettingsPayload();
-            await settingsApi.update(payload);
+            // For 'general' or 'appearance' tabs, always save user preferences
+            // These tabs contain user-specific settings that should be persisted per user
+            if (activeTab === 'appearance' || activeTab === 'general') {
+                const preferences = {
+                    // Appearance fields
+                    theme: appearanceSettings.theme,
+                    compactMode: appearanceSettings.compactMode,
+                    showWelcomeMessage: appearanceSettings.showWelcomeMessage,
+                    dashboardLayout: appearanceSettings.dashboardLayout,
+                    // Regional fields (from generalSettings)
+                    timezone: generalSettings.timezone,
+                    dateFormat: generalSettings.dateFormat,
+                    timeFormat: generalSettings.timeFormat,
+                    language: generalSettings.language,
+                    autoRefreshInterval: generalSettings.autoRefreshInterval
+                };
+                
+                const response = await authApi.updatePreferences(preferences);
+                
+                if (response.data.success) {
+                    setUserPreferences(preferences);
+                }
+                
+                // If Admin is on 'general' tab, also save organization-level settings
+                if (isAdmin && activeTab === 'general') {
+                    const payload = buildSettingsPayload();
+                    await settingsApi.update(payload);
+                }
+            } 
+            // If Admin saving other tabs (notifications, sla, email, security), update Global Settings
+            else if (isAdmin) {
+                const payload = buildSettingsPayload();
+                await settingsApi.update(payload);
+            } else {
+                // Non-admin trying to save read-only tab? Should not happen if UI is consistent
+                return;
+            }
+
             toast.success('Settings saved successfully');
             setHasChanges(false);
         } catch (error) {
@@ -341,6 +420,7 @@ export default function Settings() {
                         className="form-input"
                         value={generalSettings.companyName}
                         onChange={(e) => handleChange('general', 'companyName', e.target.value)}
+                        disabled={!isAdmin}
                     />
                 </div>
                 <div className="form-group">
@@ -351,91 +431,17 @@ export default function Settings() {
                         value={generalSettings.companyAddress}
                         onChange={(e) => handleChange('general', 'companyAddress', e.target.value)}
                         placeholder="Enter company address"
+                        disabled={!isAdmin}
                     />
                 </div>
             </div>
-
-            <div className="section-header">
-                <Globe size={20} />
-                <div>
-                    <h3>Regional Settings</h3>
-                    <p>Set your timezone, date and time formats</p>
+            
+            {!isAdmin && (
+                <div className="info-note mt-6">
+                    <Info size={16} />
+                    <span>Only administrators can modify organization details.</span>
                 </div>
-            </div>
-
-            <div className="settings-grid">
-                <div className="form-group">
-                    <label>Timezone</label>
-                    <select
-                        className="form-select"
-                        value={generalSettings.timezone}
-                        onChange={(e) => handleChange('general', 'timezone', e.target.value)}
-                    >
-                        <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
-                        <option value="UTC">UTC</option>
-                        <option value="America/New_York">America/New_York (EST)</option>
-                        <option value="Europe/London">Europe/London (GMT)</option>
-                        <option value="Asia/Dubai">Asia/Dubai (GST)</option>
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label>Date Format</label>
-                    <select
-                        className="form-select"
-                        value={generalSettings.dateFormat}
-                        onChange={(e) => handleChange('general', 'dateFormat', e.target.value)}
-                    >
-                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label>Time Format</label>
-                    <select
-                        className="form-select"
-                        value={generalSettings.timeFormat}
-                        onChange={(e) => handleChange('general', 'timeFormat', e.target.value)}
-                    >
-                        <option value="24h">24-hour</option>
-                        <option value="12h">12-hour (AM/PM)</option>
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label>Language</label>
-                    <select
-                        className="form-select"
-                        value={generalSettings.language}
-                        onChange={(e) => handleChange('general', 'language', e.target.value)}
-                    >
-                        <option value="en">English</option>
-                        <option value="hi">Hindi</option>
-                    </select>
-                </div>
-            </div>
-
-            <div className="section-header">
-                <RefreshCw size={20} />
-                <div>
-                    <h3>Auto-Refresh</h3>
-                    <p>Configure automatic data refresh intervals</p>
-                </div>
-            </div>
-
-            <div className="settings-grid">
-                <div className="form-group">
-                    <label>Dashboard Refresh Interval (seconds)</label>
-                    <input
-                        type="number"
-                        className="form-input"
-                        value={generalSettings.autoRefreshInterval}
-                        onChange={(e) => handleChange('general', 'autoRefreshInterval', parseInt(e.target.value))}
-                        min="10"
-                        max="300"
-                    />
-                    <small className="form-hint">Set between 10-300 seconds</small>
-                </div>
-            </div>
+            )}
         </div>
     );
 
@@ -1041,76 +1047,46 @@ export default function Settings() {
                 </div>
             </div>
 
-            <div className="theme-selector">
-                <div
-                    className={`theme-option ${appearanceSettings.theme === 'dark' ? 'selected' : ''}`}
-                    onClick={() => handleChange('appearance', 'theme', 'dark')}
-                >
-                    <div className="theme-preview dark">
-                        <div className="preview-sidebar"></div>
-                        <div className="preview-content">
-                            <div className="preview-header"></div>
-                            <div className="preview-body"></div>
-                        </div>
+            <div className="settings-grid">
+                <div className="form-group">
+                    <label>Color Theme</label>
+                    <div className="theme-selector">
+                        <button
+                            className={`theme-option ${appearanceSettings.theme === 'light' ? 'active' : ''}`}
+                            onClick={() => handleChange('appearance', 'theme', 'light')}
+                        >
+                            <Sun size={20} />
+                            <span>Light</span>
+                        </button>
+                        <button
+                            className={`theme-option ${appearanceSettings.theme === 'dark' ? 'active' : ''}`}
+                            onClick={() => handleChange('appearance', 'theme', 'dark')}
+                        >
+                            <Moon size={20} />
+                            <span>Dark</span>
+                        </button>
                     </div>
-                    <div className="theme-label">
-                        <Moon size={16} />
-                        <span>Dark Mode</span>
-                    </div>
-                    {appearanceSettings.theme === 'dark' && <CheckCircle size={16} className="check-icon" />}
                 </div>
 
-                <div
-                    className={`theme-option ${appearanceSettings.theme === 'light' ? 'selected' : ''}`}
-                    onClick={() => handleChange('appearance', 'theme', 'light')}
-                >
-                    <div className="theme-preview light">
-                        <div className="preview-sidebar"></div>
-                        <div className="preview-content">
-                            <div className="preview-header"></div>
-                            <div className="preview-body"></div>
-                        </div>
-                    </div>
-                    <div className="theme-label">
-                        <Sun size={16} />
-                        <span>Light Mode</span>
-                    </div>
-                    {appearanceSettings.theme === 'light' && <CheckCircle size={16} className="check-icon" />}
-                </div>
-
-                {/* <div
-                    className={`theme-option ${appearanceSettings.theme === 'system' ? 'selected' : ''}`}
-                    onClick={() => handleChange('appearance', 'theme', 'system')}
-                >
-                    <div className="theme-preview system">
-                        <div className="preview-sidebar"></div>
-                        <div className="preview-content">
-                            <div className="preview-header"></div>
-                            <div className="preview-body"></div>
-                        </div>
-                    </div>
-                    <div className="theme-label">
-                        <Monitor size={16} />
-                        <span>System</span>
-                    </div>
-                    {appearanceSettings.theme === 'system' && <CheckCircle size={16} className="check-icon" />}
-                </div> */}
-            </div>
-
-
-            <div className="section-header">
-                <SettingsIcon size={20} />
-                <div>
-                    <h3>Display Options</h3>
-                    <p>Configure display preferences</p>
+                <div className="form-group">
+                    <label>Dashboard Layout</label>
+                    <select
+                        className="form-select"
+                        value={appearanceSettings.dashboardLayout}
+                        onChange={(e) => handleChange('appearance', 'dashboardLayout', e.target.value)}
+                    >
+                        <option value="default">Default</option>
+                        <option value="compact">Compact</option>
+                        <option value="expanded">Expanded</option>
+                    </select>
                 </div>
             </div>
 
-            <div className="toggle-group">
+            <div className="toggle-group mt-6">
                 <div className="toggle-item">
                     <div className="toggle-info">
-                        <span className="toggle-label">Compact Mode</span>
-                        <span className="toggle-description">Reduce spacing for more content density</span>
+                        <span className="toggle-label">Compact Sidebar Mode</span>
+                        <span className="toggle-description">Reduce the sidebar width for more screen interface</span>
                     </div>
                     <label className="toggle-switch">
                         <input
@@ -1124,8 +1100,8 @@ export default function Settings() {
 
                 <div className="toggle-item">
                     <div className="toggle-info">
-                        <span className="toggle-label">Welcome Message</span>
-                        <span className="toggle-description">Show welcome message on dashboard</span>
+                        <span className="toggle-label">Show Welcome Message</span>
+                        <span className="toggle-description">Display welcome banner on dashboard login</span>
                     </div>
                     <label className="toggle-switch">
                         <input
@@ -1138,18 +1114,88 @@ export default function Settings() {
                 </div>
             </div>
 
+            <div className="section-header mt-8">
+                <Globe size={20} />
+                <div>
+                    <h3>Regional Settings</h3>
+                    <p>Set your timezone, date and time formats</p>
+                </div>
+            </div>
+
             <div className="settings-grid">
                 <div className="form-group">
-                    <label>Dashboard Layout</label>
+                    <label>Timezone</label>
                     <select
                         className="form-select"
-                        value={appearanceSettings.dashboardLayout}
-                        onChange={(e) => handleChange('appearance', 'dashboardLayout', e.target.value)}
+                        value={generalSettings.timezone}
+                        onChange={(e) => handleChange('general', 'timezone', e.target.value)}
                     >
-                        <option value="default">Default</option>
-                        <option value="compact">Compact</option>
-                        <option value="expanded">Expanded</option>
+                        <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+                        <option value="UTC">UTC</option>
+                        <option value="America/New_York">America/New_York (EST)</option>
+                        <option value="Europe/London">Europe/London (GMT)</option>
+                        <option value="Asia/Dubai">Asia/Dubai (GST)</option>
                     </select>
+                </div>
+                <div className="form-group">
+                    <label>Date Format</label>
+                    <select
+                        className="form-select"
+                        value={generalSettings.dateFormat}
+                        onChange={(e) => handleChange('general', 'dateFormat', e.target.value)}
+                    >
+                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                        <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Time Format</label>
+                    <select
+                        className="form-select"
+                        value={generalSettings.timeFormat}
+                        onChange={(e) => handleChange('general', 'timeFormat', e.target.value)}
+                    >
+                        <option value="24h">24-hour</option>
+                        <option value="12h">12-hour (AM/PM)</option>
+                    </select>
+                </div>
+                <div className="form-group">
+                    <label>Language</label>
+                    <select
+                        className="form-select"
+                        value={generalSettings.language}
+                        onChange={(e) => handleChange('general', 'language', e.target.value)}
+                    >
+                        <option value="en">English</option>
+                        <option value="hi">Hindi</option>
+                    </select>
+                </div>
+            </div>
+
+            <div className="section-header mt-8">
+                <RefreshCw size={20} />
+                <div>
+                    <h3>Auto-Refresh</h3>
+                    <p>Configure automatic data refresh intervals</p>
+                </div>
+            </div>
+
+            <div className="settings-grid">
+                <div className="form-group">
+                    <label>Dashboard Refresh Interval (seconds)</label>
+                    <input
+                        type="number"
+                        className="form-input"
+                        value={generalSettings.autoRefreshInterval}
+                        onChange={(e) => {
+                            const value = parseInt(e.target.value, 10);
+                            handleChange('general', 'autoRefreshInterval', isNaN(value) ? 30 : value);
+                        }}
+                        min="10"
+                        max="300"
+                    />
+                    <small className="form-hint">Set between 10-300 seconds</small>
                 </div>
             </div>
         </div>
@@ -1216,7 +1262,7 @@ export default function Settings() {
             <div className="settings-container">
                 {/* Settings Navigation */}
                 <div className="settings-nav glass-card">
-                    {settingsTabs.map((tab) => (
+                    {visibleTabs.map((tab) => (
                         <button
                             key={tab.id}
                             className={`nav-tab ${activeTab === tab.id ? 'active' : ''}`}

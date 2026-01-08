@@ -10,12 +10,13 @@ import {
     LogOut,
     Menu,
     X,
-    Bell,
     ChevronDown,
     Search,
     Shield,
+    Bell,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
+import NotificationBell from '../notifications/NotificationBell';
 import './Layout.css';
 
 const menuItems = [
@@ -25,7 +26,8 @@ const menuItems = [
     { path: '/sites', icon: MapPin, label: 'Sites', roles: ['Admin', 'Supervisor', 'Dispatcher'] },
     { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },
     { path: '/user-rights', icon: Shield, label: 'User Rights', roles: ['Admin'] },
-    { path: '/settings', icon: Settings, label: 'Settings', roles: ['Admin'] },
+    { path: '/notifications/manage', icon: Bell, label: 'Notifications', roles: ['Admin'] },
+    { path: '/settings', icon: Settings, label: 'Settings', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
 ];
 
 export default function Layout({ children }) {
@@ -95,10 +97,7 @@ export default function Layout({ children }) {
 
                     <div className="header-right">
                         {/* Notifications */}
-                        <button className="icon-btn notification-btn">
-                            <Bell size={20} />
-                            <span className="notification-badge">3</span>
-                        </button>
+                        <NotificationBell />
 
                         {/* User Menu */}
                         <div className="user-menu-container">

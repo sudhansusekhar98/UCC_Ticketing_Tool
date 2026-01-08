@@ -174,6 +174,12 @@ export const uploadAttachment = async (req, res, next) => {
         attachmentType: isImage ? 'image' : 'document'
       });
       
+      // Emit socket event for real-time update
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('activity:created', { ticketId, type: 'attachment', attachment });
+      }
+      
       return res.status(201).json({
         success: true,
         data: {
@@ -209,6 +215,12 @@ export const uploadAttachment = async (req, res, next) => {
       fs.unlinkSync(file.path);
     } catch (err) {
       console.error('Failed to delete local file:', err);
+    }
+    
+    // Emit socket event for real-time update
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('activity:created', { ticketId, type: 'attachment', attachment });
     }
     
     res.status(201).json({

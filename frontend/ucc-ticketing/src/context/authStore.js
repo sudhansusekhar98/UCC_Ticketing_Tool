@@ -36,7 +36,8 @@ const useAuthStore = create(
                                 email: user.email, 
                                 email: user.email, 
                                 role: user.role,
-                                rights: user.rights || []
+                                rights: user.rights || [],
+                                preferences: user.preferences || {}
                             },
                             accessToken,
                             refreshToken,
@@ -54,6 +55,21 @@ const useAuthStore = create(
                     const errorMessage = error.response?.data?.message || 'Login failed';
                     set({ isLoading: false, error: errorMessage });
                     return { success: false, error: errorMessage };
+                }
+            },
+
+            setUserPreferences: (preferences) => {
+                const { user } = get();
+                if (user) {
+                    set({
+                        user: {
+                            ...user,
+                            preferences: {
+                                ...user.preferences,
+                                ...preferences
+                            }
+                        }
+                    });
                 }
             },
 
