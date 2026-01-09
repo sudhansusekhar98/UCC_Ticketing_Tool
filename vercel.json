@@ -14,11 +14,11 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "dest": "backend-express/server.js"
+      "destination": "backend-express/server.js"
     },
     {
       "source": "/(.*)",
-      "dest": "/frontend/ucc-ticketing/dist/$1",
+      "destination": "/frontend/ucc-ticketing/dist/$1",
       "continue": true
     }
   ],
@@ -28,7 +28,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/frontend/ucc-ticketing/dist/index.html"
+      "destination": "/frontend/ucc-ticketing/dist/index.html"
     }
   ]
 }
