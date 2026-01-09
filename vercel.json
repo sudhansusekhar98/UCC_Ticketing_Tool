@@ -1,0 +1,9 @@
+{
+  "buildCommand": "cd frontend/ucc-ticketing && npm install && npm run build",
+  "outputDirectory": "frontend/ucc-ticketing/dist",
+  "installCommand": "cd frontend/ucc-ticketing && npm install",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}
