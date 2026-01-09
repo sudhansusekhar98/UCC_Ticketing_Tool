@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Ticket, Eye, EyeOff, Loader } from 'lucide-react';
+import { Eye, EyeOff, Loader } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
+import TOpsLogo from '../../assets/TOps.svg';
 import './Login.css';
 
 export default function Login() {
@@ -43,7 +44,7 @@ export default function Login() {
                     <div className="login-header">
                         <div className="login-logo">
                             <div className="logo-icon-large">
-                                <Ticket size={32} />
+                                <img src={TOpsLogo} alt="TicketOps" width={48} height={48} />
                             </div>
                         </div>
                         <h1 className="login-title">TicketOps</h1>

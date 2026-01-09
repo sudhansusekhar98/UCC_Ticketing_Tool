@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import NotificationBell from '../notifications/NotificationBell';
+import TOpsLogo from '../../assets/TOps.svg';
 import './Layout.css';
 
 const menuItems = [
@@ -53,7 +54,7 @@ export default function Layout({ children }) {
                 <div className="sidebar-header">
                     <div className="logo" onClick={() => setSidebarOpen(!sidebarOpen)} style={{ cursor: 'pointer' }}>
                         <div className="logo-icon">
-                            <Ticket size={24} />
+                            <img src={TOpsLogo} alt="TicketOps" width={56} height={56} />
                         </div>
                         {sidebarOpen && <span className="logo-text">TicketOps</span>}
                     </div>
