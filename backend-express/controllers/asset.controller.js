@@ -16,18 +16,17 @@ export const getAssets = async (req, res, next) => {
     const query = {};
     const user = req.user;
     
-    // Restrict non-admins to their own site
+    // Restrict non-admins to their assigned sites
     if (user.role !== 'Admin') {
-      if (!user.siteId) {
-        // If user has no site but is not admin, they see nothing (or handle appropriate error)
-        // Returning empty result for safety
+      if (!user.assignedSites || user.assignedSites.length === 0) {
+        // If user has no sites but is not admin, they see nothing
         return res.json({
           success: true,
           data: [],
           pagination: { page: 1, limit: parseInt(limit), total: 0, pages: 0 }
         });
       }
-      query.siteId = user.siteId;
+      query.siteId = { $in: user.assignedSites };
     }
     
     if (siteId) query.siteId = siteId;
@@ -223,7 +222,17 @@ export const getAssetsDropdown = async (req, res, next) => {
     const query = { isActive: true };
     
     if (req.user.role !== 'Admin') {
-      query.siteId = req.user.siteId;
+      if (!req.user.assignedSites || req.user.assignedSites.length === 0) {
+          return res.json({ success: true, data: [] });
+      }
+      if (siteId && req.user.assignedSites.includes(siteId)) {
+        query.siteId = siteId;
+      } else if (siteId) {
+        // If siteId provided but not in user's assigned sites, return empty
+        return res.json({ success: true, data: [] });
+      } else {
+        query.siteId = { $in: req.user.assignedSites };
+      }
     } else if (siteId) {
       query.siteId = siteId;
     }

@@ -28,17 +28,17 @@ import NotificationsList from './pages/notifications/NotificationsList';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles, requiredRight }) {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, hasRole, hasRightForAnySite } = useAuthStore();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
   if (allowedRoles || requiredRight) {
-    const hasRole = !allowedRoles || allowedRoles.includes(user?.role);
-    const hasPermission = !requiredRight || (user?.rights?.includes(requiredRight));
+    const roleMatch = !allowedRoles || hasRole(allowedRoles);
+    const permissionMatch = !requiredRight || hasRightForAnySite(requiredRight);
 
-    if (!hasRole && !hasPermission) {
+    if (!roleMatch && !permissionMatch) {
       return <Navigate to="/dashboard" replace />;
     }
   }
@@ -189,7 +189,7 @@ function App() {
           <Route
             path="/sites"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer']}>
                 <SitesList />
               </ProtectedRoute>
             }

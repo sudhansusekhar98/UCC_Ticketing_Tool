@@ -8,6 +8,19 @@ export const getSites = async (req, res, next) => {
     const { city, zone, isActive, search, page = 1, limit = 50 } = req.query;
     
     const query = {};
+    const user = req.user;
+
+    // Restrict non-admins to their assigned sites
+    if (user.role !== 'Admin') {
+      if (!user.assignedSites || user.assignedSites.length === 0) {
+        return res.json({
+          success: true,
+          data: [],
+          pagination: { page: 1, limit: parseInt(limit), total: 0, pages: 0 }
+        });
+      }
+      query._id = { $in: user.assignedSites };
+    }
     
     if (city) query.city = city;
     if (zone) query.zone = zone;
@@ -147,7 +160,16 @@ export const deleteSite = async (req, res, next) => {
 // @access  Private
 export const getSitesDropdown = async (req, res, next) => {
   try {
-    const sites = await Site.find({ isActive: true })
+    const query = { isActive: true };
+    
+    if (req.user.role !== 'Admin') {
+      if (!req.user.assignedSites || req.user.assignedSites.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+      query._id = { $in: req.user.assignedSites };
+    }
+
+    const sites = await Site.find(query)
       .select('siteName siteUniqueID')
       .sort({ siteName: 1 });
     

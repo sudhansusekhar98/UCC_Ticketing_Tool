@@ -112,6 +112,18 @@ io.on('connection', (socket) => {
     socket.join(`user_${userId}`);
     console.log(`User ${userId} joined their room`);
   });
+
+  // Join a specific ticket room for targeted updates
+  socket.on('join:ticket', (ticketId) => {
+    socket.join(`ticket_${ticketId}`);
+    console.log(`Socket ${socket.id} joined room: ticket_${ticketId}`);
+  });
+
+  // Leave a ticket room
+  socket.on('leave:ticket', (ticketId) => {
+    socket.leave(`ticket_${ticketId}`);
+    console.log(`Socket ${socket.id} left room: ticket_${ticketId}`);
+  });
 });
 
 // Start server

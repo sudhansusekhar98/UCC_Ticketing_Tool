@@ -10,7 +10,7 @@ export default function TicketForm() {
     const { id } = useParams();
     const navigate = useNavigate();
     const isEditing = Boolean(id);
-    const { user } = useAuthStore();
+    const { user, getSitesWithRight, hasRole } = useAuthStore();
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -93,7 +93,33 @@ export default function TicketForm() {
             setCategories(catData);
             
             const siteData = sitesRes.data.data || sitesRes.data || [];
-            setSites(siteData.map(s => ({
+            // Filter sites based on CREATE_TICKET rights (or EDIT_TICKET for editing)
+            let filteredSites = siteData;
+            
+            // If user has role-based access, show all sites
+            if (!hasRole(['Admin', 'Supervisor', 'Dispatcher'])) {
+                try {
+                    const allowedSiteIds = isEditing 
+                        ? getSitesWithRight('EDIT_TICKET')
+                        : getSitesWithRight('CREATE_TICKET');
+                    
+                    // Filter only if we got valid site IDs
+                    if (allowedSiteIds && allowedSiteIds.length > 0) {
+                        filteredSites = siteData.filter(s => 
+                            allowedSiteIds.includes((s._id || s.value || s.siteId)?.toString())
+                        );
+                    } else {
+                        // If no sites with rights, show empty (user needs to be granted rights)
+                        filteredSites = [];
+                    }
+                } catch (error) {
+                    console.error('Error filtering sites by rights:', error);
+                    // On error, show all assigned sites as fallback
+                    filteredSites = siteData;
+                }
+            }
+            
+            setSites(filteredSites.map(s => ({
                 value: s._id || s.value || s.siteId,
                 label: s.siteName || s.label
             })));
@@ -154,6 +180,14 @@ export default function TicketForm() {
         try {
             const response = await ticketsApi.getById(id);
             const ticket = response.data.data || response.data;
+            
+            // Disable editing if work has started
+            const isLocked = ['InProgress', 'OnHold', 'Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status);
+            if (isLocked) {
+                toast.error('Ticket cannot be edited once work has started');
+                navigate(`/tickets/${id}`);
+                return;
+            }
             
             // Get IDs - could be objects or strings
             const assetIdValue = typeof ticket.assetId === 'object' ? ticket.assetId?._id : ticket.assetId;

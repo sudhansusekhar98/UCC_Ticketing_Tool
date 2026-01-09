@@ -21,7 +21,7 @@ export const getTickets = async (req, res, next) => {
     
     // Admin sees all. Others see based on site/assignment logic.
     if (user.role !== 'Admin') {
-      const siteAssetIds = await Asset.find({ siteId: user.siteId }).distinct('_id');
+      const siteAssetIds = await Asset.find({ siteId: { $in: user.assignedSites || [] } }).distinct('_id');
       
       // Keep existing query criteria but restrict scope
       query.$or = [
@@ -138,6 +138,12 @@ export const createTicket = async (req, res, next) => {
       ...req.body,
       createdBy: req.user._id
     };
+
+    // If assignedTo is provided during creation, set status to Assigned
+    if (ticketData.assignedTo) {
+      ticketData.status = 'Assigned';
+      ticketData.assignedOn = new Date();
+    }
     
     // Auto-assign SLA policy based on priority
     if (!ticketData.slaPolicyId && ticketData.priority) {
@@ -157,22 +163,33 @@ export const createTicket = async (req, res, next) => {
     const ticket = await Ticket.create(ticketData);
     
     // Create activity for ticket creation
+    let activityContent = 'Ticket created';
+    if (ticket.assignedTo) {
+      // Find the assigned user to get their name for the activity
+      const assignedUser = await mongoose.model('User').findById(ticket.assignedTo);
+      if (assignedUser) {
+        activityContent += ` and assigned to ${assignedUser.fullName}`;
+      }
+    }
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'StatusChange',
-      content: 'Ticket created'
+      content: activityContent
     });
     
     const populatedTicket = await Ticket.findById(ticket._id)
-      .populate('assetId', 'assetCode assetType')
+      .populate('assetId', 'assetCode assetType deviceType locationDescription siteId')
       .populate('createdBy', 'fullName username')
+      .populate('assignedTo', 'fullName username role')
       .populate('slaPolicyId', 'policyName');
     
     // Emit socket event for real-time updates
     const io = req.app.get('io');
     if (io) {
       io.emit('ticket:created', populatedTicket);
+      io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
     
     res.status(201).json({
@@ -190,17 +207,57 @@ export const createTicket = async (req, res, next) => {
 // @access  Private
 export const updateTicket = async (req, res, next) => {
   try {
-    const ticket = await Ticket.findByIdAndUpdate(
-      req.params.id,
-      { ...req.body, updatedAt: new Date() },
-      { new: true, runValidators: true }
-    ).populate('assetId createdBy assignedTo slaPolicyId');
-    
-    if (!ticket) {
+    const originalTicket = await Ticket.findById(req.params.id);
+    if (!originalTicket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
+    }
+
+    const updates = req.body;
+    const changedFields = [];
+
+    // Fields to track for audit log
+    const trackableFields = [
+      { key: 'title', label: 'Title' },
+      { key: 'description', label: 'Description' },
+      { key: 'priority', label: 'Priority' },
+      { key: 'category', label: 'Category' },
+      { key: 'subCategory', label: 'Sub-Category' },
+      { key: 'assetId', label: 'Asset' },
+      { key: 'assignedTo', label: 'Assigned User' },
+      { key: 'tags', label: 'Tags' }
+    ];
+
+    for (const field of trackableFields) {
+      if (updates[field.key] !== undefined && updates[field.key]?.toString() !== originalTicket[field.key]?.toString()) {
+        const oldVal = originalTicket[field.key] || 'None';
+        const newVal = updates[field.key] || 'None';
+        changedFields.push(`${field.label} changed`);
+      }
+    }
+
+    const ticket = await Ticket.findByIdAndUpdate(
+      req.params.id,
+      { ...updates, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    ).populate('assetId createdBy assignedTo slaPolicyId');
+    
+    // Log activity if fields were changed
+    if (changedFields.length > 0) {
+      await TicketActivity.create({
+        ticketId: ticket._id,
+        userId: req.user._id,
+        activityType: 'StatusChange',
+        content: `Ticket details updated: ${changedFields.join(', ')}`
+      });
+
+      // Emit socket event for real-time history update
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+      }
     }
     
     res.json({
@@ -255,6 +312,7 @@ export const assignTicket = async (req, res, next) => {
     const io = req.app.get('io');
     if (io) {
       io.to(`user_${assignedTo}`).emit('ticket:assigned', ticket);
+      io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
     
     res.json({
@@ -296,6 +354,11 @@ export const acknowledgeTicket = async (req, res, next) => {
       content: 'Ticket acknowledged'
     });
     
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+    }
+    
     res.json({
       success: true,
       data: ticket,
@@ -333,6 +396,11 @@ export const startTicket = async (req, res, next) => {
       activityType: 'StatusChange',
       content: 'Work started on ticket'
     });
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+    }
     
     res.json({
       success: true,
@@ -377,6 +445,11 @@ export const resolveTicket = async (req, res, next) => {
       content: `Ticket resolved. ${resolutionSummary || ''}`
     });
     
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+    }
+    
     res.json({
       success: true,
       data: ticket,
@@ -416,6 +489,11 @@ export const verifyTicket = async (req, res, next) => {
       activityType: 'StatusChange',
       content: 'Resolution verified'
     });
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+    }
     
     res.json({
       success: true,
@@ -457,6 +535,11 @@ export const closeTicket = async (req, res, next) => {
       activityType: 'StatusChange',
       content: `Ticket closed${notes ? '. Notes: ' + notes : ''}`
     });
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+    }
     
     res.json({
       success: true,
@@ -502,6 +585,11 @@ export const reopenTicket = async (req, res, next) => {
       content: `Ticket reopened. Reason: ${reason || 'Not specified'}`
     });
     
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+    }
+    
     res.json({
       success: true,
       data: ticket,
@@ -540,7 +628,7 @@ export const getDashboardStats = async (req, res, next) => {
     
     // Role-based filtering
     if (user.role !== 'Admin') {
-      const siteAssetIds = await Asset.find({ siteId: user.siteId }).distinct('_id');
+      const siteAssetIds = await Asset.find({ siteId: { $in: user.assignedSites || [] } }).distinct('_id');
       matchQuery.$or = [
         { assignedTo: user._id },
         { createdBy: user._id },
@@ -581,10 +669,10 @@ export const getDashboardStats = async (req, res, next) => {
       // Asset counts (filtered by site for non-admins)
       user.role === 'Admin' 
         ? mongoose.connection.collection('assets').countDocuments({ isActive: true })
-        : mongoose.connection.collection('assets').countDocuments({ isActive: true, siteId: user.siteId }),
+        : mongoose.connection.collection('assets').countDocuments({ isActive: true, siteId: { $in: user.assignedSites.map(s => new mongoose.Types.ObjectId(s)) || [] } }),
       user.role === 'Admin'
         ? mongoose.connection.collection('assets').countDocuments({ isActive: true, status: 'Offline' })
-        : mongoose.connection.collection('assets').countDocuments({ isActive: true, status: 'Offline', siteId: user.siteId }),
+        : mongoose.connection.collection('assets').countDocuments({ isActive: true, status: 'Offline', siteId: { $in: user.assignedSites.map(s => new mongoose.Types.ObjectId(s)) || [] } }),
       // Priority breakdown
       Ticket.aggregate([
         { $match: { ...matchQuery, status: { $nin: ['Closed', 'Cancelled'] } } },

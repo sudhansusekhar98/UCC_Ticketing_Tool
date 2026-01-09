@@ -110,7 +110,7 @@ export const createActivity = async (req, res, next) => {
     // Emit socket event
     const io = req.app.get('io');
     if (io) {
-      io.emit('activity:created', { ticketId, activity: populatedActivity });
+      io.to(`ticket_${ticketId}`).emit('activity:created', { ticketId, activity: populatedActivity });
     }
     
     res.status(201).json({
@@ -177,7 +177,7 @@ export const uploadAttachment = async (req, res, next) => {
       // Emit socket event for real-time update
       const io = req.app.get('io');
       if (io) {
-        io.emit('activity:created', { ticketId, type: 'attachment', attachment });
+        io.to(`ticket_${ticketId}`).emit('activity:created', { ticketId, type: 'attachment', attachment });
       }
       
       return res.status(201).json({
@@ -220,7 +220,7 @@ export const uploadAttachment = async (req, res, next) => {
     // Emit socket event for real-time update
     const io = req.app.get('io');
     if (io) {
-      io.emit('activity:created', { ticketId, type: 'attachment', attachment });
+      io.to(`ticket_${ticketId}`).emit('activity:created', { ticketId, type: 'attachment', attachment });
     }
     
     res.status(201).json({

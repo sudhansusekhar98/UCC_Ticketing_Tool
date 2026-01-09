@@ -11,16 +11,16 @@ export const getUsers = async (req, res, next) => {
     const query = {};
     const user = req.user;
 
-    // Restrict non-admins to their own site
+    // Restrict non-admins to their assigned sites
     if (user.role !== 'Admin') {
-       if (!user.siteId) {
+       if (!user.assignedSites || user.assignedSites.length === 0) {
            return res.json({
                success: true,
                data: [],
                pagination: { page: 1, limit: parseInt(limit), total: 0, pages: 0 }
            });
        }
-       query.siteId = user.siteId;
+       query.assignedSites = { $in: user.assignedSites };
     }
     
     if (role) query.role = role;
@@ -40,6 +40,7 @@ export const getUsers = async (req, res, next) => {
       User.find(query)
         .select('-passwordHash')
         .populate('siteId', 'siteName siteUniqueID')
+        .populate('assignedSites', 'siteName siteUniqueID')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
@@ -68,7 +69,8 @@ export const getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.id)
       .select('-passwordHash')
-      .populate('siteId', 'siteName siteUniqueID city');
+      .populate('siteId', 'siteName siteUniqueID city')
+      .populate('assignedSites', 'siteName siteUniqueID city');
     
     if (!user) {
       return res.status(404).json({
@@ -191,8 +193,8 @@ export const getUsersDropdown = async (req, res, next) => {
     if (role) query.role = role;
 
     if (req.user.role !== 'Admin') {
-        if (!req.user.siteId) return res.json({ success: true, data: [] });
-        query.siteId = req.user.siteId;
+        if (!req.user.assignedSites || req.user.assignedSites.length === 0) return res.json({ success: true, data: [] });
+        query.assignedSites = { $in: req.user.assignedSites };
     }
     
     const users = await User.find(query)
@@ -219,16 +221,17 @@ export const getEngineers = async (req, res, next) => {
     };
 
     if (req.user.role !== 'Admin') {
-      if (req.user.siteId) {
-        engineerQuery.siteId = req.user.siteId;
+      if (req.user.assignedSites && req.user.assignedSites.length > 0) {
+        engineerQuery.assignedSites = { $in: req.user.assignedSites };
       } else {
         return res.json({ success: true, data: [] });
       }
     }
 
     const engineers = await User.find(engineerQuery)
-      .select('fullName username role siteId mobileNumber')
+      .select('fullName username role siteId assignedSites mobileNumber')
       .populate('siteId', 'siteName')
+      .populate('assignedSites', 'siteName')
       .sort({ fullName: 1 });
     
     res.json({

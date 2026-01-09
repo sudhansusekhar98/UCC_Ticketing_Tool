@@ -7,7 +7,18 @@ const userRightSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
-  rights: [{
+  siteRights: [{
+    site: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Site',
+      required: true
+    },
+    rights: [{
+      type: String,
+      trim: true
+    }]
+  }],
+  globalRights: [{
     type: String,
     trim: true
   }]

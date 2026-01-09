@@ -79,7 +79,8 @@ export const login = async (req, res, next) => {
           mobileNumber: user.mobileNumber,
           mobileNumber: user.mobileNumber,
           siteId: user.siteId,
-          rights: (await UserRight.findOne({ user: user._id }))?.rights || [],
+          assignedSites: user.assignedSites || [],
+          rights: (await UserRight.findOne({ user: user._id })) || { siteRights: [], globalRights: [] },
           preferences: user.preferences
         },
         token,
@@ -96,13 +97,15 @@ export const login = async (req, res, next) => {
 // @access  Private
 export const getMe = async (req, res, next) => {
   try {
-    const user = await User.findById(req.user.id).populate('siteId', 'siteName siteUniqueID');
+    const user = await User.findById(req.user.id)
+      .populate('siteId', 'siteName siteUniqueID')
+      .populate('assignedSites', 'siteName siteUniqueID');
 
     const userRight = await UserRight.findOne({ user: req.user.id });
     
     // Convert to object to append rights
     const userObj = user.toObject();
-    userObj.rights = userRight ? userRight.rights : [];
+    userObj.rights = userRight || { siteRights: [], globalRights: [] };
 
     res.json({
       success: true,

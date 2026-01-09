@@ -36,6 +36,7 @@ const useAuthStore = create(
                                 email: user.email, 
                                 email: user.email, 
                                 role: user.role,
+                                assignedSites: user.assignedSites || [],
                                 rights: user.rights || [],
                                 preferences: user.preferences || {}
                             },
@@ -133,9 +134,87 @@ const useAuthStore = create(
             isDispatcher: () => get().user?.role === 'Dispatcher',
             isEngineer: () => ['L1Engineer', 'L2Engineer'].includes(get().user?.role),
 
-            hasRight: (rightName) => {
+            hasRight: (rightName, siteId = null) => {
                 const { user } = get();
-                return user?.rights?.includes(rightName) || false;
+                if (!user) return false;
+                
+                // Handle old format where rights was just an array
+                if (Array.isArray(user.rights)) {
+                    return user.rights.includes(rightName);
+                }
+                
+                // New format
+                if (!user.rights) return false;
+
+                // Check global rights first
+                if (user.rights.globalRights?.includes(rightName)) return true;
+
+                // If siteId provided, check specific site rights
+                if (siteId) {
+                    const targetSiteId = siteId.toString();
+                    const siteRight = user.rights.siteRights?.find(sr => {
+                        const sId = (sr.site?._id || sr.site)?.toString();
+                        return sId === targetSiteId;
+                    });
+                    if (siteRight?.rights?.includes(rightName)) return true;
+                }
+
+                return false;
+            },
+
+            // Check if user has a right for ANY of their assigned sites
+            hasRightForAnySite: (rightName) => {
+                const { user } = get();
+                if (!user) return false;
+                
+                // Handle old format where rights was just an array
+                if (Array.isArray(user.rights)) {
+                    return user.rights.includes(rightName);
+                }
+                
+                // New format
+                if (!user.rights) return false;
+
+                // Check global rights first
+                if (user.rights.globalRights?.includes(rightName)) return true;
+
+                // Check if user has the right for any site
+                const hasForAnySite = user.rights.siteRights?.some(sr => 
+                    sr.rights?.includes(rightName)
+                );
+
+                return hasForAnySite || false;
+            },
+
+            // Get list of site IDs where user has a specific right
+            getSitesWithRight: (rightName) => {
+                const { user } = get();
+                if (!user) return [];
+                
+                // Handle old format where rights was just an array
+                if (Array.isArray(user.rights)) {
+                    // Old format - if they have the right globally, return all assigned sites
+                    if (user.rights.includes(rightName)) {
+                        return user.assignedSites?.map(s => (s._id || s)?.toString()).filter(Boolean) || [];
+                    }
+                    return [];
+                }
+                
+                // New format with siteRights and globalRights
+                if (!user.rights) return [];
+
+                // If user has global right, return all assigned sites
+                if (user.rights.globalRights?.includes(rightName)) {
+                    return user.assignedSites?.map(s => (s._id || s)?.toString()).filter(Boolean) || [];
+                }
+
+                // Otherwise, return only sites where they have this specific right
+                const sitesWithRight = user.rights.siteRights
+                    ?.filter(sr => sr.rights?.includes(rightName))
+                    ?.map(sr => (sr.site?._id || sr.site)?.toString())
+                    ?.filter(Boolean) || [];
+
+                return sitesWithRight;
             },
         }),
         {

@@ -181,7 +181,7 @@ export const settingsApi = {
 export const userRightsApi = {
     getAll: () => api.get('/user-rights'),
     getByUser: (userId) => api.get(`/user-rights/${userId}`),
-    update: (userId, rights) => api.put(`/user-rights/${userId}`, { rights }),
+    update: (userId, rights, siteId) => api.put(`/user-rights/${userId}`, { rights, siteId }),
 };
 
 // Notifications API

@@ -29,6 +29,7 @@ export default function UserForm() {
         mobileNumber: '',
         designation: '',
         siteId: '',
+        assignedSites: [],
         isActive: true,
     });
 
@@ -78,6 +79,7 @@ export default function UserForm() {
                 mobileNumber: user.mobileNumber || '',
                 designation: user.designation || '',
                 siteId: siteIdValue || '',
+                assignedSites: user.assignedSites?.map(s => typeof s === 'object' ? s._id : s) || [],
                 isActive: user.isActive,
             });
         } catch (error) {
@@ -133,6 +135,10 @@ export default function UserForm() {
             newErrors.role = 'Role is required';
         }
 
+        if (formData.role !== 'Admin' && (!formData.assignedSites || formData.assignedSites.length === 0)) {
+            newErrors.assignedSites = 'At least one site must be assigned for non-admin users';
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -154,7 +160,8 @@ export default function UserForm() {
                 role: formData.role,
                 mobileNumber: formData.mobileNumber || null,
                 designation: formData.designation || null,
-                siteId: formData.siteId || null, // Keep as string for MongoDB ObjectId
+                siteId: formData.siteId || null,
+                assignedSites: formData.assignedSites,
                 isActive: formData.isActive,
             };
 
@@ -324,20 +331,46 @@ export default function UserForm() {
                         />
                     </div>
 
-                    {/* Assigned Site */}
-                    <div className="form-group">
-                        <label className="form-label">Assigned Site</label>
-                        <select
-                            className="form-select"
-                            value={formData.siteId}
-                            onChange={(e) => handleChange('siteId', e.target.value)}
-                        >
-                            <option value="">No Site Assigned</option>
+                    {/* Multi-Site Selection */}
+                    <div className="sites-selection-container">
+                        <div className="flex justify-between items-center">
+                            <label className="form-label">Site Access *</label>
+                            <div className="flex gap-2">
+                                <button 
+                                    type="button" 
+                                    className="btn btn-ghost btn-xs"
+                                    onClick={() => handleChange('assignedSites', sites.map(s => s.value))}
+                                >
+                                    Select All
+                                </button>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-ghost btn-xs"
+                                    onClick={() => handleChange('assignedSites', [])}
+                                >
+                                    Clear All
+                                </button>
+                            </div>
+                        </div>
+                        <div className="sites-selection-grid">
                             {sites.map(site => (
-                                <option key={site.value} value={site.value}>{site.label}</option>
+                                <label key={site.value} className="site-checkbox-item">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.assignedSites.includes(site.value)}
+                                        onChange={(e) => {
+                                            const newSites = e.target.checked
+                                                ? [...formData.assignedSites, site.value]
+                                                : formData.assignedSites.filter(id => id !== site.value);
+                                            handleChange('assignedSites', newSites);
+                                        }}
+                                    />
+                                    <span title={site.label}>{site.label}</span>
+                                </label>
                             ))}
-                        </select>
-                        <span className="form-hint">Optional: Assign user to a specific site</span>
+                        </div>
+                        {errors.assignedSites && <span className="form-error">{errors.assignedSites}</span>}
+                        <span className="form-hint">Assign user to one or more sites to control their visibility scope</span>
                     </div>
 
                     {/* Status */}

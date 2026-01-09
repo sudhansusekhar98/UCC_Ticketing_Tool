@@ -42,6 +42,11 @@
     background: var(--bg-tertiary);
     padding: 2px 8px;
     border-radius: var(--radius-full);
+    width: 5rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .refresh-btn {

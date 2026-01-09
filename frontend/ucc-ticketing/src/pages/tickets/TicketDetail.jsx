@@ -15,6 +15,7 @@ import {
     RotateCcw,
 } from 'lucide-react';
 import { ticketsApi, usersApi } from '../../services/api';
+import socketService from '../../services/socket';
 import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -39,8 +40,11 @@ export default function TicketDetail() {
     const [resolveData, setResolveData] = useState({ rootCause: '', resolutionSummary: '' });
     const [reopenReason, setReopenReason] = useState('');
 
-    const canEdit = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET');
-    const canAssign = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET');
+    const isLocked = ['InProgress', 'OnHold', 'Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
+    // Get the site ID from the ticket's asset
+    const ticketSiteId = ticket?.assetId?.siteId?._id || ticket?.assetId?.siteId;
+    const canEdit = (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId)) && !isLocked;
+    const canAssign = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId);
     // Compare using string IDs for MongoDB
     const assignedToId = typeof ticket?.assignedTo === 'object' ? ticket?.assignedTo?._id : ticket?.assignedTo;
     const isAssignedToMe = assignedToId && assignedToId === user?.userId;
@@ -48,13 +52,33 @@ export default function TicketDetail() {
     const canAcknowledge = isAssignedToMe || (hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']) && assignedToId === user?.userId);
     // Assigned user or engineers can resolve
     const canResolve = isAssignedToMe || hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']);
-    const canClose = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('DELETE_TICKET');
-    const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET');
+    const canClose = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('DELETE_TICKET', ticketSiteId);
+    const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId);
 
     useEffect(() => {
         fetchTicket();
         fetchAuditTrail();
         loadEngineers();
+
+        // Connect to socket and join room
+        socketService.connect();
+        socketService.joinTicketRoom(id);
+
+        const handleRealtimeUpdate = (data) => {
+            // Check if update is for this ticket
+            if (data.ticketId === id || data.ticketId === ticket?._id) {
+                console.log('🔔 Notification: Real-time update for ticket', id);
+                fetchTicket();
+                fetchAuditTrail();
+            }
+        };
+
+        socketService.onActivityCreated(handleRealtimeUpdate);
+
+        return () => {
+            socketService.leaveTicketRoom(id);
+            socketService.offActivityCreated(handleRealtimeUpdate);
+        };
     }, [id]);
 
     const fetchTicket = async () => {

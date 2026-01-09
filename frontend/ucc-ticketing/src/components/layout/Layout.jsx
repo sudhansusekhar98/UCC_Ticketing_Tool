@@ -23,7 +23,7 @@ const menuItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
     { path: '/tickets', icon: Ticket, label: 'Tickets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
     { path: '/assets', icon: Monitor, label: 'Assets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer', 'L1Engineer', 'L2Engineer'] },
-    { path: '/sites', icon: MapPin, label: 'Sites', roles: ['Admin', 'Supervisor', 'Dispatcher'] },
+    { path: '/sites', icon: MapPin, label: 'Sites', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer'] },
     { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },
     { path: '/user-rights', icon: Shield, label: 'User Rights', roles: ['Admin'] },
     { path: '/notifications/manage', icon: Bell, label: 'Notifications', roles: ['Admin'] },
@@ -55,7 +55,7 @@ export default function Layout({ children }) {
                         <div className="logo-icon">
                             <Ticket size={24} />
                         </div>
-                        {sidebarOpen && <span className="logo-text">UCC Ticketing</span>}
+                        {sidebarOpen && <span className="logo-text">TicketOps</span>}
                     </div>
                 </div>
 

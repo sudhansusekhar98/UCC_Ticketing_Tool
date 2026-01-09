@@ -104,10 +104,13 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
         // Connect to socket and set up listener
         const socket = socketService.connect();
         
+        // Join the ticket room for targeted updates
+        socketService.joinTicketRoom(ticketId);
+        
         // Handler for activity created events
         const handleActivityCreated = (data) => {
             // Only refresh if the activity is for this ticket
-            if (data.ticketId === ticketId) {
+            if (String(data.ticketId) === String(ticketId)) {
                 console.log('🔔 New activity received for ticket:', ticketId);
                 fetchActivities();
             }
@@ -118,6 +121,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
         
         // Cleanup on unmount
         return () => {
+            socketService.leaveTicketRoom(ticketId);
             socketService.offActivityCreated(handleActivityCreated);
         };
     }, [ticketId, fetchActivities]);

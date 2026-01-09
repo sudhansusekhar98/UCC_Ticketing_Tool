@@ -10,6 +10,7 @@ export default function UserRights() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
+    const [selectedSiteId, setSelectedSiteId] = useState('global');
     const [editedRights, setEditedRights] = useState([]);
     const [saving, setSaving] = useState(false);
 
@@ -34,7 +35,21 @@ export default function UserRights() {
 
     const handleUserSelect = (userData) => {
         setSelectedUser(userData);
-        setEditedRights(userData.rights || []);
+        setSelectedSiteId('global');
+        setEditedRights(userData.globalRights || []);
+    };
+
+    const handleSiteChange = (siteId) => {
+        if (!selectedUser) return;
+        
+        const sIdStr = siteId?.toString();
+        setSelectedSiteId(sIdStr);
+        if (sIdStr === 'global') {
+            setEditedRights(selectedUser.globalRights || []);
+        } else {
+            const siteRight = selectedUser.siteRights.find(sr => (sr.site?._id || sr.site || sr).toString() === sIdStr);
+            setEditedRights(siteRight ? siteRight.rights : []);
+        }
     };
 
     const handleRightToggle = (rightKey) => {
@@ -52,20 +67,36 @@ export default function UserRights() {
 
         try {
             setSaving(true);
-            const response = await userRightsApi.update(selectedUser.user._id, editedRights);
+            const response = await userRightsApi.update(selectedUser.user._id, editedRights, selectedSiteId);
             
             if (response.data.success) {
                 toast.success('User rights updated successfully');
                 
                 // Update local state
-                setUsers(prevUsers => prevUsers.map(u => {
+                // Update local state and current selection
+                const updatedUserMap = (u) => {
                     if (u.user._id === selectedUser.user._id) {
-                        return { ...u, rights: editedRights };
+                        const sIdStr = selectedSiteId?.toString();
+                        let updated;
+                        if (sIdStr === 'global') {
+                            updated = { ...u, globalRights: editedRights };
+                        } else {
+                            const newSiteRights = [...u.siteRights];
+                            const siteIndex = newSiteRights.findIndex(sr => (sr.site?._id || sr.site || sr).toString() === sIdStr);
+                            if (siteIndex > -1) {
+                                newSiteRights[siteIndex] = { ...newSiteRights[siteIndex], rights: editedRights };
+                            } else {
+                                newSiteRights.push({ site: selectedSiteId, rights: editedRights });
+                            }
+                            updated = { ...u, siteRights: newSiteRights };
+                        }
+                        setSelectedUser(updated);
+                        return updated;
                     }
                     return u;
-                }));
-                
-                setSelectedUser(null);
+                };
+
+                setUsers(prevUsers => prevUsers.map(updatedUserMap));
             }
         } catch (error) {
             console.error('Error updating rights:', error);
@@ -122,8 +153,13 @@ export default function UserRights() {
                                         <div className="name">{item.user.fullName}</div>
                                         <div className="meta">
                                             <span className="role-badge">{item.user.role}</span>
-                                            {item.rights.length > 0 && (
-                                                <span className="rights-count">{item.rights.length} rights</span>
+                                            {(item.globalRights?.length > 0 || item.siteRights?.length > 0) && (
+                                                <span className="rights-count">
+                                                    {[
+                                                        item.globalRights?.length > 0 ? 'Global' : null,
+                                                        item.siteRights?.length > 0 ? `${item.siteRights.length} Sites` : null
+                                                    ].filter(Boolean).join(' + ')}
+                                                </span>
                                             )}
                                         </div>
                                     </div>
@@ -142,14 +178,52 @@ export default function UserRights() {
                                     <h2>{selectedUser.user.fullName}</h2>
                                     <p>{selectedUser.user.email}</p>
                                 </div>
-                                <button className="save-btn" onClick={handleSave} disabled={saving}>
-                                    {saving ? 'Saving...' : (
-                                        <>
-                                            <Save size={18} />
-                                            Save Changes
-                                        </>
+                                <div className="editor-actions">
+                                    <button className="save-btn" onClick={handleSave} disabled={saving}>
+                                        {saving ? 'Saving...' : (
+                                            <>
+                                                <Save size={18} />
+                                                Save Changes
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="site-selection-wrapper">
+                                <div className="site-selection-header">
+                                    <label className="section-label">Select Scope:</label>
+                                    <span className="section-hint">Choose global or a specific site to manage its overrides</span>
+                                </div>
+                                <div className="site-tabs-modern">
+                                    <button 
+                                        className={`site-btn-modern ${selectedSiteId === 'global' ? 'active' : ''}`}
+                                        onClick={() => handleSiteChange('global')}
+                                    >
+                                        <Shield size={16} />
+                                        <span>Global Rights</span>
+                                    </button>
+                                    
+                                    {selectedUser.user.assignedSites?.length > 0 && (
+                                        <div className="site-divider"></div>
                                     )}
-                                </button>
+
+                                    {selectedUser.user.assignedSites?.map(site => {
+                                        const siteId = (site._id || site.siteId || site).toString();
+                                        const siteName = site.siteName || site.siteUniqueID || 'Site ' + siteId.substring(siteId.length - 4);
+                                        return (
+                                            <button 
+                                                key={siteId}
+                                                className={`site-btn-modern ${selectedSiteId?.toString() === siteId ? 'active' : ''}`}
+                                                onClick={() => handleSiteChange(siteId)}
+                                                title={siteName}
+                                            >
+                                                <Check size={14} className="status-icon" />
+                                                <span>{siteName}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
 
                             <div className="permissions-grid">

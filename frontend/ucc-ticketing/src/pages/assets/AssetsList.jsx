@@ -412,6 +412,7 @@ export default function AssetsList() {
                         <table className="data-table compact assets-table">
                             <thead>
                                 <tr>
+                                    <th className="col-sl">Sl No.</th>
                                     <th className="col-ip">IP Address</th>
                                     <th className="col-location">Location</th>
                                     <th className="col-make">Make</th>
@@ -427,8 +428,9 @@ export default function AssetsList() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {assets.map((asset) => (
+                                {assets.map((asset, index) => (
                                     <tr key={asset.assetId}>
+                                        <td className="col-sl">{(page - 1) * pageSize + index + 1}</td>
                                         <td title={asset.ipAddress || asset.managementIP || ''}>{asset.ipAddress || asset.managementIP || '—'}</td>
                                         <td title={asset.locationName || ''}>{asset.locationName || '—'}</td>
                                         <td title={asset.make || ''}>{asset.make || '—'}</td>

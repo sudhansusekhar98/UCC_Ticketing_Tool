@@ -193,7 +193,7 @@ export default function UsersList() {
                                     <th>Username</th>
                                     <th>Role</th>
                                     <th>Contact</th>
-                                    <th>Site</th>
+                                    <th>Sites</th>
                                     <th>Last Login</th>
                                     <th>Status</th>
                                     <th className="actions-col">Actions</th>
@@ -233,7 +233,17 @@ export default function UsersList() {
                                             </div>
                                         </td>
                                         <td>
-                                            <span className="cell-secondary">{user.siteName || '—'}</span>
+                                            <div className="sites-cell" title={user.assignedSites?.map(s => s.siteName).join(', ')}>
+                                                {user.assignedSites?.length > 0 ? (
+                                                    <span className="cell-primary">
+                                                        {user.assignedSites.length === 1 
+                                                            ? user.assignedSites[0].siteName 
+                                                            : `${user.assignedSites.length} Sites`}
+                                                    </span>
+                                                ) : (
+                                                    <span className="cell-secondary">—</span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td>
                                             <span className="cell-secondary">

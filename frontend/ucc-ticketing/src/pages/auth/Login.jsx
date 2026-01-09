@@ -46,7 +46,7 @@ export default function Login() {
                                 <Ticket size={32} />
                             </div>
                         </div>
-                        <h1 className="login-title">UCC Ticketing</h1>
+                        <h1 className="login-title">TicketOps</h1>
                         <p className="login-subtitle">Surveillance Maintenance Platform</p>
                     </div>
 

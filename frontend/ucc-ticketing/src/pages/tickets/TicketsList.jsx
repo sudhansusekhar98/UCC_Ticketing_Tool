@@ -24,7 +24,7 @@ export default function TicketsList() {
     const [showFilters, setShowFilters] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { hasRole, hasRight } = useAuthStore();
+    const { hasRole, hasRightForAnySite } = useAuthStore();
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -45,7 +45,7 @@ export default function TicketsList() {
     const [engineers, setEngineers] = useState([]);
     const [sites, setSites] = useState([]);
 
-    const canCreate = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('CREATE_TICKET');
+    const canCreate = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRightForAnySite('CREATE_TICKET');
 
     useEffect(() => {
         loadDropdowns();

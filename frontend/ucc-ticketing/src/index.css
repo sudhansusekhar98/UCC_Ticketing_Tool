@@ -454,6 +454,11 @@ h6 {
   font-size: var(--text-base);
 }
 
+.btn-xs {
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+}
+
 .btn-icon {
   padding: var(--space-2);
   border-radius: var(--radius-md);

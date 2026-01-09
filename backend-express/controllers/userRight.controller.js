@@ -6,15 +6,21 @@ import User from '../models/User.model.js';
 // @access  Admin
 export const getAllUserRights = async (req, res, next) => {
   try {
-    // Get all users first, then map rights
-    const users = await User.find({}).select('fullName email role designation');
-    const userRights = await UserRight.find({});
+    // Get all users with their assigned sites populated
+    const users = await User.find({})
+      .select('fullName email role designation assignedSites')
+      .populate('assignedSites', 'siteName siteUniqueID');
+    
+    // Get all user rights with site names populated
+    const userRights = await UserRight.find({})
+      .populate('siteRights.site', 'siteName siteUniqueID');
 
     const result = users.map(user => {
       const rightRecord = userRights.find(ur => ur.user.toString() === user._id.toString());
       return {
-        user,
-        rights: rightRecord ? rightRecord.rights : []
+        user: user.toObject(),
+        siteRights: rightRecord ? rightRecord.siteRights : [],
+        globalRights: rightRecord ? rightRecord.globalRights : []
       };
     });
 
@@ -33,20 +39,35 @@ export const getAllUserRights = async (req, res, next) => {
 export const getUserRights = async (req, res, next) => {
   try {
     const { userId } = req.params;
+    const { siteId } = req.query;
     
-    let userRight = await UserRight.findOne({ user: userId });
+    let userRight = await UserRight.findOne({ user: userId })
+      .populate('siteRights.site', 'siteName siteUniqueID');
     
     if (!userRight) {
-      // Return empty rights if not found
       return res.json({
         success: true,
-        data: []
+        data: { siteRights: [], globalRights: [] }
+      });
+    }
+
+    if (siteId) {
+      const siteRight = userRight.siteRights.find(sr => {
+        const sId = sr.site?._id || sr.site;
+        return sId.toString() === siteId;
+      });
+      return res.json({
+        success: true,
+        data: siteRight ? siteRight.rights : []
       });
     }
 
     res.json({
       success: true,
-      data: userRight.rights
+      data: {
+        siteRights: userRight.siteRights,
+        globalRights: userRight.globalRights
+      }
     });
   } catch (error) {
     next(error);
@@ -59,7 +80,7 @@ export const getUserRights = async (req, res, next) => {
 export const updateUserRights = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const { rights } = req.body; // Expects array of strings
+    const { rights, siteId } = req.body; // Expects rights (array) and siteId (string or 'global')
 
     if (!Array.isArray(rights)) {
       return res.status(400).json({
@@ -70,19 +91,27 @@ export const updateUserRights = async (req, res, next) => {
 
     let userRight = await UserRight.findOne({ user: userId });
 
-    if (userRight) {
-      userRight.rights = rights;
-      await userRight.save();
-    } else {
-      userRight = await UserRight.create({
-        user: userId,
-        rights
-      });
+    if (!userRight) {
+      userRight = new UserRight({ user: userId, siteRights: [], globalRights: [] });
     }
+
+    if (!siteId || siteId === 'global') {
+      userRight.globalRights = rights;
+    } else {
+      // Find site in array
+      const siteIndex = userRight.siteRights.findIndex(sr => sr.site.toString() === siteId);
+      if (siteIndex > -1) {
+        userRight.siteRights[siteIndex].rights = rights;
+      } else {
+        userRight.siteRights.push({ site: siteId, rights });
+      }
+    }
+
+    await userRight.save();
 
     res.json({
       success: true,
-      data: userRight.rights,
+      data: userRight,
       message: 'User rights updated successfully'
     });
   } catch (error) {

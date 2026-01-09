@@ -191,3 +191,51 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Multi-site selection */
+.sites-selection-container {
+    margin-top: var(--space-4);
+    grid-column: 1 / -1;
+}
+
+.sites-selection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-3);
+    margin-top: var(--space-2);
+    padding: var(--space-4);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.site-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
+    transition: background var(--transition-fast);
+}
+
+.site-checkbox-item:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.site-checkbox-item input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.site-checkbox-item span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
