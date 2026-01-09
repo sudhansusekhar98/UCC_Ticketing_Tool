@@ -102,7 +102,7 @@ export const assetsApi = {
     update: (id, data) => api.put(`/assets/${id}`, data),
     delete: (id) => api.delete(`/assets/${id}`),
     updateStatus: (id, status) => api.patch(`/assets/${id}/status`, null, { params: { status } }),
-    getDropdown: (siteId) => api.get('/assets/dropdown', { params: { siteId } }),
+    getDropdown: (siteId, assetType) => api.get('/assets/dropdown', { params: { siteId, assetType } }),
     // Bulk operations
     downloadTemplate: () => api.get('/assets/template', { responseType: 'blob' }),
     exportAssets: (params) => api.get('/assets/export', { params, responseType: 'blob' }),

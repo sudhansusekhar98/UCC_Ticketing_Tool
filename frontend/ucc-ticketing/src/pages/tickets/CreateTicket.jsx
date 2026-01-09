@@ -32,9 +32,11 @@ export default function TicketForm() {
     const [categories, setCategories] = useState([]);
     const [assets, setAssets] = useState([]);
     const [sites, setSites] = useState([]);
+    const [assetTypes, setAssetTypes] = useState([]);
     const [engineers, setEngineers] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
     const [selectedSiteId, setSelectedSiteId] = useState('');
+    const [selectedAssetType, setSelectedAssetType] = useState('');
 
     useEffect(() => {
         loadDropdowns();
@@ -44,19 +46,23 @@ export default function TicketForm() {
     }, [id]);
 
     useEffect(() => {
-        // Load assets when site changes
+        // Load assets when site or assetType changes
         if (selectedSiteId) {
-            loadAssets(selectedSiteId);
+            loadAssets(selectedSiteId, selectedAssetType);
         } else {
-            loadAllAssets();
+            // Don't load assets if no site is selected (since site is mandatory)
+            setAssets([]);
         }
-    }, [selectedSiteId]);
+        // Reset asset selection when filters change
+        setFormData(prev => ({ ...prev, assetId: '' }));
+    }, [selectedSiteId, selectedAssetType]);
 
     const loadDropdowns = async () => {
         try {
-            const [categoriesRes, sitesRes, engineersRes, usersRes] = await Promise.all([
+            const [categoriesRes, sitesRes, assetTypesRes, engineersRes, usersRes] = await Promise.all([
                 lookupsApi.getCategories(),
                 sitesApi.getDropdown(),
+                lookupsApi.getAssetTypes(),
                 usersApi.getEngineers(),
                 usersApi.getDropdown(), // Get all active users
             ]);
@@ -69,6 +75,9 @@ export default function TicketForm() {
                 value: s._id || s.value || s.siteId,
                 label: s.siteName || s.label
             })));
+            
+            const assetTypeData = assetTypesRes.data.data || assetTypesRes.data || [];
+            setAssetTypes(assetTypeData);
             
             const engData = engineersRes.data.data || engineersRes.data || [];
             setEngineers(engData.map(e => ({
@@ -86,31 +95,20 @@ export default function TicketForm() {
         }
     };
 
-    const loadAllAssets = async () => {
+    const loadAssets = async (siteId, assetType = '') => {
         try {
-            const response = await assetsApi.getDropdown();
+            const response = await assetsApi.getDropdown(siteId, assetType || undefined);
             const assetData = response.data.data || response.data || [];
             setAssets(assetData.map(a => ({
                 value: a._id || a.value || a.assetId,
-                label: a.assetCode || a.label
+                label: `${a.assetCode}${a.assetType ? ` (${a.assetType})` : ''}`
             })));
         } catch (error) {
             console.error('Failed to load assets', error);
         }
     };
 
-    const loadAssets = async (siteId) => {
-        try {
-            const response = await assetsApi.getDropdown(siteId);
-            const assetData = response.data.data || response.data || [];
-            setAssets(assetData.map(a => ({
-                value: a._id || a.value || a.assetId,
-                label: a.assetCode || a.label
-            })));
-        } catch (error) {
-            console.error('Failed to load assets', error);
-        }
-    };
+
 
     const loadTicket = async () => {
         setLoading(true);
@@ -145,6 +143,11 @@ export default function TicketForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (!selectedSiteId) {
+            toast.error('Please select a Site');
+            return;
+        }
 
         if (!formData.title || !formData.category) {
             toast.error('Please fill in required fields');
@@ -203,17 +206,34 @@ export default function TicketForm() {
 
             <form onSubmit={handleSubmit} className="form-card glass-card">
                 <div className="form-grid">
-                    {/* Site Selection (filter for assets) */}
+                    {/* Site Selection (mandatory) */}
                     <div className="form-group">
-                        <label className="form-label">Site (optional filter)</label>
+                        <label className="form-label">Site *</label>
                         <select
                             className="form-select"
                             value={selectedSiteId}
                             onChange={(e) => setSelectedSiteId(e.target.value)}
+                            required
                         >
-                            <option value="">All Sites</option>
+                            <option value="">Select Site</option>
                             {sites.map((site) => (
                                 <option key={site.value} value={site.value}>{site.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Asset Type Selection (filter for assets) */}
+                    <div className="form-group">
+                        <label className="form-label">Asset Type</label>
+                        <select
+                            className="form-select"
+                            value={selectedAssetType}
+                            onChange={(e) => setSelectedAssetType(e.target.value)}
+                            disabled={!selectedSiteId}
+                        >
+                            <option value="">All Asset Types</option>
+                            {assetTypes.map((type) => (
+                                <option key={type.value} value={type.value}>{type.label}</option>
                             ))}
                         </select>
                     </div>
@@ -225,8 +245,16 @@ export default function TicketForm() {
                             className="form-select"
                             value={formData.assetId}
                             onChange={(e) => handleChange('assetId', e.target.value)}
+                            disabled={!selectedSiteId}
                         >
-                            <option value="">Select Asset (optional)</option>
+                            <option value="">
+                                {!selectedSiteId 
+                                    ? 'Select Site first' 
+                                    : assets.length === 0 
+                                        ? 'No assets available' 
+                                        : 'Select Asset (optional)'
+                                }
+                            </option>
                             {assets.map((asset) => (
                                 <option key={asset.value} value={asset.value}>{asset.label}</option>
                             ))}

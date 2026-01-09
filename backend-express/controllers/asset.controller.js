@@ -219,13 +219,18 @@ export const updateAssetStatus = async (req, res, next) => {
 // @access  Private
 export const getAssetsDropdown = async (req, res, next) => {
   try {
-    const { siteId } = req.query;
+    const { siteId, assetType } = req.query;
     const query = { isActive: true };
     
     if (req.user.role !== 'Admin') {
       query.siteId = req.user.siteId;
     } else if (siteId) {
       query.siteId = siteId;
+    }
+    
+    // Filter by assetType if provided
+    if (assetType) {
+      query.assetType = assetType;
     }
     
     const assets = await Asset.find(query)

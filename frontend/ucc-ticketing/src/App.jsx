@@ -13,7 +13,7 @@ import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
 import TicketsList from './pages/tickets/TicketsList';
 import TicketDetail from './pages/tickets/TicketDetail';
-import TicketForm from './pages/tickets/TicketForm';
+import TicketForm from './pages/tickets/CreateTicket';
 import SitesList from './pages/sites/SitesList';
 import SiteForm from './pages/sites/SiteForm';
 import AssetsList from './pages/assets/AssetsList';
