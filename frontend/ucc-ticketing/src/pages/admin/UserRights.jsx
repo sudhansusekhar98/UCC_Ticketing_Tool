@@ -3,6 +3,7 @@ import { Shield, Save, Search, Check, AlertCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { userRightsApi } from '../../services/api';
 import { PERMISSIONS, PERMISSION_LABELS } from '../../constants/permissions';
+import useAuthStore from '../../context/authStore';
 import './UserRights.css';
 
 export default function UserRights() {
@@ -13,6 +14,7 @@ export default function UserRights() {
     const [selectedSiteId, setSelectedSiteId] = useState('global');
     const [editedRights, setEditedRights] = useState([]);
     const [saving, setSaving] = useState(false);
+    const { user: currentUser, setUserPermissions } = useAuthStore();
 
     useEffect(() => {
         fetchData();
@@ -91,6 +93,23 @@ export default function UserRights() {
                             updated = { ...u, siteRights: newSiteRights };
                         }
                         setSelectedUser(updated);
+                        
+                        // If we just updated rights for the CURRENT logged-in user, sync with authStore
+                        if (u.user._id === currentUser?.userId) {
+                            if (sIdStr === 'global') {
+                                setUserPermissions({ ...currentUser.rights, globalRights: editedRights });
+                            } else {
+                                const newSiteRights = [...(currentUser.rights?.siteRights || [])];
+                                const siteIndex = newSiteRights.findIndex(sr => (sr.site?._id || sr.site || sr).toString() === sIdStr);
+                                if (siteIndex > -1) {
+                                    newSiteRights[siteIndex] = { ...newSiteRights[siteIndex], rights: editedRights };
+                                } else {
+                                    newSiteRights.push({ site: selectedSiteId, rights: editedRights });
+                                }
+                                setUserPermissions({ ...currentUser.rights, siteRights: newSiteRights });
+                            }
+                        }
+                        
                         return updated;
                     }
                     return u;
@@ -106,11 +125,15 @@ export default function UserRights() {
         }
     };
 
-    const filteredUsers = users.filter(item => 
-        item.user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.user.role.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredUsers = users.filter(item => {
+        if (!item || !item.user) return false;
+        const search = searchTerm.toLowerCase();
+        return (
+            (item.user.fullName?.toLowerCase().includes(search)) ||
+            (item.user.email?.toLowerCase().includes(search)) ||
+            (item.user.role?.toLowerCase().includes(search))
+        );
+    });
 
     return (
         <div className="user-rights-page">

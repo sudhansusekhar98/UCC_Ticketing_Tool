@@ -74,6 +74,40 @@ const useAuthStore = create(
                 }
             },
 
+            setUserPermissions: (rights) => {
+                const { user } = get();
+                if (user) {
+                    set({
+                        user: {
+                            ...user,
+                            rights: rights
+                        }
+                    });
+                }
+            },
+
+            // Refresh user rights from the server without re-login
+            refreshUserRights: async () => {
+                try {
+                    const response = await authApi.getMe();
+                    if (response.data.success) {
+                        const freshUser = response.data.data;
+                        const { user } = get();
+                        if (user) {
+                            set({
+                                user: {
+                                    ...user,
+                                    rights: freshUser.rights || { siteRights: [], globalRights: [] },
+                                    assignedSites: freshUser.assignedSites || user.assignedSites || []
+                                }
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to refresh user rights:', error);
+                }
+            },
+
             logout: async () => {
                 try {
                     await authApi.logout();
@@ -149,9 +183,15 @@ const useAuthStore = create(
                 // Check global rights first
                 if (user.rights.globalRights?.includes(rightName)) return true;
 
+                // Admins/Supervisors have all rights
+                if (get().hasRole(['Admin', 'Supervisor'])) return true;
+
                 // If siteId provided, check specific site rights
                 if (siteId) {
-                    const targetSiteId = siteId.toString();
+                    // Normalize siteId to a string ID
+                    const targetSiteId = (siteId?._id || siteId)?.toString();
+                    if (!targetSiteId) return false;
+
                     const siteRight = user.rights.siteRights?.find(sr => {
                         const sId = (sr.site?._id || sr.site)?.toString();
                         return sId === targetSiteId;
@@ -178,6 +218,9 @@ const useAuthStore = create(
                 // Check global rights first
                 if (user.rights.globalRights?.includes(rightName)) return true;
 
+                // Admins/Supervisors have all rights
+                if (get().hasRole(['Admin', 'Supervisor'])) return true;
+
                 // Check if user has the right for any site
                 const hasForAnySite = user.rights.siteRights?.some(sr => 
                     sr.rights?.includes(rightName)
@@ -203,8 +246,8 @@ const useAuthStore = create(
                 // New format with siteRights and globalRights
                 if (!user.rights) return [];
 
-                // If user has global right, return all assigned sites
-                if (user.rights.globalRights?.includes(rightName)) {
+                // If user has global right or is Admin/Supervisor, return all assigned sites
+                if (user.rights.globalRights?.includes(rightName) || get().hasRole(['Admin', 'Supervisor'])) {
                     return user.assignedSites?.map(s => (s._id || s)?.toString()).filter(Boolean) || [];
                 }
 

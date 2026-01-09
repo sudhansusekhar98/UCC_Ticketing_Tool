@@ -51,7 +51,7 @@ export default function AssetsList() {
     const [page, setPage] = useState(1);
     const pageSize = 15;
     const navigate = useNavigate();
-    const { hasRole } = useAuthStore();
+    const { hasRole, hasRight, hasRightForAnySite, refreshUserRights } = useAuthStore();
 
     // Bulk import/export state
     const [showImportModal, setShowImportModal] = useState(false);
@@ -64,10 +64,15 @@ export default function AssetsList() {
     // Password visibility state
     const [visiblePasswords, setVisiblePasswords] = useState({});
 
-    const canCreate = hasRole(['Admin', 'Supervisor']);
-    const canEdit = hasRole(['Admin', 'Supervisor']);
-    const canDelete = hasRole(['Admin']);
-    const canBulkOps = hasRole(['Admin', 'Supervisor']);
+    // Permission flags - recalculated when component re-renders after refreshUserRights
+    const canCreate = hasRole(['Admin', 'Supervisor']) || hasRightForAnySite('MANAGE_ASSETS');
+    const canBulkOps = hasRole(['Admin', 'Supervisor']) || hasRightForAnySite('MANAGE_ASSETS');
+    const showActionColumn = hasRole(['Admin', 'Supervisor']) || hasRightForAnySite('MANAGE_ASSETS');
+
+    // Refresh user rights when page loads to get latest permissions
+    useEffect(() => {
+        refreshUserRights();
+    }, []);
 
     useEffect(() => {
         loadDropdowns();
@@ -424,7 +429,7 @@ export default function AssetsList() {
                                     <th className="col-user">User</th>
                                     <th className="col-pass">Pass</th>
                                     <th className="col-remark">Remark</th>
-                                    <th className="col-actions">Actions</th>
+                                    {showActionColumn && <th className="col-actions">Actions</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -461,24 +466,26 @@ export default function AssetsList() {
                                             ) : '—'}
                                         </td>
                                         <td title={asset.remark || ''}>{asset.remark || '—'}</td>
-                                        <td className="col-actions">
-                                            <div className="action-buttons">
-                                                {canEdit && (
-                                                    <Link to={`/assets/${asset.assetId}/edit`} className="btn btn-icon btn-ghost" title="Edit">
-                                                        <Edit size={14} />
-                                                    </Link>
-                                                )}
-                                                {canDelete && (
-                                                    <button
-                                                        className="btn btn-icon btn-ghost text-danger"
-                                                        onClick={() => handleDelete(asset.assetId, asset.assetCode)}
-                                                        title="Delete"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </td>
+                                        {showActionColumn && (
+                                            <td className="col-actions">
+                                                <div className="action-buttons">
+                                                    {(hasRole(['Admin', 'Supervisor']) || hasRight('MANAGE_ASSETS', asset.siteId?._id || asset.siteId)) && (
+                                                        <>
+                                                            <Link to={`/assets/${asset.assetId}/edit`} className="btn btn-icon btn-ghost" title="Edit">
+                                                                <Edit size={14} />
+                                                            </Link>
+                                                            <button
+                                                                className="btn btn-icon btn-ghost text-danger"
+                                                                onClick={() => handleDelete(asset.assetId, asset.assetCode)}
+                                                                title="Delete"
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                             </tbody>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Loader, Eye, EyeOff } from 'lucide-react';
 import { assetsApi, sitesApi, lookupsApi } from '../../services/api';
+import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import '../sites/Sites.css';
 
@@ -9,6 +10,7 @@ export default function AssetForm() {
     const { id } = useParams();
     const navigate = useNavigate();
     const isEditing = Boolean(id);
+    const { hasRole, getSitesWithRight } = useAuthStore();
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -66,7 +68,16 @@ export default function AssetForm() {
             ]);
             // Handle Express response format
             const siteData = sitesRes.data.data || sitesRes.data || [];
-            setSites(siteData.map(s => ({
+            
+            // Filter sites based on MANAGE_ASSETS rights
+            const allowedSiteIds = getSitesWithRight('MANAGE_ASSETS');
+            
+            // If user has role-based access, show all sites. Otherwise, filter by rights
+            const filteredSites = (hasRole(['Admin', 'Supervisor']))
+                ? siteData
+                : siteData.filter(s => allowedSiteIds.includes((s._id || s.value || s.siteId).toString()));
+
+            setSites(filteredSites.map(s => ({
                 value: s._id || s.value || s.siteId,
                 label: s.siteName || s.label
             })));
