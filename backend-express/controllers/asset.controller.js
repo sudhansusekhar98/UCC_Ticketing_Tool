@@ -234,7 +234,7 @@ export const getAssetsDropdown = async (req, res, next) => {
     }
     
     const assets = await Asset.find(query)
-      .select('assetCode assetType locationDescription siteId')
+      .select('assetCode assetType deviceType locationDescription siteId')
       .populate('siteId', 'siteName')
       .sort({ assetCode: 1 });
     
@@ -269,7 +269,8 @@ export const bulkImportAssets = async (req, res, next) => {
 
     const result = {
       total: data.length,
-      success: 0,
+      created: 0,
+      updated: 0,
       failed: 0,
       errors: []
     };
@@ -394,14 +395,21 @@ export const bulkImportAssets = async (req, res, next) => {
         if (!assetData.assetCode) throw new Error('Asset Code is missing');
         if (!assetData.assetType) throw new Error('Asset Type is missing');
 
-        // Upsert asset by assetCode
+        // Check if asset already exists
+        const existingAsset = await Asset.findOne({ assetCode: assetData.assetCode });
+        
+        // Upsert asset by assetCode - preserves the original _id for existing assets
         await Asset.findOneAndUpdate(
           { assetCode: assetData.assetCode },
           { ...assetData, updatedAt: new Date() },
           { upsert: true, new: true, runValidators: true }
         );
 
-        result.success++;
+        if (existingAsset) {
+          result.updated++;
+        } else {
+          result.created++;
+        }
       } catch (err) {
         result.failed++;
         // Try to get asset code from row even if normalization failed or wasn't used yet
@@ -412,7 +420,7 @@ export const bulkImportAssets = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: `Processed ${result.total} records. Success: ${result.success}, Failed: ${result.failed}`,
+      message: `Processed ${result.total} records. Created: ${result.created}, Updated: ${result.updated}, Failed: ${result.failed}`,
       data: result
     });
 

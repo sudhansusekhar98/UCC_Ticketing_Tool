@@ -141,6 +141,12 @@ export const lookupsApi = {
     getAssetTypes: () => api.get('/lookups/asset-types'),
     getAssetStatuses: () => api.get('/lookups/asset-statuses'),
     getRoles: () => api.get('/lookups/roles'),
+    // Device Types
+    getDeviceTypes: (assetType) => api.get('/lookups/device-types', { params: { assetType } }),
+    getAllDeviceTypes: () => api.get('/lookups/device-types/all'),
+    createDeviceType: (data) => api.post('/lookups/device-types', data),
+    deleteDeviceType: (id) => api.delete(`/lookups/device-types/${id}`),
+    seedDeviceTypes: () => api.post('/lookups/device-types/seed'),
 };
 
 // Activities API

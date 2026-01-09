@@ -101,7 +101,14 @@ export const getTickets = async (req, res, next) => {
 export const getTicketById = async (req, res, next) => {
   try {
     const ticket = await Ticket.findById(req.params.id)
-      .populate('assetId', 'assetCode assetType locationDescription siteId make model')
+      .populate({
+        path: 'assetId',
+        select: 'assetCode assetType deviceType locationDescription siteId make model',
+        populate: {
+          path: 'siteId',
+          select: 'siteName siteUniqueID city'
+        }
+      })
       .populate('createdBy', 'fullName username email')
       .populate('assignedTo', 'fullName username email role mobileNumber')
       .populate('slaPolicyId');

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Loader } from 'lucide-react';
 import { ticketsApi, assetsApi, sitesApi, lookupsApi, usersApi } from '../../services/api';
@@ -33,29 +33,51 @@ export default function TicketForm() {
     const [assets, setAssets] = useState([]);
     const [sites, setSites] = useState([]);
     const [assetTypes, setAssetTypes] = useState([]);
+    const [deviceTypes, setDeviceTypes] = useState([]);
     const [engineers, setEngineers] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
     const [selectedSiteId, setSelectedSiteId] = useState('');
     const [selectedAssetType, setSelectedAssetType] = useState('');
+    const [selectedDeviceType, setSelectedDeviceType] = useState('');
+    
+    // Track if we're in initial load mode (to prevent useEffects from resetting assetId)
+    const isInitialLoad = useRef(false);
 
     useEffect(() => {
         loadDropdowns();
         if (isEditing) {
+            isInitialLoad.current = true;
             loadTicket();
         }
     }, [id]);
 
+    // Load device types when assetType changes
     useEffect(() => {
-        // Load assets when site or assetType changes
+        if (selectedAssetType) {
+            loadDeviceTypes(selectedAssetType);
+        } else {
+            setDeviceTypes([]);
+        }
+        // Only reset device type and asset when user manually changes asset type (not during initial load)
+        if (!isInitialLoad.current) {
+            setSelectedDeviceType('');
+            setFormData(prev => ({ ...prev, assetId: '' }));
+        }
+    }, [selectedAssetType]);
+
+    useEffect(() => {
+        // Load assets when site, assetType, or deviceType changes
         if (selectedSiteId) {
-            loadAssets(selectedSiteId, selectedAssetType);
+            loadAssets(selectedSiteId, selectedAssetType, selectedDeviceType);
         } else {
             // Don't load assets if no site is selected (since site is mandatory)
             setAssets([]);
         }
-        // Reset asset selection when filters change
-        setFormData(prev => ({ ...prev, assetId: '' }));
-    }, [selectedSiteId, selectedAssetType]);
+        // Only reset asset selection when user manually changes filters (not during initial load)
+        if (!isInitialLoad.current) {
+            setFormData(prev => ({ ...prev, assetId: '' }));
+        }
+    }, [selectedSiteId, selectedAssetType, selectedDeviceType]);
 
     const loadDropdowns = async () => {
         try {
@@ -95,13 +117,30 @@ export default function TicketForm() {
         }
     };
 
-    const loadAssets = async (siteId, assetType = '') => {
+    const loadDeviceTypes = async (assetType) => {
+        try {
+            const response = await lookupsApi.getDeviceTypes(assetType);
+            const deviceTypeData = response.data.data || response.data || [];
+            setDeviceTypes(deviceTypeData);
+        } catch (error) {
+            console.error('Failed to load device types', error);
+            setDeviceTypes([]);
+        }
+    };
+
+    const loadAssets = async (siteId, assetType = '', deviceType = '') => {
         try {
             const response = await assetsApi.getDropdown(siteId, assetType || undefined);
-            const assetData = response.data.data || response.data || [];
+            let assetData = response.data.data || response.data || [];
+            
+            // Filter by device type if selected
+            if (deviceType) {
+                assetData = assetData.filter(a => a.deviceType === deviceType);
+            }
+            
             setAssets(assetData.map(a => ({
                 value: a._id || a.value || a.assetId,
-                label: `${a.assetCode}${a.assetType ? ` (${a.assetType})` : ''}`
+                label: `${a.assetCode}${a.deviceType ? ` (${a.deviceType})` : a.assetType ? ` (${a.assetType})` : ''}`
             })));
         } catch (error) {
             console.error('Failed to load assets', error);
@@ -115,9 +154,38 @@ export default function TicketForm() {
         try {
             const response = await ticketsApi.getById(id);
             const ticket = response.data.data || response.data;
+            
             // Get IDs - could be objects or strings
             const assetIdValue = typeof ticket.assetId === 'object' ? ticket.assetId?._id : ticket.assetId;
             const assignedToValue = typeof ticket.assignedTo === 'object' ? ticket.assignedTo?._id : ticket.assignedTo;
+            
+            // Extract site, asset type, and device type from the asset object if populated
+            const asset = ticket.assetId && typeof ticket.assetId === 'object' ? ticket.assetId : null;
+            if (asset) {
+                // Set site ID from asset
+                const siteIdValue = typeof asset.siteId === 'object' ? asset.siteId?._id : asset.siteId;
+                if (siteIdValue) {
+                    setSelectedSiteId(siteIdValue);
+                }
+                
+                // Set asset type from asset
+                if (asset.assetType) {
+                    setSelectedAssetType(asset.assetType);
+                    // Load device types for this asset type
+                    await loadDeviceTypes(asset.assetType);
+                }
+                
+                // Set device type from asset
+                if (asset.deviceType) {
+                    setSelectedDeviceType(asset.deviceType);
+                }
+                
+                // Load assets for the site and asset type to populate the dropdown
+                if (siteIdValue) {
+                    await loadAssets(siteIdValue, asset.assetType || '', asset.deviceType || '');
+                }
+            }
+            
             setFormData({
                 assetId: assetIdValue || '',
                 category: ticket.category,
@@ -134,6 +202,8 @@ export default function TicketForm() {
             navigate('/tickets');
         } finally {
             setLoading(false);
+            // Reset initial load flag so subsequent changes work normally
+            isInitialLoad.current = false;
         }
     };
 
@@ -234,6 +304,22 @@ export default function TicketForm() {
                             <option value="">All Asset Types</option>
                             {assetTypes.map((type) => (
                                 <option key={type.value} value={type.value}>{type.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Device Type Selection (filter for assets) */}
+                    <div className="form-group">
+                        <label className="form-label">Device Type</label>
+                        <select
+                            className="form-select"
+                            value={selectedDeviceType}
+                            onChange={(e) => setSelectedDeviceType(e.target.value)}
+                            disabled={!selectedAssetType || deviceTypes.length === 0}
+                        >
+                            <option value="">All Device Types</option>
+                            {deviceTypes.map((dt) => (
+                                <option key={dt.value} value={dt.value}>{dt.label}</option>
                             ))}
                         </select>
                     </div>

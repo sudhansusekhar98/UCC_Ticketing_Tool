@@ -43,8 +43,11 @@ export default function TicketDetail() {
     const canAssign = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET');
     // Compare using string IDs for MongoDB
     const assignedToId = typeof ticket?.assignedTo === 'object' ? ticket?.assignedTo?._id : ticket?.assignedTo;
-    const canAcknowledge = hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']) && assignedToId === user?.userId;
-    const canResolve = hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']);
+    const isAssignedToMe = assignedToId && assignedToId === user?.userId;
+    // Any user assigned to the ticket can acknowledge, or users with engineer/supervisor roles
+    const canAcknowledge = isAssignedToMe || (hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']) && assignedToId === user?.userId);
+    // Assigned user or engineers can resolve
+    const canResolve = isAssignedToMe || hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']);
     const canClose = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('DELETE_TICKET');
     const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET');
 

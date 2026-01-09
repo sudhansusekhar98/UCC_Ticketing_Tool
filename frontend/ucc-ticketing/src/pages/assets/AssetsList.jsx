@@ -565,11 +565,15 @@ export default function AssetsList() {
                                         <div className="result-stats">
                                             <span className="stat success">
                                                 <CheckCircle size={14} />
-                                                {importResult.data.successCount} imported
+                                                {importResult.data.created || 0} created
+                                            </span>
+                                            <span className="stat info">
+                                                <RefreshCw size={14} />
+                                                {importResult.data.updated || 0} updated
                                             </span>
                                             <span className="stat error">
                                                 <AlertCircle size={14} />
-                                                {importResult.data.failedCount} failed
+                                                {importResult.data.failed || 0} failed
                                             </span>
                                         </div>
                                     )}

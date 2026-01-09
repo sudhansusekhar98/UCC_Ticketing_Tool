@@ -15,6 +15,7 @@ export default function AssetForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [sites, setSites] = useState([]);
     const [assetTypes, setAssetTypes] = useState([]);
+    const [deviceTypes, setDeviceTypes] = useState([]);
     const [assetStatuses, setAssetStatuses] = useState([]);
 
     const [formData, setFormData] = useState({
@@ -49,6 +50,13 @@ export default function AssetForm() {
         }
     }, [id]);
 
+    // Load device types when assetType changes
+    useEffect(() => {
+        if (formData.assetType) {
+            loadDeviceTypes(formData.assetType);
+        }
+    }, [formData.assetType]);
+
     const loadDropdowns = async () => {
         try {
             const [sitesRes, typesRes, statusesRes] = await Promise.all([
@@ -70,6 +78,17 @@ export default function AssetForm() {
             setAssetStatuses(statusData);
         } catch (error) {
             console.error('Failed to load dropdowns', error);
+        }
+    };
+
+    const loadDeviceTypes = async (assetType) => {
+        try {
+            const response = await lookupsApi.getDeviceTypes(assetType);
+            const deviceTypeData = response.data.data || response.data || [];
+            setDeviceTypes(deviceTypeData);
+        } catch (error) {
+            console.error('Failed to load device types', error);
+            setDeviceTypes([]);
         }
     };
 
@@ -113,7 +132,12 @@ export default function AssetForm() {
     };
 
     const handleChange = (field, value) => {
-        setFormData({ ...formData, [field]: value });
+        // Reset deviceType when assetType changes
+        if (field === 'assetType') {
+            setFormData({ ...formData, [field]: value, deviceType: '' });
+        } else {
+            setFormData({ ...formData, [field]: value });
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -244,13 +268,26 @@ export default function AssetForm() {
 
                     <div className="form-group">
                         <label className="form-label">Device Type</label>
-                        <input
-                            type="text"
-                            className="form-input"
-                            value={formData.deviceType}
-                            onChange={(e) => handleChange('deviceType', e.target.value)}
-                            placeholder="e.g., PTZ Camera, Fixed Dome"
-                        />
+                        {deviceTypes.length > 0 ? (
+                            <select
+                                className="form-select"
+                                value={formData.deviceType}
+                                onChange={(e) => handleChange('deviceType', e.target.value)}
+                            >
+                                <option value="">Select Device Type</option>
+                                {deviceTypes.map(dt => (
+                                    <option key={dt.value} value={dt.value}>{dt.label}</option>
+                                ))}
+                            </select>
+                        ) : (
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={formData.deviceType}
+                                onChange={(e) => handleChange('deviceType', e.target.value)}
+                                placeholder="e.g., PTZ Camera, Fixed Dome"
+                            />
+                        )}
                     </div>
                 </div>
 
