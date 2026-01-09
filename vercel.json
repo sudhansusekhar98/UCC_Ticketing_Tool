@@ -1,9 +1,34 @@
 {
-  "buildCommand": "cd frontend/ucc-ticketing && npm install && npm run build",
-  "outputDirectory": "frontend/ucc-ticketing/dist",
-  "installCommand": "cd frontend/ucc-ticketing && npm install",
-  "framework": "vite",
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/ucc-ticketing/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    },
+    {
+      "src": "backend-express/server.js",
+      "use": "@vercel/node"
+    }
+  ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/api/(.*)",
+      "dest": "backend-express/server.js"
+    },
+    {
+      "source": "/(.*)",
+      "dest": "/frontend/ucc-ticketing/dist/$1",
+      "continue": true
+    }
+  ],
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/ucc-ticketing/dist/index.html"
+    }
   ]
 }
