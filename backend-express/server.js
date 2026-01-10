@@ -5,7 +5,6 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
 import connectDB from './config/database.js';
 
 // Load environment variables
@@ -13,16 +12,26 @@ dotenv.config();
 
 // Initialize Express app
 const app = express();
-const httpServer = createServer(app);
 
-// Initialize Socket.IO
-const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true
-  }
-});
+
+// Only create HTTP server and Socket.io in non-Vercel environments
+let httpServer;
+let io;
+
+if (process.env.VERCEL !== '1') {
+  const { Server } = await import('socket.io');
+  httpServer = createServer(app);
+  
+  // Initialize Socket.IO
+  io = new Server(httpServer, {
+    cors: {
+      origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
+      credentials: true
+    }
+  });
+}
+
 
 // Connect to MongoDB
 connectDB();
@@ -38,8 +47,11 @@ app.use(morgan('dev')); // Logging
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
-// Make io accessible to routes
-app.set('io', io);
+// Make io accessible to routes (only if it exists)
+if (io) {
+  app.set('io', io);
+}
+
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
@@ -99,32 +111,35 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+// Socket.IO connection handling (only in non-Vercel environments)
+if (io) {
+  io.on('connection', (socket) => {
+    console.log('Client connected:', socket.id);
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
+    socket.on('disconnect', () => {
+      console.log('Client disconnected:', socket.id);
+    });
 
-  // Join room for user-specific notifications
-  socket.on('join', (userId) => {
-    socket.join(`user_${userId}`);
-    console.log(`User ${userId} joined their room`);
-  });
+    // Join room for user-specific notifications
+    socket.on('join', (userId) => {
+      socket.join(`user_${userId}`);
+      console.log(`User ${userId} joined their room`);
+    });
 
-  // Join a specific ticket room for targeted updates
-  socket.on('join:ticket', (ticketId) => {
-    socket.join(`ticket_${ticketId}`);
-    console.log(`Socket ${socket.id} joined room: ticket_${ticketId}`);
-  });
+    // Join a specific ticket room for targeted updates
+    socket.on('join:ticket', (ticketId) => {
+      socket.join(`ticket_${ticketId}`);
+      console.log(`Socket ${socket.id} joined room: ticket_${ticketId}`);
+    });
 
-  // Leave a ticket room
-  socket.on('leave:ticket', (ticketId) => {
-    socket.leave(`ticket_${ticketId}`);
-    console.log(`Socket ${socket.id} left room: ticket_${ticketId}`);
+    // Leave a ticket room
+    socket.on('leave:ticket', (ticketId) => {
+      socket.leave(`ticket_${ticketId}`);
+      console.log(`Socket ${socket.id} left room: ticket_${ticketId}`);
+    });
   });
-});
+}
+
 
 // Start server only if not in Vercel serverless environment
 // In Vercel, the app is exported and handled by the serverless function
