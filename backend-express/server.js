@@ -7,8 +7,11 @@ import compression from 'compression';
 import { createServer } from 'http';
 import connectDB from './config/database.js';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (only needed locally, Vercel provides them directly)
+if (process.env.VERCEL !== '1') {
+  dotenv.config();
+}
+
 
 // Initialize Express app
 const app = express();
@@ -76,8 +79,8 @@ if (process.env.VERCEL !== '1') {
 }
 
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB (non-blocking, happens in background)
+connectDB().catch(err => console.error('MongoDB connection failed:', err));
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -86,7 +89,9 @@ app.use(cors({
   credentials: true
 }));
 app.use(compression()); // Compress responses
-app.use(morgan('dev')); // Logging
+if (process.env.NODE_ENV !== 'production') {
+  app.use(morgan('dev')); // Logging (only in development)
+}
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
