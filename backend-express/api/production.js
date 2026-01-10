@@ -2,9 +2,25 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import connectDB from '../config/database.js';
+
+// Import routes synchronously
+import authRoutes from '../routes/auth.routes.js';
+import siteRoutes from '../routes/site.routes.js';
+import assetRoutes from '../routes/asset.routes.js';
+import ticketRoutes from '../routes/ticket.routes.js';
+import userRoutes from '../routes/user.routes.js';
+import lookupRoutes from '../routes/lookup.routes.js';
+import activityRoutes from '../routes/activity.routes.js';
+import settingsRoutes from '../routes/settings.routes.js';
+import userRightRoutes from '../routes/userRight.routes.js';
+import notificationRoutes from '../routes/notification.routes.js';
 
 // Initialize Express app
 const app = express();
+
+// Connect to MongoDB (async, non-blocking)
+connectDB().catch(err => console.error('MongoDB connection failed:', err));
 
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
@@ -16,11 +32,6 @@ app.use(cors({
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Connect to MongoDB (async, non-blocking)
-import('./config/database.js').then(({ default: connectDB }) => {
-  connectDB().catch(err => console.error('MongoDB connection failed:', err));
-}).catch(err => console.error('Failed to import database config:', err));
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -43,45 +54,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Import and use routes (dynamic import to avoid blocking)
-Promise.all([
-  import('./routes/auth.routes.js'),
-  import('./routes/site.routes.js'),
-  import('./routes/asset.routes.js'),
-  import('./routes/ticket.routes.js'),
-  import('./routes/user.routes.js'),
-  import('./routes/lookup.routes.js'),
-  import('./routes/activity.routes.js'),
-  import('./routes/settings.routes.js'),
-  import('./routes/userRight.routes.js'),
-  import('./routes/notification.routes.js')
-]).then(([
-  { default: authRoutes },
-  { default: siteRoutes },
-  { default: assetRoutes },
-  { default: ticketRoutes },
-  { default: userRoutes },
-  { default: lookupRoutes },
-  { default: activityRoutes },
-  { default: settingsRoutes },
-  { default: userRightRoutes },
-  { default: notificationRoutes }
-]) => {
-  app.use('/api/auth', authRoutes);
-  app.use('/api/sites', siteRoutes);
-  app.use('/api/assets', assetRoutes);
-  app.use('/api/tickets', ticketRoutes);
-  app.use('/api/users', userRoutes);
-  app.use('/api/lookups', lookupRoutes);
-  app.use('/api/activities', activityRoutes);
-  app.use('/api/settings', settingsRoutes);
-  app.use('/api/user-rights', userRightRoutes);
-  app.use('/api/notifications', notificationRoutes);
-  
-  console.log('✅ All routes loaded successfully');
-}).catch(err => {
-  console.error('❌ Failed to load routes:', err);
-});
+// API Routes - Register synchronously
+app.use('/api/auth', authRoutes);
+app.use('/api/sites', siteRoutes);
+app.use('/api/assets', assetRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/lookups', lookupRoutes);
+app.use('/api/activities', activityRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/user-rights', userRightRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
