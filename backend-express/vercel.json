@@ -2,14 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/standalone.js",
+      "src": "api/production.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/api/standalone.js"
+      "dest": "/api/production.js"
     }
   ]
 }
