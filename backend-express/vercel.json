@@ -1,6 +1,7 @@
 {
   "version": 2,
   "name": "ucc-ticketing-backend",
+  "installCommand": "npm install --legacy-peer-deps",
   "builds": [
     {
       "src": "server.js",
@@ -10,26 +11,19 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server.js"
+      "dest": "/server.js"
     },
     {
       "src": "/uploads/(.*)",
-      "dest": "server.js"
+      "dest": "/server.js"
     },
     {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "/server.js"
     }
   ],
   "env": {
-    "NODE_ENV": "production",
-    "MONGODB_URI": "@mongodb_uri",
-    "JWT_SECRET": "@jwt_secret",
-    "JWT_REFRESH_SECRET": "@jwt_refresh_secret",
-    "CORS_ORIGIN": "@cors_origin",
-    "CLOUDINARY_CLOUD_NAME": "@cloudinary_cloud_name",
-    "CLOUDINARY_API_KEY": "@cloudinary_api_key",
-    "CLOUDINARY_API_SECRET": "@cloudinary_api_secret"
+    "NODE_ENV": "production"
   },
   "functions": {
     "server.js": {

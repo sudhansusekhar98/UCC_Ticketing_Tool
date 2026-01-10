@@ -3,9 +3,9 @@ node_modules/
 package-lock.json
 
 # Environment variables
-# .env
-# .env.local
-# .env.production
+.env
+.env.local
+.env.production
 
 # Logs
 logs/
@@ -29,6 +29,3 @@ Thumbs.db
 # Build
 dist/
 build/
-
-.agent/workflows/
-backend/
