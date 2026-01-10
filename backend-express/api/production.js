@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import mongoose from 'mongoose';
 import connectDB from '../config/database.js';
 
 // Import all routes statically
@@ -18,36 +19,52 @@ import notificationRoutes from '../routes/notification.routes.js';
 
 const app = express();
 
-// Connect to MongoDB (non-blocking)
-connectDB().catch(err => console.error('MongoDB connection failed:', err.message));
+// Initialize DB connection
+connectDB().catch(err => console.error('MongoDB connection error:', err.message));
 
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Root endpoint
+// Placeholder for Socket.io to prevent crashes in controllers that use req.app.get('io')
+app.set('io', {
+  to: () => ({ emit: () => {} }),
+  emit: () => {}
+});
+
+// Database connection check middleware
+app.use((req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    console.log('Waiting for DB connection...');
+    // We don't block, but we log the state
+  }
+  next();
+});
+
+// Root endpoint for verification
 app.get('/', (req, res) => {
   res.json({
-    message: 'UCC Ticketing API',
+    message: 'UCC Ticketing API - Production Live',
     status: 'running',
-    version: '1.0.0'
+    timestamp: new Date().toISOString()
   });
 });
 
-// Health check
+// Health Check
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'production',
-    mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured'
+    dbState: mongoose.connection.readyState,
+    environment: process.env.NODE_ENV,
+    time: new Date().toISOString()
   });
 });
 
@@ -63,8 +80,8 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/user-rights', userRightRoutes);
 app.use('/api/notifications', notificationRoutes);
 
-// Static files
-app.use('/uploads', express.static('uploads'));
+// Static files (Mapped to /tmp for serverless runtime)
+app.use('/uploads', express.static('/tmp'));
 
 // 404 handler
 app.use((req, res) => {
@@ -74,10 +91,11 @@ app.use((req, res) => {
   });
 });
 
-// Error handler
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(err.statusCode || 500).json({
+  console.error('Runtime Error:', err);
+  const status = err.statusCode || 500;
+  res.status(status).json({
     success: false,
     message: err.message || 'Internal Server Error'
   });
