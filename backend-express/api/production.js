@@ -2,6 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Get directory name for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 
@@ -21,17 +27,18 @@ let dbInitialized = false;
 const initDB = async () => {
   if (!dbInitialized) {
     try {
-      const { default: connectDB } = await import('../config/database.js');
+      const dbPath = join(__dirname, '..', 'config', 'database.js');
+      const { default: connectDB } = await import(dbPath);
       await connectDB();
       dbInitialized = true;
       console.log('✅ Database initialized');
     } catch (err) {
-      console.error('❌ DB init failed:', err);
+      console.error('❌ DB init failed:', err.message);
     }
   }
 };
 
-// Initialize DB on first import
+// Initialize DB
 initDB();
 
 // Root endpoint
@@ -50,17 +57,20 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'production',
     mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured',
-    dbInitialized
+    dbInitialized,
+    dirname: __dirname
   });
 });
 
 // Cache for loaded routes
 const routeCache = {};
 
-// Helper to load and cache routes
-const loadRoute = async (routeName, routePath) => {
+// Helper to load routes with absolute paths
+const loadRoute = async (routeName, routeFile) => {
   if (!routeCache[routeName]) {
     try {
+      const routePath = join(__dirname, '..', 'routes', routeFile);
+      console.log(`Loading ${routeName} from:`, routePath);
       const module = await import(routePath);
       routeCache[routeName] = module.default;
       console.log(`✅ Loaded route: ${routeName}`);
@@ -75,7 +85,7 @@ const loadRoute = async (routeName, routePath) => {
 // Auth routes
 app.use('/api/auth', async (req, res, next) => {
   try {
-    const router = await loadRoute('auth', '../routes/auth.routes.js');
+    const router = await loadRoute('auth', 'auth.routes.js');
     router(req, res, next);
   } catch (err) {
     res.status(500).json({ success: false, message: `Auth route error: ${err.message}` });
@@ -85,7 +95,7 @@ app.use('/api/auth', async (req, res, next) => {
 // Sites routes
 app.use('/api/sites', async (req, res, next) => {
   try {
-    const router = await loadRoute('sites', '../routes/site.routes.js');
+    const router = await loadRoute('sites', 'site.routes.js');
     router(req, res, next);
   } catch (err) {
     res.status(500).json({ success: false, message: `Sites route error: ${err.message}` });
@@ -95,7 +105,7 @@ app.use('/api/sites', async (req, res, next) => {
 // Assets routes
 app.use('/api/assets', async (req, res, next) => {
   try {
-    const router = await loadRoute('assets', '../routes/asset.routes.js');
+    const router = await loadRoute('assets', 'asset.routes.js');
     router(req, res, next);
   } catch (err) {
     res.status(500).json({ success: false, message: `Assets route error: ${err.message}` });
@@ -105,7 +115,7 @@ app.use('/api/assets', async (req, res, next) => {
 // Tickets routes
 app.use('/api/tickets', async (req, res, next) => {
   try {
-    const router = await loadRoute('tickets', '../routes/ticket.routes.js');
+    const router = await loadRoute('tickets', 'ticket.routes.js');
     router(req, res, next);
   } catch (err) {
     res.status(500).json({ success: false, message: `Tickets route error: ${err.message}` });
@@ -115,7 +125,7 @@ app.use('/api/tickets', async (req, res, next) => {
 // Users routes
 app.use('/api/users', async (req, res, next) => {
   try {
-    const router = await loadRoute('users', '../routes/user.routes.js');
+    const router = await loadRoute('users', 'user.routes.js');
     router(req, res, next);
   } catch (err) {
     res.status(500).json({ success: false, message: `Users route error: ${err.message}` });
@@ -125,7 +135,7 @@ app.use('/api/users', async (req, res, next) => {
 // Lookups routes
 app.use('/api/lookups', async (req, res, next) => {
   try {
-    const router = await loadRoute('lookups', '../routes/lookup.routes.js');
+    const router = await loadRoute('lookups', 'lookup.routes.js');
     router(req, res, next);
   } catch (err) {
     res.status(500).json({ success: false, message: `Lookups route error: ${err.message}` });
@@ -135,7 +145,7 @@ app.use('/api/lookups', async (req, res, next) => {
 // Activities routes
 app.use('/api/activities', async (req, res, next) => {
   try {
-    const router = await loadRoute('activities', '../routes/activity.routes.js');
+    const router = await loadRoute('activities', 'activity.routes.js');
     router(req, res, next);
   } catch (err) {
     res.status(500).json({ success: false, message: `Activities route error: ${err.message}` });
@@ -145,7 +155,7 @@ app.use('/api/activities', async (req, res, next) => {
 // Settings routes
 app.use('/api/settings', async (req, res, next) => {
   try {
-    const router = await loadRoute('settings', '../routes/settings.routes.js');
+    const router = await loadRoute('settings', 'settings.routes.js');
     router(req, res, next);
   } catch (err) {
     res.status(500).json({ success: false, message: `Settings route error: ${err.message}` });
@@ -155,7 +165,7 @@ app.use('/api/settings', async (req, res, next) => {
 // User rights routes
 app.use('/api/user-rights', async (req, res, next) => {
   try {
-    const router = await loadRoute('userRights', '../routes/userRight.routes.js');
+    const router = await loadRoute('userRights', 'userRight.routes.js');
     router(req, res, next);
   } catch (err) {
     res.status(500).json({ success: false, message: `User rights route error: ${err.message}` });
@@ -165,7 +175,7 @@ app.use('/api/user-rights', async (req, res, next) => {
 // Notifications routes
 app.use('/api/notifications', async (req, res, next) => {
   try {
-    const router = await loadRoute('notifications', '../routes/notification.routes.js');
+    const router = await loadRoute('notifications', 'notification.routes.js');
     router(req, res, next);
   } catch (err) {
     res.status(500).json({ success: false, message: `Notifications route error: ${err.message}` });
@@ -173,14 +183,14 @@ app.use('/api/notifications', async (req, res, next) => {
 });
 
 // Static files
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: `Route not found: ${req.method} ${req.path}`,
-    availableRoutes: Object.keys(routeCache)
+    loadedRoutes: Object.keys(routeCache)
   });
 });
 
