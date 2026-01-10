@@ -16,19 +16,23 @@ app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Connect to MongoDB (lazy load to avoid blocking)
-let dbConnected = false;
-const ensureDB = async () => {
-  if (!dbConnected) {
+// Connect to MongoDB once
+let dbInitialized = false;
+const initDB = async () => {
+  if (!dbInitialized) {
     try {
       const { default: connectDB } = await import('../config/database.js');
       await connectDB();
-      dbConnected = true;
+      dbInitialized = true;
+      console.log('✅ Database initialized');
     } catch (err) {
-      console.error('DB connection failed:', err);
+      console.error('❌ DB init failed:', err);
     }
   }
 };
+
+// Initialize DB on first import
+initDB();
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -45,144 +49,148 @@ app.get('/api/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'production',
-    mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured'
+    mongodb: process.env.MONGODB_URI ? 'configured' : 'not configured',
+    dbInitialized
   });
 });
 
-// Auth routes - lazy load
+// Cache for loaded routes
+const routeCache = {};
+
+// Helper to load and cache routes
+const loadRoute = async (routeName, routePath) => {
+  if (!routeCache[routeName]) {
+    try {
+      const module = await import(routePath);
+      routeCache[routeName] = module.default;
+      console.log(`✅ Loaded route: ${routeName}`);
+    } catch (err) {
+      console.error(`❌ Failed to load ${routeName}:`, err.message);
+      throw err;
+    }
+  }
+  return routeCache[routeName];
+};
+
+// Auth routes
 app.use('/api/auth', async (req, res, next) => {
   try {
-    await ensureDB();
-    const { default: authRoutes } = await import('../routes/auth.routes.js');
-    authRoutes(req, res, next);
+    const router = await loadRoute('auth', '../routes/auth.routes.js');
+    router(req, res, next);
   } catch (err) {
-    console.error('Auth route error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `Auth route error: ${err.message}` });
   }
 });
 
-// Sites routes - lazy load
+// Sites routes
 app.use('/api/sites', async (req, res, next) => {
   try {
-    await ensureDB();
-    const { default: siteRoutes } = await import('../routes/site.routes.js');
-    siteRoutes(req, res, next);
+    const router = await loadRoute('sites', '../routes/site.routes.js');
+    router(req, res, next);
   } catch (err) {
-    console.error('Site route error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `Sites route error: ${err.message}` });
   }
 });
 
-// Assets routes - lazy load
+// Assets routes
 app.use('/api/assets', async (req, res, next) => {
   try {
-    await ensureDB();
-    const { default: assetRoutes } = await import('../routes/asset.routes.js');
-    assetRoutes(req, res, next);
+    const router = await loadRoute('assets', '../routes/asset.routes.js');
+    router(req, res, next);
   } catch (err) {
-    console.error('Asset route error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `Assets route error: ${err.message}` });
   }
 });
 
-// Tickets routes - lazy load
+// Tickets routes
 app.use('/api/tickets', async (req, res, next) => {
   try {
-    await ensureDB();
-    const { default: ticketRoutes } = await import('../routes/ticket.routes.js');
-    ticketRoutes(req, res, next);
+    const router = await loadRoute('tickets', '../routes/ticket.routes.js');
+    router(req, res, next);
   } catch (err) {
-    console.error('Ticket route error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `Tickets route error: ${err.message}` });
   }
 });
 
-// Users routes - lazy load
+// Users routes
 app.use('/api/users', async (req, res, next) => {
   try {
-    await ensureDB();
-    const { default: userRoutes } = await import('../routes/user.routes.js');
-    userRoutes(req, res, next);
+    const router = await loadRoute('users', '../routes/user.routes.js');
+    router(req, res, next);
   } catch (err) {
-    console.error('User route error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `Users route error: ${err.message}` });
   }
 });
 
-// Lookups routes - lazy load
+// Lookups routes
 app.use('/api/lookups', async (req, res, next) => {
   try {
-    await ensureDB();
-    const { default: lookupRoutes } = await import('../routes/lookup.routes.js');
-    lookupRoutes(req, res, next);
+    const router = await loadRoute('lookups', '../routes/lookup.routes.js');
+    router(req, res, next);
   } catch (err) {
-    console.error('Lookup route error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `Lookups route error: ${err.message}` });
   }
 });
 
-// Activities routes - lazy load
+// Activities routes
 app.use('/api/activities', async (req, res, next) => {
   try {
-    await ensureDB();
-    const { default: activityRoutes } = await import('../routes/activity.routes.js');
-    activityRoutes(req, res, next);
+    const router = await loadRoute('activities', '../routes/activity.routes.js');
+    router(req, res, next);
   } catch (err) {
-    console.error('Activity route error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `Activities route error: ${err.message}` });
   }
 });
 
-// Settings routes - lazy load
+// Settings routes
 app.use('/api/settings', async (req, res, next) => {
   try {
-    await ensureDB();
-    const { default: settingsRoutes } = await import('../routes/settings.routes.js');
-    settingsRoutes(req, res, next);
+    const router = await loadRoute('settings', '../routes/settings.routes.js');
+    router(req, res, next);
   } catch (err) {
-    console.error('Settings route error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `Settings route error: ${err.message}` });
   }
 });
 
-// User rights routes - lazy load
+// User rights routes
 app.use('/api/user-rights', async (req, res, next) => {
   try {
-    await ensureDB();
-    const { default: userRightRoutes } = await import('../routes/userRight.routes.js');
-    userRightRoutes(req, res, next);
+    const router = await loadRoute('userRights', '../routes/userRight.routes.js');
+    router(req, res, next);
   } catch (err) {
-    console.error('User rights route error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `User rights route error: ${err.message}` });
   }
 });
 
-// Notifications routes - lazy load
+// Notifications routes
 app.use('/api/notifications', async (req, res, next) => {
   try {
-    await ensureDB();
-    const { default: notificationRoutes } = await import('../routes/notification.routes.js');
-    notificationRoutes(req, res, next);
+    const router = await loadRoute('notifications', '../routes/notification.routes.js');
+    router(req, res, next);
   } catch (err) {
-    console.error('Notification route error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({ success: false, message: `Notifications route error: ${err.message}` });
   }
 });
+
+// Static files
+app.use('/uploads', express.static('uploads'));
 
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: `Route not found: ${req.method} ${req.path}`
+    message: `Route not found: ${req.method} ${req.path}`,
+    availableRoutes: Object.keys(routeCache)
   });
 });
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('❌ Error:', err);
   res.status(err.statusCode || 500).json({
     success: false,
-    message: err.message || 'Internal Server Error'
+    message: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
