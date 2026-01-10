@@ -11,7 +11,8 @@ export const getTickets = async (req, res, next) => {
   try {
     const { 
       status, priority, category, assetId, assignedTo, createdBy,
-      search, page = 1, limit = 50, sortBy = 'createdAt', sortOrder = 'desc'
+      search, page = 1, limit = 50, sortBy = 'createdAt', sortOrder = 'desc',
+      isSLABreached, slaStatus
     } = req.query;
     
     const query = {};
@@ -43,6 +44,37 @@ export const getTickets = async (req, res, next) => {
     if (assetId) query.assetId = assetId;
     if (assignedTo) query.assignedTo = assignedTo;
     if (createdBy) query.createdBy = createdBy;
+    
+    // SLA Status filter
+    if (isSLABreached === 'true') {
+      query.isSLARestoreBreached = true;
+      query.status = { $nin: ['Closed', 'Cancelled'] };
+    }
+    
+    if (slaStatus) {
+      if (slaStatus === 'Breached') {
+        query.isSLARestoreBreached = true;
+        query.status = { $nin: ['Closed', 'Cancelled'] };
+      } else if (slaStatus === 'AtRisk') {
+        query.slaRestoreDue = { $lte: new Date(Date.now() + 30 * 60 * 1000) }; // Within 30 minutes
+        query.isSLARestoreBreached = false;
+        query.status = { $nin: ['Closed', 'Cancelled', 'Resolved'] };
+      } else if (slaStatus === 'OnTrack') {
+        query.$and = query.$and || [];
+        query.$and.push(
+          { $or: [
+            { isSLARestoreBreached: { $ne: true } },
+            { isSLARestoreBreached: { $exists: false } }
+          ]},
+          { $or: [
+            { slaRestoreDue: { $gt: new Date(Date.now() + 30 * 60 * 1000) } },
+            { slaRestoreDue: { $exists: false } }
+          ]}
+        );
+        query.status = { $nin: ['Closed', 'Cancelled'] };
+      }
+    }
+    
     if (search) {
       const searchRegex = { $regex: search, $options: 'i' };
       const searchCriteria = [
@@ -732,7 +764,7 @@ export const getDashboardStats = async (req, res, next) => {
       data: {
         // Main stats (matching frontend expectations)
         openTickets: totalOpen,
-        inProgressTickets: totalAssigned + totalAcknowledged + totalInProgress,
+        inProgressTickets: totalInProgress,
         slaBreached,
         slaAtRisk,
         slaCompliancePercent,

@@ -65,8 +65,7 @@ const siteSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes
-siteSchema.index({ siteUniqueID: 1 });
+// Indexes (siteUniqueID index is already created via unique: true)
 siteSchema.index({ city: 1 });
 siteSchema.index({ isActive: 1 });
 

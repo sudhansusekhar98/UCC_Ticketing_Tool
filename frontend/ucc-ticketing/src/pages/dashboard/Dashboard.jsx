@@ -135,52 +135,61 @@ export default function Dashboard() {
 
             {/* Stats Cards */}
             <div className="stats-grid">
-                <div className="stat-card glass-card primary">
+                <Link to="/tickets?status=Open" className="stat-card glass-card primary">
                     <div className="stat-header">
                         <Ticket size={24} />
-                        <Link to="/tickets" className="stat-link">
+                        <span className="stat-link">
                             View All <ArrowUpRight size={14} />
-                        </Link>
+                        </span>
                     </div>
                     <div className="stat-value">{stats?.openTickets || 0}</div>
                     <div className="stat-label">Open Tickets</div>
                     <div className="stat-footer">
                         <span className="stat-total">{stats?.totalTickets || 0} total</span>
                     </div>
-                </div>
+                </Link>
 
-                <div className="stat-card glass-card warning">
+                <Link to="/tickets?status=InProgress" className="stat-card glass-card warning">
                     <div className="stat-header">
                         <Activity size={24} />
+                        <span className="stat-link">
+                            View All <ArrowUpRight size={14} />
+                        </span>
                     </div>
                     <div className="stat-value">{stats?.inProgressTickets || 0}</div>
                     <div className="stat-label">In Progress</div>
                     <div className="stat-footer">
                         <span className="text-success">+{stats?.resolvedToday || 0} resolved today</span>
                     </div>
-                </div>
+                </Link>
 
-                <div className="stat-card glass-card danger">
+                <Link to="/tickets?slaBreached=true" className="stat-card glass-card danger">
                     <div className="stat-header">
                         <AlertTriangle size={24} />
+                        <span className="stat-link">
+                            View All <ArrowUpRight size={14} />
+                        </span>
                     </div>
                     <div className="stat-value">{stats?.slaBreached || 0}</div>
                     <div className="stat-label">SLA Breached</div>
                     <div className="stat-footer">
                         <span className="text-warning">{stats?.slaAtRisk || 0} at risk</span>
                     </div>
-                </div>
+                </Link>
 
-                <div className="stat-card glass-card success">
+                <Link to="/tickets?status=Resolved" className="stat-card glass-card success">
                     <div className="stat-header">
                         <TrendingUp size={24} />
+                        <span className="stat-link">
+                            View All <ArrowUpRight size={14} />
+                        </span>
                     </div>
                     <div className="stat-value">{stats?.slaCompliancePercent || 0}%</div>
                     <div className="stat-label">SLA Compliance</div>
                     <div className="stat-footer">
                         <span>Target: 95%</span>
                     </div>
-                </div>
+                </Link>
             </div>
 
             {/* Second Row - Assets & Engineers */}

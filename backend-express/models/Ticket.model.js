@@ -133,8 +133,7 @@ const ticketSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for better query performance
-ticketSchema.index({ ticketNumber: 1 });
+// Indexes for better query performance (ticketNumber index is already created via unique: true)
 ticketSchema.index({ status: 1 });
 ticketSchema.index({ priority: 1 });
 ticketSchema.index({ createdBy: 1 });

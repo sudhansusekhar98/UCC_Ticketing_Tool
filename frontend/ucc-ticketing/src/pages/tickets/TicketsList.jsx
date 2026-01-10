@@ -33,6 +33,7 @@ export default function TicketsList() {
         category: searchParams.get('category') || '',
         assignedTo: searchParams.get('assignedTo') || '',
         siteId: searchParams.get('siteId') || '',
+        slaStatus: searchParams.get('slaStatus') || '',
         searchTerm: searchParams.get('search') || '',
         page: parseInt(searchParams.get('page')) || 1,
         pageSize: 20,
@@ -95,6 +96,7 @@ export default function TicketsList() {
                 limit: filters.pageSize, // Map pageSize to limit for backend
                 search: filters.searchTerm, // Map searchTerm to search
                 isSLABreached: searchParams.get('slaBreached') === 'true' ? true : undefined,
+                slaStatus: filters.slaStatus || undefined,
             });
             // Handle both Express.js and .NET response formats
             const ticketData = response.data.data || response.data.items || response.data || [];
@@ -129,6 +131,7 @@ export default function TicketsList() {
         if (filters.category) params.set('category', filters.category);
         if (filters.assignedTo) params.set('assignedTo', filters.assignedTo);
         if (filters.siteId) params.set('siteId', filters.siteId);
+        if (filters.slaStatus) params.set('slaStatus', filters.slaStatus);
         if (filters.searchTerm) params.set('search', filters.searchTerm);
         params.set('page', '1');
         setSearchParams(params);
@@ -142,6 +145,7 @@ export default function TicketsList() {
             category: '',
             assignedTo: '',
             siteId: '',
+            slaStatus: '',
             searchTerm: '',
             page: 1,
             pageSize: 20,
@@ -277,6 +281,20 @@ export default function TicketsList() {
                                     {sites.map((s) => (
                                         <option key={s.value} value={s.value}>{s.label}</option>
                                     ))}
+                                </select>
+                            </div>
+
+                            <div className="filter-group">
+                                <label>SLA Status</label>
+                                <select
+                                    value={filters.slaStatus}
+                                    onChange={(e) => setFilters({ ...filters, slaStatus: e.target.value })}
+                                    className="form-select"
+                                >
+                                    <option value="">All SLA Status</option>
+                                    <option value="Breached">Breached</option>
+                                    <option value="AtRisk">At Risk</option>
+                                    <option value="OnTrack">On Track</option>
                                 </select>
                             </div>
                         </div>

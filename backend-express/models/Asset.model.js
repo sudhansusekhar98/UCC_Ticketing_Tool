@@ -117,8 +117,7 @@ const assetSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes
-assetSchema.index({ assetCode: 1 });
+// Indexes (assetCode index is already created via unique: true)
 assetSchema.index({ assetType: 1 });
 assetSchema.index({ siteId: 1 });
 assetSchema.index({ status: 1 });
