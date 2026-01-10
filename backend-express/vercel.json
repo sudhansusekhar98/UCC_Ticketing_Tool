@@ -4,25 +4,31 @@
   "installCommand": "npm install --legacy-peer-deps",
   "builds": [
     {
-      "src": "server.js",
+      "src": "index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server.js"
+      "dest": "/index.js"
     },
     {
       "src": "/uploads/(.*)",
-      "dest": "/server.js"
+      "dest": "/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/server.js"
+      "dest": "/index.js"
     }
   ],
   "env": {
     "NODE_ENV": "production"
+  },
+  "functions": {
+    "index.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
   }
 }

@@ -32,8 +32,14 @@ const connectDB = async () => {
       process.exit(0);
     });
   } catch (error) {
-    console.error("Error connecting to MongoDB:", error.message);
-    process.exit(1);
+    console.error("❌ Error connecting to MongoDB:", error.message);
+    if (!process.env.MONGODB_URI) {
+      console.error("⚠️ MONGODB_URI is not defined in environment variables!");
+    }
+    // In serverless, we don't want to exit the process as it kills the function cold
+    if (process.env.VERCEL !== '1') {
+      process.exit(1);
+    }
   }
 };
 

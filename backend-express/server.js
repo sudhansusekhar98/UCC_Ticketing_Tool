@@ -126,12 +126,15 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-  console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
-});
+// Start server only if not in Vercel serverless environment
+// In Vercel, the app is exported and handled by the serverless function
+if (process.env.VERCEL !== '1') {
+  const PORT = process.env.PORT || 5000;
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+    console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
+  });
+}
 
 export default app;
