@@ -1,259 +1,287 @@
-# UCC Ticketing Platform - Express.js + MongoDB Backend
+# UCC Ticketing Tool - Backend
 
-## 🚀 Migration from .NET to Express.js
+Express.js + MongoDB backend API for the UCC Ticketing Tool with Socket.io for real-time updates.
 
-This is the new Express.js backend with MongoDB database, migrated from the original ASP.NET Core + SQL Server implementation.
+## 🚀 Quick Start
 
-### Technology Stack
+### Prerequisites
 
-- **Runtime**: Node.js 18+
-- **Framework**: Express.js
-- **Database**: MongoDB
-- **ODM**: Mongoose
-- **Authentication**: JWT (JSON Web Tokens)
-- **Real-time**: Socket.IO
-- **Password Hashing**: BCrypt
+- Node.js 18+
+- MongoDB Atlas account (or local MongoDB)
+- Cloudinary account (for file storage)
 
-## 📋 Prerequisites
+### Local Development
 
-1. **Node.js** (v18 or higher)
-
-   ```bash
-   node --version
-   ```
-
-2. **MongoDB** (Local or MongoDB Atlas)
-   - **Local Installation**: Download from [mongodb.com](https://www.mongodb.com/try/download/community)
-   - **Cloud (MongoDB Atlas)**: Create free cluster at [mongodb.com/cloud/atlas](https://www.mongodb.com/cloud/atlas)
-
-## 🛠️ Installation
-
-1. **Navigate to backend directory**:
-
-   ```bash
-   cd "d:\VL Access\CODES\VLAccess Ticketing Tool\backend-express"
-   ```
-
-2. **Install dependencies** (already done):
+1. **Install dependencies**
 
    ```bash
    npm install
    ```
 
-3. **Configure environment variables**:
+2. **Set up environment variables**
 
-   - Edit `.env` file
-   - Update `MONGODB_URI` with your MongoDB connection string:
+   Create a `.env` file in this directory:
 
-     ```env
-     # For local MongoDB:
-     MONGODB_URI=mongodb://localhost:27017/ucc_ticketing
+   ```env
+   # Server
+   NODE_ENV=development
+   PORT=5000
 
-     # For MongoDB Atlas:
-     MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/ucc_ticketing
-     ```
+   # Database
+   MONGODB_URI=mongodb://localhost:27017/ucc-ticketing
+   # Or MongoDB Atlas:
+   # MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/ucc-ticketing
 
-   - Update `JWT_SECRET` and `JWT_REFRESH_SECRET` with secure random strings
+   # JWT
+   JWT_SECRET=your-secret-key-min-32-characters
+   JWT_REFRESH_SECRET=your-refresh-secret-key-min-32-characters
 
-4. **Start MongoDB** (if using local installation):
+   # CORS
+   CORS_ORIGIN=http://localhost:5173
 
-   ```bash
-   # Windows
-   net start MongoDB
-
-   # Or start mongod manually
-   mongod --dbpath "C:\data\db"
+   # Cloudinary (Optional for local, required for production)
+   CLOUDINARY_CLOUD_NAME=your-cloud-name
+   CLOUDINARY_API_KEY=your-api-key
+   CLOUDINARY_API_SECRET=your-api-secret
    ```
 
-## 🏃 Running the Application
+3. **Generate JWT secrets**
 
-### Development Mode (with auto-reload):
+   ```bash
+   # On Windows (PowerShell)
+   [Convert]::ToBase64String((1..32|%{Get-Random -Maximum 256}))
 
-```bash
-npm run dev
-```
+   # On Linux/Mac
+   openssl rand -base64 32
+   ```
 
-### Production Mode:
+4. **Seed the database (optional)**
 
-```bash
-npm start
-```
+   ```bash
+   # Create admin user and sample data
+   npm run seed
 
-The server will start on `http://localhost:5000`
+   # Or full seed with more sample data
+   npm run seed:full
+   ```
+
+5. **Start development server**
+
+   ```bash
+   npm run dev
+   ```
+
+6. **Test the API**
+   - Open http://localhost:5000/api/health
+   - Should see: `{"status":"OK",...}`
+
+## 📦 Production Deployment
+
+See [DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md) for detailed instructions.
+
+### Quick Vercel Deployment
+
+1. **Install Vercel CLI**
+
+   ```bash
+   npm i -g vercel
+   ```
+
+2. **Deploy**
+
+   ```bash
+   vercel --prod
+   ```
+
+3. **Set environment variables** via Vercel Dashboard or CLI
+
+## 🔧 Environment Variables
+
+| Variable                | Required | Description                           |
+| ----------------------- | -------- | ------------------------------------- |
+| `NODE_ENV`              | Yes      | `development` or `production`         |
+| `PORT`                  | No       | Server port (default: 5000)           |
+| `MONGODB_URI`           | Yes      | MongoDB connection string             |
+| `JWT_SECRET`            | Yes      | Secret for access tokens (32+ chars)  |
+| `JWT_REFRESH_SECRET`    | Yes      | Secret for refresh tokens (32+ chars) |
+| `CORS_ORIGIN`           | Yes      | Allowed frontend origin(s)            |
+| `CLOUDINARY_CLOUD_NAME` | Yes\*    | Cloudinary cloud name                 |
+| `CLOUDINARY_API_KEY`    | Yes\*    | Cloudinary API key                    |
+| `CLOUDINARY_API_SECRET` | Yes\*    | Cloudinary API secret                 |
+
+\*Required in production; optional in development (files saved locally)
 
 ## 📁 Project Structure
 
 ```
 backend-express/
-├── config/
-│   └── database.js          # MongoDB connection
-├── controllers/
-│   └── auth.controller.js   # Authentication logic
-├── middleware/
-│   └── auth.middleware.js   # JWT authentication
-├── models/
-│   ├── User.model.js        # User schema
-│   ├── Site.model.js        # Site schema
-│   ├── Asset.model.js       # Asset schema
-│   ├── Ticket.model.js      # Ticket schema
-│   ├── SLAPolicy.model.js   # SLA Policy schema
-│   ├── TicketActivity.model.js
-│   ├── TicketAttachment.model.js
-│   └── WorkOrder.model.js
-├── routes/
-│   └── auth.routes.js       # Authentication routes
-├── utils/
-│   └── auth.utils.js        # Auth helper functions
-├── .env                     # Environment variables
-├── .gitignore
-├── package.json
-└── server.js                # Main application file
+├── config/          # Configuration files (database, cloudinary)
+├── controllers/     # Route controllers (business logic)
+├── middleware/      # Custom middleware (auth, validation)
+├── models/          # Mongoose models (schemas)
+├── routes/          # API route definitions
+├── scripts/         # Utility scripts (seeding, migration)
+├── uploads/         # Local file uploads (dev only)
+├── utils/           # Helper utilities
+├── server.js        # Main entry point
+├── vercel.json      # Vercel deployment config
+└── package.json     # Dependencies and scripts
 ```
 
-## 🔑 API Endpoints
+## 🛣️ API Endpoints
 
 ### Authentication
 
-- `POST /api/auth/login` - User login
+- `POST /api/auth/login` - Login
+- `POST /api/auth/logout` - Logout
 - `POST /api/auth/refresh` - Refresh access token
-- `GET /api/auth/me` - Get current user (Protected)
-- `POST /api/auth/logout` - Logout (Protected)
-- `PUT /api/auth/change-password` - Change password (Protected)
+- `POST /api/auth/change-password` - Change password
+- `GET /api/auth/me` - Get current user profile
 
-### Health Check
+### Tickets
 
-- `GET /api/health` - Server health status
+- `GET /api/tickets` - List all tickets
+- `GET /api/tickets/:id` - Get ticket by ID
+- `POST /api/tickets` - Create new ticket
+- `PUT /api/tickets/:id` - Update ticket
+- `POST /api/tickets/:id/assign` - Assign ticket
+- `POST /api/tickets/:id/acknowledge` - Acknowledge ticket
+- `POST /api/tickets/:id/start` - Start work on ticket
+- `POST /api/tickets/:id/resolve` - Resolve ticket
+- `POST /api/tickets/:id/close` - Close ticket
+- `POST /api/tickets/:id/reopen` - Reopen ticket
+- `GET /api/tickets/dashboard/stats` - Get dashboard statistics
 
-## 🗄️ Database Schema Comparison
+### Sites
 
-### SQL Server → MongoDB Mapping
+- `GET /api/sites` - List all sites
+- `POST /api/sites` - Create site
+- `PUT /api/sites/:id` - Update site
+- `DELETE /api/sites/:id` - Delete site
 
-| SQL Server Table | MongoDB Collection | Notes                                       |
-| ---------------- | ------------------ | ------------------------------------------- |
-| UserMaster       | users              | Auto-generated `_id` instead of `UserId`    |
-| SiteMaster       | sites              | ObjectId references instead of foreign keys |
-| AssetMaster      | assets             | Embedded relationships possible             |
-| TicketMaster     | tickets            | Auto-generated ticket numbers               |
-| SLAPolicy        | slapolicies        | Same structure                              |
-| TicketActivity   | ticketactivities   | References to tickets                       |
-| TicketAttachment | ticketattachments  | File storage options                        |
-| WorkOrder        | workorders         | Auto-generated WO numbers                   |
+### Assets
 
-### Key Differences
+- `GET /api/assets` - List all assets
+- `POST /api/assets` - Create asset
+- `POST /api/assets/import` - Bulk import assets
+- `GET /api/assets/export` - Export assets to Excel
 
-1. **Primary Keys**:
+### Users
 
-   - SQL: `int` auto-increment IDs
-   - MongoDB: `ObjectId` (`_id`)
+- `GET /api/users` - List all users
+- `POST /api/users` - Create user
+- `PUT /api/users/:id` - Update user
+- `GET /api/users/engineers` - Get list of engineers
 
-2. **Foreign Keys**:
+### Activities
 
-   - SQL: Integer foreign keys with `[ForeignKey]` attributes
-   - MongoDB: `ObjectId` references with Mongoose `ref`
+- `GET /api/tickets/:id/activities` - Get ticket activities
+- `POST /api/tickets/:id/activities` - Add activity/comment
+- `POST /api/tickets/:id/activities/attachments` - Upload attachment
 
-3. **Timestamps**:
+See [API_DOCUMENTATION.md](./Docs/API.md) for full API reference.
 
-   - SQL: `CreatedOn`, `ModifiedOn` (manual)
-   - MongoDB: `createdAt`, `updatedAt` (automatic with `timestamps: true`)
+## 🔌 Socket.io Events
 
-4. **Navigation Properties**:
-   - SQL: `virtual ICollection<T>`
-   - MongoDB: Mongoose virtuals with `populate()`
+### Client → Server
 
-## 🔄 Data Migration
+- `join` - Join user room for notifications
+- `join:ticket` - Join specific ticket room
+- `leave:ticket` - Leave ticket room
 
-To migrate existing data from SQL Server to MongoDB:
+### Server → Client
 
-1. **Export data from SQL Server** to JSON
-2. **Use migration script** (to be created):
-   ```bash
-   node scripts/migrate-data.js
-   ```
+- `ticket:created` - New ticket created
+- `ticket:assigned` - Ticket assigned
+- `activity:created` - New activity/comment added
 
-## 🧪 Testing the API
-
-### Using cURL:
-
-**Login**:
-
-```bash
-curl -X POST http://localhost:5000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"admin\",\"password\":\"password123\"}"
-```
-
-**Get Current User**:
+## 🧪 Testing
 
 ```bash
-curl http://localhost:5000/api/auth/me \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+# Run tests (once implemented)
+npm test
 ```
 
-### Using Postman or Thunder Client:
+## 📝 Available Scripts
 
-Import the API collection (to be created)
-
-## 🔐 Security Features
-
-- ✅ JWT-based authentication
-- ✅ BCrypt password hashing
-- ✅ Helmet.js security headers
-- ✅ CORS configuration
-- ✅ Rate limiting (to be added)
-- ✅ Input validation (to be added)
-
-## 🚧 TODO - Remaining Routes
-
-- [ ] Sites CRUD
-- [ ] Assets CRUD
-- [ ] Tickets CRUD
-- [ ] Users Management
-- [ ] SLA Policies
-- [ ] Work Orders
-- [ ] Settings
-- [ ] File Upload
-- [ ] Reports
-- [ ] Dashboard Statistics
-
-## 📝 Environment Variables
-
-| Variable             | Description               | Default               |
-| -------------------- | ------------------------- | --------------------- |
-| `PORT`               | Server port               | 5000                  |
-| `NODE_ENV`           | Environment               | development           |
-| `MONGODB_URI`        | MongoDB connection string | Required              |
-| `JWT_SECRET`         | JWT signing secret        | Required              |
-| `JWT_EXPIRE`         | JWT expiration            | 7d                    |
-| `JWT_REFRESH_SECRET` | Refresh token secret      | Required              |
-| `JWT_REFRESH_EXPIRE` | Refresh token expiration  | 30d                   |
-| `CORS_ORIGIN`        | Allowed CORS origin       | http://localhost:5173 |
+- `npm start` - Start production server
+- `npm run dev` - Start development server with nodemon
+- `npm run seed` - Seed database with initial data
+- `npm run seed:full` - Seed database with comprehensive sample data
+- `npm run migrate` - Migrate data from SQL Server (if applicable)
 
 ## 🐛 Troubleshooting
 
 ### MongoDB Connection Issues
 
-```bash
-# Check if MongoDB is running
-mongosh
+**Error:** `MongoServerError: bad auth`
 
-# Or for older versions
-mongo
-```
+- **Solution:** Check username/password in `MONGODB_URI`
 
-### Port Already in Use
+**Error:** `ECONNREFUSED`
 
-```bash
-# Change PORT in .env file
-PORT=5001
-```
+- **Solution:** Check MongoDB is running or Atlas IP whitelist
 
-## 📚 Additional Resources
+### CORS Issues
 
-- [Express.js Documentation](https://expressjs.com/)
-- [Mongoose Documentation](https://mongoosejs.com/)
-- [MongoDB Documentation](https://docs.mongodb.com/)
-- [JWT.io](https://jwt.io/)
+**Error:** `Access-Control-Allow-Origin`
 
-## 👥 Support
+- **Solution:** Update `CORS_ORIGIN` to match frontend URL
 
-For issues or questions, contact the development team.
+### JWT Issues
+
+**Error:** `JsonWebTokenError`
+
+- **Solution:** Ensure `JWT_SECRET` and `JWT_REFRESH_SECRET` are set and are 32+ characters
+
+## 🔒 Security
+
+- Passwords hashed with bcrypt
+- JWT authentication with refresh tokens
+- Helmet for security headers
+- CORS protection
+- Input validation with express-validator
+- MongoDB injection protection (Mongoose)
+
+## 🚀 Performance
+
+- Response compression enabled
+- MongoDB indexes on frequently queried fields
+- Connection pooling
+- Efficient aggregation queries
+
+## 📚 Dependencies
+
+### Production
+
+- **express**: Web framework
+- **mongoose**: MongoDB ODM
+- **socket.io**: Real-time bidirectional communication
+- **jsonwebtoken**: JWT authentication
+- **bcryptjs**: Password hashing
+- **cloudinary**: Cloud file storage
+- **multer**: File upload handling
+- **cors**: Cross-origin resource sharing
+- **helmet**: Security headers
+- **compression**: Response compression
+
+### Development
+
+- **nodemon**: Auto-restart on file changes
+
+## 🤝 Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Test thoroughly
+4. Submit a pull request
+
+## 📄 License
+
+ISC
+
+## 🆘 Support
+
+For deployment issues, see [DEPLOYMENT_GUIDE.md](../DEPLOYMENT_GUIDE.md)
+
+For API documentation, see [Docs/API.md](./Docs/API.md)

@@ -1,0 +1,30 @@
+# Dependencies
+node_modules
+
+# Environment files
+.env
+.env.local
+.env.backup
+.env.production
+
+# Development
+*.log
+npm-debug.log*
+
+# Uploads (should be on Cloudinary in production)
+uploads/*
+
+# Documentation
+Docs
+*.md
+!README.md
+
+# Scripts
+scripts
+
+# Database connection options
+CONNECTION_OPTIONS.txt
+MONGODB_FIX_GUIDE.md
+
+# Debug files
+check-users-debug.js

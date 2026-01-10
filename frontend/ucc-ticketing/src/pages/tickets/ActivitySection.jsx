@@ -321,9 +321,11 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                                     <div className="activity-attachments">
                                         {activity.attachments.map((att) => {
                                             // Construct full URL for database-stored files
+                                            const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+                                            const BASE_URL = API_BASE_URL.replace('/api', '');
                                             const fullUrl = att.storageType === 'Cloudinary' 
                                                 ? att.url 
-                                                : `http://localhost:5000${att.url}`;
+                                                : `${BASE_URL}${att.url}`;
                                             
                                             return (
                                                 <div key={att.attachmentId} className="attachment-item">
