@@ -18,17 +18,60 @@ const app = express();
 let httpServer;
 let io;
 
+// Socket.io is only needed for local development, not in Vercel serverless
 if (process.env.VERCEL !== '1') {
-  const { Server } = await import('socket.io');
-  httpServer = createServer(app);
-  
-  // Initialize Socket.IO
-  io = new Server(httpServer, {
-    cors: {
-      origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-      methods: ['GET', 'POST', 'PUT', 'DELETE'],
-      credentials: true
-    }
+  // Dynamic import for Socket.io (only in local environment)
+  import('socket.io').then(({ Server }) => {
+    httpServer = createServer(app);
+    
+    // Initialize Socket.IO
+    io = new Server(httpServer, {
+      cors: {
+        origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+        methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        credentials: true
+      }
+    });
+
+    // Socket.IO connection handling
+    io.on('connection', (socket) => {
+      console.log('Client connected:', socket.id);
+
+      socket.on('disconnect', () => {
+        console.log('Client disconnected:', socket.id);
+      });
+
+      // Join room for user-specific notifications
+      socket.on('join', (userId) => {
+        socket.join(`user_${userId}`);
+        console.log(`User ${userId} joined their room`);
+      });
+
+      // Join a specific ticket room for targeted updates
+      socket.on('join:ticket', (ticketId) => {
+        socket.join(`ticket_${ticketId}`);
+        console.log(`Socket ${socket.id} joined room: ticket_${ticketId}`);
+      });
+
+      // Leave a ticket room
+      socket.on('leave:ticket', (ticketId) => {
+        socket.leave(`ticket_${ticketId}`);
+        console.log(`Socket ${socket.id} left room: ticket_${ticketId}`);
+      });
+    });
+
+    // Make io accessible to routes
+    app.set('io', io);
+
+    // Start server
+    const PORT = process.env.PORT || 5000;
+    httpServer.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+      console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
+    });
+  }).catch(err => {
+    console.error('Failed to initialize Socket.io:', err);
   });
 }
 
@@ -111,45 +154,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Socket.IO connection handling (only in non-Vercel environments)
-if (io) {
-  io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id);
 
-    socket.on('disconnect', () => {
-      console.log('Client disconnected:', socket.id);
-    });
-
-    // Join room for user-specific notifications
-    socket.on('join', (userId) => {
-      socket.join(`user_${userId}`);
-      console.log(`User ${userId} joined their room`);
-    });
-
-    // Join a specific ticket room for targeted updates
-    socket.on('join:ticket', (ticketId) => {
-      socket.join(`ticket_${ticketId}`);
-      console.log(`Socket ${socket.id} joined room: ticket_${ticketId}`);
-    });
-
-    // Leave a ticket room
-    socket.on('leave:ticket', (ticketId) => {
-      socket.leave(`ticket_${ticketId}`);
-      console.log(`Socket ${socket.id} left room: ticket_${ticketId}`);
-    });
-  });
-}
-
-
-// Start server only if not in Vercel serverless environment
-// In Vercel, the app is exported and handled by the serverless function
-if (process.env.VERCEL !== '1') {
-  const PORT = process.env.PORT || 5000;
-  httpServer.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-    console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
-  });
-}
-
+// Export the Express app for Vercel serverless
 export default app;
+
