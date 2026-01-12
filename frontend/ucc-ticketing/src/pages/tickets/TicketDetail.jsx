@@ -35,12 +35,14 @@ export default function TicketDetail() {
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [showResolveModal, setShowResolveModal] = useState(false);
     const [showReopenModal, setShowReopenModal] = useState(false);
+    const [showRejectModal, setShowRejectModal] = useState(false);
     const [engineers, setEngineers] = useState([]);
     const [assignData, setAssignData] = useState({ assignedTo: '', remarks: '' });
     const [resolveData, setResolveData] = useState({ rootCause: '', resolutionSummary: '' });
     const [reopenReason, setReopenReason] = useState('');
+    const [rejectReason, setRejectReason] = useState('');
 
-    const isLocked = ['InProgress', 'OnHold', 'Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
+    const isLocked = ['InProgress', 'OnHold', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
     // Get the site ID from the ticket's asset
     const ticketSiteId = ticket?.assetId?.siteId?._id || ticket?.assetId?.siteId;
     const canEdit = (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId)) && !isLocked;
@@ -53,7 +55,9 @@ export default function TicketDetail() {
     // Assigned user or engineers can resolve
     const canResolve = isAssignedToMe || hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']);
     const canClose = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('DELETE_TICKET', ticketSiteId);
-    const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId);
+    const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId) || hasRight('CREATE_TICKET', ticketSiteId);
+    const canRejectResolution = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId);
+    const canAcknowledgeRejection = isAssignedToMe;
 
     useEffect(() => {
         fetchTicket();
@@ -237,6 +241,40 @@ export default function TicketDetail() {
         }
     };
 
+    const handleRejectResolution = async () => {
+        if (!rejectReason.trim()) {
+            toast.error('Please provide a reason for rejecting the resolution');
+            return;
+        }
+        setActionLoading(true);
+        try {
+            await ticketsApi.rejectResolution(id, rejectReason.trim());
+            toast.success('Resolution rejected. The assigned user has been notified.');
+            setShowRejectModal(false);
+            setRejectReason('');
+            fetchTicket();
+            fetchAuditTrail();
+        } catch (error) {
+            toast.error('Failed to reject resolution');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleAcknowledgeRejection = async () => {
+        setActionLoading(true);
+        try {
+            await ticketsApi.acknowledgeRejection(id);
+            toast.success('Rejection acknowledged. You can now resume work on this ticket.');
+            fetchTicket();
+            fetchAuditTrail();
+        } catch (error) {
+            toast.error('Failed to acknowledge rejection');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const getPriorityClass = (priority) => priority ? `priority-${priority.toLowerCase()}` : '';
     const getSLAStatusClass = (status) => status ? `sla-${status.toLowerCase()}` : '';
 
@@ -310,10 +348,24 @@ export default function TicketDetail() {
                         </button>
                     )}
 
+                    {canRejectResolution && ticket.status === 'Resolved' && (
+                        <button className="btn btn-danger" onClick={() => setShowRejectModal(true)} disabled={actionLoading}>
+                            <XCircle size={18} />
+                            Reject Resolution
+                        </button>
+                    )}
+
                     {canClose && (ticket.status === 'Resolved' || ticket.status === 'Verified') && (
                         <button className="btn btn-success" onClick={handleClose} disabled={actionLoading}>
-                            <XCircle size={18} />
-                            Close Ticket
+                            <CheckCircle size={18} />
+                            Verify & Close
+                        </button>
+                    )}
+
+                    {canAcknowledgeRejection && ticket.status === 'ResolutionRejected' && (
+                        <button className="btn btn-warning" onClick={handleAcknowledgeRejection} disabled={actionLoading}>
+                            <CheckCircle size={18} />
+                            Acknowledge & Resume Work
                         </button>
                     )}
 
@@ -588,6 +640,35 @@ export default function TicketDetail() {
                             <button className="btn btn-ghost" onClick={() => setShowReopenModal(false)}>Cancel</button>
                             <button className="btn btn-warning" onClick={handleReopen} disabled={actionLoading}>
                                 {actionLoading ? 'Re-opening...' : 'Re-open Ticket'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Reject Resolution Modal */}
+            {showRejectModal && (
+                <div className="modal-overlay" onClick={() => setShowRejectModal(false)}>
+                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                        <h3>Reject Resolution</h3>
+                        <p className="modal-description">
+                            The issue is still ongoing. Rejecting the resolution will notify the assigned user
+                            to reinvestigate and provide an update.
+                        </p>
+                        <div className="form-group">
+                            <label className="form-label">Reason for Rejection *</label>
+                            <textarea
+                                className="form-textarea"
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                placeholder="Explain why the resolution is being rejected and what needs to be investigated..."
+                                rows={4}
+                            />
+                        </div>
+                        <div className="modal-actions">
+                            <button className="btn btn-ghost" onClick={() => setShowRejectModal(false)}>Cancel</button>
+                            <button className="btn btn-danger" onClick={handleRejectResolution} disabled={actionLoading}>
+                                {actionLoading ? 'Rejecting...' : 'Reject Resolution'}
                             </button>
                         </div>
                     </div>

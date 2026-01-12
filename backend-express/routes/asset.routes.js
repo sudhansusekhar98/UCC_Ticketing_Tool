@@ -7,6 +7,9 @@ import {
   deleteAsset,
   updateAssetStatus,
   getAssetsDropdown,
+  getLocationNames,
+  getAssetTypesForSite,
+  getDeviceTypesForSite,
   bulkImportAssets,
   exportAssets,
   downloadTemplate
@@ -24,6 +27,9 @@ const upload = multer({ dest: 'uploads/' });
 
 // Utility routes (before :id routes)
 router.get('/dropdown', getAssetsDropdown);
+router.get('/locations', getLocationNames);
+router.get('/asset-types', getAssetTypesForSite);
+router.get('/device-types', getDeviceTypesForSite);
 router.get('/template', downloadTemplate);
 router.get('/export', exportAssets);
 router.post('/import', authorize('Admin'), upload.single('file'), bulkImportAssets);

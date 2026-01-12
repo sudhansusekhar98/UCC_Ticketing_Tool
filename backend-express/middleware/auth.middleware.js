@@ -39,9 +39,12 @@ export const protect = async (req, res, next) => {
         });
       }
 
-      // Fetch user rights
+      // Fetch user rights - store the actual structure with siteRights and globalRights
       const userRights = await UserRight.findOne({ user: req.user._id });
-      req.user.rights = userRights ? userRights.rights : [];
+      req.user.rights = userRights ? {
+        siteRights: userRights.siteRights || [],
+        globalRights: userRights.globalRights || []
+      } : { siteRights: [], globalRights: [] };
 
       next();
     } catch (error) {
@@ -56,13 +59,33 @@ export const protect = async (req, res, next) => {
 };
 
 // Grant access to specific roles OR permissions
-export const allowAccess = ({ roles = [], right = '' }) => {
+// User needs ANY of the specified roles OR ANY of the specified rights
+export const allowAccess = ({ roles = [], rights = [], right = '' }) => {
   return (req, res, next) => {
     // Check if user has one of the allowed roles
-    const hasRole = roles.length === 0 || roles.includes(req.user.role);
+    const hasRole = roles.length > 0 && roles.includes(req.user.role);
     
-    // Check if user has the specific right
-    const hasRight = right && req.user.rights && req.user.rights.includes(right);
+    // Build list of rights to check (support both 'right' and 'rights' params)
+    const rightsToCheck = right ? [right, ...rights] : rights;
+    
+    // Check if user has any of the specific rights (either global or for any assigned site)
+    let hasRight = false;
+    if (rightsToCheck.length > 0 && req.user.rights) {
+      for (const r of rightsToCheck) {
+        // Check global rights first
+        if (req.user.rights.globalRights && req.user.rights.globalRights.includes(r)) {
+          hasRight = true;
+          break;
+        }
+        // Check site-specific rights
+        if (req.user.rights.siteRights) {
+          if (req.user.rights.siteRights.some(sr => sr.rights && sr.rights.includes(r))) {
+            hasRight = true;
+            break;
+          }
+        }
+      }
+    }
 
     if (hasRole || hasRight) {
       return next();

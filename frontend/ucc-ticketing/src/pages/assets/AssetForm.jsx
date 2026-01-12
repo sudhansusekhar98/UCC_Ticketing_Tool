@@ -66,18 +66,10 @@ export default function AssetForm() {
                 lookupsApi.getAssetTypes(),
                 lookupsApi.getAssetStatuses(),
             ]);
-            // Handle Express response format
+            // Handle Express response format - backend already filters sites based on assignedSites
             const siteData = sitesRes.data.data || sitesRes.data || [];
-            
-            // Filter sites based on MANAGE_ASSETS rights
-            const allowedSiteIds = getSitesWithRight('MANAGE_ASSETS');
-            
-            // If user has role-based access, show all sites. Otherwise, filter by rights
-            const filteredSites = (hasRole(['Admin', 'Supervisor']))
-                ? siteData
-                : siteData.filter(s => allowedSiteIds.includes((s._id || s.value || s.siteId).toString()));
 
-            setSites(filteredSites.map(s => ({
+            setSites(siteData.map(s => ({
                 value: s._id || s.value || s.siteId,
                 label: s.siteName || s.label
             })));

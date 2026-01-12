@@ -223,9 +223,9 @@ export const getAssetsDropdown = async (req, res, next) => {
     
     if (req.user.role !== 'Admin') {
       if (!req.user.assignedSites || req.user.assignedSites.length === 0) {
-          return res.json({ success: true, data: [] });
+        return res.json({ success: true, data: [] });
       }
-      if (siteId && req.user.assignedSites.includes(siteId)) {
+      if (siteId && req.user.assignedSites.some(s => s.toString() === siteId)) {
         query.siteId = siteId;
       } else if (siteId) {
         // If siteId provided but not in user's assigned sites, return empty
@@ -243,13 +243,145 @@ export const getAssetsDropdown = async (req, res, next) => {
     }
     
     const assets = await Asset.find(query)
-      .select('assetCode assetType deviceType locationDescription siteId')
+      .select('assetCode assetType deviceType locationName locationDescription siteId')
       .populate('siteId', 'siteName')
       .sort({ assetCode: 1 });
     
     res.json({
       success: true,
       data: assets
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get distinct location names for a site
+// @route   GET /api/assets/locations
+// @access  Private
+export const getLocationNames = async (req, res, next) => {
+  try {
+    const { siteId } = req.query;
+    const query = { isActive: true };
+    
+    if (req.user.role !== 'Admin') {
+      if (!req.user.assignedSites || req.user.assignedSites.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+      if (siteId && req.user.assignedSites.some(s => s.toString() === siteId)) {
+        query.siteId = siteId;
+      } else if (siteId) {
+        return res.json({ success: true, data: [] });
+      } else {
+        query.siteId = { $in: req.user.assignedSites };
+      }
+    } else if (siteId) {
+      query.siteId = siteId;
+    }
+    
+    // Get distinct location names where locationName is not null/empty
+    const locationNames = await Asset.distinct('locationName', {
+      ...query,
+      locationName: { $exists: true, $ne: '', $ne: null }
+    });
+    
+    // Sort and format the response
+    const sortedLocations = locationNames.filter(Boolean).sort();
+    
+    res.json({
+      success: true,
+      data: sortedLocations.map(name => ({ value: name, label: name }))
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get distinct asset types for a site (optionally filtered by location)
+// @route   GET /api/assets/asset-types
+// @access  Private
+export const getAssetTypesForSite = async (req, res, next) => {
+  try {
+    const { siteId, locationName } = req.query;
+    const query = { isActive: true };
+    
+    if (req.user.role !== 'Admin') {
+      if (!req.user.assignedSites || req.user.assignedSites.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+      if (siteId && req.user.assignedSites.some(s => s.toString() === siteId)) {
+        query.siteId = siteId;
+      } else if (siteId) {
+        return res.json({ success: true, data: [] });
+      } else {
+        query.siteId = { $in: req.user.assignedSites };
+      }
+    } else if (siteId) {
+      query.siteId = siteId;
+    }
+    
+    // Filter by location name if provided
+    if (locationName) {
+      query.locationName = locationName;
+    }
+    
+    // Get distinct asset types
+    const assetTypes = await Asset.distinct('assetType', query);
+    
+    // Sort and format the response
+    const sortedTypes = assetTypes.filter(Boolean).sort();
+    
+    res.json({
+      success: true,
+      data: sortedTypes.map(type => ({ value: type, label: type }))
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get distinct device types for a site (optionally filtered by location and asset type)
+// @route   GET /api/assets/device-types
+// @access  Private
+export const getDeviceTypesForSite = async (req, res, next) => {
+  try {
+    const { siteId, locationName, assetType } = req.query;
+    const query = { isActive: true };
+    
+    if (req.user.role !== 'Admin') {
+      if (!req.user.assignedSites || req.user.assignedSites.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+      if (siteId && req.user.assignedSites.some(s => s.toString() === siteId)) {
+        query.siteId = siteId;
+      } else if (siteId) {
+        return res.json({ success: true, data: [] });
+      } else {
+        query.siteId = { $in: req.user.assignedSites };
+      }
+    } else if (siteId) {
+      query.siteId = siteId;
+    }
+    
+    // Filter by location name if provided
+    if (locationName) {
+      query.locationName = locationName;
+    }
+    
+    // Filter by asset type if provided
+    if (assetType) {
+      query.assetType = assetType;
+    }
+    
+    // Get distinct device types
+    const deviceTypes = await Asset.distinct('deviceType', query);
+    
+    // Sort and format the response
+    const sortedTypes = deviceTypes.filter(Boolean).sort();
+    
+    res.json({
+      success: true,
+      data: sortedTypes.map(type => ({ value: type, label: type }))
     });
   } catch (error) {
     next(error);

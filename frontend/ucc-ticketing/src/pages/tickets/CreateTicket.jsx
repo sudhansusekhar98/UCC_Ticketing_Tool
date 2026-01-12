@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Loader } from 'lucide-react';
-import { ticketsApi, assetsApi, sitesApi, lookupsApi, usersApi } from '../../services/api';
+import { ArrowLeft, Save, Loader, Paperclip, X, FileText, Image } from 'lucide-react';
+import { ticketsApi, assetsApi, sitesApi, lookupsApi, usersApi, activitiesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import './Tickets.css';
@@ -32,13 +32,19 @@ export default function TicketForm() {
     const [categories, setCategories] = useState([]);
     const [assets, setAssets] = useState([]);
     const [sites, setSites] = useState([]);
+    const [locationNames, setLocationNames] = useState([]);
     const [assetTypes, setAssetTypes] = useState([]);
     const [deviceTypes, setDeviceTypes] = useState([]);
     const [engineers, setEngineers] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
     const [selectedSiteId, setSelectedSiteId] = useState('');
+    const [selectedLocationName, setSelectedLocationName] = useState('');
     const [selectedAssetType, setSelectedAssetType] = useState('');
     const [selectedDeviceType, setSelectedDeviceType] = useState('');
+    
+    // File attachments (only for new tickets)
+    const [attachments, setAttachments] = useState([]);
+    const fileInputRef = useRef(null);
     
     // Track if we're in initial load mode (to prevent useEffects from resetting assetId)
     const isInitialLoad = useRef(false);
@@ -51,10 +57,41 @@ export default function TicketForm() {
         }
     }, [id]);
 
+    // Load location names and asset types when site changes
+    useEffect(() => {
+        if (selectedSiteId) {
+            loadLocationNames(selectedSiteId);
+            loadAssetTypesForSite(selectedSiteId, '');
+        } else {
+            setLocationNames([]);
+            setAssetTypes([]);
+        }
+        // Reset location name and dependent fields when site changes (not during initial load)
+        if (!isInitialLoad.current) {
+            setSelectedLocationName('');
+            setSelectedAssetType('');
+            setSelectedDeviceType('');
+            setFormData(prev => ({ ...prev, assetId: '' }));
+        }
+    }, [selectedSiteId]);
+
+    // Load asset types when location name changes
+    useEffect(() => {
+        if (selectedSiteId) {
+            loadAssetTypesForSite(selectedSiteId, selectedLocationName);
+        }
+        // Reset asset type and dependent fields when location changes (not during initial load)
+        if (!isInitialLoad.current) {
+            setSelectedAssetType('');
+            setSelectedDeviceType('');
+            setFormData(prev => ({ ...prev, assetId: '' }));
+        }
+    }, [selectedLocationName]);
+
     // Load device types when assetType changes
     useEffect(() => {
-        if (selectedAssetType) {
-            loadDeviceTypes(selectedAssetType);
+        if (selectedSiteId && selectedAssetType) {
+            loadDeviceTypesForSite(selectedSiteId, selectedLocationName, selectedAssetType);
         } else {
             setDeviceTypes([]);
         }
@@ -66,9 +103,9 @@ export default function TicketForm() {
     }, [selectedAssetType]);
 
     useEffect(() => {
-        // Load assets when site, assetType, or deviceType changes
+        // Load assets when site, locationName, assetType, or deviceType changes
         if (selectedSiteId) {
-            loadAssets(selectedSiteId, selectedAssetType, selectedDeviceType);
+            loadAssets(selectedSiteId, selectedLocationName, selectedAssetType, selectedDeviceType);
         } else {
             // Don't load assets if no site is selected (since site is mandatory)
             setAssets([]);
@@ -77,14 +114,13 @@ export default function TicketForm() {
         if (!isInitialLoad.current) {
             setFormData(prev => ({ ...prev, assetId: '' }));
         }
-    }, [selectedSiteId, selectedAssetType, selectedDeviceType]);
+    }, [selectedSiteId, selectedLocationName, selectedAssetType, selectedDeviceType]);
 
     const loadDropdowns = async () => {
         try {
-            const [categoriesRes, sitesRes, assetTypesRes, engineersRes, usersRes] = await Promise.all([
+            const [categoriesRes, sitesRes, engineersRes, usersRes] = await Promise.all([
                 lookupsApi.getCategories(),
                 sitesApi.getDropdown(),
-                lookupsApi.getAssetTypes(),
                 usersApi.getEngineers(),
                 usersApi.getDropdown(), // Get all active users
             ]);
@@ -92,40 +128,13 @@ export default function TicketForm() {
             const catData = categoriesRes.data.data || categoriesRes.data || [];
             setCategories(catData);
             
+            // Backend already filters sites based on user's assignedSites
             const siteData = sitesRes.data.data || sitesRes.data || [];
-            // Filter sites based on CREATE_TICKET rights (or EDIT_TICKET for editing)
-            let filteredSites = siteData;
             
-            // If user has role-based access, show all sites
-            if (!hasRole(['Admin', 'Supervisor', 'Dispatcher'])) {
-                try {
-                    const allowedSiteIds = isEditing 
-                        ? getSitesWithRight('EDIT_TICKET')
-                        : getSitesWithRight('CREATE_TICKET');
-                    
-                    // Filter only if we got valid site IDs
-                    if (allowedSiteIds && allowedSiteIds.length > 0) {
-                        filteredSites = siteData.filter(s => 
-                            allowedSiteIds.includes((s._id || s.value || s.siteId)?.toString())
-                        );
-                    } else {
-                        // If no sites with rights, show empty (user needs to be granted rights)
-                        filteredSites = [];
-                    }
-                } catch (error) {
-                    console.error('Error filtering sites by rights:', error);
-                    // On error, show all assigned sites as fallback
-                    filteredSites = siteData;
-                }
-            }
-            
-            setSites(filteredSites.map(s => ({
+            setSites(siteData.map(s => ({
                 value: s._id || s.value || s.siteId,
                 label: s.siteName || s.label
             })));
-            
-            const assetTypeData = assetTypesRes.data.data || assetTypesRes.data || [];
-            setAssetTypes(assetTypeData);
             
             const engData = engineersRes.data.data || engineersRes.data || [];
             setEngineers(engData.map(e => ({
@@ -143,9 +152,9 @@ export default function TicketForm() {
         }
     };
 
-    const loadDeviceTypes = async (assetType) => {
+    const loadDeviceTypesForSite = async (siteId, locationName = '', assetType = '') => {
         try {
-            const response = await lookupsApi.getDeviceTypes(assetType);
+            const response = await assetsApi.getDeviceTypesForSite(siteId, locationName || undefined, assetType || undefined);
             const deviceTypeData = response.data.data || response.data || [];
             setDeviceTypes(deviceTypeData);
         } catch (error) {
@@ -154,10 +163,37 @@ export default function TicketForm() {
         }
     };
 
-    const loadAssets = async (siteId, assetType = '', deviceType = '') => {
+    const loadAssetTypesForSite = async (siteId, locationName = '') => {
+        try {
+            const response = await assetsApi.getAssetTypesForSite(siteId, locationName || undefined);
+            const assetTypeData = response.data.data || response.data || [];
+            setAssetTypes(assetTypeData);
+        } catch (error) {
+            console.error('Failed to load asset types', error);
+            setAssetTypes([]);
+        }
+    };
+
+    const loadLocationNames = async (siteId) => {
+        try {
+            const response = await assetsApi.getLocationNames(siteId);
+            const locationData = response.data.data || response.data || [];
+            setLocationNames(locationData);
+        } catch (error) {
+            console.error('Failed to load location names', error);
+            setLocationNames([]);
+        }
+    };
+
+    const loadAssets = async (siteId, locationName = '', assetType = '', deviceType = '') => {
         try {
             const response = await assetsApi.getDropdown(siteId, assetType || undefined);
             let assetData = response.data.data || response.data || [];
+            
+            // Filter by location name if selected
+            if (locationName) {
+                assetData = assetData.filter(a => a.locationName === locationName);
+            }
             
             // Filter by device type if selected
             if (deviceType) {
@@ -200,13 +236,22 @@ export default function TicketForm() {
                 const siteIdValue = typeof asset.siteId === 'object' ? asset.siteId?._id : asset.siteId;
                 if (siteIdValue) {
                     setSelectedSiteId(siteIdValue);
+                    // Load location names for this site
+                    await loadLocationNames(siteIdValue);
+                    // Load asset types for this site and location
+                    await loadAssetTypesForSite(siteIdValue, asset.locationName || '');
+                }
+                
+                // Set location name from asset
+                if (asset.locationName) {
+                    setSelectedLocationName(asset.locationName);
                 }
                 
                 // Set asset type from asset
                 if (asset.assetType) {
                     setSelectedAssetType(asset.assetType);
                     // Load device types for this asset type
-                    await loadDeviceTypes(asset.assetType);
+                    await loadDeviceTypesForSite(siteIdValue, asset.locationName || '', asset.assetType);
                 }
                 
                 // Set device type from asset
@@ -216,7 +261,7 @@ export default function TicketForm() {
                 
                 // Load assets for the site and asset type to populate the dropdown
                 if (siteIdValue) {
-                    await loadAssets(siteIdValue, asset.assetType || '', asset.deviceType || '');
+                    await loadAssets(siteIdValue, asset.locationName || '', asset.assetType || '', asset.deviceType || '');
                 }
             }
             
@@ -243,6 +288,40 @@ export default function TicketForm() {
 
     const handleChange = (field, value) => {
         setFormData({ ...formData, [field]: value });
+    };
+
+    const handleFileSelect = (e) => {
+        const files = Array.from(e.target.files);
+        const validFiles = files.filter(file => {
+            const maxSize = 10 * 1024 * 1024; // 10MB
+            if (file.size > maxSize) {
+                toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+                return false;
+            }
+            return true;
+        });
+        setAttachments(prev => [...prev, ...validFiles]);
+        // Reset input so same file can be selected again
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const removeAttachment = (index) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const getFileIcon = (file) => {
+        if (file.type.startsWith('image/')) {
+            return <Image size={16} />;
+        }
+        return <FileText size={16} />;
+    };
+
+    const formatFileSize = (bytes) => {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
 
     const handleSubmit = async (e) => {
@@ -273,14 +352,43 @@ export default function TicketForm() {
                 toast.success('Ticket updated successfully');
             } else {
                 const response = await ticketsApi.create(payload);
-                toast.success('Ticket created successfully');
                 const newTicketId = response.data.data?._id || response.data.data?.ticketId || response.data._id;
+                
+                // Upload attachments if any
+                if (attachments.length > 0 && newTicketId) {
+                    toast.loading('Uploading attachments...', { id: 'upload-attachments' });
+                    
+                    let successCount = 0;
+                    let failCount = 0;
+                    
+                    for (const file of attachments) {
+                        try {
+                            await activitiesApi.uploadAttachment(newTicketId, file);
+                            successCount++;
+                        } catch (err) {
+                            console.error('Failed to upload attachment:', file.name, err);
+                            failCount++;
+                        }
+                    }
+                    
+                    toast.dismiss('upload-attachments');
+                    
+                    if (failCount > 0) {
+                        toast.success(`Ticket created. ${successCount} file(s) uploaded, ${failCount} failed.`);
+                    } else {
+                        toast.success(`Ticket created with ${successCount} attachment(s)`);
+                    }
+                } else {
+                    toast.success('Ticket created successfully');
+                }
+                
                 navigate(`/tickets/${newTicketId}`);
                 return;
             }
 
             navigate(`/tickets/${id}`);
         } catch (error) {
+            console.error('Error creating ticket:', error);
             toast.error(isEditing ? 'Failed to update ticket' : 'Failed to create ticket');
         } finally {
             setSaving(false);
@@ -326,6 +434,28 @@ export default function TicketForm() {
                         </select>
                     </div>
 
+                    {/* Location Name Selection (filter for assets) */}
+                    <div className="form-group">
+                        <label className="form-label">Location Name</label>
+                        <select
+                            className="form-select"
+                            value={selectedLocationName}
+                            onChange={(e) => setSelectedLocationName(e.target.value)}
+                            disabled={!selectedSiteId || locationNames.length === 0}
+                        >
+                            <option value="">
+                                {!selectedSiteId 
+                                    ? 'Select Site first' 
+                                    : locationNames.length === 0 
+                                        ? 'No locations available' 
+                                        : 'All Locations'}
+                            </option>
+                            {locationNames.map((loc) => (
+                                <option key={loc.value} value={loc.value}>{loc.label}</option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Asset Type Selection (filter for assets) */}
                     <div className="form-group">
                         <label className="form-label">Asset Type</label>
@@ -333,9 +463,15 @@ export default function TicketForm() {
                             className="form-select"
                             value={selectedAssetType}
                             onChange={(e) => setSelectedAssetType(e.target.value)}
-                            disabled={!selectedSiteId}
+                            disabled={!selectedSiteId || assetTypes.length === 0}
                         >
-                            <option value="">All Asset Types</option>
+                            <option value="">
+                                {!selectedSiteId 
+                                    ? 'Select Site first' 
+                                    : assetTypes.length === 0 
+                                        ? 'No asset types available' 
+                                        : 'All Asset Types'}
+                            </option>
                             {assetTypes.map((type) => (
                                 <option key={type.value} value={type.value}>{type.label}</option>
                             ))}
@@ -351,7 +487,13 @@ export default function TicketForm() {
                             onChange={(e) => setSelectedDeviceType(e.target.value)}
                             disabled={!selectedAssetType || deviceTypes.length === 0}
                         >
-                            <option value="">All Device Types</option>
+                            <option value="">
+                                {!selectedAssetType 
+                                    ? 'Select Asset Type first' 
+                                    : deviceTypes.length === 0 
+                                        ? 'No device types available' 
+                                        : 'All Device Types'}
+                            </option>
                             {deviceTypes.map((dt) => (
                                 <option key={dt.value} value={dt.value}>{dt.label}</option>
                             ))}
@@ -513,6 +655,100 @@ export default function TicketForm() {
                             placeholder="Comma-separated tags"
                         />
                     </div>
+
+                    {/* File Attachments (only for new tickets) */}
+                    {!isEditing && (
+                        <div className="form-group full-width">
+                            <label className="form-label">
+                                <Paperclip size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                Attachments
+                            </label>
+                            <div className="attachments-section">
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleFileSelect}
+                                    multiple
+                                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                                    style={{ display: 'none' }}
+                                />
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    style={{ marginBottom: '12px' }}
+                                >
+                                    <Paperclip size={16} />
+                                    Add Files
+                                </button>
+                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                                    Supported: Images, PDF, Word, Excel, Text (Max 10MB each)
+                                </p>
+                                
+                                {attachments.length > 0 && (
+                                    <div className="attachments-list" style={{ 
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        gap: '8px',
+                                        padding: '12px',
+                                        backgroundColor: 'var(--surface-alt)',
+                                        borderRadius: '8px'
+                                    }}>
+                                        {attachments.map((file, index) => (
+                                            <div 
+                                                key={index} 
+                                                className="attachment-item"
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    padding: '8px 12px',
+                                                    backgroundColor: 'var(--surface)',
+                                                    borderRadius: '6px',
+                                                    border: '1px solid var(--border)'
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                                                    {getFileIcon(file)}
+                                                    <span style={{ 
+                                                        overflow: 'hidden', 
+                                                        textOverflow: 'ellipsis', 
+                                                        whiteSpace: 'nowrap',
+                                                        fontSize: '14px'
+                                                    }}>
+                                                        {file.name}
+                                                    </span>
+                                                    <span style={{ 
+                                                        fontSize: '12px', 
+                                                        color: 'var(--text-muted)',
+                                                        whiteSpace: 'nowrap'
+                                                    }}>
+                                                        ({formatFileSize(file.size)})
+                                                    </span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeAttachment(index)}
+                                                    style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        padding: '4px',
+                                                        color: 'var(--danger)',
+                                                        display: 'flex',
+                                                        alignItems: 'center'
+                                                    }}
+                                                    title="Remove file"
+                                                >
+                                                    <X size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Priority Preview */}

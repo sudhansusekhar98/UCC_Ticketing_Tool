@@ -13,6 +13,8 @@ import {
   verifyTicket,
   closeTicket,
   reopenTicket,
+  rejectResolution,
+  acknowledgeRejection,
   getAuditTrail,
   getDashboardStats
 } from '../controllers/ticket.controller.js';
@@ -73,8 +75,10 @@ router.post('/:id/acknowledge', acknowledgeTicket); // Logic handled in controll
 router.post('/:id/start', startTicket); // Logic handled in controller for assignee
 router.post('/:id/resolve', resolveTicket); // Logic handled in controller for assignee
 router.post('/:id/verify', allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'EDIT_TICKET' }), verifyTicket);
+router.post('/:id/reject-resolution', allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'EDIT_TICKET' }), rejectResolution);
+router.post('/:id/acknowledge-rejection', acknowledgeRejection); // Logic handled in controller for assignee
 router.post('/:id/close', allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'DELETE_TICKET' }), closeTicket);
-router.post('/:id/reopen', allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'EDIT_TICKET' }), reopenTicket);
+router.post('/:id/reopen', allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], rights: ['CREATE_TICKET', 'EDIT_TICKET'] }), reopenTicket);
 
 // Audit trail
 router.get('/:id/audit', getAuditTrail);

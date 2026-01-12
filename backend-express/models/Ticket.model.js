@@ -57,7 +57,7 @@ const ticketSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
-    enum: ['Open', 'Assigned', 'Acknowledged', 'InProgress', 'OnHold', 'Resolved', 'Verified', 'Closed', 'Cancelled'],
+    enum: ['Open', 'Assigned', 'Acknowledged', 'InProgress', 'OnHold', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'],
     default: 'Open'
   },
   source: {
@@ -205,6 +205,7 @@ export const TicketStatuses = {
   IN_PROGRESS: 'InProgress',
   ON_HOLD: 'OnHold',
   RESOLVED: 'Resolved',
+  RESOLUTION_REJECTED: 'ResolutionRejected',
   VERIFIED: 'Verified',
   CLOSED: 'Closed',
   CANCELLED: 'Cancelled'

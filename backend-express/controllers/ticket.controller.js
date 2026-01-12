@@ -632,6 +632,128 @@ export const reopenTicket = async (req, res, next) => {
   }
 };
 
+// @desc    Reject resolution (Admin/Supervisor discards resolution)
+// @route   POST /api/tickets/:id/reject-resolution
+// @access  Private (Admin, Dispatcher, Supervisor)
+export const rejectResolution = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    
+    if (!reason || !reason.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Rejection reason is required'
+      });
+    }
+    
+    const ticket = await Ticket.findById(req.params.id);
+    
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ticket not found'
+      });
+    }
+    
+    if (ticket.status !== 'Resolved') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only resolved tickets can have their resolution rejected'
+      });
+    }
+    
+    ticket.status = 'ResolutionRejected';
+    ticket.resolvedOn = null;
+    ticket.rootCause = null;
+    ticket.resolutionSummary = null;
+    ticket.updatedAt = new Date();
+    await ticket.save();
+    
+    await TicketActivity.create({
+      ticketId: ticket._id,
+      userId: req.user._id,
+      activityType: 'StatusChange',
+      content: `Resolution rejected by ${req.user.fullName}. Reason: ${reason.trim()}\n\nPlease reinvestigate and provide an update.`
+    });
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+      // Notify the assigned user
+      if (ticket.assignedTo) {
+        io.to(`user_${ticket.assignedTo}`).emit('ticket:resolution-rejected', {
+          ticketId: ticket._id,
+          ticketNumber: ticket.ticketNumber,
+          reason: reason.trim()
+        });
+      }
+    }
+    
+    res.json({
+      success: true,
+      data: ticket,
+      message: 'Resolution rejected. The assigned user has been notified to reinvestigate.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Acknowledge rejection and resume work
+// @route   POST /api/tickets/:id/acknowledge-rejection
+// @access  Private (Assigned user)
+export const acknowledgeRejection = async (req, res, next) => {
+  try {
+    const ticket = await Ticket.findById(req.params.id);
+    
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ticket not found'
+      });
+    }
+    
+    if (ticket.status !== 'ResolutionRejected') {
+      return res.status(400).json({
+        success: false,
+        message: 'Ticket is not in rejection state'
+      });
+    }
+    
+    // Only the assigned user can acknowledge
+    if (ticket.assignedTo?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the assigned user can acknowledge the rejection'
+      });
+    }
+    
+    ticket.status = 'InProgress';
+    ticket.updatedAt = new Date();
+    await ticket.save();
+    
+    await TicketActivity.create({
+      ticketId: ticket._id,
+      userId: req.user._id,
+      activityType: 'StatusChange',
+      content: 'Rejection acknowledged. Work resumed on the ticket.'
+    });
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+    }
+    
+    res.json({
+      success: true,
+      data: ticket,
+      message: 'Rejection acknowledged. You can now resume work on this ticket.'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get ticket audit trail
 // @route   GET /api/tickets/:id/audit
 // @access  Private
