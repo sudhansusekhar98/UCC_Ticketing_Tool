@@ -213,7 +213,7 @@
 
 /* Ticket Detail Page */
 .ticket-detail-page {
-    max-width: 1200px;
+    max-width: 1600px;
     margin: 0 auto;
 }
 
@@ -257,7 +257,7 @@
 /* Detail Grid - 3 Column Layout */
 .detail-grid {
     display: grid;
-    grid-template-columns: 2fr 1fr 1.2fr;
+    grid-template-columns: 1.8fr 1.2fr 2fr;
     gap: var(--space-4);
     height: calc(100vh - 64px - 48px - 120px);
 }
@@ -466,7 +466,7 @@
 /* Responsive */
 @media (max-width: 1600px) {
     .detail-grid {
-        grid-template-columns: 1.5fr 1fr 1.2fr;
+        grid-template-columns: 1.5fr 1fr 1.8fr;
     }
 }
 

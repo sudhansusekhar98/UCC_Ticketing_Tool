@@ -131,7 +131,9 @@ function getStatuses() {
     { value: 'Acknowledged', label: 'Acknowledged', color: '#f39c12' },
     { value: 'InProgress', label: 'In Progress', color: '#e67e22' },
     { value: 'OnHold', label: 'On Hold', color: '#95a5a6' },
+    { value: 'Escalated', label: 'Escalated', color: '#e74c3c' },
     { value: 'Resolved', label: 'Resolved', color: '#27ae60' },
+    { value: 'ResolutionRejected', label: 'Resolution Rejected', color: '#d35400' },
     { value: 'Verified', label: 'Verified', color: '#2ecc71' },
     { value: 'Closed', label: 'Closed', color: '#1abc9c' },
     { value: 'Cancelled', label: 'Cancelled', color: '#e74c3c' }

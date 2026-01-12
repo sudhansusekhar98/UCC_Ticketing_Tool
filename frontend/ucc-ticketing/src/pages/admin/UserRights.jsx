@@ -197,9 +197,14 @@ export default function UserRights() {
                     {selectedUser ? (
                         <div className="editor-content">
                             <div className="editor-header">
-                                <div className="user-details">
-                                    <h2>{selectedUser.user.fullName}</h2>
-                                    <p>{selectedUser.user.email}</p>
+                                <div className="user-details-premium">
+                                    <div className="user-avatar-premium">
+                                        {selectedUser.user.fullName.charAt(0)}
+                                    </div>
+                                    <div className="user-meta-compact">
+                                        <h2>{selectedUser.user.fullName}</h2>
+                                        <p>{selectedUser.user.email}</p>
+                                    </div>
                                 </div>
                                 <div className="editor-actions">
                                     <button className="save-btn" onClick={handleSave} disabled={saving}>
@@ -213,7 +218,8 @@ export default function UserRights() {
                                 </div>
                             </div>
 
-                            <div className="site-selection-wrapper">
+                            <div className="editor-scroll">
+                                <div className="site-selection-wrapper">
                                 <div className="site-selection-header">
                                     <label className="section-label">Select Scope:</label>
                                     <span className="section-hint">Choose global or a specific site to manage its overrides</span>
@@ -267,9 +273,10 @@ export default function UserRights() {
                                 ))}
                             </div>
                             
-                            <div className="info-box">
-                                <AlertCircle size={18} />
-                                <p>Permissions granted here add to the user's role capabilities. They generally do not restrict role-based defaults unless explicitly programmed.</p>
+                                <div className="info-box">
+                                    <AlertCircle size={18} />
+                                    <p>Permissions granted here add to the user's role capabilities. They generally do not restrict role-based defaults unless explicitly programmed.</p>
+                                </div>
                             </div>
                         </div>
                     ) : (

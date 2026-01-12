@@ -341,6 +341,7 @@ export default function TicketForm() {
         try {
             const payload = {
                 ...formData,
+                siteId: selectedSiteId,
                 assetId: formData.assetId || null, // Keep as string for MongoDB ObjectId
                 assignedTo: formData.assignedTo || null, // Keep as string for MongoDB ObjectId
                 impact: parseInt(formData.impact),

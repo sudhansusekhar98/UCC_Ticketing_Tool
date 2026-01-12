@@ -197,6 +197,9 @@ const useAuthStore = create(
                         return sId === targetSiteId;
                     });
                     if (siteRight?.rights?.includes(rightName)) return true;
+                } else {
+                    // If no specific siteId provided, check if they have this right for ANY site
+                    return get().hasRightForAnySite(rightName);
                 }
 
                 return false;

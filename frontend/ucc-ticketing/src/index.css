@@ -551,6 +551,11 @@ h6 {
   color: var(--accent-cyan);
 }
 
+.badge-secondary {
+  background: rgba(148, 163, 184, 0.2);
+  color: var(--text-muted);
+}
+
 /* Priority Badges */
 .priority-p1 {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(236, 72, 153, 0.3));

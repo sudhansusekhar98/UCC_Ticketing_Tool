@@ -164,8 +164,22 @@ export default function TicketsList() {
         return `priority-${priority.toLowerCase()}`;
     };
 
-    const getSLAStatusClass = (slaStatus) => {
-        return `sla-${slaStatus.toLowerCase()}`;
+    const getSLAStatusClass = (status) => status ? `sla-${status.toLowerCase()}` : '';
+
+    const getStatusClass = (status) => {
+        switch (status) {
+            case 'Open': return 'badge-info';
+            case 'Assigned': return 'badge-primary';
+            case 'Acknowledged': return 'badge-warning';
+            case 'InProgress': return 'badge-primary';
+            case 'Escalated': return 'badge-danger';
+            case 'Resolved': return 'badge-success';
+            case 'Verified': return 'badge-success';
+            case 'Closed': return 'badge-secondary';
+            case 'Cancelled': return 'badge-secondary';
+            case 'ResolutionRejected': return 'badge-danger';
+            default: return 'badge-primary';
+        }
     };
 
     const totalPages = Math.ceil(totalCount / filters.pageSize);
@@ -364,8 +378,10 @@ export default function TicketsList() {
                                                 {ticket.priority}
                                             </span>
                                         </td>
-                                        <td>
-                                            <span className="badge badge-primary">{ticket.status}</span>
+                                         <td>
+                                            <span className={`badge ${getStatusClass(ticket.status)}`}>
+                                                {ticket.status}
+                                            </span>
                                         </td>
                                         <td>{ticket.assignedToName || '—'}</td>
                                         <td>

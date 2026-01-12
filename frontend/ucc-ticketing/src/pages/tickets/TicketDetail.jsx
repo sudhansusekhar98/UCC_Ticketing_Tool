@@ -41,10 +41,13 @@ export default function TicketDetail() {
     const [resolveData, setResolveData] = useState({ rootCause: '', resolutionSummary: '' });
     const [reopenReason, setReopenReason] = useState('');
     const [rejectReason, setRejectReason] = useState('');
+    const [showEscalateModal, setShowEscalateModal] = useState(false);
+    const [escalationReason, setEscalationReason] = useState('');
 
     const isLocked = ['InProgress', 'OnHold', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
     // Get the site ID from the ticket's asset
-    const ticketSiteId = ticket?.assetId?.siteId?._id || ticket?.assetId?.siteId;
+    // Get the site ID from the ticket directly or via asset
+    const ticketSiteId = ticket?.siteId?._id || ticket?.siteId || ticket?.assetId?.siteId?._id || ticket?.assetId?.siteId;
     const canEdit = (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId)) && !isLocked;
     const canAssign = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId);
     // Compare using string IDs for MongoDB
@@ -58,6 +61,8 @@ export default function TicketDetail() {
     const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId) || hasRight('CREATE_TICKET', ticketSiteId);
     const canRejectResolution = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId);
     const canAcknowledgeRejection = isAssignedToMe;
+    const canEscalate = ticket?.status !== 'Escalated' && !['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status) && (isAssignedToMe || hasRole(['Admin', 'Supervisor', 'Dispatcher']));
+    const canAcceptEscalation = ticket?.status === 'Escalated' && (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('ESCALATION_L1', ticketSiteId) || hasRight('ESCALATION_L2', ticketSiteId) || hasRight('ESCALATION_L3', ticketSiteId));
 
     useEffect(() => {
         fetchTicket();
@@ -96,7 +101,8 @@ export default function TicketDetail() {
                 createdOn: ticketData.createdAt || ticketData.createdOn,
                 assetCode: ticketData.assetId?.assetCode || ticketData.assetCode,
                 assetType: ticketData.assetId?.assetType || ticketData.assetType,
-                siteName: ticketData.assetId?.siteId?.siteName || ticketData.siteName,
+                siteName: ticketData.siteId?.siteName || ticketData.assetId?.siteId?.siteName || ticketData.siteName,
+                siteId: ticketData.siteId?._id || ticketData.siteId || ticketData.assetId?.siteId?._id || ticketData.assetId?.siteId,
                 createdByName: ticketData.createdBy?.fullName || ticketData.createdByName,
                 assignedToName: ticketData.assignedTo?.fullName || ticketData.assignedToName,
                 assignedTo: typeof ticketData.assignedTo === 'object' ? ticketData.assignedTo?._id : ticketData.assignedTo,
@@ -275,8 +281,58 @@ export default function TicketDetail() {
         }
     };
 
+    const handleEscalate = async () => {
+        if (!escalationReason.trim()) {
+            toast.error('Please provide a reason for escalation');
+            return;
+        }
+        setActionLoading(true);
+        try {
+            await ticketsApi.escalate(id, escalationReason.trim());
+            toast.success('Ticket escalated successfully');
+            setShowEscalateModal(false);
+            setEscalationReason('');
+            fetchTicket();
+            fetchAuditTrail();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to escalate ticket');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    const handleAcceptEscalation = async () => {
+        setActionLoading(true);
+        try {
+            await ticketsApi.acceptEscalation(id);
+            toast.success('Escalation accepted. You are now assigned to this ticket.');
+            fetchTicket();
+            fetchAuditTrail();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to accept escalation');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     const getPriorityClass = (priority) => priority ? `priority-${priority.toLowerCase()}` : '';
     const getSLAStatusClass = (status) => status ? `sla-${status.toLowerCase()}` : '';
+
+    const getStatusClass = (status) => {
+        switch (status) {
+            case 'Open': return 'badge-info';
+            case 'Assigned': return 'badge-primary';
+            case 'Acknowledged': return 'badge-warning';
+            case 'InProgress': return 'badge-primary';
+            case 'Escalated': return 'badge-danger';
+            case 'Resolved': return 'badge-success';
+            case 'Verified': return 'badge-success';
+            case 'Closed': return 'badge-secondary';
+            case 'Cancelled': return 'badge-secondary';
+            case 'ResolutionRejected': return 'badge-danger';
+            default: return 'badge-primary';
+        }
+    };
 
     if (loading) {
         return (
@@ -302,7 +358,7 @@ export default function TicketDetail() {
                         <span className={`badge ${getPriorityClass(ticket.priority)}`}>
                             {ticket.priority}
                         </span>
-                        <span className="badge badge-primary">{ticket.status}</span>
+                        <span className={`badge ${getStatusClass(ticket.status)}`}>{ticket.status}</span>
                         <span className={`sla-indicator ${getSLAStatusClass(ticket.slaStatus)}`}>
                             {ticket.slaStatus === 'Breached' && <AlertTriangle size={14} />}
                             {ticket.slaStatus === 'AtRisk' && <Clock size={14} />}
@@ -352,6 +408,20 @@ export default function TicketDetail() {
                         <button className="btn btn-danger" onClick={() => setShowRejectModal(true)} disabled={actionLoading}>
                             <XCircle size={18} />
                             Reject Resolution
+                        </button>
+                    )}
+
+                    {canEscalate && (
+                        <button className="btn btn-warning" onClick={() => setShowEscalateModal(true)}>
+                            <AlertTriangle size={18} />
+                            Escalate
+                        </button>
+                    )}
+
+                    {canAcceptEscalation && (
+                        <button className="btn btn-success" onClick={handleAcceptEscalation} disabled={actionLoading}>
+                            <RotateCcw size={18} />
+                            Accept Escalation
                         </button>
                     )}
 
@@ -669,6 +739,35 @@ export default function TicketDetail() {
                             <button className="btn btn-ghost" onClick={() => setShowRejectModal(false)}>Cancel</button>
                             <button className="btn btn-danger" onClick={handleRejectResolution} disabled={actionLoading}>
                                 {actionLoading ? 'Rejecting...' : 'Reject Resolution'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Escalate Modal */}
+            {showEscalateModal && (
+                <div className="modal-overlay" onClick={() => setShowEscalateModal(false)}>
+                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                        <h3>Escalate Ticket</h3>
+                        <p className="modal-description">
+                            Escalating this ticket will notify the specialized Escalation Team. 
+                            Please provide a clear reason describing why this issue requires higher-level expertise.
+                        </p>
+                        <div className="form-group">
+                            <label className="form-label">Reason for Escalation *</label>
+                            <textarea
+                                className="form-textarea"
+                                value={escalationReason}
+                                onChange={(e) => setEscalationReason(e.target.value)}
+                                placeholder="Describe the technical complexity or roadblock requiring escalation..."
+                                rows={4}
+                            />
+                        </div>
+                        <div className="modal-actions">
+                            <button className="btn btn-ghost" onClick={() => setShowEscalateModal(false)}>Cancel</button>
+                            <button className="btn btn-warning" onClick={handleEscalate} disabled={actionLoading}>
+                                {actionLoading ? 'Escalating...' : 'Escalate Ticket'}
                             </button>
                         </div>
                     </div>

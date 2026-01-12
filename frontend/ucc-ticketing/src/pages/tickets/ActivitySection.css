@@ -410,6 +410,8 @@
     padding: var(--space-3);
     border-top: 1px solid var(--border-light);
     background: var(--bg-secondary);
+    border-bottom-left-radius: var(--radius-xl);
+    border-bottom-right-radius: var(--radius-xl);
 }
 
 .selected-files {
