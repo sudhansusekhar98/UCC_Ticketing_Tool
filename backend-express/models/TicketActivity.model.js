@@ -14,7 +14,7 @@ const ticketActivitySchema = new mongoose.Schema({
   activityType: {
     type: String,
     required: true,
-    enum: ['Comment', 'StatusChange', 'Assignment', 'Escalation', 'Resolution', 'Attachment'],
+    enum: ['Comment', 'StatusChange', 'Assignment', 'Escalation', 'Resolution', 'Attachment', 'Note', 'RMA'],
     default: 'Comment'
   },
   content: {

@@ -82,6 +82,7 @@ export const usersApi = {
     getDropdown: (role) => api.get('/users/dropdown', { params: { role } }),
     getEngineers: () => api.get('/users/engineers'),
     getContacts: () => api.get('/users/contacts'),
+    getEscalationUsers: (siteId, level) => api.get('/users/escalation-users', { params: { siteId, level } }),
 };
 
 // Sites API
@@ -133,7 +134,7 @@ export const ticketsApi = {
     rejectResolution: (id, reason) => api.post(`/tickets/${id}/reject-resolution`, { reason }),
     acknowledgeRejection: (id) => api.post(`/tickets/${id}/acknowledge-rejection`),
     escalate: (id, reason) => api.post(`/tickets/${id}/escalate`, { reason }),
-    acceptEscalation: (id) => api.post(`/tickets/${id}/accept-escalation`),
+    acceptEscalation: (id, data) => api.post(`/tickets/${id}/accept-escalation`, data),
     close: (id, data) => api.post(`/tickets/${id}/close`, data),
     reopen: (id, reason) => api.post(`/tickets/${id}/reopen`, { reason }),
     getAuditTrail: (id) => api.get(`/tickets/${id}/audit`),
@@ -200,4 +201,22 @@ export const notificationsApi = {
     markAllAsRead: () => api.put('/notifications/read-all'),
     create: (data) => api.post('/notifications', data),
     delete: (id) => api.delete(`/notifications/${id}`),
+};
+
+// RMA API
+export const rmaApi = {
+    create: (data) => api.post('/rma', data),
+    getByTicket: (ticketId) => api.get(`/rma/ticket/${ticketId}`),
+    getHistory: (assetId) => api.get(`/rma/asset/${assetId}`),
+    updateStatus: (id, data) => api.put(`/rma/${id}/status`, data),
+};
+
+// Asset Update Request API
+export const assetUpdateRequestApi = {
+    initiate: (data) => api.post('/asset-update-requests/initiate', data),
+    validate: (token) => api.get(`/asset-update-requests/validate/${token}`),
+    submit: (token, changes) => api.put(`/asset-update-requests/${token}/submit`, changes),
+    getByTicket: (ticketId) => api.get(`/asset-update-requests/ticket/${ticketId}`),
+    approve: (id) => api.post(`/asset-update-requests/${id}/approve`),
+    reject: (id, reason) => api.post(`/asset-update-requests/${id}/reject`, { reason }),
 };

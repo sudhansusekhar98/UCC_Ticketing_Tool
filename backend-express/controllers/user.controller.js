@@ -1,4 +1,5 @@
 import User from '../models/User.model.js';
+import UserRight from '../models/UserRight.model.js';
 import { hashPassword } from '../utils/auth.utils.js';
 
 // @desc    Get all users
@@ -346,6 +347,45 @@ export const resetPassword = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Password reset successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get users with escalation rights
+// @route   GET /api/users/escalation-users
+// @access  Private
+export const getEscalationUsers = async (req, res, next) => {
+  try {
+    const { siteId, level } = req.query;
+    
+    // Determine which rights to look for based on level
+    let escalationRights = ['ESCALATION_L1', 'ESCALATION_L2', 'ESCALATION_L3'];
+    if (level) {
+      escalationRights = [`ESCALATION_L${level}`];
+    }
+    
+    let query = {
+      $or: [
+        { globalRights: { $in: escalationRights } },
+        { 'siteRights.rights': { $in: escalationRights } }
+      ]
+    };
+
+    const userRights = await UserRight.find(query).select('user');
+    const userIds = userRights.map(ur => ur.user);
+    
+    const users = await User.find({ 
+      _id: { $in: userIds },
+      isActive: true 
+    })
+    .select('fullName username role siteId assignedSites')
+    .sort({ fullName: 1 });
+    
+    res.json({
+      success: true,
+      data: users
     });
   } catch (error) {
     next(error);

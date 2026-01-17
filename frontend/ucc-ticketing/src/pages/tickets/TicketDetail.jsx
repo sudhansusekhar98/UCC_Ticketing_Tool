@@ -20,6 +20,7 @@ import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import ActivitySection from './ActivitySection';
+import RMASection from './RMASection';
 import './Tickets.css';
 
 export default function TicketDetail() {
@@ -43,6 +44,9 @@ export default function TicketDetail() {
     const [rejectReason, setRejectReason] = useState('');
     const [showEscalateModal, setShowEscalateModal] = useState(false);
     const [escalationReason, setEscalationReason] = useState('');
+    const [showAcceptEscalationModal, setShowAcceptEscalationModal] = useState(false);
+    const [escalationUsers, setEscalationUsers] = useState([]);
+    const [selectedEscalationUser, setSelectedEscalationUser] = useState('');
 
     const isLocked = ['InProgress', 'OnHold', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
     // Get the site ID from the ticket's asset
@@ -55,14 +59,29 @@ export default function TicketDetail() {
     const isAssignedToMe = assignedToId && assignedToId === user?.userId;
     // Any user assigned to the ticket can acknowledge, or users with engineer/supervisor roles
     const canAcknowledge = isAssignedToMe || (hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']) && assignedToId === user?.userId);
-    // Assigned user or engineers can resolve
-    const canResolve = isAssignedToMe || hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']);
-    const canClose = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('DELETE_TICKET', ticketSiteId);
-    const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId) || hasRight('CREATE_TICKET', ticketSiteId);
     const canRejectResolution = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId);
     const canAcknowledgeRejection = isAssignedToMe;
-    const canEscalate = ticket?.status !== 'Escalated' && !['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status) && (isAssignedToMe || hasRole(['Admin', 'Supervisor', 'Dispatcher']));
-    const canAcceptEscalation = ticket?.status === 'Escalated' && (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('ESCALATION_L1', ticketSiteId) || hasRight('ESCALATION_L2', ticketSiteId) || hasRight('ESCALATION_L3', ticketSiteId));
+    const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId) || hasRight('CREATE_TICKET', ticketSiteId);
+    
+    // Escalation-specific logic: If escalation is accepted, only the escalation user (current assignee) and Admin can resolve/close
+    const isEscalationAccepted = !!ticket?.escalationAcceptedBy;
+    const isAdmin = hasRole('Admin');
+    
+    const canResolve = isEscalationAccepted 
+        ? (isAssignedToMe || isAdmin)
+        : (isAssignedToMe || hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']));
+        
+    const canClose = isEscalationAccepted
+        ? (isAssignedToMe || isAdmin)
+        : (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('DELETE_TICKET', ticketSiteId));
+    const canEscalate = ticket?.escalationLevel < 3 && ticket?.status !== 'Escalated' && !['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status) && (isAssignedToMe || hasRole(['Admin', 'Supervisor', 'Dispatcher']));
+    const canAcceptEscalation = ticket?.status === 'Escalated' && (
+        hasRole(['Admin', 'Supervisor', 'Dispatcher']) || 
+        (ticket?.escalationLevel === 1 && (hasRight('ESCALATION_L1', ticketSiteId) || hasRight('ESCALATION_L2', ticketSiteId) || hasRight('ESCALATION_L3', ticketSiteId))) ||
+        (ticket?.escalationLevel === 2 && (hasRight('ESCALATION_L2', ticketSiteId) || hasRight('ESCALATION_L3', ticketSiteId))) ||
+        (ticket?.escalationLevel === 3 && hasRight('ESCALATION_L3', ticketSiteId))
+    );
+    const canDelegateEscalation = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
 
     useEffect(() => {
         fetchTicket();
@@ -301,11 +320,25 @@ export default function TicketDetail() {
         }
     };
 
-    const handleAcceptEscalation = async () => {
+    const loadEscalationUsers = async () => {
+        try {
+            const response = await usersApi.getEscalationUsers(ticketSiteId, ticket?.escalationLevel);
+            const usersData = response.data.data || [];
+            setEscalationUsers(usersData.map(u => ({
+                value: u._id,
+                label: `${u.fullName} (${u.role})`
+            })));
+        } catch (error) {
+            console.error('Failed to load escalation users', error);
+        }
+    };
+
+    const handleAcceptEscalation = async (assignedTo = null) => {
         setActionLoading(true);
         try {
-            await ticketsApi.acceptEscalation(id);
-            toast.success('Escalation accepted. You are now assigned to this ticket.');
+            await ticketsApi.acceptEscalation(id, assignedTo ? { assignedTo } : {});
+            toast.success(assignedTo ? 'Escalation accepted and assigned' : 'Escalation accepted. You are now assigned.');
+            setShowAcceptEscalationModal(false);
             fetchTicket();
             fetchAuditTrail();
         } catch (error) {
@@ -419,9 +452,20 @@ export default function TicketDetail() {
                     )}
 
                     {canAcceptEscalation && (
-                        <button className="btn btn-success" onClick={handleAcceptEscalation} disabled={actionLoading}>
-                            <RotateCcw size={18} />
-                            Accept Escalation
+                        <button 
+                            className="btn btn-success" 
+                            onClick={() => {
+                                if (canDelegateEscalation) {
+                                    loadEscalationUsers();
+                                    setShowAcceptEscalationModal(true);
+                                } else {
+                                    handleAcceptEscalation();
+                                }
+                            }}
+                            disabled={actionLoading}
+                        >
+                            <CheckCircle size={18} />
+                            {canDelegateEscalation ? 'Manage Escalation' : 'Accept Escalation'}
                         </button>
                     )}
 
@@ -506,6 +550,21 @@ export default function TicketDetail() {
                                 <span className="detail-value">{ticket.siteName}</span>
                             </div>
                         </div>
+                    )}
+
+                    {/* RMA Information */}
+                    {ticket.assetId && (
+                        <RMASection 
+                            ticketId={ticket.ticketId} 
+                            siteId={ticket.siteId}
+                            assetId={ticket.assetId?._id || ticket.assetId} // Correctly pass asset ID
+                            ticketStatus={ticket.status}
+                            isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
+                            onUpdate={() => {
+                                fetchTicket();
+                                fetchAuditTrail();
+                            }}
+                        />
                     )}
 
                     {/* Resolution */}
@@ -767,8 +826,69 @@ export default function TicketDetail() {
                         <div className="modal-actions">
                             <button className="btn btn-ghost" onClick={() => setShowEscalateModal(false)}>Cancel</button>
                             <button className="btn btn-warning" onClick={handleEscalate} disabled={actionLoading}>
-                                {actionLoading ? 'Escalating...' : 'Escalate Ticket'}
+                                {actionLoading ? 'Escalating...' : `Escalate to Level ${(ticket?.escalationLevel || 0) + 1}`}
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Accept Escalation Modal */}
+            {showAcceptEscalationModal && (
+                <div className="modal-overlay" onClick={() => setShowAcceptEscalationModal(false)}>
+                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                        <h3>Manage Escalation (Level {ticket?.escalationLevel})</h3>
+                        <p className="modal-description">
+                            You can either accept this escalated ticket yourself or assign it to a specialized escalation user.
+                        </p>
+                        
+                        <div className="escalation-options">
+                            <div className="option-section">
+                                <h4>Option 1: Work on it yourself</h4>
+                                <button 
+                                    className="btn btn-primary w-full" 
+                                    onClick={() => handleAcceptEscalation()}
+                                    disabled={actionLoading}
+                                >
+                                    Accept & Start Working
+                                </button>
+                            </div>
+
+                            {canDelegateEscalation && (
+                                <>
+                                    <div className="option-divider">
+                                        <span>OR</span>
+                                    </div>
+
+                                    <div className="option-section">
+                                        <h4>Option 2: Assign to escalation user</h4>
+                                        <div className="form-group">
+                                            <label className="form-label">Select Escalation User</label>
+                                            <select
+                                                className="form-select"
+                                                value={selectedEscalationUser}
+                                                onChange={(e) => setSelectedEscalationUser(e.target.value)}
+                                            >
+                                                <option value="">Choose user...</option>
+                                                {escalationUsers.map((u) => (
+                                                    <option key={u.value} value={u.value}>{u.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <button 
+                                            className="btn btn-success w-full" 
+                                            onClick={() => handleAcceptEscalation(selectedEscalationUser)}
+                                            disabled={actionLoading || !selectedEscalationUser}
+                                        >
+                                            Assign & Acknowledge
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="modal-actions mt-4">
+                            <button className="btn btn-ghost" onClick={() => setShowAcceptEscalationModal(false)}>Cancel</button>
                         </div>
                     </div>
                 </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Loader, Eye, EyeOff } from 'lucide-react';
-import { assetsApi, sitesApi, lookupsApi } from '../../services/api';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Save, Loader, Eye, EyeOff, History, Clock, CheckCircle } from 'lucide-react';
+import { assetsApi, sitesApi, lookupsApi, rmaApi, assetUpdateRequestApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import '../sites/Sites.css';
@@ -9,6 +9,7 @@ import '../sites/Sites.css';
 export default function AssetForm() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const isEditing = Boolean(id);
     const { hasRole, getSitesWithRight } = useAuthStore();
 
@@ -19,6 +20,14 @@ export default function AssetForm() {
     const [assetTypes, setAssetTypes] = useState([]);
     const [deviceTypes, setDeviceTypes] = useState([]);
     const [assetStatuses, setAssetStatuses] = useState([]);
+    const [rmaHistory, setRmaHistory] = useState([]);
+    const [showRmaHistory, setShowRmaHistory] = useState(false);
+    
+    // RMA Update Request states
+    const [updateToken, setUpdateToken] = useState(null);
+    const [updateRequestData, setUpdateRequestData] = useState(null);
+    const [timeRemaining, setTimeRemaining] = useState(null);
+    const [isPendingApproval, setIsPendingApproval] = useState(false);
 
     const [formData, setFormData] = useState({
         assetCode: '',
@@ -46,11 +55,47 @@ export default function AssetForm() {
     });
 
     useEffect(() => {
+        // Check for update token (temporary access workflow)
+        const token = searchParams.get('updateToken');
+        if (token) {
+            setUpdateToken(token);
+            validateUpdateToken(token);
+        }
+        
         loadDropdowns();
         if (isEditing) {
             loadAsset();
+            loadRMAHistory();
+        }
+        
+        // Show notification if redirected from RMA flow
+        if (searchParams.get('fromRMA') === 'true') {
+            toast.success('Asset swapped successfully! You can now update additional details if needed.');
         }
     }, [id]);
+    
+    // Timer for update token expiration
+    useEffect(() => {
+        if (!updateToken || !timeRemaining) return;
+        
+        const interval = setInterval(() => {
+            setTimeRemaining(prev => {
+                if (prev <= 1) {
+                    clearInterval(interval);
+                    toast.error('Access expired! Redirecting to ticket...');
+                    if (updateRequestData?.ticketId) {
+                        setTimeout(() => {
+                            navigate(`/tickets/${updateRequestData.ticketId}`);
+                        }, 2000);
+                    }
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+        
+        return () => clearInterval(interval);
+    }, [updateToken, timeRemaining]);
 
     // Load device types when assetType changes
     useEffect(() => {
@@ -134,6 +179,40 @@ export default function AssetForm() {
         }
     };
 
+    const loadRMAHistory = async () => {
+        try {
+            const response = await rmaApi.getHistory(id);
+            setRmaHistory(response.data.data || []);
+        } catch (error) {
+            console.error('Failed to load RMA history', error);
+            setRmaHistory([]);
+        }
+    };
+
+    const validateUpdateToken = async (token) => {
+        try {
+            const response = await assetUpdateRequestApi.validate(token);
+            const data = response.data.data;
+            setUpdateRequestData(data);
+            setTimeRemaining(response.data.timeRemaining);
+            
+            toast.success(`Temporary access granted! You have ${Math.floor(response.data.timeRemaining / 60)} minutes remaining.`, {
+                duration: 5000
+            });
+        } catch (error) {
+            if (error.response?.data?.expired) {
+                toast.error('Access token has expired');
+            } else {
+                toast.error('Invalid or expired access token');
+            }
+            // Redirect back after error
+            setTimeout(() => {
+                navigate('/assets');
+            }, 2000);
+        }
+    };
+
+
     const handleChange = (field, value) => {
         // Reset deviceType when assetType changes
         if (field === 'assetType') {
@@ -159,17 +238,33 @@ export default function AssetForm() {
                 criticality: parseInt(formData.criticality),
                 installationDate: formData.installationDate || null,
                 warrantyEndDate: formData.warrantyEndDate || null,
-
             };
 
-            if (isEditing) {
-                await assetsApi.update(id, payload);
-                toast.success('Asset updated successfully');
+            // If we have an update token, submit for approval instead of direct update
+            if (updateToken) {
+                await assetUpdateRequestApi.submit(updateToken, payload);
+                toast.success('Changes submitted for approval!');
+                setIsPendingApproval(true);
+                
+                // Redirect to ticket after a delay
+                setTimeout(() => {
+                    if (updateRequestData?.ticketId) {
+                        navigate(`/tickets/${updateRequestData.ticketId}`);
+                    } else {
+                        navigate('/assets');
+                    }
+                }, 2000);
             } else {
-                await assetsApi.create(payload);
-                toast.success('Asset created successfully');
+                // Normal asset update workflow
+                if (isEditing) {
+                    await assetsApi.update(id, payload);
+                    toast.success('Asset updated successfully');
+                } else {
+                    await assetsApi.create(payload);
+                    toast.success('Asset created successfully');
+                }
+                navigate('/assets');
             }
-            navigate('/assets');
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to save asset');
         } finally {
@@ -196,7 +291,57 @@ export default function AssetForm() {
                 <h1 className="page-title">
                     {isEditing ? 'Edit Asset' : 'Add New Asset'}
                 </h1>
+                {isEditing && rmaHistory.length > 0 && (
+                    <button 
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={() => setShowRmaHistory(true)}
+                    >
+                        <History size={18} />
+                        RMA History ({rmaHistory.length})
+                    </button>
+                )}
             </div>
+
+            {/* Temporary Access Timer Banner */}
+            {updateToken && timeRemaining !== null && !isPendingApproval && (
+                <div className={`p-4 rounded-lg border-2 mb-4 ${
+                    timeRemaining < 300 ? 'bg-danger/10 border-danger' : 'bg-warning/10 border-warning'
+                }`}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <Clock size={24} className={timeRemaining < 300 ? 'text-danger' : 'text-warning'} />
+                            <div>
+                                <h3 className="font-bold text-lg">Temporary Access Mode</h3>
+                                <p className="text-sm text-muted">
+ You have limited time to update this asset. Submit your changes before the timer expires.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="text-center">
+                            <div className={`text-3xl font-bold ${timeRemaining < 300 ? 'text-danger' : 'text-warning'}`}>
+                                {Math.floor(timeRemaining / 60)}:{String(timeRemaining % 60).padStart(2, '0')}
+                            </div>
+                            <div className="text-xs text-muted">Time Remaining</div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Pending Approval Banner */}
+            {isPendingApproval && (
+                <div className="p-4 rounded-lg border-2 bg-info/10 border-info mb-4">
+                    <div className="flex items-center gap-3">
+                        <CheckCircle size={24} className="text-info" />
+                        <div>
+                            <h3 className="font-bold text-lg">Changes Submitted!</h3>
+                            <p className="text-sm text-muted">
+                                Your asset update request has been submitted and is pending admin approval.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <form onSubmit={handleSubmit} className="form-card glass-card">
                 {/* Section: Basic Information */}
@@ -511,6 +656,140 @@ export default function AssetForm() {
                     </button>
                 </div>
             </form>
+
+            {/* RMA History Modal */}
+            {showRmaHistory && (
+                <div className="modal-overlay" onClick={() => setShowRmaHistory(false)}>
+                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                        <h3>RMA / Replacement History</h3>
+                        <p className="text-sm text-muted mb-4">
+                            Complete history of device replacements for this asset
+                        </p>
+
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+                            {rmaHistory.length === 0 ? (
+                                <div className="text-center py-8 text-muted">
+                                    <p>No replacement history found for this asset.</p>
+                                </div>
+                            ) : (
+                                rmaHistory.map((rma, index) => (
+                                    <div key={rma._id} className="p-4 bg-secondary/20 rounded border border-border">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="badge badge-outline">#{rmaHistory.length - index}</span>
+                                                <span className="font-bold text-sm">
+                                                    Ticket: {rma.ticketId?.ticketNumber || 'N/A'}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className={`badge badge-${rma.status === 'Installed' ? 'success' : 'warning'}`}>
+                                                    {rma.status}
+                                                </span>
+                                                <span className="text-xs text-muted">
+                                                    {new Date(rma.createdAt).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 mb-3">
+                                            <div className="p-3 bg-danger/10 rounded">
+                                                <h4 className="text-xs font-bold text-muted mb-2">Old Device (Replaced)</h4>
+                                                <div className="space-y-1 text-sm">
+                                                    <div>
+                                                        <span className="text-muted">S/N:</span>{' '}
+                                                        <span className="font-mono">{rma.originalDetailsSnapshot?.serialNumber || 'N/A'}</span>
+                                                    </div>
+                                                    {rma.originalDetailsSnapshot?.ipAddress && (
+                                                        <div>
+                                                            <span className="text-muted">IP:</span>{' '}
+                                                            <span className="font-mono">{rma.originalDetailsSnapshot.ipAddress}</span>
+                                                        </div>
+                                                    )}
+                                                    {rma.originalDetailsSnapshot?.mac && (
+                                                        <div>
+                                                            <span className="text-muted">MAC:</span>{' '}
+                                                            <span className="font-mono">{rma.originalDetailsSnapshot.mac}</span>
+                                                        </div>
+                                                    )}
+                                                    {rma.originalDetailsSnapshot?.model && (
+                                                        <div>
+                                                            <span className="text-muted">Model:</span>{' '}
+                                                            <span>{rma.originalDetailsSnapshot.model}</span>
+                                                        </div>
+                                                    )}
+                                                    {rma.originalDetailsSnapshot?.make && (
+                                                        <div>
+                                                            <span className="text-muted">Make:</span>{' '}
+                                                            <span>{rma.originalDetailsSnapshot.make}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="p-3 bg-success/10 rounded">
+                                                <h4 className="text-xs font-bold text-muted mb-2">New Device (Installed)</h4>
+                                                <div className="space-y-1 text-sm">
+                                                    {rma.replacementDetails?.serialNumber ? (
+                                                        <>
+                                                            <div>
+                                                                <span className="text-muted">S/N:</span>{' '}
+                                                                <span className="font-mono">{rma.replacementDetails.serialNumber}</span>
+                                                            </div>
+                                                            {rma.replacementDetails?.ipAddress && (
+                                                                <div>
+                                                                    <span className="text-muted">IP:</span>{' '}
+                                                                    <span className="font-mono">{rma.replacementDetails.ipAddress}</span>
+                                                                </div>
+                                                            )}
+                                                            {rma.replacementDetails?.mac && (
+                                                                <div>
+                                                                    <span className="text-muted">MAC:</span>{' '}
+                                                                    <span className="font-mono">{rma.replacementDetails.mac}</span>
+                                                                </div>
+                                                            )}
+                                                            {rma.replacementDetails?.model && (
+                                                                <div>
+                                                                    <span className="text-muted">Model:</span>{' '}
+                                                                    <span>{rma.replacementDetails.model}</span>
+                                                                </div>
+                                                            )}
+                                                            {rma.replacementDetails?.make && (
+                                                                <div>
+                                                                    <span className="text-muted">Make:</span>{' '}
+                                                                    <span>{rma.replacementDetails.make}</span>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <span className="text-muted italic">Installation pending</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-3 bg-warning/10 rounded">
+                                            <h4 className="text-xs font-bold text-muted mb-1">Replacement Reason</h4>
+                                            <p className="text-sm">{rma.requestReason}</p>
+                                        </div>
+
+                                        {rma.installedBy && (
+                                            <div className="mt-2 text-xs text-muted">
+                                                Installed on: {new Date(rma.installedOn).toLocaleString()}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="modal-actions mt-4">
+                            <button className="btn btn-ghost" onClick={() => setShowRmaHistory(false)}>
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

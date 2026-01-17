@@ -10,7 +10,8 @@ import {
   getContacts,
   activateUser,
   deactivateUser,
-  resetPassword
+  resetPassword,
+  getEscalationUsers
 } from '../controllers/user.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
@@ -23,6 +24,7 @@ router.use(protect);
 router.get('/dropdown', getUsersDropdown);
 router.get('/engineers', getEngineers);
 router.get('/contacts', getContacts);
+router.get('/escalation-users', getEscalationUsers);
 
 // User routes - GET operations allow all roles (site-filtered in controller)
 // Only Admin can create/update/delete

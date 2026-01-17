@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Ticket from '../models/Ticket.model.js';
+import User from '../models/User.model.js';
 import Asset from '../models/Asset.model.js';
 import TicketActivity from '../models/TicketActivity.model.js';
 import SLAPolicy from '../models/SLAPolicy.model.js';
@@ -139,7 +140,7 @@ export const getTicketById = async (req, res, next) => {
       .populate('siteId', 'siteName siteUniqueID city')
       .populate({
           path: 'assetId',
-          select: 'assetCode assetType deviceType locationDescription siteId make model',
+          select: 'assetCode assetType deviceType locationDescription siteId serialNumber ipAddress mac make model',
           populate: {
             path: 'siteId',
             select: 'siteName siteUniqueID city'
@@ -217,7 +218,7 @@ export const createTicket = async (req, res, next) => {
     
     const populatedTicket = await Ticket.findById(ticket._id)
       .populate('siteId', 'siteName siteUniqueID city')
-      .populate('assetId', 'assetCode assetType deviceType locationDescription siteId')
+      .populate('assetId', 'assetCode assetType deviceType locationDescription siteId serialNumber ipAddress mac model make')
       .populate('createdBy', 'fullName username')
       .populate('assignedTo', 'fullName username role')
       .populate('slaPolicyId', 'policyName');
@@ -790,10 +791,23 @@ export const escalateTicket = async (req, res, next) => {
       });
     }
     
+    if (ticket.escalationLevel >= 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Ticket has already reached maximum escalation level'
+      });
+    }
+
+    const nextLevel = (ticket.escalationLevel || 0) + 1;
+    
     ticket.status = 'Escalated';
+    ticket.escalationLevel = nextLevel;
     ticket.escalatedBy = req.user._id;
     ticket.escalatedOn = new Date();
     ticket.escalationReason = reason.trim();
+    // Clear previous acceptance info when further escalating
+    ticket.escalationAcceptedBy = undefined;
+    ticket.escalationAcceptedOn = undefined;
     ticket.updatedAt = new Date();
     await ticket.save();
     
@@ -801,7 +815,7 @@ export const escalateTicket = async (req, res, next) => {
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'Escalation',
-      content: `Ticket escalated by ${req.user.fullName}. Reason: ${reason.trim()}`
+      content: `Ticket escalated to Level ${nextLevel} by ${req.user.fullName}. Reason: ${reason.trim()}`
     });
     
     const io = req.app.get('io');
@@ -811,14 +825,15 @@ export const escalateTicket = async (req, res, next) => {
         ticketId: ticket._id,
         ticketNumber: ticket.ticketNumber,
         escalatedBy: req.user.fullName,
-        siteId: ticket.siteId
+        siteId: ticket.siteId,
+        level: nextLevel
       });
     }
     
     res.json({
       success: true,
       data: ticket,
-      message: 'Ticket escalated successfully. It is now visible to the Escalation Team.'
+      message: `Ticket escalated to Level ${nextLevel} successfully.`
     });
   } catch (error) {
     next(error);
@@ -830,6 +845,7 @@ export const escalateTicket = async (req, res, next) => {
 // @access  Private (Escalation Team)
 export const acceptEscalation = async (req, res, next) => {
   try {
+    const { assignedTo } = req.body;
     const ticket = await Ticket.findById(req.params.id);
     
     if (!ticket) {
@@ -845,32 +861,52 @@ export const acceptEscalation = async (req, res, next) => {
         message: 'Ticket is not in escalated state'
       });
     }
+
+    const targetUserId = assignedTo || req.user._id;
+    const assignedUser = await User.findById(targetUserId);
+    
+    if (!assignedUser) {
+      return res.status(404).json({
+        success: false,
+        message: 'Assigned user not found'
+      });
+    }
     
     ticket.status = 'InProgress';
-    ticket.assignedTo = req.user._id;
+    ticket.assignedTo = targetUserId;
     ticket.assignedOn = new Date();
     ticket.escalationAcceptedBy = req.user._id;
     ticket.escalationAcceptedOn = new Date();
     ticket.updatedAt = new Date();
     await ticket.save();
     
+    const content = assignedTo && assignedTo.toString() !== req.user._id.toString()
+      ? `Escalation accepted by ${req.user.fullName} and assigned to ${assignedUser.fullName}.`
+      : `Escalation accepted by ${req.user.fullName}. Ticket is now in progress.`;
+    
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'StatusChange',
-      content: `Escalation accepted by ${req.user.fullName}. Ticket is now in progress.`
+      content: content
     });
     
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
-      io.emit('ticket:updated', { ticketId: ticket._id, status: 'InProgress', assignedTo: req.user.fullName });
+      io.emit('ticket:updated', { 
+        ticketId: ticket._id, 
+        status: 'InProgress', 
+        assignedTo: assignedUser.fullName 
+      });
     }
     
     res.json({
       success: true,
       data: ticket,
-      message: 'Escalation accepted. You are now assigned to this ticket.'
+      message: assignedTo && assignedTo.toString() !== req.user._id.toString()
+        ? `Escalation accepted and assigned to ${assignedUser.fullName}.`
+        : 'Escalation accepted. You are now assigned to this ticket.'
     });
   } catch (error) {
     next(error);
