@@ -21,6 +21,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import ActivitySection from './ActivitySection';
 import RMASection from './RMASection';
+import AssetUpdateApproval from './AssetUpdateApproval';
 import './Tickets.css';
 
 export default function TicketDetail() {
@@ -560,6 +561,17 @@ export default function TicketDetail() {
                             assetId={ticket.assetId?._id || ticket.assetId} // Correctly pass asset ID
                             ticketStatus={ticket.status}
                             isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
+                            onUpdate={() => {
+                                fetchTicket();
+                                fetchAuditTrail();
+                            }}
+                        />
+                    )}
+
+                    {/* Asset Update Approval */}
+                    {ticket.ticketId && (
+                        <AssetUpdateApproval 
+                            ticketId={ticket.ticketId}
                             onUpdate={() => {
                                 fetchTicket();
                                 fetchAuditTrail();

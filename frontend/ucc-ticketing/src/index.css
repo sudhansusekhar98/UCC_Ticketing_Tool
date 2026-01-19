@@ -72,6 +72,7 @@
   --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.3);
   --shadow-glow-success: 0 0 20px rgba(16, 185, 129, 0.3);
   --shadow-glow-danger: 0 0 20px rgba(239, 68, 68, 0.3);
+  --shadow-glow-warning: 0 0 20px rgba(245, 158, 11, 0.3);
 
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
@@ -432,6 +433,16 @@ h6 {
 .btn-danger:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg), var(--shadow-glow-danger);
+}
+
+.btn-warning {
+  background: var(--gradient-warning);
+  color: white;
+}
+
+.btn-warning:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), var(--shadow-glow-warning);
 }
 
 .btn-ghost {

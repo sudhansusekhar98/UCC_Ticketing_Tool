@@ -18,6 +18,7 @@ import SitesList from './pages/sites/SitesList';
 import SiteForm from './pages/sites/SiteForm';
 import AssetsList from './pages/assets/AssetsList';
 import AssetForm from './pages/assets/AssetForm';
+import AssetView from './pages/assets/AssetView';
 import UsersList from './pages/users/UsersList';
 import UserForm from './pages/users/UserForm';
 import UserRights from './pages/admin/UserRights';
@@ -225,6 +226,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
                 <AssetForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assets/:id"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer', 'L1Engineer', 'L2Engineer']}>
+                <AssetView />
               </ProtectedRoute>
             }
           />

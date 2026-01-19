@@ -436,12 +436,20 @@ export default function AssetsList() {
                                 {assets.map((asset, index) => (
                                     <tr key={asset.assetId}>
                                         <td className="col-sl">{(page - 1) * pageSize + index + 1}</td>
-                                        <td title={asset.ipAddress || asset.managementIP || ''}>{asset.ipAddress || asset.managementIP || '—'}</td>
+                                        <td title={asset.ipAddress || asset.managementIP || ''}>
+                                            <Link to={`/assets/${asset.assetId}`} className="text-primary font-mono hover:underline">
+                                                {asset.ipAddress || asset.managementIP || '—'}
+                                            </Link>
+                                        </td>
                                         <td title={asset.locationName || ''}>{asset.locationName || '—'}</td>
                                         <td title={asset.make || ''}>{asset.make || '—'}</td>
                                         <td title={asset.model || ''}>{asset.model || '—'}</td>
                                         <td title={asset.mac || asset.macAddress || ''}>{asset.mac || asset.macAddress || '—'}</td>
-                                        <td title={asset.serialNumber || ''}>{asset.serialNumber || '—'}</td>
+                                        <td title={asset.serialNumber || ''}>
+                                            <Link to={`/assets/${asset.assetId}`} className="text-primary font-mono hover:underline">
+                                                {asset.serialNumber || '—'}
+                                            </Link>
+                                        </td>
                                         <td title={asset.deviceType || asset.assetType || ''}>{asset.deviceType || asset.assetType || '—'}</td>
                                         <td title={asset.usedFor || ''}>{asset.usedFor || '—'}</td>
                                         <td title={asset.userName || ''}>{asset.userName || '—'}</td>
@@ -469,6 +477,9 @@ export default function AssetsList() {
                                         {showActionColumn && (
                                             <td className="col-actions">
                                                 <div className="action-buttons">
+                                                    <Link to={`/assets/${asset.assetId}`} className="btn btn-icon btn-ghost" title="View Details">
+                                                        <Eye size={14} />
+                                                    </Link>
                                                     {(hasRole(['Admin', 'Supervisor']) || hasRight('MANAGE_ASSETS', asset.siteId?._id || asset.siteId)) && (
                                                         <>
                                                             <Link to={`/assets/${asset.assetId}/edit`} className="btn btn-icon btn-ghost" title="Edit">
