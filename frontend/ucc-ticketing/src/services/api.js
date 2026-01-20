@@ -217,6 +217,7 @@ export const assetUpdateRequestApi = {
     validate: (token) => api.get(`/asset-update-requests/validate/${token}`),
     submit: (token, changes) => api.put(`/asset-update-requests/${token}/submit`, changes),
     getByTicket: (ticketId) => api.get(`/asset-update-requests/ticket/${ticketId}`),
+    getPendingByTicket: (ticketId) => api.get(`/asset-update-requests/ticket/${ticketId}`),
     approve: (id) => api.post(`/asset-update-requests/${id}/approve`),
     reject: (id, reason) => api.post(`/asset-update-requests/${id}/reject`, { reason }),
 };

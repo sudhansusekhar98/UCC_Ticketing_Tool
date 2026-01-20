@@ -20,9 +20,19 @@ export default function AssetUpdateApproval({ ticketId, onUpdate }) {
     const fetchRequests = async () => {
         try {
             const response = await assetUpdateRequestApi.getPendingByTicket(ticketId);
-            setRequests(response.data.data || []);
+            // Backend returns a single object, wrap it in array for consistent handling
+            const data = response.data.data;
+            if (data) {
+                setRequests(Array.isArray(data) ? data : [data]);
+            } else {
+                setRequests([]);
+            }
         } catch (error) {
-            console.error('Failed to fetch pending asset updates:', error);
+            // 404 means no pending requests, which is fine
+            if (error.response?.status !== 404) {
+                console.error('Failed to fetch pending asset updates:', error);
+            }
+            setRequests([]);
         } finally {
             setLoading(false);
         }
@@ -69,7 +79,7 @@ export default function AssetUpdateApproval({ ticketId, onUpdate }) {
                     <div className="flex justify-between items-start mb-4">
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-muted uppercase tracking-wider">Submitted By:</span>
-                            <span className="text-sm font-semibold">{req.userId?.fullName || 'Engineer'}</span>
+                            <span className="text-sm font-semibold">{req.requestedBy?.fullName || 'Engineer'}</span>
                             <span className="text-xs text-muted ml-2">({new Date(req.submittedAt).toLocaleString()})</span>
                         </div>
                         <span className="badge badge-warning">Awaiting Approval</span>
@@ -88,7 +98,7 @@ export default function AssetUpdateApproval({ ticketId, onUpdate }) {
                                 </thead>
                                 <tbody>
                                     {Object.entries(req.proposedChanges || {}).map(([field, newValue]) => {
-                                        const originalValue = req.originalDataSnapshot?.[field] || '—';
+                                        const originalValue = req.originalValues?.[field] || '—';
                                         if (newValue === originalValue) return null;
                                         
                                         return (

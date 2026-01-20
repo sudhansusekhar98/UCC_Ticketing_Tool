@@ -69,12 +69,12 @@ export const createRMA = async (req, res, next) => {
       }]
     });
     
-    // Log activity on ticket
+    // Log activity on ticket with detailed information
     await TicketActivity.create({
         ticketId: ticket._id,
         userId: req.user._id,
         activityType: 'RMA',
-        content: `RMA Request Initiated: ${requestReason}`
+        content: `🔄 **RMA/Device Replacement Request Submitted**\n\n**Reason:** ${requestReason}\n**Asset:** ${asset.assetCode || 'N/A'} (${asset.assetType || 'Device'})\n**Current S/N:** ${asset.serialNumber || 'N/A'}\n**Current IP:** ${asset.ipAddress || 'N/A'}\n\n_Awaiting approval from Admin/Supervisor_`
     });
 
     res.status(201).json({ success: true, data: rma });
@@ -184,12 +184,45 @@ export const updateRMAStatus = async (req, res, next) => {
 
     await rma.save();
     
-    // Notify on Ticket
+    // Notify on Ticket with detailed status message
+    let statusMessage = '';
+    const statusIcon = {
+        'Approved': '✅',
+        'Rejected': '❌', 
+        'Ordered': '📦',
+        'Dispatched': '🚚',
+        'Received': '📥',
+        'Installed': '🔧'
+    };
+    
+    switch(status) {
+        case 'Approved':
+            statusMessage = `${statusIcon[status]} **RMA Request Approved**\n\nThe device replacement request has been approved and is ready for procurement.${remarks ? `\n\n**Remarks:** ${remarks}` : ''}`;
+            break;
+        case 'Rejected':
+            statusMessage = `${statusIcon[status]} **RMA Request Rejected**\n\nThe device replacement request has been declined.${remarks ? `\n\n**Reason:** ${remarks}` : ''}`;
+            break;
+        case 'Ordered':
+            statusMessage = `${statusIcon[status]} **Replacement Device Ordered**\n\nA replacement device has been ordered from the vendor.${vendorDetails?.vendorName ? `\n\n**Vendor:** ${vendorDetails.vendorName}` : ''}${vendorDetails?.orderId ? `\n**Order ID:** ${vendorDetails.orderId}` : ''}${remarks ? `\n**Remarks:** ${remarks}` : ''}`;
+            break;
+        case 'Dispatched':
+            statusMessage = `${statusIcon[status]} **Replacement Device Dispatched**\n\nThe replacement device is on its way.${shippingDetails?.carrier ? `\n\n**Carrier:** ${shippingDetails.carrier}` : ''}${shippingDetails?.trackingNumber ? `\n**Tracking:** ${shippingDetails.trackingNumber}` : ''}${remarks ? `\n**Remarks:** ${remarks}` : ''}`;
+            break;
+        case 'Received':
+            statusMessage = `${statusIcon[status]} **Replacement Device Received**\n\nThe replacement device has been received and is ready for installation.${remarks ? `\n\n**Remarks:** ${remarks}` : ''}`;
+            break;
+        case 'Installed':
+            statusMessage = `${statusIcon[status]} **Replacement Device Installed**\n\nThe new device has been successfully installed.${replacementDetails?.serialNumber ? `\n\n**New S/N:** ${replacementDetails.serialNumber}` : ''}${replacementDetails?.ipAddress ? `\n**New IP:** ${replacementDetails.ipAddress}` : ''}${remarks ? `\n**Remarks:** ${remarks}` : ''}`;
+            break;
+        default:
+            statusMessage = `RMA Status Updated: ${status}.${remarks ? ` ${remarks}` : ''}`;
+    }
+    
     await TicketActivity.create({
         ticketId: rma.ticketId,
         userId: req.user._id,
         activityType: 'RMA',
-        content: `RMA Status Updated: ${status}. ${remarks || ''}`
+        content: statusMessage
     });
 
     res.json({ success: true, data: rma });

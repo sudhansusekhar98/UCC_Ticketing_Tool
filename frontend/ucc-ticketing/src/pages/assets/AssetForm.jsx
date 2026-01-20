@@ -28,6 +28,18 @@ export default function AssetForm() {
     const [updateRequestData, setUpdateRequestData] = useState(null);
     const [timeRemaining, setTimeRemaining] = useState(null);
     const [isPendingApproval, setIsPendingApproval] = useState(false);
+    
+    // RMA mode means only IP Address and Serial Number are editable
+    const isRMAMode = Boolean(updateToken && timeRemaining > 0);
+    
+    // Fields that are allowed to be edited in RMA mode
+    const rmaEditableFields = ['ipAddress', 'serialNumber', 'mac'];
+    
+    // Helper function to check if a field is editable
+    const isFieldEditable = (fieldName) => {
+        if (!isRMAMode) return true;
+        return rmaEditableFields.includes(fieldName);
+    };
 
     const [formData, setFormData] = useState({
         assetCode: '',
@@ -242,7 +254,14 @@ export default function AssetForm() {
 
             // If we have an update token, submit for approval instead of direct update
             if (updateToken) {
-                await assetUpdateRequestApi.submit(updateToken, payload);
+                // In RMA mode, only submit the allowed fields (IP Address, Serial Number, and MAC)
+                const rmaPayload = {
+                    serialNumber: formData.serialNumber,
+                    ipAddress: formData.ipAddress,
+                    mac: formData.mac,
+                };
+                
+                await assetUpdateRequestApi.submit(updateToken, rmaPayload);
                 toast.success('Changes submitted for approval!');
                 setIsPendingApproval(true);
                 
@@ -312,9 +331,9 @@ export default function AssetForm() {
                         <div className="flex items-center gap-3">
                             <Clock size={24} className={timeRemaining < 300 ? 'text-danger' : 'text-warning'} />
                             <div>
-                                <h3 className="font-bold text-lg">Temporary Access Mode</h3>
+                            <h3 className="font-bold text-lg">RMA Installation Mode - Limited Access</h3>
                                 <p className="text-sm text-muted">
- You have limited time to update this asset. Submit your changes before the timer expires.
+                                    You can only update <strong>Serial Number</strong>, <strong>IP Address</strong>, and <strong>MAC Address</strong>. Submit your changes before the timer expires.
                                 </p>
                             </div>
                         </div>
@@ -356,6 +375,7 @@ export default function AssetForm() {
                             onChange={(e) => handleChange('assetCode', e.target.value)}
                             placeholder="e.g., CAM-CC-001"
                             required
+                            disabled={!isFieldEditable('assetCode')}
                         />
                     </div>
 
@@ -366,6 +386,7 @@ export default function AssetForm() {
                             value={formData.assetType}
                             onChange={(e) => handleChange('assetType', e.target.value)}
                             required
+                            disabled={!isFieldEditable('assetType')}
                         >
                             {assetTypes.map(type => (
                                 <option key={type.value} value={type.value}>{type.label}</option>
@@ -380,6 +401,7 @@ export default function AssetForm() {
                             value={formData.siteId}
                             onChange={(e) => handleChange('siteId', e.target.value)}
                             required
+                            disabled={!isFieldEditable('siteId')}
                         >
                             <option value="">Select Site</option>
                             {sites.map(site => (
@@ -394,6 +416,7 @@ export default function AssetForm() {
                             className="form-select"
                             value={formData.status}
                             onChange={(e) => handleChange('status', e.target.value)}
+                            disabled={!isFieldEditable('status')}
                         >
                             {assetStatuses.map(status => (
                                 <option key={status.value} value={status.value}>{status.label}</option>
@@ -407,6 +430,7 @@ export default function AssetForm() {
                             className="form-select"
                             value={formData.criticality}
                             onChange={(e) => handleChange('criticality', e.target.value)}
+                            disabled={!isFieldEditable('criticality')}
                         >
                             <option value="1">Low</option>
                             <option value="2">Medium</option>
@@ -421,6 +445,7 @@ export default function AssetForm() {
                                 className="form-select"
                                 value={formData.deviceType}
                                 onChange={(e) => handleChange('deviceType', e.target.value)}
+                                disabled={!isFieldEditable('deviceType')}
                             >
                                 <option value="">Select Device Type</option>
                                 {deviceTypes.map(dt => (
@@ -434,6 +459,7 @@ export default function AssetForm() {
                                 value={formData.deviceType}
                                 onChange={(e) => handleChange('deviceType', e.target.value)}
                                 placeholder="e.g., PTZ Camera, Fixed Dome"
+                                disabled={!isFieldEditable('deviceType')}
                             />
                         )}
                     </div>
@@ -450,6 +476,7 @@ export default function AssetForm() {
                             value={formData.make}
                             onChange={(e) => handleChange('make', e.target.value)}
                             placeholder="e.g., Hikvision"
+                            disabled={!isFieldEditable('make')}
                         />
                     </div>
 
@@ -461,6 +488,7 @@ export default function AssetForm() {
                             value={formData.model}
                             onChange={(e) => handleChange('model', e.target.value)}
                             placeholder="e.g., DS-2CD2385G1-I"
+                            disabled={!isFieldEditable('model')}
                         />
                     </div>
 
@@ -485,6 +513,7 @@ export default function AssetForm() {
                             value={formData.usedFor}
                             onChange={(e) => handleChange('usedFor', e.target.value)}
                             placeholder="e.g., Traffic Monitoring"
+                            disabled={!isFieldEditable('usedFor')}
                         />
                     </div>
                 </div>
@@ -511,6 +540,7 @@ export default function AssetForm() {
                             value={formData.mac}
                             onChange={(e) => handleChange('mac', e.target.value)}
                             placeholder="e.g., AA:BB:CC:DD:EE:FF"
+                            disabled={!isFieldEditable('mac')}
                         />
                     </div>
                 </div>
@@ -526,6 +556,7 @@ export default function AssetForm() {
                             value={formData.locationName}
                             onChange={(e) => handleChange('locationName', e.target.value)}
                             placeholder="e.g., Junction A"
+                            disabled={!isFieldEditable('locationName')}
                         />
                     </div>
 
@@ -537,6 +568,7 @@ export default function AssetForm() {
                             value={formData.locationDescription}
                             onChange={(e) => handleChange('locationDescription', e.target.value)}
                             placeholder="e.g., Main Entrance, South Corner near pole #15"
+                            disabled={!isFieldEditable('locationDescription')}
                         />
                     </div>
                 </div>
@@ -551,6 +583,7 @@ export default function AssetForm() {
                             className="form-input"
                             value={formData.installationDate}
                             onChange={(e) => handleChange('installationDate', e.target.value)}
+                            disabled={!isFieldEditable('installationDate')}
                         />
                     </div>
 
@@ -561,6 +594,7 @@ export default function AssetForm() {
                             className="form-input"
                             value={formData.warrantyEndDate}
                             onChange={(e) => handleChange('warrantyEndDate', e.target.value)}
+                            disabled={!isFieldEditable('warrantyEndDate')}
                         />
                     </div>
 
@@ -572,6 +606,7 @@ export default function AssetForm() {
                             value={formData.vmsReferenceId}
                             onChange={(e) => handleChange('vmsReferenceId', e.target.value)}
                             placeholder="VMS camera/source ID"
+                            disabled={!isFieldEditable('vmsReferenceId')}
                         />
                     </div>
 
@@ -583,6 +618,7 @@ export default function AssetForm() {
                             value={formData.nmsReferenceId}
                             onChange={(e) => handleChange('nmsReferenceId', e.target.value)}
                             placeholder="NMS device ID"
+                            disabled={!isFieldEditable('nmsReferenceId')}
                         />
                     </div>
                 </div>
@@ -599,6 +635,7 @@ export default function AssetForm() {
                             onChange={(e) => handleChange('userName', e.target.value)}
                             placeholder="Device login username"
                             autoComplete="off"
+                            disabled={!isFieldEditable('userName')}
                         />
                     </div>
 
@@ -612,6 +649,7 @@ export default function AssetForm() {
                                 onChange={(e) => handleChange('password', e.target.value)}
                                 placeholder={isEditing ? 'Leave blank to keep current' : 'Device login password'}
                                 autoComplete="new-password"
+                                disabled={!isFieldEditable('password')}
                             />
                             <button
                                 type="button"
@@ -635,6 +673,7 @@ export default function AssetForm() {
                             onChange={(e) => handleChange('remark', e.target.value)}
                             placeholder="Any additional notes about this asset..."
                             rows={3}
+                            disabled={!isFieldEditable('remark')}
                         />
                     </div>
                 </div>

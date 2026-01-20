@@ -69,12 +69,12 @@ export const initiateAssetUpdateRequest = async (req, res, next) => {
       accessExpiresAt
     });
     
-    // Log activity
+    // Log activity with detailed information
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'RMA',
-      content: `Asset update request initiated. Access granted for 30 minutes.`
+      content: `🔑 **Asset Update Access Requested**\n\nTemporary access has been granted to update device details.\n\n**Asset:** ${asset.assetCode || 'N/A'} (${asset.assetType || 'Device'})\n**Access Expires In:** 30 minutes\n**Editable Fields:** Serial Number, IP Address, MAC Address\n\n_Waiting for engineer to submit new device details..._`
     });
     
     res.status(201).json({ 
@@ -151,17 +151,40 @@ export const submitAssetChanges = async (req, res, next) => {
       });
     }
     
-    // Store proposed changes
-    updateRequest.proposedChanges = proposedChanges;
+    // RMA mode: Only allow serialNumber, ipAddress, and mac to be updated
+    const allowedFields = ['serialNumber', 'ipAddress', 'mac'];
+    const filteredChanges = {};
+    
+    for (const field of allowedFields) {
+      if (proposedChanges[field] !== undefined) {
+        filteredChanges[field] = proposedChanges[field];
+      }
+    }
+    
+    // Ensure at least one allowed field is provided
+    if (Object.keys(filteredChanges).length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'At least one of serialNumber, ipAddress, or mac is required'
+      });
+    }
+    
+    // Store only the allowed proposed changes
+    updateRequest.proposedChanges = filteredChanges;
     updateRequest.submittedAt = new Date();
     await updateRequest.save();
     
-    // Log activity
+    // Log activity with detailed proposed changes
+    let changeDetails = [];
+    if (filteredChanges.serialNumber) changeDetails.push(`**New Serial Number:** ${filteredChanges.serialNumber}`);
+    if (filteredChanges.ipAddress) changeDetails.push(`**New IP Address:** ${filteredChanges.ipAddress}`);
+    if (filteredChanges.mac) changeDetails.push(`**New MAC Address:** ${filteredChanges.mac}`);
+    
     await TicketActivity.create({
       ticketId: updateRequest.ticketId,
       userId: updateRequest.requestedBy,
       activityType: 'RMA',
-      content: `Asset update details submitted. Pending admin approval.`
+      content: `📝 **Device Update Details Submitted**\n\nNew device details have been submitted for approval.\n\n${changeDetails.join('\n')}\n\n_Awaiting Admin/Supervisor approval to apply these changes..._`
     });
     
     res.json({ 
@@ -262,11 +285,9 @@ export const approveAssetUpdate = async (req, res, next) => {
     if (rma) {
       rma.status = 'Installed';
       rma.replacementDetails = {
-        serialNumber: changes.serialNumber,
-        ipAddress: changes.ipAddress,
-        mac: changes.mac,
-        model: changes.model,
-        make: changes.make
+        serialNumber: changes.serialNumber || asset.serialNumber,
+        ipAddress: changes.ipAddress || asset.ipAddress,
+        mac: changes.mac || asset.mac,
       };
       rma.installedBy = updateRequest.requestedBy;
       rma.installedOn = new Date();
@@ -280,12 +301,17 @@ export const approveAssetUpdate = async (req, res, next) => {
       await rma.save();
     }
     
-    // Log activity
+    // Log activity with details of approved changes
+    let appliedChanges = [];
+    if (changes.serialNumber) appliedChanges.push(`**Serial Number:** ${changes.serialNumber}`);
+    if (changes.ipAddress) appliedChanges.push(`**IP Address:** ${changes.ipAddress}`);
+    if (changes.mac) appliedChanges.push(`**MAC Address:** ${changes.mac}`);
+    
     await TicketActivity.create({
       ticketId: updateRequest.ticketId,
       userId: req.user._id,
       activityType: 'RMA',
-      content: `Asset update approved and applied. Device replacement completed.`
+      content: `✅ **Device Update Approved & Applied**\n\nThe asset details have been successfully updated.\n\n${appliedChanges.join('\n')}\n\n_Device replacement completed. Asset is now operational._`
     });
     
     res.json({ 
@@ -325,12 +351,12 @@ export const rejectAssetUpdate = async (req, res, next) => {
     updateRequest.rejectionReason = reason || 'No reason provided';
     await updateRequest.save();
     
-    // Log activity
+    // Log activity with rejection details
     await TicketActivity.create({
       ticketId: updateRequest.ticketId,
       userId: req.user._id,
       activityType: 'RMA',
-      content: `Asset update rejected. Reason: ${updateRequest.rejectionReason}`
+      content: `❌ **Device Update Rejected**\n\nThe submitted device details have been rejected.\n\n**Reason:** ${updateRequest.rejectionReason}\n\n_The engineer may need to re-initiate the update request with correct details._`
     });
     
     res.json({ 
