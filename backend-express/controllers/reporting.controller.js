@@ -30,49 +30,51 @@ export const getTicketStats = async (req, res, next) => {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
     
-    // Status Distribution
-    const statusStats = await Ticket.aggregate([
-      { $match: matchStage },
-      { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]);
-    
-    // Priority Distribution
-    const priorityStats = await Ticket.aggregate([
-      { $match: matchStage },
-      { $group: { _id: '$priority', count: { $sum: 1 } } }
-    ]);
-    
-    // Category Distribution
-    const categoryStats = await Ticket.aggregate([
-      { $match: matchStage },
-      { $group: { _id: '$category', count: { $sum: 1 } } }
-    ]);
-    
-    // Avg Resolution Time (for resolved/closed tickets)
-    // resolutionTime is difference between resolvedOn and createdAt in hours
-    const resolutionStats = await Ticket.aggregate([
-      { 
-        $match: { 
-          ...matchStage, 
-          status: { $in: ['Resolved', 'Verified', 'Closed'] },
-          resolvedOn: { $exists: true } 
-        } 
-      },
-      {
-        $project: {
-          resolutionTimeHours: {
-            $divide: [{ $subtract: ['$resolvedOn', '$createdAt'] }, 1000 * 60 * 60]
+    // Run aggregations in parallel for performance
+    const [statusStats, priorityStats, categoryStats, resolutionStats] = await Promise.all([
+      // Status Distribution
+      Ticket.aggregate([
+        { $match: matchStage },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      
+      // Priority Distribution
+      Ticket.aggregate([
+        { $match: matchStage },
+        { $group: { _id: '$priority', count: { $sum: 1 } } }
+      ]),
+      
+      // Category Distribution
+      Ticket.aggregate([
+        { $match: matchStage },
+        { $group: { _id: '$category', count: { $sum: 1 } } }
+      ]),
+      
+      // Avg Resolution Time
+      Ticket.aggregate([
+        { 
+          $match: { 
+            ...matchStage, 
+            status: { $in: ['Resolved', 'Verified', 'Closed'] },
+            resolvedOn: { $exists: true } 
+          } 
+        },
+        {
+          $project: {
+            resolutionTimeHours: {
+              $divide: [{ $subtract: ['$resolvedOn', '$createdAt'] }, 1000 * 60 * 60]
+            }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            avgResolutionTime: { $avg: '$resolutionTimeHours' },
+            minResolutionTime: { $min: '$resolutionTimeHours' },
+            maxResolutionTime: { $max: '$resolutionTimeHours' }
           }
         }
-      },
-      {
-        $group: {
-          _id: null,
-          avgResolutionTime: { $avg: '$resolutionTimeHours' },
-          minResolutionTime: { $min: '$resolutionTimeHours' },
-          maxResolutionTime: { $max: '$resolutionTimeHours' }
-        }
-      }
+      ])
     ]);
 
     res.json({
@@ -160,14 +162,15 @@ export const getAssetStats = async (req, res, next) => {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
 
-    const typeStats = await Asset.aggregate([
-      { $match: matchStage },
-      { $group: { _id: '$deviceType', count: { $sum: 1 } } }
-    ]);
-    
-    const statusStats = await Asset.aggregate([
-      { $match: matchStage },
-      { $group: { _id: '$status', count: { $sum: 1 } } }
+    const [typeStats, statusStats] = await Promise.all([
+      Asset.aggregate([
+        { $match: matchStage },
+        { $group: { _id: '$deviceType', count: { $sum: 1 } } }
+      ]),
+      Asset.aggregate([
+        { $match: matchStage },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ])
     ]);
 
     res.json({
@@ -195,25 +198,27 @@ export const getRMAStats = async (req, res, next) => {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
 
-    // RMA by Status
-    const statusStats = await RMARequest.aggregate([
-      { $match: matchStage },
-      { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]);
-
-    // RMA Trend (by month)
-    const trendStats = await RMARequest.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: {
-            year: { $year: '$createdAt' },
-            month: { $month: '$createdAt' }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { '_id.year': 1, '_id.month': 1 } }
+    // Run aggregations in parallel
+    const [statusStats, trendStats] = await Promise.all([
+      // RMA by Status
+      RMARequest.aggregate([
+        { $match: matchStage },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      // RMA Trend (by month)
+      RMARequest.aggregate([
+        { $match: matchStage },
+        {
+          $group: {
+            _id: {
+              year: { $year: '$createdAt' },
+              month: { $month: '$createdAt' }
+            },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { '_id.year': 1, '_id.month': 1 } }
+      ])
     ]);
 
     // Format trend data for frontend
