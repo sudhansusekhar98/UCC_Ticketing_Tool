@@ -15,15 +15,15 @@ import {
   downloadTemplate
 } from '../controllers/asset.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
-import multer from 'multer';
+import { simpleUpload } from '../utils/upload.js';
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(protect);
 
-// Configure upload
-const upload = multer({ dest: 'uploads/' });
+// Configure upload - using simpleUpload which handles Vercel/local environments
+const upload = simpleUpload;
 
 // Utility routes (before :id routes)
 router.get('/dropdown', getAssetsDropdown);

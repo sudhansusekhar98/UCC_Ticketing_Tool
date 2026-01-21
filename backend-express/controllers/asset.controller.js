@@ -397,16 +397,28 @@ export const bulkImportAssets = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please upload an Excel or CSV file' });
     }
 
-    const workbook = XLSX.readFile(req.file.path);
+    let workbook;
+    const isMemoryStorage = !!req.file.buffer;
+    
+    if (isMemoryStorage) {
+      // For Vercel/memory storage - read from buffer
+      workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+    } else {
+      // For local/disk storage - read from file path
+      workbook = XLSX.readFile(req.file.path);
+    }
+    
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     // Use raw: false to get formatted values, defval to preserve empty cells
     const data = XLSX.utils.sheet_to_json(sheet, { raw: false, defval: '' });
     
-    // Clean up uploaded file
-    try {
-      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    } catch (e) { console.error('Error deleting file:', e); }
+    // Clean up uploaded file (only for disk storage)
+    if (!isMemoryStorage && req.file.path) {
+      try {
+        if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      } catch (e) { console.error('Error deleting file:', e); }
+    }
 
     const result = {
       total: data.length,
@@ -566,8 +578,8 @@ export const bulkImportAssets = async (req, res, next) => {
     });
 
   } catch (error) {
-     // Clean up on error if not done
-     if (req.file && fs.existsSync(req.file.path)) {
+     // Clean up on error if not done (only for disk storage)
+     if (req.file && req.file.path && fs.existsSync(req.file.path)) {
         try { fs.unlinkSync(req.file.path); } catch(e) {}
      }
      next(error);

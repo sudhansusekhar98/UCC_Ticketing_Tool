@@ -229,4 +229,7 @@ export const reportingApi = {
     getAssetStats: (params) => api.get('/reporting/assets', { params }),
     getRMAStats: (params) => api.get('/reporting/rma', { params }),
     exportReport: (params) => api.get('/reporting/export', { params, responseType: 'blob' }),
+    exportEmployeeStatus: (params) => api.get('/reporting/export/employees', { params, responseType: 'blob' }),
+    exportAssetStatus: (params) => api.get('/reporting/export/assets', { params, responseType: 'blob' }),
+    exportRMA: (params) => api.get('/reporting/export/rma', { params, responseType: 'blob' }),
 };

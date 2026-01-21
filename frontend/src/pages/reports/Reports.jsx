@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { reportingApi } from '../../services/api';
+import { reportingApi, sitesApi } from '../../services/api';
 import ReportFilters from '../../components/reporting/ReportFilters';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
 } from 'recharts';
-import { FileDown, Activity, AlertCircle, CheckCircle, Package, RefreshCw, RotateCcw, Monitor } from 'lucide-react';
+import { FileDown, Activity, AlertCircle, CheckCircle, Package, RefreshCw, RotateCcw, Monitor, Users, HardDrive, FileText, ChevronDown, Download, Building2 } from 'lucide-react';
 import './Reports.css';
 import toast from 'react-hot-toast';
 
@@ -19,6 +19,13 @@ const RMA_COLORS = {
     'Installed': '#22c55e',
     'Rejected': '#ef4444'
 };
+
+const REPORT_TYPES = [
+    { id: 'tickets', label: 'Tickets Report', icon: FileText, description: 'Export all tickets with status, priority, and SLA information' },
+    { id: 'employees', label: 'Employee Status Report', icon: Users, description: 'Export employee details with assigned tickets summary' },
+    { id: 'assets', label: 'Asset Status Report', icon: HardDrive, description: 'Export all assets with status, location, and RMA history' },
+    { id: 'rma', label: 'RMA Report', icon: RotateCcw, description: 'Export RMA requests with timeline and status details' },
+];
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -48,10 +55,27 @@ export default function Reports() {
     const [slaStats, setSlaStats] = useState(null);
     const [assetStats, setAssetStats] = useState(null);
     const [rmaStats, setRmaStats] = useState(null);
+    
+    // Export modal state
+    const [showExportPanel, setShowExportPanel] = useState(false);
+    const [selectedReportType, setSelectedReportType] = useState('tickets');
+    const [exportSiteId, setExportSiteId] = useState('all');
+    const [sites, setSites] = useState([]);
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         fetchData();
+        fetchSites();
     }, [filters]);
+
+    const fetchSites = async () => {
+        try {
+            const response = await sitesApi.getDropdown();
+            setSites(response.data.data || []);
+        } catch (error) {
+            console.error('Error fetching sites:', error);
+        }
+    };
 
     const fetchData = async () => {
         setLoading(true);
@@ -79,29 +103,62 @@ export default function Reports() {
         setFilters(newFilters);
     };
 
-    const exportData = async () => {
+    const handleExport = async () => {
+        setExporting(true);
         try {
-            const response = await reportingApi.exportReport(filters);
+            let response;
+            let filename;
+            const exportParams = { 
+                siteId: exportSiteId,
+                startDate: filters.startDate,
+                endDate: filters.endDate
+            };
+
+            switch (selectedReportType) {
+                case 'employees':
+                    response = await reportingApi.exportEmployeeStatus(exportParams);
+                    filename = `employee_status_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                    break;
+                case 'assets':
+                    response = await reportingApi.exportAssetStatus(exportParams);
+                    filename = `asset_status_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                    break;
+                case 'rma':
+                    response = await reportingApi.exportRMA(exportParams);
+                    filename = `rma_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                    break;
+                case 'tickets':
+                default:
+                    response = await reportingApi.exportReport(exportParams);
+                    filename = `tickets_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                    break;
+            }
             
             // Create download link
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', 'tickets-report.xlsx');
+            link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             link.remove();
+            window.URL.revokeObjectURL(url);
             
-            toast.success('Report exported successfully');
+            toast.success('Report exported successfully!');
+            setShowExportPanel(false);
         } catch (error) {
             console.error('Export failed:', error);
             toast.error('Failed to export report');
+        } finally {
+            setExporting(false);
         }
     };
 
     if (loading && !ticketStats) {
         return <div className="loading-container"><div className="spinner"></div></div>;
     }
+
+    const selectedReport = REPORT_TYPES.find(r => r.id === selectedReportType);
 
     return (
         <div className="reports-page animate-fade-in">
@@ -115,12 +172,101 @@ export default function Reports() {
                         <RefreshCw size={18} />
                         Refresh
                     </button>
-                    <button className="btn btn-primary flex items-center gap-2" onClick={exportData}>
+                    <button 
+                        className="btn btn-primary flex items-center gap-2" 
+                        onClick={() => setShowExportPanel(!showExportPanel)}
+                    >
                         <FileDown size={18} />
-                        Export Report
+                        Export Reports
+                        <ChevronDown size={16} className={`export-chevron ${showExportPanel ? 'rotated' : ''}`} />
                     </button>
                 </div>
             </div>
+
+            {/* Export Panel */}
+            {showExportPanel && (
+                <div className="export-panel">
+                    <div className="export-panel-header">
+                        <h3><Download size={20} /> Export Reports</h3>
+                        <p>Select a report type and choose filtering options to generate your export</p>
+                    </div>
+                    
+                    <div className="export-panel-content">
+                        <div className="export-report-types">
+                            {REPORT_TYPES.map((report) => {
+                                const IconComponent = report.icon;
+                                return (
+                                    <div 
+                                        key={report.id}
+                                        className={`export-report-card ${selectedReportType === report.id ? 'selected' : ''}`}
+                                        onClick={() => setSelectedReportType(report.id)}
+                                    >
+                                        <div className="export-report-icon">
+                                            <IconComponent size={24} />
+                                        </div>
+                                        <div className="export-report-info">
+                                            <h4>{report.label}</h4>
+                                            <p>{report.description}</p>
+                                        </div>
+                                        <div className="export-report-check">
+                                            {selectedReportType === report.id && (
+                                                <CheckCircle size={20} />
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="export-filters">
+                            <div className="export-filter-group">
+                                <label>
+                                    <Building2 size={16} />
+                                    Filter by Site
+                                </label>
+                                <select 
+                                    value={exportSiteId} 
+                                    onChange={(e) => setExportSiteId(e.target.value)}
+                                    className="export-select"
+                                >
+                                    <option value="all">All Sites</option>
+                                    {sites.map((site) => (
+                                        <option key={site._id} value={site._id}>
+                                            {site.siteName} {site.siteCode ? `(${site.siteCode})` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div className="export-actions">
+                            <button 
+                                className="btn btn-outline" 
+                                onClick={() => setShowExportPanel(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                className="btn btn-primary export-btn" 
+                                onClick={handleExport}
+                                disabled={exporting}
+                            >
+                                {exporting ? (
+                                    <>
+                                        <span className="btn-spinner"></span>
+                                        Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Download size={18} />
+                                        Download {selectedReport?.label}
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <ReportFilters filters={filters} onFilterChange={handleFilterChange} />
 

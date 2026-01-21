@@ -12,13 +12,22 @@ cloudinary.config({
 
 /**
  * Upload file to Cloudinary
- * @param {string} filePath - Local file path to upload
+ * @param {string|Buffer} filePathOrBuffer - Local file path or Buffer to upload
  * @param {object} options - Upload options
  * @returns {Promise<object>} - Cloudinary upload result
  */
-export const uploadToCloudinary = async (filePath, options = {}) => {
+export const uploadToCloudinary = async (filePathOrBuffer, options = {}) => {
   try {
-    const result = await cloudinary.uploader.upload(filePath, {
+    let uploadSource = filePathOrBuffer;
+    
+    // If buffer, convert to base64 data URI
+    if (Buffer.isBuffer(filePathOrBuffer)) {
+      const base64 = filePathOrBuffer.toString('base64');
+      const mimeType = options.mimeType || 'application/octet-stream';
+      uploadSource = `data:${mimeType};base64,${base64}`;
+    }
+    
+    const result = await cloudinary.uploader.upload(uploadSource, {
       folder: options.folder || 'ucc-ticketing/attachments',
       resource_type: options.resourceType || 'auto',
       ...options

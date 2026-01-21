@@ -151,14 +151,30 @@ export const uploadAttachment = async (req, res, next) => {
     const file = req.file;
     const isImage = file.mimetype.startsWith('image/');
     
-    // Upload to Cloudinary
-    const cloudinaryResult = await uploadToCloudinary(file.path, {
-      folder: `ucc-ticketing/tickets/${ticketId}`,
-      resourceType: isImage ? 'image' : 'auto'
-    });
+    // Detect if using memory storage (Vercel) or disk storage (local)
+    const isMemoryStorage = !!file.buffer;
+    
+    // Upload to Cloudinary (works with both path and buffer)
+    const cloudinaryResult = await uploadToCloudinary(
+      isMemoryStorage ? file.buffer : file.path, 
+      {
+        folder: `ucc-ticketing/tickets/${ticketId}`,
+        resourceType: isImage ? 'image' : 'auto',
+        mimeType: file.mimetype // For buffer uploads
+      }
+    );
     
     if (!cloudinaryResult.success) {
-      // If Cloudinary upload fails, fall back to local storage
+      // If Cloudinary upload fails and we're on Vercel (memory storage), we can't fallback
+      if (isMemoryStorage) {
+        console.error('Cloudinary upload failed (memory storage):', cloudinaryResult.error);
+        return res.status(500).json({
+          success: false,
+          message: 'File upload failed. Cloudinary is required for serverless deployments.'
+        });
+      }
+      
+      // If on local (disk storage), fall back to local storage
       console.error('Cloudinary upload failed:', cloudinaryResult.error);
       const fileName = file.path.split(/[/\\]/).pop();
       
@@ -210,11 +226,13 @@ export const uploadAttachment = async (req, res, next) => {
       attachmentType: isImage ? 'image' : 'document'
     });
     
-    // Delete local file after successful Cloudinary upload
-    try {
-      fs.unlinkSync(file.path);
-    } catch (err) {
-      console.error('Failed to delete local file:', err);
+    // Delete local file after successful Cloudinary upload (only for disk storage)
+    if (!isMemoryStorage && file.path) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch (err) {
+        console.error('Failed to delete local file:', err);
+      }
     }
     
     // Emit socket event for real-time update

@@ -4,7 +4,10 @@ import {
   getSLAPerformance, 
   getAssetStats,
   getRMAStats,
-  exportReport
+  exportReport,
+  exportEmployeeStatusReport,
+  exportAssetStatusReport,
+  exportRMAReport
 } from '../controllers/reporting.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
@@ -19,5 +22,8 @@ router.get('/sla', getSLAPerformance);
 router.get('/assets', getAssetStats);
 router.get('/rma', getRMAStats);
 router.get('/export', exportReport);
+router.get('/export/employees', exportEmployeeStatusReport);
+router.get('/export/assets', exportAssetStatusReport);
+router.get('/export/rma', exportRMAReport);
 
 export default router;
