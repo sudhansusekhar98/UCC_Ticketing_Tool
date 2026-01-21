@@ -9,8 +9,14 @@ if (!cached) {
 
 const connectDB = async () => {
   // If already connected, return the cached connection
-  if (cached.conn) {
+  if (cached.conn && cached.conn.connection.readyState === 1) {
     return cached.conn;
+  }
+  
+  // If disconnected but cached, reset
+  if (cached.conn && cached.conn.connection.readyState !== 2) {
+      cached.conn = null;
+      cached.promise = null;
   }
 
   // If a connection is in progress, wait for it

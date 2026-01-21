@@ -139,6 +139,25 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// DB Connection Middleware - Critical for Vercel Serverless
+// Ensures DB is connected BEFORE the route handler runs
+app.use('/api', async (req, res, next) => {
+  // Skip for health check if we want it to report status even without DB
+  if (req.path === '/health') return next();
+  
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('DB Connection Middleware Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Database connection failed',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // API Routes
 import authRoutes from './routes/auth.routes.js';
 import siteRoutes from './routes/site.routes.js';

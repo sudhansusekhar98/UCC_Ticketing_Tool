@@ -43,12 +43,19 @@ app.set('io', {
 });
 
 // Database connection check middleware
-app.use((req, res, next) => {
-  if (mongoose.connection.readyState !== 1) {
-    console.log('Waiting for DB connection...');
-    // We don't block, but we log the state
+// Database connection middleware - BLOCKING for Serverless
+app.use(async (req, res, next) => {
+  // Skip for health check (optional, but good practice)
+  if (req.path === '/api/health') return next();
+  
+  try {
+    // Wait for DB connection before proceeding
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('DB Connection Failed:', error);
+    res.status(500).json({ success: false, message: 'Database connection failed' });
   }
-  next();
 });
 
 // Root endpoint for verification
