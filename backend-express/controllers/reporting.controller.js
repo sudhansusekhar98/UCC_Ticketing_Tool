@@ -11,7 +11,11 @@ const buildDateQuery = (startDate, endDate, field = 'createdAt') => {
   if (startDate || endDate) {
     query[field] = {};
     if (startDate) query[field].$gte = new Date(startDate);
-    if (endDate) query[field].$lte = new Date(endDate);
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query[field].$lte = end;
+    }
   }
   return query;
 };
