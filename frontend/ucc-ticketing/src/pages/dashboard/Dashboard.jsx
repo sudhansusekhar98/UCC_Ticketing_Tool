@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Ticket,
@@ -14,12 +14,61 @@ import {
     User,
     Wifi,
     WifiOff,
+    Zap,
+    BarChart2,
+    PieChart as PieChartIcon,
+    Layers,
+    Plus,
+    FileText,
+    Settings,
+    Bell,
+    Inbox
 } from 'lucide-react';
 import { ticketsApi, usersApi, assetsApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, AreaChart, Area, CartesianGrid } from 'recharts';
 import toast from 'react-hot-toast';
 import './Dashboard.css';
+
+// Animated Counter Hook
+const useAnimatedCounter = (endValue, duration = 1000) => {
+    const [count, setCount] = useState(0);
+    const countRef = useRef(0);
+    const startTimeRef = useRef(null);
+
+    useEffect(() => {
+        if (endValue === 0 || endValue === null || endValue === undefined) {
+            setCount(0);
+            return;
+        }
+
+        const animate = (timestamp) => {
+            if (!startTimeRef.current) startTimeRef.current = timestamp;
+            const progress = Math.min((timestamp - startTimeRef.current) / duration, 1);
+            const easeOut = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
+            const currentCount = Math.floor(easeOut * endValue);
+            
+            setCount(currentCount);
+            
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                setCount(endValue);
+            }
+        };
+
+        startTimeRef.current = null;
+        requestAnimationFrame(animate);
+    }, [endValue, duration]);
+
+    return count;
+};
+
+// Animated Stat Value Component
+const AnimatedStatValue = ({ value, suffix = '' }) => {
+    const animatedValue = useAnimatedCounter(value, 800);
+    return <>{animatedValue}{suffix}</>;
+};
 
 const PRIORITY_COLORS = {
     P1: '#ef4444',
@@ -37,28 +86,98 @@ const STATUS_COLORS = {
     Closed: '#6b7280',
 };
 
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="custom-tooltip">
+                <p className="custom-tooltip-label">{label || payload[0].name}</p>
+                {payload.map((entry, index) => (
+                    <p key={index} className="custom-tooltip-item" style={{ color: entry.color || entry.payload.fill }}>
+                        {entry.name}: {entry.value}
+                    </p>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
+
+// Empty State Component
+const EmptyState = ({ icon: Icon, title, description }) => (
+    <div className="empty-state">
+        <div className="empty-state-icon">
+            <Icon size={32} strokeWidth={1.5} />
+        </div>
+        <p className="empty-state-title">{title}</p>
+        {description && <p className="empty-state-description">{description}</p>}
+    </div>
+);
+
+// Live Pulse Indicator
+const LiveIndicator = () => (
+    <div className="live-indicator">
+        <span className="live-dot"></span>
+        <span className="live-text">Live</span>
+    </div>
+);
+
+const DashboardSkeleton = () => (
+    <div className="dashboard">
+        <div className="page-header">
+            <div className="header-content" style={{ width: '100%' }}>
+                <div className="skeleton skeleton-text" style={{ width: '180px', height: '16px' }}></div>
+                <div className="skeleton skeleton-title" style={{ width: '280px', height: '36px', marginTop: '8px' }}></div>
+                <div className="skeleton skeleton-text" style={{ width: '320px', height: '14px', marginTop: '8px' }}></div>
+            </div>
+        </div>
+        <div className="stats-grid">
+            {[1, 2, 3, 4].map(i => (
+                <div key={i} className="skeleton skeleton-card" style={{ animationDelay: `${i * 100}ms` }}></div>
+            ))}
+        </div>
+        <div className="stats-grid secondary-stats">
+            {[1, 2].map(i => (
+                <div key={i} className="skeleton skeleton-card" style={{ height: '280px', animationDelay: `${400 + i * 100}ms` }}></div>
+            ))}
+        </div>
+        <div className="charts-grid">
+            {[1, 2, 3].map(i => (
+                <div key={i} className="skeleton skeleton-chart" style={{ animationDelay: `${600 + i * 100}ms` }}></div>
+            ))}
+        </div>
+    </div>
+);
+
 export default function Dashboard() {
     const [stats, setStats] = useState(null);
     const [engineers, setEngineers] = useState([]);
     const [assets, setAssets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const { hasRole } = useAuthStore();
+    const { user, hasRole } = useAuthStore();
     
     // Permission checks
     const isAdmin = hasRole(['Admin']);
     const canSeeUsers = hasRole(['Admin']);
 
+    // Greeting Logic
+    const getGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return 'Good Morning';
+        if (hour < 18) return 'Good Afternoon';
+        return 'Good Evening';
+    };
+
     const fetchStats = async (showToast = false) => {
         try {
             if (showToast) setRefreshing(true);
             const response = await ticketsApi.getDashboardStats();
-            // Handle Express response format (data nested in data.data)
             setStats(response.data.data || response.data);
             if (showToast) toast.success('Dashboard refreshed');
         } catch (error) {
             console.error('Failed to fetch dashboard stats:', error);
-            toast.error('Failed to load dashboard data');
+            // Don't show error toast on initial load to avoid clutter if offline
+            if (showToast) toast.error('Failed to load dashboard data');
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -69,7 +188,6 @@ export default function Dashboard() {
         try {
             const response = await usersApi.getEngineers();
             const engineerData = response.data.data || response.data || [];
-            // Map to expected format with value/label
             setEngineers(engineerData.map(e => ({
                 value: e._id || e.userId || e.value,
                 label: e.fullName || e.label
@@ -82,9 +200,7 @@ export default function Dashboard() {
     const fetchAssets = async () => {
         try {
             const response = await assetsApi.getAll({ limit: 50 });
-            // Handle both Express (data.data) and .NET (data.items) formats
             let assetData = response.data.data || response.data.items || response.data || [];
-            // Map to expected format
             assetData = assetData.map(a => ({
                 ...a,
                 assetId: a._id || a.assetId,
@@ -102,114 +218,148 @@ export default function Dashboard() {
         fetchStats();
         fetchEngineers();
         fetchAssets();
-        // Refresh every 30 seconds
-        const interval = setInterval(() => fetchStats(), 30000);
+        const interval = setInterval(() => fetchStats(), 30000); // 30s auto-refresh
         return () => clearInterval(interval);
     }, []);
 
-    if (loading) {
-        return (
-            <div className="loading-container">
-                <div className="spinner"></div>
-                <p>Loading dashboard...</p>
-            </div>
-        );
-    }
+    if (loading) return <DashboardSkeleton />;
 
     return (
-        <div className="dashboard animate-fade-in">
-            <div className="page-header">
-                <div>
-                    <h1 className="page-title">Dashboard</h1>
-                    <p className="page-subtitle">Real-time overview of your ticketing system</p>
+        <div className="dashboard">
+            <div className="page-header animate-enter">
+                <div className="header-content">
+                    <div className="greeting-row">
+                        <span className="greeting-text">
+                            {getGreeting()}, {user?.fullName || user?.firstName || 'there'} 👋
+                        </span>
+                        <LiveIndicator />
+                    </div>
+                    <h1 className="page-title">Dashboard Overview</h1>
+                    <p className="page-subtitle">Real-time insights into your workspace activity</p>
                 </div>
                 <button
-                    className="btn btn-secondary"
+                    className={`btn btn-secondary dashboard-refresh-btn ${refreshing ? 'refreshing' : ''}`}
                     onClick={() => fetchStats(true)}
                     disabled={refreshing}
+                    title="Refresh Data"
                 >
                     <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
-                    Refresh
+                    <span className="btn-text">Refresh</span>
                 </button>
             </div>
 
             {/* Stats Cards */}
             <div className="stats-grid">
-                <Link to="/tickets?status=Open" className="stat-card glass-card primary">
+                <Link to="/tickets?status=Open" className="stat-card primary animate-enter delay-100">
+                    <div className="stat-card-bg-blob"></div>
                     <div className="stat-header">
-                        <Ticket size={24} />
+                        <div className="stat-icon-wrapper">
+                            <Ticket size={20} />
+                        </div>
                         <span className="stat-link">
                             View All <ArrowUpRight size={14} />
                         </span>
                     </div>
-                    <div className="stat-value">{stats?.openTickets || 0}</div>
-                    <div className="stat-label">Open Tickets</div>
+                    <div className="stat-content">
+                        <div className="stat-value">
+                            <AnimatedStatValue value={stats?.openTickets || 0} />
+                        </div>
+                        <div className="stat-label">Open Tickets</div>
+                    </div>
                     <div className="stat-footer">
-                        <span className="stat-total">{stats?.totalTickets || 0} total</span>
+                        <span className="stat-total">
+                            <AnimatedStatValue value={stats?.totalTickets || 0} /> total
+                        </span>
                     </div>
                 </Link>
 
-                <Link to="/tickets?status=InProgress" className="stat-card glass-card warning">
+                <Link to="/tickets?status=InProgress" className="stat-card warning animate-enter delay-200">
+                    <div className="stat-card-bg-blob"></div>
                     <div className="stat-header">
-                        <Activity size={24} />
+                        <div className="stat-icon-wrapper">
+                            <Activity size={20} />
+                        </div>
                         <span className="stat-link">
                             View All <ArrowUpRight size={14} />
                         </span>
                     </div>
-                    <div className="stat-value">{stats?.inProgressTickets || 0}</div>
-                    <div className="stat-label">In Progress</div>
+                    <div className="stat-content">
+                        <div className="stat-value">
+                            <AnimatedStatValue value={stats?.inProgressTickets || 0} />
+                        </div>
+                        <div className="stat-label">In Progress</div>
+                    </div>
                     <div className="stat-footer">
-                        <span className="text-success">+{stats?.resolvedToday || 0} resolved today</span>
+                        <span className="text-success">+<AnimatedStatValue value={stats?.resolvedToday || 0} /> resolved today</span>
                     </div>
                 </Link>
 
-                <Link to="/tickets?slaBreached=true" className="stat-card glass-card danger">
+                <Link to="/tickets?slaBreached=true" className="stat-card danger animate-enter delay-300">
+                    <div className="stat-card-bg-blob"></div>
                     <div className="stat-header">
-                        <AlertTriangle size={24} />
+                        <div className="stat-icon-wrapper">
+                            <AlertTriangle size={20} />
+                        </div>
                         <span className="stat-link">
                             View All <ArrowUpRight size={14} />
                         </span>
                     </div>
-                    <div className="stat-value">{stats?.slaBreached || 0}</div>
-                    <div className="stat-label">SLA Breached</div>
+                    <div className="stat-content">
+                        <div className="stat-value">
+                            <AnimatedStatValue value={stats?.slaBreached || 0} />
+                        </div>
+                        <div className="stat-label">SLA Breached</div>
+                    </div>
                     <div className="stat-footer">
-                        <span className="text-warning">{stats?.slaAtRisk || 0} at risk</span>
+                        <span className="text-warning"><AnimatedStatValue value={stats?.slaAtRisk || 0} /> at risk</span>
                     </div>
                 </Link>
 
-                <Link to="/tickets?status=Resolved" className="stat-card glass-card success">
+                <Link to="/tickets?status=Resolved" className="stat-card success animate-enter delay-400">
+                    <div className="stat-card-bg-blob"></div>
                     <div className="stat-header">
-                        <TrendingUp size={24} />
+                        <div className="stat-icon-wrapper">
+                            <TrendingUp size={20} />
+                        </div>
                         <span className="stat-link">
                             View All <ArrowUpRight size={14} />
                         </span>
                     </div>
-                    <div className="stat-value">{stats?.slaCompliancePercent || 0}%</div>
-                    <div className="stat-label">SLA Compliance</div>
+                    <div className="stat-content">
+                        <div className="stat-value">
+                            <AnimatedStatValue value={stats?.slaCompliancePercent || 0} suffix="%" />
+                        </div>
+                        <div className="stat-label">SLA Compliance</div>
+                    </div>
                     <div className="stat-footer">
+                        <div className="compliance-bar">
+                            <div className="compliance-fill" style={{ width: `${stats?.slaCompliancePercent || 0}%` }}></div>
+                        </div>
                         <span>Target: 95%</span>
                     </div>
                 </Link>
             </div>
 
             {/* Second Row - Assets & Engineers */}
-            <div className="stats-grid secondary-stats">
-                <div className="stat-card glass-card assets-card">
+            <div className="stats-grid secondary-stats animate-enter delay-200">
+                <div className="stat-card assets-card">
                     <div className="stat-header">
-                        <Monitor size={24} />
+                        <div className="stat-icon-wrapper" style={{background: 'var(--bg-tertiary)', color: 'var(--text-primary)'}}>
+                            <Monitor size={20} />
+                        </div>
                         <Link to="/assets" className="stat-link">
-                            View All <ArrowUpRight size={14} />
+                            Manage Assets <ArrowUpRight size={14} />
                         </Link>
                     </div>
-                    <div className="stat-value">{stats?.totalAssets || 0}</div>
-                    <div className="stat-label">Total Assets</div>
-                    <div className="stat-footer">
-                        <span className="text-danger">{stats?.offlineAssets || 0} offline</span>
+                    <div className="stat-value" style={{fontSize: '2.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)'}}>
+                        {stats?.totalAssets || 0}
                     </div>
-                    {assets.length > 0 && (
+                    <div className="stat-label">Total Assets Monitored</div>
+                    
+                    {assets.length > 0 ? (
                         <div className="assets-list">
-                            {assets.slice(0, 10).map((asset) => (
-                                <div key={asset.assetId} className="asset-item">
+                            {assets.slice(0, 5).map((asset, index) => (
+                                <div key={asset.assetId} className="asset-item" style={{ animationDelay: `${index * 50}ms` }}>
                                     <div className={`asset-status-icon ${asset.status === 'Online' ? 'online' : 'offline'}`}>
                                         {asset.status === 'Online' ? <Wifi size={12} /> : <WifiOff size={12} />}
                                     </div>
@@ -217,52 +367,63 @@ export default function Dashboard() {
                                         <span className="asset-name">{asset.assetName}</span>
                                         <span className="asset-type">{asset.assetTypeName || asset.assetType}</span>
                                     </div>
+                                    <span className={`asset-status-badge ${asset.status.toLowerCase()}`}>{asset.status}</span>
                                 </div>
                             ))}
-                            {assets.length > 10 && (
-                                <Link to="/assets" className="more-assets">+{assets.length - 10} more</Link>
+                            {(stats?.totalAssets || assets.length) > 5 && (
+                                <Link to="/assets" className="view-more-link">+{(stats?.totalAssets || assets.length) - 5} more assets</Link>
                             )}
                         </div>
+                    ) : (
+                        <EmptyState icon={Monitor} title="No assets found" description="Add your first asset to start monitoring" />
                     )}
                 </div>
                 
-
-                <div className="stat-card glass-card engineers-card">
+                <div className="stat-card engineers-card">
                     <div className="stat-header">
-                        <Users size={24} />
-                        {canSeeUsers && (
+                         <div className="stat-icon-wrapper" style={{background: 'var(--bg-tertiary)', color: 'var(--text-primary)'}}>
+                            <Users size={20} />
+                        </div>
+                         {canSeeUsers && (
                             <Link to="/users" className="stat-link">
-                                View All <ArrowUpRight size={14} />
+                                Manage Team <ArrowUpRight size={14} />
                             </Link>
                         )}
                     </div>
-                    <div className="stat-value">{engineers.length || stats?.availableEngineers || 0}</div>
-                    <div className="stat-label">Available Engineers</div>
-                    {engineers.length > 0 && (
+                    <div className="stat-value" style={{fontSize: '2.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)'}}>
+                        {engineers.length || stats?.availableEngineers || 0}
+                    </div>
+                    <div className="stat-label">Active Engineers</div>
+
+                    {engineers.length > 0 ? (
                         <div className="engineers-list">
-                            {engineers.map((engineer) => (
-                                <div key={engineer.value} className="engineer-item">
+                            {engineers.slice(0, 5).map((engineer, index) => (
+                                <div key={engineer.value} className="engineer-item" style={{ animationDelay: `${index * 50}ms` }}>
                                     <div className="engineer-avatar">
                                         <User size={14} />
                                     </div>
                                     <div className="engineer-info">
                                         <span className="engineer-name">{engineer.label}</span>
+                                        <span className="engineer-role">Field Engineer</span>
                                     </div>
+                                    <div className="engineer-status online"></div>
                                 </div>
                             ))}
                         </div>
+                    ) : (
+                        <EmptyState icon={Users} title="No engineers available" description="Team members will appear here" />
                     )}
                 </div>
             </div>
 
             {/* Charts Section */}
-            <div className="charts-grid">
+            <div className="charts-grid animate-enter delay-300">
                 {/* Tickets by Priority */}
-                <div className="chart-card glass-card">
-                    <h3 className="chart-title">Tickets by Priority</h3>
+                <div className="chart-card">
+                    <h3 className="chart-title"><Zap size={18} className="text-warning-500"/> Tickets by Priority</h3>
                     <div className="chart-container">
                         {stats?.ticketsByPriority?.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={250}>
+                            <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={stats.ticketsByPriority}
@@ -270,31 +431,21 @@ export default function Dashboard() {
                                         nameKey="priority"
                                         cx="50%"
                                         cy="50%"
-                                        outerRadius={70}
-                                        innerRadius={45}
+                                        outerRadius={80}
+                                        innerRadius={55}
                                         paddingAngle={5}
-                                        label={({ priority, count }) => `${priority}: ${count}`}
-                                        labelLine={{ stroke: 'var(--text-muted)', strokeWidth: 1 }}
+                                        label={({ priority, percent }) => `${priority} ${(percent * 100).toFixed(0)}%`}
+                                        labelLine={false}
                                     >
                                         {stats.ticketsByPriority.map((entry, index) => (
-                                            <Cell key={index} fill={PRIORITY_COLORS[entry.priority] || '#6b7280'} />
+                                            <Cell key={index} fill={PRIORITY_COLORS[entry.priority] || '#6b7280'} strokeWidth={0} />
                                         ))}
                                     </Pie>
-
-                                    <Tooltip
-                                        contentStyle={{
-                                            background: 'var(--bg-secondary)',
-                                            border: '1px solid var(--border-light)',
-                                            borderRadius: 'var(--radius-md)',
-                                            fontSize: '12px',
-                                            color: 'var(--text-primary)'
-                                        }}
-                                        labelStyle={{ color: 'var(--text-primary)' }}
-                                    />
+                                    <Tooltip content={<CustomTooltip />} />
                                 </PieChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="no-data">No active tickets</div>
+                            <EmptyState icon={PieChartIcon} title="No active tickets" description="Create a ticket to see priority distribution" />
                         )}
                     </div>
                     <div className="chart-legend">
@@ -307,41 +458,24 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-
                 {/* Tickets by Status */}
-                <div className="chart-card glass-card">
-                    <h3 className="chart-title">Tickets by Status</h3>
+                <div className="chart-card">
+                    <h3 className="chart-title"><BarChart2 size={18} className="text-primary-500"/> Tickets by Status</h3>
                     <div className="chart-container">
                         {stats?.ticketsByStatus?.length > 0 ? (
-                            <ResponsiveContainer width="100%" height={250}>
-                                <BarChart data={stats.ticketsByStatus} layout="vertical" margin={{ left: 10, right: 20 }}>
-                                    <XAxis 
-                                        type="number" 
-                                        stroke="var(--text-muted)" 
-                                        tick={{ fontSize: 11, fill: 'var(--text-muted)' }}
-                                        axisLine={{ stroke: 'var(--border-light)' }}
-                                        tickLine={{ stroke: 'var(--border-light)' }}
-                                    />
-                                    <YAxis
-                                        type="category"
-                                        dataKey="status"
-                                        stroke="var(--text-muted)"
-                                        width={90}
-                                        tick={{ fontSize: 11, fill: 'var(--text-secondary)' }}
-                                        axisLine={{ stroke: 'var(--border-light)' }}
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={stats.ticketsByStatus} layout="vertical" margin={{ left: 0, right: 10, top: 10 }}>
+                                    <XAxis type="number" hide />
+                                    <YAxis 
+                                        type="category" 
+                                        dataKey="status" 
+                                        width={100} 
+                                        tick={{fontSize: 12, fill: 'var(--text-secondary)'}} 
+                                        axisLine={false}
                                         tickLine={false}
                                     />
-                                    <Tooltip
-                                        contentStyle={{
-                                            background: 'var(--bg-secondary)',
-                                            border: '1px solid var(--border-light)',
-                                            borderRadius: 'var(--radius-md)',
-                                            fontSize: '12px',
-                                            color: 'var(--text-primary)'
-                                        }}
-                                        labelStyle={{ color: 'var(--text-primary)' }}
-                                    />
-                                    <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                                    <Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--bg-tertiary)', opacity: 0.4}} />
+                                    <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
                                         {stats.ticketsByStatus.map((entry, index) => (
                                             <Cell key={index} fill={STATUS_COLORS[entry.status] || '#6b7280'} />
                                         ))}
@@ -349,67 +483,74 @@ export default function Dashboard() {
                                 </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="no-data">No ticket data</div>
+                            <EmptyState icon={BarChart2} title="No ticket data" description="Status distribution will appear here" />
                         )}
                     </div>
                 </div>
 
-
                 {/* Tickets by Category */}
-                <div className="chart-card glass-card">
-                    <h3 className="chart-title">Tickets by Category</h3>
+                <div className="chart-card">
+                    <h3 className="chart-title"><Layers size={18} className="text-secondary"/> Ticket Categories</h3>
                     <div className="category-list">
                         {stats?.ticketsByCategory?.length > 0 ? (
-                            stats.ticketsByCategory.map((cat, index) => (
-                                <div key={index} className="category-item">
+                            stats.ticketsByCategory.slice(0, 5).map((cat, index) => (
+                                <div key={index} className="category-item" style={{ animationDelay: `${index * 100}ms` }}>
                                     <div className="category-info">
                                         <span className="category-name">{cat.category}</span>
                                         <span className="category-count">{cat.count}</span>
                                     </div>
                                     <div className="category-bar">
                                         <div
-                                            className="category-fill"
+                                            className="category-fill animated"
                                             style={{
-                                                width: `${(cat.count / Math.max(...stats.ticketsByCategory.map(c => c.count))) * 100}%`
+                                                width: `${(cat.count / Math.max(...stats.ticketsByCategory.map(c => c.count))) * 100}%`,
+                                                animationDelay: `${index * 100 + 200}ms`
                                             }}
                                         ></div>
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <div className="no-data">No category data</div>
+                            <EmptyState icon={Layers} title="No category data" description="Categories will appear as tickets are created" />
                         )}
                     </div>
                 </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="quick-actions glass-card">
-                <h3 className="section-title">Quick Actions</h3>
+            <div className="quick-actions animate-enter delay-400">
+                <h3 className="section-title">
+                    <Zap size={20} className="text-warning" />
+                    Quick Actions
+                </h3>
                 <div className="actions-grid">
                     <Link to="/tickets/new" className="action-card">
                         <div className="action-icon primary">
-                            <Ticket size={24} />
+                            <Plus strokeWidth={2} size={24} />
                         </div>
-                        <span>Create Ticket</span>
+                        <span className="action-label">Create Ticket</span>
+                        <span className="action-desc">Log a new issue</span>
                     </Link>
                     <Link to="/assets/new" className="action-card">
                         <div className="action-icon success">
-                            <Monitor size={24} />
+                            <Monitor strokeWidth={1.5} size={24} />
                         </div>
-                        <span>Add Asset</span>
+                        <span className="action-label">Add Asset</span>
+                        <span className="action-desc">Register device</span>
                     </Link>
                     <Link to="/tickets?status=Open" className="action-card">
                         <div className="action-icon warning">
-                            <Clock size={24} />
+                            <Inbox strokeWidth={1.5} size={24} />
                         </div>
-                        <span>Pending Tickets</span>
+                        <span className="action-label">Open Tickets</span>
+                        <span className="action-desc">View pending</span>
                     </Link>
                     <Link to="/tickets?slaBreached=true" className="action-card">
                         <div className="action-icon danger">
-                            <AlertTriangle size={24} />
+                            <AlertTriangle strokeWidth={1.5} size={24} />
                         </div>
-                        <span>SLA Breaches</span>
+                        <span className="action-label">SLA Breaches</span>
+                        <span className="action-desc">Urgent items</span>
                     </Link>
                 </div>
             </div>

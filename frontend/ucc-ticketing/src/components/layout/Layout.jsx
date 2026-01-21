@@ -14,6 +14,7 @@ import {
     Search,
     Shield,
     Bell,
+    BarChart3,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import NotificationBell from '../notifications/NotificationBell';
@@ -23,6 +24,7 @@ import './Layout.css';
 const menuItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
     { path: '/tickets', icon: Ticket, label: 'Tickets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
+    { path: '/reports', icon: BarChart3, label: 'Reports', roles: ['Admin', 'Supervisor', 'Dispatcher'] },
     { path: '/assets', icon: Monitor, label: 'Assets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer', 'L1Engineer', 'L2Engineer'] },
     { path: '/sites', icon: MapPin, label: 'Sites', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer'] },
     { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },

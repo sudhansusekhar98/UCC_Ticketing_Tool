@@ -221,3 +221,12 @@ export const assetUpdateRequestApi = {
     approve: (id) => api.post(`/asset-update-requests/${id}/approve`),
     reject: (id, reason) => api.post(`/asset-update-requests/${id}/reject`, { reason }),
 };
+
+// Reporting API
+export const reportingApi = {
+    getTicketStats: (params) => api.get('/reporting/tickets', { params }),
+    getSLAPerformance: (params) => api.get('/reporting/sla', { params }),
+    getAssetStats: (params) => api.get('/reporting/assets', { params }),
+    getRMAStats: (params) => api.get('/reporting/rma', { params }),
+    exportReport: (params) => api.get('/reporting/export', { params, responseType: 'blob' }),
+};

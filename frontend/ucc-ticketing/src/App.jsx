@@ -11,6 +11,7 @@ import Layout from './components/layout/Layout';
 // Pages
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
+import Reports from './pages/reports/Reports';
 import TicketsList from './pages/tickets/TicketsList';
 import TicketDetail from './pages/tickets/TicketDetail';
 import TicketForm from './pages/tickets/CreateTicket';
@@ -145,6 +146,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Reports */}
+          <Route
+            path="/reports"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}>
+                <Reports />
               </ProtectedRoute>
             }
           />
