@@ -27,6 +27,7 @@ import Settings from './pages/settings/Settings';
 import Profile from './pages/profile/Profile';
 import NotificationsManagement from './pages/notifications/NotificationsManagement';
 import NotificationsList from './pages/notifications/NotificationsList';
+import Help from './pages/help/Help';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles, requiredRight }) {
@@ -329,6 +330,16 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Help - Admin Only */}
+          <Route
+            path="/help"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <Help />
               </ProtectedRoute>
             }
           />

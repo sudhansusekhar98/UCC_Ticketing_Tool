@@ -44,7 +44,7 @@ export default function Login() {
                     <div className="login-header">
                         <div className="login-logo">
                             <div className="logo-icon-large">
-                                <img src={TOpsLogo} alt="TicketOps" width={48} height={48} />
+                                <img src={TOpsLogo} alt="TicketOps" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                             </div>
                         </div>
                         <h1 className="login-title">TicketOps</h1>

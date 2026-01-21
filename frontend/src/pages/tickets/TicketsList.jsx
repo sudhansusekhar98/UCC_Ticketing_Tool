@@ -188,7 +188,7 @@ export default function TicketsList() {
         <div className="tickets-page animate-fade-in">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Tickets</h1>
+                    <h1 className="page-title">Tickets &nbsp;</h1>
                     <p className="page-subtitle">
                         Showing {tickets.length} of {totalCount} tickets
                     </p>

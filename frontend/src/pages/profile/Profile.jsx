@@ -178,7 +178,7 @@ export default function Profile() {
         <div className="profile-page animate-fade-in">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">My Profile</h1>
+                    <h1 className="page-title">My Profile &nbsp;</h1>
                     <p className="page-subtitle">
                         Manage your account information and security
                     </p>

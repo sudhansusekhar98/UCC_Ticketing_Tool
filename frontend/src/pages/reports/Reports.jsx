@@ -8,7 +8,7 @@ import {
 import { FileDown, Activity, AlertCircle, CheckCircle, Package, RefreshCw, RotateCcw, Monitor, Users, HardDrive, FileText, ChevronDown, Download, Building2 } from 'lucide-react';
 import './Reports.css';
 import toast from 'react-hot-toast';
-
+    
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7c43'];
 const RMA_COLORS = {
     'Requested': '#f59e0b',

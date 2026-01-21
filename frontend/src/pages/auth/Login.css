@@ -108,15 +108,14 @@
 }
 
 .logo-icon-large {
-    width: 64px;
-    height: 64px;
-    background: var(--gradient-primary);
+    width: 120px;
+    height: 100px;
+    background: transparent;
     border-radius: var(--radius-xl);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
-    box-shadow: var(--shadow-glow);
+    color: var(--primary-500);
 }
 
 .login-title {

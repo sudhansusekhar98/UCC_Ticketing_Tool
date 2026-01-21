@@ -228,14 +228,16 @@ export default function Dashboard() {
         <div className="dashboard">
             <div className="page-header animate-enter">
                 <div className="header-content">
-                    <div className="greeting-row">
+                    <div className="greeting-row">&nbsp;
                         <span className="greeting-text">
                             {getGreeting()}, {user?.fullName || user?.firstName || 'there'} 👋
                         </span>
                         <LiveIndicator />
                     </div>
-                    <h1 className="page-title">Dashboard Overview</h1>
-                    <p className="page-subtitle">Real-time insights into your workspace activity</p>
+                    <div>
+                        <h1 className="page-title" >Dashboard Overview &nbsp;&nbsp;&nbsp;</h1>
+                        <p className="page-subtitle">Real-time insights into your workspace activity</p>
+                    </div>
                 </div>
                 <button
                     className={`btn btn-secondary dashboard-refresh-btn ${refreshing ? 'refreshing' : ''}`}

@@ -407,7 +407,7 @@ export default function Settings() {
             <div className="section-header">
                 <Building size={20} />
                 <div>
-                    <h3>Organization Settings</h3>
+                    <h3>Organization Settings </h3>
                     <p>Configure your organization details and preferences</p>
                 </div>
             </div>
@@ -1225,7 +1225,7 @@ export default function Settings() {
         <div className="settings-page animate-fade-in">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Settings</h1>
+                    <h1 className="page-title">Settings &nbsp;</h1>
                     <p className="page-subtitle">
                         Manage system configuration and preferences
                     </p>

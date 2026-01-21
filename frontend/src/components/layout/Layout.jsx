@@ -15,6 +15,7 @@ import {
     Shield,
     Bell,
     BarChart3,
+    HelpCircle,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import NotificationBell from '../notifications/NotificationBell';
@@ -30,6 +31,7 @@ const menuItems = [
     { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },
     { path: '/user-rights', icon: Shield, label: 'User Rights', roles: ['Admin'] },
     { path: '/notifications/manage', icon: Bell, label: 'Notifications', roles: ['Admin'] },
+    { path: '/help', icon: HelpCircle, label: 'Help Center', roles: ['Admin'] },
     { path: '/settings', icon: Settings, label: 'Settings', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
 ];
 

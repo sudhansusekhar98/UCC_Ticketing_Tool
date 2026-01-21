@@ -106,7 +106,7 @@ export default function SitesList() {
         <div className="page-container animate-fade-in">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Sites</h1>
+                    <h1 className="page-title">Sites &nbsp;</h1>
                     <p className="page-subtitle">
                         {totalCount} total sites
                     </p>

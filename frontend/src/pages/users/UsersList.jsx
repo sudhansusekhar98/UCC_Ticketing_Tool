@@ -123,7 +123,7 @@ export default function UsersList() {
         <div className="page-container animate-fade-in">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Users</h1>
+                    <h1 className="page-title">Users &nbsp;</h1>
                     <p className="page-subtitle">
                         {totalCount} total users
                     </p>
