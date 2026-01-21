@@ -20,6 +20,7 @@ import SiteForm from './pages/sites/SiteForm';
 import AssetsList from './pages/assets/AssetsList';
 import AssetForm from './pages/assets/AssetForm';
 import AssetView from './pages/assets/AssetView';
+import RMARecords from './pages/assets/RMARecords';
 import UsersList from './pages/users/UsersList';
 import UserForm from './pages/users/UserForm';
 import UserRights from './pages/admin/UserRights';
@@ -238,6 +239,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
                 <AssetForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/assets/rma-records"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer']}>
+                <RMARecords />
               </ProtectedRoute>
             }
           />

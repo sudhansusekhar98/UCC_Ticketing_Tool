@@ -1,11 +1,12 @@
 import express from 'express';
-import { createRMA, getRMAByTicket, getRMAHistory, updateRMAStatus } from '../controllers/rma.controller.js';
+import { getAllRMAs, createRMA, getRMAByTicket, getRMAHistory, updateRMAStatus } from '../controllers/rma.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 router.use(protect); // Protect all routes
 
+router.get('/', getAllRMAs);
 router.post('/', createRMA);
 router.get('/ticket/:ticketId', getRMAByTicket);
 router.get('/asset/:assetId', getRMAHistory);

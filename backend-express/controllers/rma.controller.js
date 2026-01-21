@@ -3,6 +3,77 @@ import Ticket from '../models/Ticket.model.js';
 import Asset from '../models/Asset.model.js';
 import TicketActivity from '../models/TicketActivity.model.js';
 
+// @desc    Get all RMA records
+// @route   GET /api/rma
+// @access  Private
+export const getAllRMAs = async (req, res, next) => {
+    try {
+        const { 
+            page = 1, 
+            limit = 20, 
+            status, 
+            siteId,
+            search,
+            sortBy = 'createdAt',
+            sortOrder = 'desc'
+        } = req.query;
+
+        const query = {};
+        
+        // Filter by status
+        if (status) {
+            query.status = status;
+        }
+        
+        // Filter by site
+        if (siteId) {
+            query.siteId = siteId;
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const sortOptions = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
+
+        // Execute query with population
+        let rmasQuery = RMARequest.find(query)
+            .populate('ticketId', 'ticketNumber title status priority')
+            .populate('siteId', 'siteName siteCode')
+            .populate('originalAssetId', 'assetCode assetType ipAddress serialNumber locationDescription locationName')
+            .populate('requestedBy', 'fullName')
+            .populate('approvedBy', 'fullName')
+            .populate('timeline.changedBy', 'fullName')
+            .sort(sortOptions)
+            .skip(skip)
+            .limit(parseInt(limit));
+
+        const [rmas, total] = await Promise.all([
+            rmasQuery.exec(),
+            RMARequest.countDocuments(query)
+        ]);
+
+        // Categorize RMAs
+        const ongoingStatuses = ['Requested', 'Approved', 'Ordered', 'Dispatched', 'Received'];
+        const completedStatuses = ['Installed', 'Rejected'];
+        
+        const ongoing = rmas.filter(r => ongoingStatuses.includes(r.status));
+        const completed = rmas.filter(r => completedStatuses.includes(r.status));
+
+        res.json({ 
+            success: true, 
+            data: rmas,
+            ongoing,
+            completed,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Create a new RMA request
 // @route   POST /api/rma
 // @access  Private

@@ -205,6 +205,7 @@ export const notificationsApi = {
 
 // RMA API
 export const rmaApi = {
+    getAll: (params) => api.get('/rma', { params }),
     create: (data) => api.post('/rma', data),
     getByTicket: (ticketId) => api.get(`/rma/ticket/${ticketId}`),
     getHistory: (assetId) => api.get(`/rma/asset/${assetId}`),

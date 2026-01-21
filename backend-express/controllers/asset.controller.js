@@ -9,7 +9,7 @@ import fs from 'fs';
 export const getAssets = async (req, res, next) => {
   try {
     const { 
-      siteId, assetType, status, criticality, isActive, 
+      siteId, assetType, status, criticality, isActive, locationName,
       search, page = 1, limit = 50 
     } = req.query;
     
@@ -30,6 +30,7 @@ export const getAssets = async (req, res, next) => {
     }
     
     if (siteId) query.siteId = siteId;
+    if (locationName) query.locationName = locationName;
     if (assetType) query.assetType = assetType;
     if (status) query.status = status;
     if (criticality) query.criticality = parseInt(criticality);

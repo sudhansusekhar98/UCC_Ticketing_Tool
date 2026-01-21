@@ -20,6 +20,7 @@ import {
     AlertCircle,
     Eye,
     EyeOff,
+    RotateCcw,
 } from 'lucide-react';
 import { assetsApi, sitesApi, lookupsApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
@@ -46,6 +47,8 @@ export default function AssetsList() {
     const [typeFilter, setTypeFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [sites, setSites] = useState([]);
+    const [locations, setLocations] = useState([]);
+    const [locationFilter, setLocationFilter] = useState('');
     const [assetTypes, setAssetTypes] = useState([]);
     const [assetStatuses, setAssetStatuses] = useState([]);
     const [page, setPage] = useState(1);
@@ -91,7 +94,17 @@ export default function AssetsList() {
     // Fetch assets when filters or page change
     useEffect(() => {
         fetchAssets();
-    }, [page, debouncedSearchValue, siteFilter, typeFilter, statusFilter]);
+    }, [page, debouncedSearchValue, siteFilter, locationFilter, typeFilter, statusFilter]);
+
+    // Fetch locations when site changes
+    useEffect(() => {
+        if (siteFilter) {
+            loadLocations(siteFilter);
+        } else {
+            setLocations([]);
+            setLocationFilter('');
+        }
+    }, [siteFilter]);
 
     const loadDropdowns = async () => {
         try {
@@ -120,6 +133,19 @@ export default function AssetsList() {
         }
     };
 
+    const loadLocations = async (siteId) => {
+        try {
+            const response = await assetsApi.getLocationNames(siteId);
+            if (response.data && response.data.success) {
+                // Backend returns [{ label: 'Name', value: 'Name' }, ...]
+                setLocations(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Failed to load locations', error);
+            setLocations([]);
+        }
+    };
+
     const fetchAssets = async () => {
         setLoading(true);
         try {
@@ -128,6 +154,7 @@ export default function AssetsList() {
                 limit: pageSize,
                 search: debouncedSearchValue || undefined,
                 siteId: siteFilter || undefined,
+                locationName: locationFilter || undefined,
                 assetType: typeFilter || undefined,
                 status: statusFilter || undefined,
                 isActive: true,
@@ -309,12 +336,16 @@ export default function AssetsList() {
         <div className="page-container animate-fade-in assets-page">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Assets</h1>
+                    <h1 className="page-title">Assets &nbsp;</h1>
                     <p className="page-subtitle">
                         {totalCount} total assets
                     </p>
                 </div>
                 <div className="header-actions">
+                    <Link to="/assets/rma-records" className="btn btn-warning" title="View RMA Records">
+                        <RotateCcw size={18} />
+                        RMA Records
+                    </Link>
                     {canBulkOps && (
                         <>
                             <button
@@ -373,6 +404,18 @@ export default function AssetsList() {
                         <option value="">All Sites</option>
                         {sites.map(site => (
                             <option key={site.value} value={site.value}>{site.label}</option>
+                        ))}
+                    </select>
+                    <select
+                        className="form-select compact-select"
+                        value={locationFilter}
+                        onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
+                        disabled={!siteFilter}
+                        title={!siteFilter ? "Select a site first" : "Filter by location"}
+                    >
+                        <option value="">All Locations</option>
+                        {locations.map(loc => (
+                            <option key={loc.value} value={loc.value}>{loc.label}</option>
                         ))}
                     </select>
                     <select
