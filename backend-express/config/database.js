@@ -1,38 +1,78 @@
 import mongoose from "mongoose";
 
+// Cache the connection for serverless environments
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
 const connectDB = async () => {
+  // If already connected, return the cached connection
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  // If a connection is in progress, wait for it
+  if (cached.promise) {
+    cached.conn = await cached.promise;
+    return cached.conn;
+  }
+
   try {
     console.log('🔄 Attempting to connect to MongoDB...');
     console.log('📍 Connection URI:', process.env.MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@') || 'NOT SET');
     
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      // Connection timeout settings
-      serverSelectionTimeoutMS: 10000, // Timeout after 10 seconds
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+    // Increase timeouts for serverless cold starts
+    const options = {
+      // Connection timeout settings - increased for serverless
+      serverSelectionTimeoutMS: 30000, // Timeout after 30 seconds (increased for cold starts)
+      socketTimeoutMS: 60000, // Close sockets after 60 seconds of inactivity
+      // Buffer commands until connection is established
+      bufferCommands: true,
+      // Max pool size for serverless (keep low)
+      maxPoolSize: 10,
       // Use IPv4 first for DNS resolution (helps with some network configs)
       family: 4
-    });
+    };
 
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-    console.log(`Database: ${conn.connection.name}`);
+    cached.promise = mongoose.connect(process.env.MONGODB_URI, options);
+    cached.conn = await cached.promise;
+
+    console.log(`✅ MongoDB Connected: ${cached.conn.connection.host}`);
+    console.log(`📊 Database: ${cached.conn.connection.name}`);
 
     // Handle connection events
     mongoose.connection.on("error", (err) => {
-      console.error(" MongoDB connection error:", err);
+      console.error("❌ MongoDB connection error:", err);
+      // Reset cache on error
+      cached.conn = null;
+      cached.promise = null;
     });
 
     mongoose.connection.on("disconnected", () => {
-      console.warn(" MongoDB disconnected");
+      console.warn("⚠️ MongoDB disconnected");
+      // Reset cache on disconnect
+      cached.conn = null;
+      cached.promise = null;
     });
 
-    // Graceful shutdown
-    process.on("SIGINT", async () => {
-      await mongoose.connection.close();
-      console.log("MongoDB connection closed through app termination");
-      process.exit(0);
-    });
+    // Graceful shutdown (only for non-serverless)
+    if (process.env.VERCEL !== '1') {
+      process.on("SIGINT", async () => {
+        await mongoose.connection.close();
+        console.log("MongoDB connection closed through app termination");
+        process.exit(0);
+      });
+    }
+
+    return cached.conn;
   } catch (error) {
     console.error("❌ Error connecting to MongoDB:", error.message);
+    // Reset cache on error
+    cached.promise = null;
+    cached.conn = null;
+    
     if (!process.env.MONGODB_URI) {
       console.error("⚠️ MONGODB_URI is not defined in environment variables!");
     }
@@ -40,7 +80,9 @@ const connectDB = async () => {
     if (process.env.VERCEL !== '1') {
       process.exit(1);
     }
+    throw error;
   }
 };
 
 export default connectDB;
+

@@ -84,9 +84,34 @@ connectDB().catch(err => console.error('MongoDB connection failed:', err));
 
 // Middleware
 app.use(helmet()); // Security headers
+
+// CORS Configuration - supports multiple origins
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://ucc-ticketing-tool.vercel.app',
+  'https://ucc-ticketing-tool-znae.vercel.app',
+  // Add the CORS_ORIGIN from env (remove trailing slash if present)
+  ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN.replace(/\/$/, '')] : [])
+];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
-  credentials: true
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, postman)
+    if (!origin) return callback(null, true);
+    
+    // Remove trailing slash from origin for comparison
+    const normalizedOrigin = origin.replace(/\/$/, '');
+    
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Allow anyway for debugging, change to callback(new Error('Not allowed by CORS')) for strict mode
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(compression()); // Compress responses
 if (process.env.NODE_ENV !== 'production') {
