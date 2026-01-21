@@ -18,6 +18,7 @@ import userRightRoutes from '../routes/userRight.routes.js';
 import notificationRoutes from '../routes/notification.routes.js';
 import rmaRoutes from '../routes/rma.routes.js';
 import assetUpdateRequestRoutes from '../routes/assetUpdateRequest.routes.js';
+import reportingRoutes from '../routes/reporting.routes.js';
 
 const app = express();
 
@@ -29,7 +30,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 // Dynamic CORS Configuration
 const allowedOrigins = [
   'https://ucc-ticketing-tool.vercel.app',
-  'https://ucc-ticketing-tool-znae.vercel.app',
+  'https://ticketops.vluccc.com',
   'http://localhost:5173',
   ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN.replace(/\/$/, '')] : [])
 ];
@@ -109,6 +110,7 @@ app.use('/api/user-rights', userRightRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/rma', rmaRoutes);
 app.use('/api/asset-update-requests', assetUpdateRequestRoutes);
+app.use('/api/reporting', reportingRoutes);
 
 // Static files (Mapped to /tmp for serverless runtime)
 app.use('/uploads', express.static('/tmp'));
