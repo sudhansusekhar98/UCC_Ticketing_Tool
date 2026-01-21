@@ -107,9 +107,9 @@ export default function Login() {
                         </button>
                     </form>
 
-                    <div className="login-footer">
+                    {/* <div className="login-footer">
                         <p>Default credentials: <code>admin</code> / <code>Admin@123</code></p>
-                    </div>
+                    </div> */}
                 </div>
 
                 <div className="login-features">
