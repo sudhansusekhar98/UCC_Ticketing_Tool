@@ -155,6 +155,7 @@ ticketSchema.index({ status: 1 });
 ticketSchema.index({ priority: 1 });
 ticketSchema.index({ createdBy: 1 });
 ticketSchema.index({ assignedTo: 1 });
+ticketSchema.index({ siteId: 1 });
 ticketSchema.index({ assetId: 1 });
 ticketSchema.index({ createdAt: -1 });
 

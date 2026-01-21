@@ -79,21 +79,50 @@ export default function Reports() {
 
     const fetchData = async () => {
         setLoading(true);
+        
         try {
-            const [ticketsRes, slaRes, assetsRes, rmaRes] = await Promise.all([
+            // Use allSettled to allow partial data loading
+            const results = await Promise.allSettled([
                 reportingApi.getTicketStats(filters),
                 reportingApi.getSLAPerformance(filters),
                 reportingApi.getAssetStats(filters),
                 reportingApi.getRMAStats(filters)
             ]);
 
-            setTicketStats(ticketsRes.data.data);
-            setSlaStats(slaRes.data.data);
-            setAssetStats(assetsRes.data.data);
-            setRmaStats(rmaRes.data.data);
+            const [ticketsRes, slaRes, assetsRes, rmaRes] = results;
+
+            // Handle Tickets Stats
+            if (ticketsRes.status === 'fulfilled') {
+                setTicketStats(ticketsRes.value.data.data);
+            } else {
+                console.error('Tickets stats failed:', ticketsRes.reason);
+                toast.error('Failed to load tickets data: ' + (ticketsRes.reason.response?.data?.message || ticketsRes.reason.message));
+            }
+
+            // Handle SLA Stats
+            if (slaRes.status === 'fulfilled') {
+                setSlaStats(slaRes.value.data.data);
+            } else {
+                console.error('SLA stats failed:', slaRes.reason);
+            }
+
+            // Handle Asset Stats
+            if (assetsRes.status === 'fulfilled') {
+                setAssetStats(assetsRes.value.data.data);
+            } else {
+                console.error('Asset stats failed:', assetsRes.reason);
+            }
+
+            // Handle RMA Stats
+            if (rmaRes.status === 'fulfilled') {
+                setRmaStats(rmaRes.value.data.data);
+            } else {
+                console.error('RMA stats failed:', rmaRes.reason);
+            }
+
         } catch (error) {
             console.error('Error fetching reports:', error);
-            toast.error('Failed to load report data');
+            toast.error('Unexpected error loading reports');
         } finally {
             setLoading(false);
         }
