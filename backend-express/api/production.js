@@ -26,11 +26,30 @@ connectDB().catch(err => console.error('MongoDB connection error:', err.message)
 
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
+// Dynamic CORS Configuration
+const allowedOrigins = [
+  'https://ucc-ticketing-tool.vercel.app',
+  'https://ucc-ticketing-tool-znae.vercel.app',
+  'http://localhost:5173',
+  ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN.replace(/\/$/, '')] : [])
+];
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin checks out
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked:', origin);
+      callback(null, false);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
