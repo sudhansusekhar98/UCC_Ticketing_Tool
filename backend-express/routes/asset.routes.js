@@ -16,6 +16,7 @@ import {
 } from '../controllers/asset.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 import multer from 'multer';
+import os from 'os';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ const router = express.Router();
 router.use(protect);
 
 // Configure upload
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: os.tmpdir() });
 
 // Utility routes (before :id routes)
 router.get('/dropdown', getAssetsDropdown);
