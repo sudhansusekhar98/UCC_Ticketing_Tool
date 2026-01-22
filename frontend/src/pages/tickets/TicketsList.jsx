@@ -96,6 +96,7 @@ export default function TicketsList() {
                 limit: filters.pageSize, // Map pageSize to limit for backend
                 search: filters.searchTerm, // Map searchTerm to search
                 isSLABreached: searchParams.get('slaBreached') === 'true' ? true : undefined,
+                isEscalated: searchParams.get('escalated') === 'true' ? true : undefined,
                 slaStatus: filters.slaStatus || undefined,
             });
             // Handle both Express.js and .NET response formats

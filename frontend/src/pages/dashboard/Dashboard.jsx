@@ -47,9 +47,9 @@ const useAnimatedCounter = (endValue, duration = 1000) => {
             const progress = Math.min((timestamp - startTimeRef.current) / duration, 1);
             const easeOut = 1 - Math.pow(1 - progress, 3); // Cubic ease-out
             const currentCount = Math.floor(easeOut * endValue);
-            
+
             setCount(currentCount);
-            
+
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
@@ -155,7 +155,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const { user, hasRole } = useAuthStore();
-    
+
     // Permission checks
     const isAdmin = hasRole(['Admin']);
     const canSeeUsers = hasRole(['Admin']);
@@ -274,7 +274,7 @@ export default function Dashboard() {
                         </span>
                     </div>
                 </Link>
-               
+
                 {/* <Link to="/tickets?status=Open" className="stat-card primary animate-enter delay-100">
                     <div className="stat-card-bg-blob"></div>
                     <div className="stat-header">
@@ -340,7 +340,7 @@ export default function Dashboard() {
                         <span className="text-success">+<AnimatedStatValue value={stats?.resolvedToday || 0} /> resolved today</span>
                     </div>
                 </Link>
-                <Link to="/tickets?escalated=true" className="stat-card primary animate-enter delay-100">
+                <Link to="/tickets?status=Escalated" className="stat-card primary animate-enter delay-100">
                     <div className="stat-card-bg-blob"></div>
                     <div className="stat-header">
                         <div className="stat-icon-wrapper">
@@ -412,18 +412,18 @@ export default function Dashboard() {
             <div className="stats-grid secondary-stats animate-enter delay-200">
                 <div className="stat-card assets-card">
                     <div className="stat-header">
-                        <div className="stat-icon-wrapper" style={{background: 'var(--bg-tertiary)', color: 'var(--text-primary)'}}>
+                        <div className="stat-icon-wrapper" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
                             <Monitor size={20} />
                         </div>
                         <Link to="/assets" className="stat-link">
                             Manage Assets <ArrowUpRight size={14} />
                         </Link>
                     </div>
-                    <div className="stat-value" style={{fontSize: '2.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)'}}>
+                    <div className="stat-value" style={{ fontSize: '2.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)' }}>
                         {stats?.totalAssets || 0}
                     </div>
                     <div className="stat-label">Total Assets Monitored</div>
-                    
+
                     {assets.length > 0 ? (
                         <div className="assets-list">
                             {assets.slice(0, 5).map((asset, index) => (
@@ -446,19 +446,19 @@ export default function Dashboard() {
                         <EmptyState icon={Monitor} title="No assets found" description="Add your first asset to start monitoring" />
                     )}
                 </div>
-                
+
                 <div className="stat-card engineers-card">
                     <div className="stat-header">
-                         <div className="stat-icon-wrapper" style={{background: 'var(--bg-tertiary)', color: 'var(--text-primary)'}}>
+                        <div className="stat-icon-wrapper" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
                             <Users size={20} />
                         </div>
-                         {canSeeUsers && (
+                        {canSeeUsers && (
                             <Link to="/users" className="stat-link">
                                 Manage Team <ArrowUpRight size={14} />
                             </Link>
                         )}
                     </div>
-                    <div className="stat-value" style={{fontSize: '2.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)'}}>
+                    <div className="stat-value" style={{ fontSize: '2.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)' }}>
                         {engineers.length || stats?.availableEngineers || 0}
                     </div>
                     <div className="stat-label">Active Engineers</div>
@@ -488,7 +488,7 @@ export default function Dashboard() {
             <div className="charts-grid animate-enter delay-300">
                 {/* Tickets by Priority */}
                 <div className="chart-card">
-                    <h3 className="chart-title"><Zap size={18} className="text-warning-500"/> Tickets by Priority</h3>
+                    <h3 className="chart-title"><Zap size={18} className="text-warning-500" /> Tickets by Priority</h3>
                     <div className="chart-container">
                         {stats?.ticketsByPriority?.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -528,21 +528,21 @@ export default function Dashboard() {
 
                 {/* Tickets by Status */}
                 <div className="chart-card">
-                    <h3 className="chart-title"><BarChart2 size={18} className="text-primary-500"/> Tickets by Status</h3>
+                    <h3 className="chart-title"><BarChart2 size={18} className="text-primary-500" /> Tickets by Status</h3>
                     <div className="chart-container">
                         {stats?.ticketsByStatus?.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={stats.ticketsByStatus} layout="vertical" margin={{ left: 0, right: 10, top: 10 }}>
                                     <XAxis type="number" hide />
-                                    <YAxis 
-                                        type="category" 
-                                        dataKey="status" 
-                                        width={100} 
-                                        tick={{fontSize: 12, fill: 'var(--text-secondary)'}} 
+                                    <YAxis
+                                        type="category"
+                                        dataKey="status"
+                                        width={100}
+                                        tick={{ fontSize: 12, fill: 'var(--text-secondary)' }}
                                         axisLine={false}
                                         tickLine={false}
                                     />
-                                    <Tooltip content={<CustomTooltip />} cursor={{fill: 'var(--bg-tertiary)', opacity: 0.4}} />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--bg-tertiary)', opacity: 0.4 }} />
                                     <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
                                         {stats.ticketsByStatus.map((entry, index) => (
                                             <Cell key={index} fill={STATUS_COLORS[entry.status] || '#6b7280'} />
@@ -558,7 +558,7 @@ export default function Dashboard() {
 
                 {/* Tickets by Category */}
                 <div className="chart-card">
-                    <h3 className="chart-title"><Layers size={18} className="text-secondary"/> Ticket Categories</h3>
+                    <h3 className="chart-title"><Layers size={18} className="text-secondary" /> Ticket Categories</h3>
                     <div className="category-list">
                         {stats?.ticketsByCategory?.length > 0 ? (
                             stats.ticketsByCategory.slice(0, 5).map((cat, index) => (

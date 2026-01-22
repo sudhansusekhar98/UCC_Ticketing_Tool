@@ -10,17 +10,17 @@ import SLAPolicy from '../models/SLAPolicy.model.js';
 // @access  Private
 export const getTickets = async (req, res, next) => {
   try {
-    const { 
+    const {
       status, priority, category, siteId, assetId, assignedTo, createdBy,
       search, page = 1, limit = 50, sortBy = 'createdAt', sortOrder = 'desc',
-      isSLABreached, slaStatus
+      isSLABreached, isEscalated, slaStatus
     } = req.query;
-    
+
     const query = {};
-    
+
     // Role-based filtering
     const user = req.user;
-    
+
     // Admin sees all. Others see based on site/assignment logic.
     if (user.role !== 'Admin') {
       // Normal users see:
@@ -34,7 +34,7 @@ export const getTickets = async (req, res, next) => {
         { siteId: { $in: user.assignedSites || [] } }
       ];
     }
-    
+
     if (status) {
       if (status.includes(',')) {
         query.status = { $in: status.split(',') };
@@ -48,13 +48,19 @@ export const getTickets = async (req, res, next) => {
     if (assetId) query.assetId = assetId;
     if (assignedTo) query.assignedTo = assignedTo;
     if (createdBy) query.createdBy = createdBy;
-    
+
     // SLA Status filter
     if (isSLABreached === 'true') {
       query.isSLARestoreBreached = true;
       query.status = { $nin: ['Closed', 'Cancelled'] };
     }
-    
+
+    // Escalated tickets filter
+    if (isEscalated === 'true') {
+      query.escalationLevel = { $gt: 0 };
+      query.status = { $nin: ['Closed', 'Cancelled', 'Verified'] };
+    }
+
     if (slaStatus) {
       if (slaStatus === 'Breached') {
         query.isSLARestoreBreached = true;
@@ -66,19 +72,23 @@ export const getTickets = async (req, res, next) => {
       } else if (slaStatus === 'OnTrack') {
         query.$and = query.$and || [];
         query.$and.push(
-          { $or: [
-            { isSLARestoreBreached: { $ne: true } },
-            { isSLARestoreBreached: { $exists: false } }
-          ]},
-          { $or: [
-            { slaRestoreDue: { $gt: new Date(Date.now() + 30 * 60 * 1000) } },
-            { slaRestoreDue: { $exists: false } }
-          ]}
+          {
+            $or: [
+              { isSLARestoreBreached: { $ne: true } },
+              { isSLARestoreBreached: { $exists: false } }
+            ]
+          },
+          {
+            $or: [
+              { slaRestoreDue: { $gt: new Date(Date.now() + 30 * 60 * 1000) } },
+              { slaRestoreDue: { $exists: false } }
+            ]
+          }
         );
         query.status = { $nin: ['Closed', 'Cancelled'] };
       }
     }
-    
+
     if (search) {
       const searchRegex = { $regex: search, $options: 'i' };
       const searchCriteria = [
@@ -86,7 +96,7 @@ export const getTickets = async (req, res, next) => {
         { title: searchRegex },
         { description: searchRegex }
       ];
-      
+
       if (query.$or) {
         // If we already have an $or (for scope), we need to maintain it AND matches search
         // (ScopeA OR ScopeB) AND (SearchA OR SearchB)
@@ -100,10 +110,10 @@ export const getTickets = async (req, res, next) => {
         query.$or = searchCriteria;
       }
     }
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const sort = { [sortBy]: sortOrder === 'desc' ? -1 : 1 };
-    
+
     const [tickets, total] = await Promise.all([
       Ticket.find(query)
         .populate('assetId', 'assetCode assetType locationDescription siteId')
@@ -115,7 +125,7 @@ export const getTickets = async (req, res, next) => {
         .limit(parseInt(limit)),
       Ticket.countDocuments(query)
     ]);
-    
+
     res.json({
       success: true,
       data: tickets,
@@ -139,24 +149,24 @@ export const getTicketById = async (req, res, next) => {
     const ticket = await Ticket.findById(req.params.id)
       .populate('siteId', 'siteName siteUniqueID city')
       .populate({
-          path: 'assetId',
-          select: 'assetCode assetType deviceType locationDescription siteId serialNumber ipAddress mac make model',
-          populate: {
-            path: 'siteId',
-            select: 'siteName siteUniqueID city'
-          }
+        path: 'assetId',
+        select: 'assetCode assetType deviceType locationDescription siteId serialNumber ipAddress mac make model',
+        populate: {
+          path: 'siteId',
+          select: 'siteName siteUniqueID city'
+        }
       })
       .populate('createdBy', 'fullName username email')
       .populate('assignedTo', 'fullName username email role mobileNumber')
       .populate('slaPolicyId');
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     res.json({
       success: true,
       data: ticket
@@ -181,12 +191,12 @@ export const createTicket = async (req, res, next) => {
       ticketData.status = 'Assigned';
       ticketData.assignedOn = new Date();
     }
-    
+
     // Auto-assign SLA policy based on priority
     if (!ticketData.slaPolicyId && ticketData.priority) {
-      const slaPolicy = await SLAPolicy.findOne({ 
-        priority: ticketData.priority, 
-        isActive: true 
+      const slaPolicy = await SLAPolicy.findOne({
+        priority: ticketData.priority,
+        isActive: true
       });
       if (slaPolicy) {
         ticketData.slaPolicyId = slaPolicy._id;
@@ -196,9 +206,9 @@ export const createTicket = async (req, res, next) => {
         ticketData.slaRestoreDue = new Date(now.getTime() + slaPolicy.restoreTimeMinutes * 60 * 1000);
       }
     }
-    
+
     const ticket = await Ticket.create(ticketData);
-    
+
     // Create activity for ticket creation
     let activityContent = 'Ticket created';
     if (ticket.assignedTo) {
@@ -215,21 +225,21 @@ export const createTicket = async (req, res, next) => {
       activityType: 'StatusChange',
       content: activityContent
     });
-    
+
     const populatedTicket = await Ticket.findById(ticket._id)
       .populate('siteId', 'siteName siteUniqueID city')
       .populate('assetId', 'assetCode assetType deviceType locationDescription siteId serialNumber ipAddress mac model make')
       .populate('createdBy', 'fullName username')
       .populate('assignedTo', 'fullName username role')
       .populate('slaPolicyId', 'policyName');
-    
+
     // Emit socket event for real-time updates
     const io = req.app.get('io');
     if (io) {
       io.emit('ticket:created', populatedTicket);
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
-    
+
     res.status(201).json({
       success: true,
       data: populatedTicket,
@@ -281,7 +291,7 @@ export const updateTicket = async (req, res, next) => {
       { ...updates, updatedAt: new Date() },
       { new: true, runValidators: true }
     ).populate('assetId createdBy assignedTo slaPolicyId');
-    
+
     // Log activity if fields were changed
     if (changedFields.length > 0) {
       await TicketActivity.create({
@@ -297,7 +307,7 @@ export const updateTicket = async (req, res, next) => {
         io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
       }
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -314,7 +324,7 @@ export const updateTicket = async (req, res, next) => {
 export const assignTicket = async (req, res, next) => {
   try {
     const { assignedTo, remarks } = req.body;
-    
+
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
       {
@@ -325,34 +335,34 @@ export const assignTicket = async (req, res, next) => {
       },
       { new: true }
     ).populate('assignedTo', 'fullName username');
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     // Create activity with assignment details
     let activityContent = `Ticket assigned to ${ticket.assignedTo.fullName}`;
     if (remarks && remarks.trim()) {
       activityContent += `\nRemarks: ${remarks.trim()}`;
     }
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'Assignment',
       content: activityContent
     });
-    
+
     // Emit socket event
     const io = req.app.get('io');
     if (io) {
       io.to(`user_${assignedTo}`).emit('ticket:assigned', ticket);
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -377,26 +387,26 @@ export const acknowledgeTicket = async (req, res, next) => {
       },
       { new: true }
     );
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'StatusChange',
       content: 'Ticket acknowledged'
     });
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -420,26 +430,26 @@ export const startTicket = async (req, res, next) => {
       },
       { new: true }
     );
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'StatusChange',
       content: 'Work started on ticket'
     });
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -456,7 +466,7 @@ export const startTicket = async (req, res, next) => {
 export const resolveTicket = async (req, res, next) => {
   try {
     const { rootCause, resolutionSummary } = req.body;
-    
+
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
       {
@@ -468,26 +478,26 @@ export const resolveTicket = async (req, res, next) => {
       },
       { new: true }
     );
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'Resolution',
       content: `Ticket resolved. ${resolutionSummary || ''}`
     });
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -513,26 +523,26 @@ export const verifyTicket = async (req, res, next) => {
       },
       { new: true }
     );
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'StatusChange',
       content: 'Resolution verified'
     });
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -549,7 +559,7 @@ export const verifyTicket = async (req, res, next) => {
 export const closeTicket = async (req, res, next) => {
   try {
     const { notes } = req.body;
-    
+
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
       {
@@ -559,26 +569,26 @@ export const closeTicket = async (req, res, next) => {
       },
       { new: true }
     );
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'StatusChange',
       content: `Ticket closed${notes ? '. Notes: ' + notes : ''}`
     });
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -595,7 +605,7 @@ export const closeTicket = async (req, res, next) => {
 export const reopenTicket = async (req, res, next) => {
   try {
     const { reason } = req.body;
-    
+
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
       {
@@ -608,26 +618,26 @@ export const reopenTicket = async (req, res, next) => {
       },
       { new: true }
     );
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'StatusChange',
       content: `Ticket reopened. Reason: ${reason || 'Not specified'}`
     });
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -644,44 +654,44 @@ export const reopenTicket = async (req, res, next) => {
 export const rejectResolution = async (req, res, next) => {
   try {
     const { reason } = req.body;
-    
+
     if (!reason || !reason.trim()) {
       return res.status(400).json({
         success: false,
         message: 'Rejection reason is required'
       });
     }
-    
+
     const ticket = await Ticket.findById(req.params.id);
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     if (ticket.status !== 'Resolved') {
       return res.status(400).json({
         success: false,
         message: 'Only resolved tickets can have their resolution rejected'
       });
     }
-    
+
     ticket.status = 'ResolutionRejected';
     ticket.resolvedOn = null;
     ticket.rootCause = null;
     ticket.resolutionSummary = null;
     ticket.updatedAt = new Date();
     await ticket.save();
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'StatusChange',
       content: `Resolution rejected by ${req.user.fullName}. Reason: ${reason.trim()}\n\nPlease reinvestigate and provide an update.`
     });
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
@@ -694,7 +704,7 @@ export const rejectResolution = async (req, res, next) => {
         });
       }
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -711,21 +721,21 @@ export const rejectResolution = async (req, res, next) => {
 export const acknowledgeRejection = async (req, res, next) => {
   try {
     const ticket = await Ticket.findById(req.params.id);
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     if (ticket.status !== 'ResolutionRejected') {
       return res.status(400).json({
         success: false,
         message: 'Ticket is not in rejection state'
       });
     }
-    
+
     // Only the assigned user can acknowledge
     if (ticket.assignedTo?.toString() !== req.user._id.toString()) {
       return res.status(403).json({
@@ -733,23 +743,23 @@ export const acknowledgeRejection = async (req, res, next) => {
         message: 'Only the assigned user can acknowledge the rejection'
       });
     }
-    
+
     ticket.status = 'InProgress';
     ticket.updatedAt = new Date();
     await ticket.save();
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'StatusChange',
       content: 'Rejection acknowledged. Work resumed on the ticket.'
     });
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -766,23 +776,23 @@ export const acknowledgeRejection = async (req, res, next) => {
 export const escalateTicket = async (req, res, next) => {
   try {
     const { reason } = req.body;
-    
+
     if (!reason || !reason.trim()) {
       return res.status(400).json({
         success: false,
         message: 'Escalation reason is required'
       });
     }
-    
+
     const ticket = await Ticket.findById(req.params.id);
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     const protectedStatuses = ['Resolved', 'Verified', 'Closed', 'Cancelled'];
     if (protectedStatuses.includes(ticket.status)) {
       return res.status(400).json({
@@ -790,7 +800,7 @@ export const escalateTicket = async (req, res, next) => {
         message: `Cannot escalate a ${ticket.status.toLowerCase()} ticket`
       });
     }
-    
+
     if (ticket.escalationLevel >= 3) {
       return res.status(400).json({
         success: false,
@@ -799,7 +809,7 @@ export const escalateTicket = async (req, res, next) => {
     }
 
     const nextLevel = (ticket.escalationLevel || 0) + 1;
-    
+
     ticket.status = 'Escalated';
     ticket.escalationLevel = nextLevel;
     ticket.escalatedBy = req.user._id;
@@ -810,14 +820,14 @@ export const escalateTicket = async (req, res, next) => {
     ticket.escalationAcceptedOn = undefined;
     ticket.updatedAt = new Date();
     await ticket.save();
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'Escalation',
       content: `Ticket escalated to Level ${nextLevel} by ${req.user.fullName}. Reason: ${reason.trim()}`
     });
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
@@ -829,7 +839,7 @@ export const escalateTicket = async (req, res, next) => {
         level: nextLevel
       });
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -847,14 +857,14 @@ export const acceptEscalation = async (req, res, next) => {
   try {
     const { assignedTo } = req.body;
     const ticket = await Ticket.findById(req.params.id);
-    
+
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
-    
+
     if (ticket.status !== 'Escalated') {
       return res.status(400).json({
         success: false,
@@ -864,14 +874,14 @@ export const acceptEscalation = async (req, res, next) => {
 
     const targetUserId = assignedTo || req.user._id;
     const assignedUser = await User.findById(targetUserId);
-    
+
     if (!assignedUser) {
       return res.status(404).json({
         success: false,
         message: 'Assigned user not found'
       });
     }
-    
+
     ticket.status = 'InProgress';
     ticket.assignedTo = targetUserId;
     ticket.assignedOn = new Date();
@@ -879,28 +889,28 @@ export const acceptEscalation = async (req, res, next) => {
     ticket.escalationAcceptedOn = new Date();
     ticket.updatedAt = new Date();
     await ticket.save();
-    
+
     const content = assignedTo && assignedTo.toString() !== req.user._id.toString()
       ? `Escalation accepted by ${req.user.fullName} and assigned to ${assignedUser.fullName}.`
       : `Escalation accepted by ${req.user.fullName}. Ticket is now in progress.`;
-    
+
     await TicketActivity.create({
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'StatusChange',
       content: content
     });
-    
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
-      io.emit('ticket:updated', { 
-        ticketId: ticket._id, 
-        status: 'InProgress', 
-        assignedTo: assignedUser.fullName 
+      io.emit('ticket:updated', {
+        ticketId: ticket._id,
+        status: 'InProgress',
+        assignedTo: assignedUser.fullName
       });
     }
-    
+
     res.json({
       success: true,
       data: ticket,
@@ -921,7 +931,7 @@ export const getAuditTrail = async (req, res, next) => {
     const activities = await TicketActivity.find({ ticketId: req.params.id })
       .populate('userId', 'fullName username')
       .sort({ createdOn: -1 });
-    
+
     res.json({
       success: true,
       data: activities
@@ -938,7 +948,7 @@ export const getDashboardStats = async (req, res, next) => {
   try {
     const user = req.user;
     let matchQuery = {};
-    
+
     // Role-based filtering
     if (user.role !== 'Admin') {
       const siteAssetIds = await Asset.find({ siteId: { $in: user.assignedSites || [] } }).distinct('_id');
@@ -948,7 +958,7 @@ export const getDashboardStats = async (req, res, next) => {
         { assetId: { $in: siteAssetIds } }
       ];
     }
-    
+
     const [
       totalOpen,
       totalAssigned,
@@ -956,6 +966,7 @@ export const getDashboardStats = async (req, res, next) => {
       totalInProgress,
       totalResolved,
       totalClosed,
+      totalEscalated,
       totalTickets,
       slaBreached,
       slaAtRisk,
@@ -972,15 +983,16 @@ export const getDashboardStats = async (req, res, next) => {
       Ticket.countDocuments({ ...matchQuery, status: 'InProgress' }),
       Ticket.countDocuments({ ...matchQuery, status: 'Resolved' }),
       Ticket.countDocuments({ ...matchQuery, status: 'Closed' }),
+      Ticket.countDocuments({ ...matchQuery, status: 'Escalated' }),
       Ticket.countDocuments(matchQuery),
       Ticket.countDocuments({ ...matchQuery, isSLARestoreBreached: true, status: { $nin: ['Closed', 'Cancelled'] } }),
-      Ticket.countDocuments({ 
-        ...matchQuery, 
+      Ticket.countDocuments({
+        ...matchQuery,
         slaRestoreDue: { $lte: new Date(Date.now() + 30 * 60 * 1000) }, // Within 30 minutes
-        status: { $nin: ['Closed', 'Cancelled', 'Resolved'] } 
+        status: { $nin: ['Closed', 'Cancelled', 'Resolved'] }
       }),
       // Asset counts (filtered by site for non-admins)
-      user.role === 'Admin' 
+      user.role === 'Admin'
         ? mongoose.connection.collection('assets').countDocuments({ isActive: true })
         : mongoose.connection.collection('assets').countDocuments({ isActive: true, siteId: { $in: user.assignedSites.map(s => new mongoose.Types.ObjectId(s)) || [] } }),
       user.role === 'Admin'
@@ -1007,69 +1019,71 @@ export const getDashboardStats = async (req, res, next) => {
         resolvedOn: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
       })
     ]);
-    
+
     // Calculate SLA compliance
-    const closedWithSLA = await Ticket.countDocuments({ 
-      ...matchQuery, 
+    const closedWithSLA = await Ticket.countDocuments({
+      ...matchQuery,
       status: 'Closed',
-      isSLARestoreBreached: false 
+      isSLARestoreBreached: false
     });
-    const totalClosedForSLA = await Ticket.countDocuments({ 
-      ...matchQuery, 
-      status: 'Closed' 
+    const totalClosedForSLA = await Ticket.countDocuments({
+      ...matchQuery,
+      status: 'Closed'
     });
-    const slaCompliancePercent = totalClosedForSLA > 0 
-      ? Math.round((closedWithSLA / totalClosedForSLA) * 100) 
+    const slaCompliancePercent = totalClosedForSLA > 0
+      ? Math.round((closedWithSLA / totalClosedForSLA) * 100)
       : 100;
-    
+
     // Format tickets by priority for charts
     const ticketsByPriority = byPriority.map(item => ({
       priority: item._id,
       count: item.count
     }));
-    
+
     // Format tickets by status for charts
     const ticketsByStatus = byStatus.map(item => ({
       status: item._id,
       count: item.count
     }));
-    
+
     // Format tickets by category for charts
     const ticketsByCategory = byCategory.map(item => ({
       category: item._id || 'Uncategorized',
       count: item.count
     }));
-    
+
     res.json({
       success: true,
       data: {
         // Main stats (matching frontend expectations)
         openTickets: totalOpen,
         inProgressTickets: totalInProgress,
+        escalatedTickets: totalEscalated,
         slaBreached,
         slaAtRisk,
         slaCompliancePercent,
         totalTickets,
         resolvedToday,
-        
+
         // Asset stats
         totalAssets,
         offlineAssets,
-        
+
         // Available engineers count
         availableEngineers: 0, // Can be implemented with user workload check
-        
+
         // Charts data
         ticketsByPriority,
         ticketsByStatus,
         ticketsByCategory,
-        
+
         // Legacy fields for compatibility
         totalOpen,
         totalAssigned,
         totalInProgress,
         totalResolved,
         totalClosed,
+        totalEscalated,
         totalActive: totalOpen + totalAssigned + totalAcknowledged + totalInProgress
       }
     });
