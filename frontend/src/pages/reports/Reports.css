@@ -40,10 +40,10 @@
 .page-title {
     font-size: 1.875rem;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text-primary);
     margin: 0;
     letter-spacing: -0.025em;
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-700) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -51,7 +51,7 @@
 
 .page-subtitle {
     margin-top: 0.5rem;
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 1rem;
 }
 
@@ -65,8 +65,8 @@
 .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid #e2e8f0;
-    border-top-color: #3b82f6;
+    border: 3px solid var(--border-light);
+    border-top-color: var(--primary-500);
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -86,14 +86,12 @@
 
 /* Export Panel */
 .export-panel {
-    background: rgba(255, 255, 255, 0.95);
+    background: var(--bg-card);
     border-radius: 20px;
     padding: 1.5rem;
     margin-bottom: 2rem;
-    box-shadow: 
-        0 10px 40px -10px rgba(0, 0, 0, 0.1),
-        0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-light);
     backdrop-filter: blur(20px);
     animation: slideDown 0.4s ease-out;
     overflow: hidden;
@@ -102,7 +100,7 @@
 .export-panel-header {
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border-light);
 }
 
 .export-panel-header h3 {
@@ -111,13 +109,13 @@
     gap: 0.75rem;
     font-size: 1.25rem;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--text-primary);
     margin: 0 0 0.5rem 0;
 }
 
 .export-panel-header p {
     font-size: 0.9rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
 }
 
@@ -139,7 +137,7 @@
     align-items: center;
     gap: 1rem;
     padding: 1.25rem;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: var(--bg-tertiary);
     border-radius: 14px;
     border: 2px solid transparent;
     cursor: pointer;
@@ -162,8 +160,8 @@
 
 .export-report-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1);
-    border-color: #e2e8f0;
+    box-shadow: var(--shadow-lg);
+    border-color: var(--border-medium);
 }
 
 .export-report-card:hover::before {
@@ -212,13 +210,13 @@
 .export-report-info h4 {
     font-size: 1rem;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text-primary);
     margin: 0 0 0.25rem 0;
 }
 
 .export-report-info p {
     font-size: 0.8rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0;
     line-height: 1.4;
 }
@@ -246,7 +244,7 @@
     flex-wrap: wrap;
     gap: 1rem;
     padding: 1.25rem;
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: var(--bg-tertiary);
     border-radius: 14px;
 }
 
@@ -261,7 +259,7 @@
     gap: 0.5rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: #475569;
+    color: var(--text-secondary);
     margin-bottom: 0.5rem;
 }
 
@@ -269,10 +267,10 @@
     width: 100%;
     padding: 0.75rem 1rem;
     font-size: 0.95rem;
-    border: 2px solid #e2e8f0;
+    border: 2px solid var(--border-light);
     border-radius: 10px;
-    background: white;
-    color: #1e293b;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
     appearance: none;
@@ -283,13 +281,13 @@
 }
 
 .export-select:hover {
-    border-color: #cbd5e1;
+    border-color: var(--border-medium);
 }
 
 .export-select:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: var(--primary-500);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
 }
 
 /* Export Actions */
@@ -298,7 +296,7 @@
     justify-content: flex-end;
     gap: 1rem;
     padding-top: 1rem;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--border-light);
 }
 
 .export-btn {
@@ -321,22 +319,21 @@
 /* Stats Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(6, 1fr);
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
+
 .stat-card {
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--bg-card);
     padding: 1.5rem;
     border-radius: 16px;
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    box-shadow: 
-        0 4px 6px -1px rgba(0, 0, 0, 0.05),
-        0 10px 15px -3px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-light);
     backdrop-filter: blur(12px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -345,10 +342,8 @@
 
 .stat-card:hover {
     transform: translateY(-5px);
-    box-shadow: 
-        0 10px 15px -3px rgba(0, 0, 0, 0.1),
-        0 20px 25px -5px rgba(0, 0, 0, 0.05);
-    border-color: rgba(59, 130, 246, 0.3);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--primary-400);
 }
 
 .stat-card::after {
@@ -358,13 +353,15 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.4) 0%,
-        rgba(255, 255, 255, 0) 100%
-    );
+    background: var(--gradient-glass);
     pointer-events: none;
 }
+
+/* Disable glass overlay in light mode - it makes text invisible */
+[data-theme="light"] .stat-card::after {
+    display: none;
+}
+
 
 .stat-icon {
     width: 4px; /* Icon container width */
@@ -388,21 +385,36 @@
 
 .stat-info h3 {
     font-size: 0.875rem;
-    color: #64748b;
+    color: var(--text-muted);
     margin: 0 0 0.25rem 0;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 
+/* Override for light mode - make much darker */
+[data-theme="light"] .stat-card .stat-info h3 {
+    color: #1e293b !important; /* Slate 800 - very dark */
+}
+
+
 .stat-value {
     font-size: 2rem;
     font-weight: 800;
-    color: #0f172a;
+    color: var(--text-primary);
     margin: 0;
     line-height: 1;
     letter-spacing: -0.025em;
 }
+
+/* Override for light mode - ensure dark text */
+[data-theme="light"] .stat-card .stat-value,
+[data-theme="light"] .stat-value {
+    color: #0f172a !important; /* Slate 900 - darkest */
+    -webkit-text-fill-color: #0f172a !important;
+    background: none !important;
+}
+
 
 .stat-sub {
     font-size: 0.75rem;
@@ -425,13 +437,11 @@
 }
 
 .chart-card {
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--bg-card);
     padding: 1.75rem;
     border-radius: 16px;
-    box-shadow: 
-        0 4px 6px -1px rgba(0, 0, 0, 0.05),
-        0 10px 15px -3px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-light);
     backdrop-filter: blur(12px);
     transition: transform 0.3s ease;
 }
@@ -444,7 +454,7 @@
     font-size: 1.25rem;
     font-weight: 700;
     margin: 0 0 2rem 0;
-    color: #1e293b;
+    color: var(--text-primary);
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -457,23 +467,23 @@
 
 /* Custom Tooltip in Charts */
 .custom-tooltip {
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid #e2e8f0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
     padding: 0.75rem 1rem;
     border-radius: 8px;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-lg);
     backdrop-filter: blur(4px);
 }
 
 .tooltip-label {
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text-primary);
     margin-bottom: 0.25rem;
 }
 
 .tooltip-item {
     font-size: 0.875rem;
-    color: #64748b;
+    color: var(--text-secondary);
 }
 
 /* Responsive adjustments */
@@ -519,3 +529,117 @@
         justify-content: center;
     }
 }
+
+/* Light Mode Specific Overrides */
+[data-theme="light"] .stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .stat-card:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .stat-card h3 {
+    color: #0f172a !important;
+    font-weight: 700;
+    opacity: 1;
+}
+
+[data-theme="light"] .stat-card .stat-info h3 {
+    color: #475569 !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+[data-theme="light"] .stat-card .stat-sub {
+    color: #64748b !important;
+    font-weight: 500;
+}
+
+[data-theme="light"] .stat-icon {
+    opacity: 1 !important;
+}
+
+[data-theme="light"] .chart-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    backdrop-filter: none; /* Remove blur in light mode */
+}
+
+
+[data-theme="light"] .chart-card h3 {
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
+[data-theme="light"] .export-panel {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .export-panel h3,
+[data-theme="light"] .export-panel h4 {
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
+[data-theme="light"] .export-panel p {
+    color: #64748b !important;
+}
+
+[data-theme="light"] .export-report-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .export-report-card:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+[data-theme="light"] .export-filters {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .export-filters label {
+    color: #334155 !important;
+    font-weight: 600;
+}
+
+[data-theme="light"] .export-select {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #0f172a !important;
+}
+
+[data-theme="light"] .stat-value {
+    -webkit-text-fill-color: initial;
+    background: none;
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
+[data-theme="light"] .custom-tooltip {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .custom-tooltip .tooltip-label {
+    color: #0f172a !important;
+    font-weight: 600;
+}
+
+[data-theme="light"] .custom-tooltip .tooltip-item {
+    opacity: 1 !important;
+}
+
+
+

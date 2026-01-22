@@ -264,6 +264,29 @@ export default function Dashboard() {
                     </div>
                     <div className="stat-content">
                         <div className="stat-value">
+                            <AnimatedStatValue value={stats?.totalTickets || 0} />
+                        </div>
+                        <div className="stat-label">Total Tickets</div>
+                    </div>
+                    <div className="stat-footer">
+                        <span className="stat-total">
+                            <AnimatedStatValue value={stats?.totalTickets || 0} /> total
+                        </span>
+                    </div>
+                </Link>
+               
+                {/* <Link to="/tickets?status=Open" className="stat-card primary animate-enter delay-100">
+                    <div className="stat-card-bg-blob"></div>
+                    <div className="stat-header">
+                        <div className="stat-icon-wrapper">
+                            <Ticket size={20} />
+                        </div>
+                        <span className="stat-link">
+                            View All <ArrowUpRight size={14} />
+                        </span>
+                    </div>
+                    <div className="stat-content">
+                        <div className="stat-value">
                             <AnimatedStatValue value={stats?.openTickets || 0} />
                         </div>
                         <div className="stat-label">Open Tickets</div>
@@ -272,6 +295,28 @@ export default function Dashboard() {
                         <span className="stat-total">
                             <AnimatedStatValue value={stats?.totalTickets || 0} /> total
                         </span>
+                    </div>
+                </Link> */}
+
+
+                <Link to="/tickets?slaBreached=true" className="stat-card danger animate-enter delay-300">
+                    <div className="stat-card-bg-blob"></div>
+                    <div className="stat-header">
+                        <div className="stat-icon-wrapper">
+                            <AlertTriangle size={20} />
+                        </div>
+                        <span className="stat-link">
+                            View All <ArrowUpRight size={14} />
+                        </span>
+                    </div>
+                    <div className="stat-content">
+                        <div className="stat-value">
+                            <AnimatedStatValue value={stats?.openTickets || 0} />
+                        </div>
+                        <div className="stat-label">Open Tickets</div>
+                    </div>
+                    <div className="stat-footer">
+                        <span className="stat-total"><AnimatedStatValue value={stats?.totalTickets || 0} /> total</span>
                     </div>
                 </Link>
 
@@ -295,7 +340,28 @@ export default function Dashboard() {
                         <span className="text-success">+<AnimatedStatValue value={stats?.resolvedToday || 0} /> resolved today</span>
                     </div>
                 </Link>
-
+                <Link to="/tickets?escalated=true" className="stat-card primary animate-enter delay-100">
+                    <div className="stat-card-bg-blob"></div>
+                    <div className="stat-header">
+                        <div className="stat-icon-wrapper">
+                            <Ticket size={20} />
+                        </div>
+                        <span className="stat-link">
+                            View All <ArrowUpRight size={14} />
+                        </span>
+                    </div>
+                    <div className="stat-content">
+                        <div className="stat-value">
+                            <AnimatedStatValue value={stats?.escalatedTickets || 0} />
+                        </div>
+                        <div className="stat-label">Escalated Tickets</div>
+                    </div>
+                    <div className="stat-footer">
+                        <span className="stat-total">
+                            <AnimatedStatValue value={stats?.totalTickets || 0} /> total
+                        </span>
+                    </div>
+                </Link>
                 <Link to="/tickets?slaBreached=true" className="stat-card danger animate-enter delay-300">
                     <div className="stat-card-bg-blob"></div>
                     <div className="stat-header">

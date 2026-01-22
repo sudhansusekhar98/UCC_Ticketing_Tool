@@ -193,7 +193,7 @@ export default function Reports() {
         <div className="reports-page animate-fade-in">
             <div className="page-header">
                 <div>
-                    <h1 className="page-title">Reports & Analytics</h1>
+                    <h1 className="page-title">Reports & Analytics &nbsp;</h1>
                     <p className="page-subtitle">Overview of system performance and metrics</p>
                 </div>
                 <div className="flex gap-3">

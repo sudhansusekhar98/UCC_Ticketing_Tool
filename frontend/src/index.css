@@ -51,6 +51,7 @@
   --bg-tertiary: #334155;
   --bg-card: rgba(30, 41, 59, 0.8);
   --bg-card-hover: rgba(51, 65, 85, 0.9);
+  --bg-hover: rgba(59, 130, 246, 0.1);
   --bg-glass: rgba(15, 23, 42, 0.7);
 
   /* Text Colors */
@@ -96,6 +97,7 @@
 }
 
 /* Light Theme */
+/* Light Theme */
 [data-theme="light"] {
   /* Primary Colors remain the same for brand consistency */
   --primary-50: #eff6ff;
@@ -137,32 +139,33 @@
   --info-600: #1d4ed8;
 
   /* Light Theme Backgrounds */
-  --bg-primary: #f8fafc;
+  --bg-primary: #f1f5f9; /* Darker background (slate-100) for better card contrast */
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
-  --bg-card: rgba(255, 255, 255, 0.95);
-  --bg-card-hover: rgba(241, 245, 249, 0.98);
-  --bg-glass: rgba(255, 255, 255, 0.85);
+  --bg-tertiary: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8fafc;
+  --bg-hover: rgba(59, 130, 246, 0.08);
+  --bg-glass: rgba(255, 255, 255, 0.9);
 
   /* Text Colors */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-primary: #0f172a; /* Slate 900 */
+  --text-secondary: #334155; /* Darkened from Slate 600 to Slate 700 */
+  --text-muted: #64748b; /* Slate 500 - kept same but background is darker now */
   --text-inverse: #f8fafc;
 
-  /* Borders */
-  --border-light: rgba(15, 23, 42, 0.1);
-  --border-medium: rgba(15, 23, 42, 0.15);
+  /* Borders - Increased contrast */
+  --border-light: #e2e8f0; /* Slate 200 - Solid and visible */
+  --border-medium: #cbd5e1; /* Slate 300 */
   --border-focus: #3b82f6;
 
-  /* Shadows - lighter for light mode */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  /* Shadows - Increased opacity */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-  --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
-  --shadow-glow-success: 0 0 20px rgba(16, 185, 129, 0.15);
-  --shadow-glow-danger: 0 0 20px rgba(239, 68, 68, 0.15);
+  --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.25);
+  --shadow-glow-success: 0 0 15px rgba(16, 185, 129, 0.25);
+  --shadow-glow-danger: 0 0 15px rgba(239, 68, 68, 0.25);
 
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
@@ -170,17 +173,17 @@
   --gradient-danger: linear-gradient(135deg, #ef4444 0%, #ec4899 100%);
   --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
   --gradient-dark: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);
-  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.7) 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.8) 100%);
 
   /* Sidebar specific */
   --sidebar-bg: #ffffff;
-  --sidebar-border: rgba(15, 23, 42, 0.08);
-  --sidebar-hover: rgba(59, 130, 246, 0.08);
-  --sidebar-active: rgba(59, 130, 246, 0.15);
+  --sidebar-border: #e2e8f0;
+  --sidebar-hover: #f1f5f9;
+  --sidebar-active: #eff6ff;
 
   /* Input specific */
   --input-bg: #ffffff;
-  --input-border: rgba(15, 23, 42, 0.15);
+  --input-border: #cbd5e1;
   --input-text: #0f172a;
   --input-placeholder: #94a3b8;
 }

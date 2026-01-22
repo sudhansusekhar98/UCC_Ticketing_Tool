@@ -1093,3 +1093,144 @@
 :root[data-theme="dark"] .compliance-bar {
     background: rgba(255, 255, 255, 0.1);
 }
+
+/* Light Mode Specific Overrides */
+[data-theme="light"] .stat-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    backdrop-filter: none; /* Remove blur in light mode */
+}
+
+[data-theme="light"] .stat-card:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+
+[data-theme="light"] .stat-card h3,
+[data-theme="light"] .stat-card h4 {
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
+[data-theme="light"] .stat-icon {
+    opacity: 1 !important;
+}
+
+[data-theme="light"] .stat-change {
+    opacity: 1 !important;
+}
+
+[data-theme="light"] .chart-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    backdrop-filter: none; /* Remove blur in light mode */
+}
+
+
+[data-theme="light"] .chart-card h3 {
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
+[data-theme="light"] .quick-actions {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .quick-actions h3 {
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
+[data-theme="light"] .action-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] .action-card:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+[data-theme="light"] .action-card h4 {
+    color: #0f172a !important;
+    font-weight: 600;
+}
+
+[data-theme="light"] .action-card p {
+    color: #64748b !important;
+}
+
+[data-theme="light"] .asset-item,
+[data-theme="light"] .engineer-item {
+    background: #f8fafc;
+    border: 1px solid transparent;
+}
+
+[data-theme="light"] .asset-item:hover,
+[data-theme="light"] .engineer-item:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+[data-theme="light"] .asset-name,
+[data-theme="light"] .engineer-name {
+    color: #0f172a !important;
+    font-weight: 600;
+}
+
+[data-theme="light"] .asset-type,
+[data-theme="light"] .engineer-role {
+    color: #64748b !important;
+    font-weight: 500;
+}
+
+[data-theme="light"] .custom-tooltip {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .custom-tooltip .tooltip-label {
+    color: #0f172a !important;
+    font-weight: 600;
+}
+
+[data-theme="light"] .stat-value {
+    /* Ensure gradients work or fallback to dark text */
+    -webkit-text-fill-color: initial;
+    background: none;
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
+[data-theme="light"] .stat-label {
+    color: #475569 !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+[data-theme="light"] .assets-card h3,
+[data-theme="light"] .engineers-card h3 {
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
+[data-theme="light"] .assets-card .stat-value,
+[data-theme="light"] .engineers-card .stat-value {
+    color: #0f172a !important;
+    font-weight: 700;
+}
+
+[data-theme="light"] .assets-card .stat-label,
+[data-theme="light"] .engineers-card .stat-label {
+    color: #64748b !important;
+    font-weight: 600;
+}
+
+
