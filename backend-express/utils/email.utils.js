@@ -1,9 +1,9 @@
-import nodemailer from 'nodemailer';
+import { createTransport } from 'nodemailer';
 import 'dotenv/config';
 
 // Create reusable transporter
 const createTransporter = () => {
-    return nodemailer.createTransport({
+    return createTransport({
         host: process.env.SMTP_HOST,
         port: process.env.SMTP_PORT,
         secure: false, // true for 465, false for other ports

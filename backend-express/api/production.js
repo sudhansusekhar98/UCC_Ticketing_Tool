@@ -39,7 +39,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    
+
     // Check if origin checks out
     if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
       callback(null, true);
@@ -50,7 +50,10 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  maxAge: 86400, // Cache preflight for 24 hours - reduces OPTIONS requests
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
@@ -58,25 +61,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Placeholder for Socket.io to prevent crashes in controllers that use req.app.get('io')
 app.set('io', {
-  to: () => ({ emit: () => {} }),
-  emit: () => {}
+  to: () => ({ emit: () => { } }),
+  emit: () => { }
 });
 
-// Database connection check middleware
-// Database connection middleware - BLOCKING for Serverless
-app.use(async (req, res, next) => {
-  // Skip for health check (optional, but good practice)
-  if (req.path === '/api/health') return next();
-  
-  try {
-    // Wait for DB connection before proceeding
-    await connectDB();
-    next();
-  } catch (error) {
-    console.error('DB Connection Failed:', error);
-    res.status(500).json({ success: false, message: 'Database connection failed' });
-  }
-});
+// Note: DB connection is handled at app startup (line 26) and by mongoose auto-reconnect
+// No per-request middleware needed - mongoose buffers commands if not connected
 
 // Root endpoint for verification
 app.get('/', (req, res) => {

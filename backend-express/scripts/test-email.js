@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import nodemailer from 'nodemailer';
+import { createTransport } from 'nodemailer';
 
 /**
  * Quick test script to verify SMTP email configuration
@@ -18,7 +18,7 @@ async function testEmailConfig() {
 
     try {
         // Create transporter
-        const transporter = nodemailer.createTransporter({
+        const transporter = createTransport({
             host: process.env.SMTP_HOST,
             port: process.env.SMTP_PORT,
             secure: false,

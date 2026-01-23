@@ -4,6 +4,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
+import mongoose from 'mongoose';
 import { createServer } from 'http';
 import connectDB from './config/database.js';
 
@@ -26,7 +27,7 @@ if (process.env.VERCEL !== '1') {
   // Dynamic import for Socket.io (only in local environment)
   import('socket.io').then(({ Server }) => {
     httpServer = createServer(app);
-    
+
     // Initialize Socket.IO
     io = new Server(httpServer, {
       cors: {
@@ -95,13 +96,13 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) return callback(null, true);
-    
+
     // Remove trailing slash from origin for comparison
     const normalizedOrigin = origin.replace(/\/$/, '');
-    
+
     if (allowedOrigins.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
@@ -135,27 +136,9 @@ app.get('/api/health', (req, res) => {
     status: 'OK',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV
+    environment: process.env.NODE_ENV,
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   });
-});
-
-// DB Connection Middleware - Critical for Vercel Serverless
-// Ensures DB is connected BEFORE the route handler runs
-app.use('/api', async (req, res, next) => {
-  // Skip for health check if we want it to report status even without DB
-  if (req.path === '/health') return next();
-  
-  try {
-    await connectDB();
-    next();
-  } catch (error) {
-    console.error('DB Connection Middleware Error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Database connection failed',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
 });
 
 // API Routes
@@ -201,7 +184,7 @@ app.use((req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  
+
   res.status(err.statusCode || 500).json({
     success: false,
     message: err.message || 'Internal Server Error',

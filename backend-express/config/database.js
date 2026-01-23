@@ -12,11 +12,11 @@ const connectDB = async () => {
   if (cached.conn && cached.conn.connection.readyState === 1) {
     return cached.conn;
   }
-  
+
   // If disconnected but cached, reset
   if (cached.conn && cached.conn.connection.readyState !== 2) {
-      cached.conn = null;
-      cached.promise = null;
+    cached.conn = null;
+    cached.promise = null;
   }
 
   // If a connection is in progress, wait for it
@@ -28,18 +28,25 @@ const connectDB = async () => {
   try {
     console.log('🔄 Attempting to connect to MongoDB...');
     console.log('📍 Connection URI:', process.env.MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@') || 'NOT SET');
-    
-    // Increase timeouts for serverless cold starts
+
+    // Optimized settings for serverless/Vercel
     const options = {
-      // Connection timeout settings - increased for serverless
-      serverSelectionTimeoutMS: 30000, // Timeout after 30 seconds (increased for cold starts)
-      socketTimeoutMS: 60000, // Close sockets after 60 seconds of inactivity
+      // Faster connection timeouts for serverless
+      serverSelectionTimeoutMS: 5000, // Reduced from 30s - fail fast on cold starts
+      connectTimeoutMS: 5000, // Fast connection timeout
+      socketTimeoutMS: 45000, // Socket timeout
       // Buffer commands until connection is established
       bufferCommands: true,
-      // Max pool size for serverless (keep low)
-      maxPoolSize: 10,
-      // Use IPv4 first for DNS resolution (helps with some network configs)
-      family: 4
+      // Connection pool optimized for serverless
+      maxPoolSize: 5, // Reduced for serverless (fewer connections)
+      minPoolSize: 0, // Allow pool to shrink to 0
+      maxIdleTimeMS: 10000, // Close idle connections after 10s
+      // Use IPv4 first for DNS resolution
+      family: 4,
+      // Retry writes
+      retryWrites: true,
+      // Write concern
+      w: 'majority'
     };
 
     cached.promise = mongoose.connect(process.env.MONGODB_URI, options);
@@ -78,7 +85,7 @@ const connectDB = async () => {
     // Reset cache on error
     cached.promise = null;
     cached.conn = null;
-    
+
     if (!process.env.MONGODB_URI) {
       console.error("⚠️ MONGODB_URI is not defined in environment variables!");
     }
