@@ -1,6 +1,7 @@
 import User from '../models/User.model.js';
 import UserRight from '../models/UserRight.model.js';
 import { hashPassword } from '../utils/auth.utils.js';
+import { sendAccountCreationEmail, sendPasswordResetEmail } from '../utils/email.utils.js';
 
 // @desc    Get all users
 // @route   GET /api/users
@@ -8,22 +9,22 @@ import { hashPassword } from '../utils/auth.utils.js';
 export const getUsers = async (req, res, next) => {
   try {
     const { role, siteId, isActive, search, page = 1, limit = 50 } = req.query;
-    
+
     const query = {};
     const user = req.user;
 
     // Restrict non-admins to their assigned sites
     if (user.role !== 'Admin') {
-       if (!user.assignedSites || user.assignedSites.length === 0) {
-           return res.json({
-               success: true,
-               data: [],
-               pagination: { page: 1, limit: parseInt(limit), total: 0, pages: 0 }
-           });
-       }
-       query.assignedSites = { $in: user.assignedSites };
+      if (!user.assignedSites || user.assignedSites.length === 0) {
+        return res.json({
+          success: true,
+          data: [],
+          pagination: { page: 1, limit: parseInt(limit), total: 0, pages: 0 }
+        });
+      }
+      query.assignedSites = { $in: user.assignedSites };
     }
-    
+
     if (role) query.role = role;
     if (siteId) query.siteId = siteId;
     if (isActive !== undefined) query.isActive = isActive === 'true';
@@ -34,9 +35,9 @@ export const getUsers = async (req, res, next) => {
         { email: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [users, total] = await Promise.all([
       User.find(query)
         .select('-passwordHash')
@@ -47,7 +48,7 @@ export const getUsers = async (req, res, next) => {
         .limit(parseInt(limit)),
       User.countDocuments(query)
     ]);
-    
+
     res.json({
       success: true,
       data: users,
@@ -72,14 +73,14 @@ export const getUserById = async (req, res, next) => {
       .select('-passwordHash')
       .populate('siteId', 'siteName siteUniqueID city')
       .populate('assignedSites', 'siteName siteUniqueID city');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     res.json({
       success: true,
       data: user
@@ -95,23 +96,31 @@ export const getUserById = async (req, res, next) => {
 export const createUser = async (req, res, next) => {
   try {
     const { password, ...userData } = req.body;
-    
+
+    // Store temporary password for email
+    const tempPassword = password || 'DefaultPass@123';
+
     // Hash password
-    const passwordHash = await hashPassword(password || 'DefaultPass@123');
-    
+    const passwordHash = await hashPassword(tempPassword);
+
     const user = await User.create({
       ...userData,
       passwordHash
     });
-    
+
+    // Send welcome email with credentials
+    if (user.email) {
+      await sendAccountCreationEmail(user, tempPassword);
+    }
+
     // Remove password from response
     const userResponse = user.toObject();
     delete userResponse.passwordHash;
-    
+
     res.status(201).json({
       success: true,
       data: userResponse,
-      message: 'User created successfully'
+      message: 'User created successfully. Welcome email has been sent.'
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -131,25 +140,25 @@ export const createUser = async (req, res, next) => {
 export const updateUser = async (req, res, next) => {
   try {
     const { password, ...userData } = req.body;
-    
+
     // If password is provided, hash it
     if (password) {
       userData.passwordHash = await hashPassword(password);
     }
-    
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { ...userData, updatedAt: new Date() },
       { new: true, runValidators: true }
     ).select('-passwordHash');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     res.json({
       success: true,
       data: user,
@@ -166,14 +175,14 @@ export const updateUser = async (req, res, next) => {
 export const deleteUser = async (req, res, next) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     res.json({
       success: true,
       message: 'User deleted successfully'
@@ -190,18 +199,18 @@ export const getUsersDropdown = async (req, res, next) => {
   try {
     const { role } = req.query;
     const query = { isActive: true };
-    
+
     if (role) query.role = role;
 
     if (req.user.role !== 'Admin') {
-        if (!req.user.assignedSites || req.user.assignedSites.length === 0) return res.json({ success: true, data: [] });
-        query.assignedSites = { $in: req.user.assignedSites };
+      if (!req.user.assignedSites || req.user.assignedSites.length === 0) return res.json({ success: true, data: [] });
+      query.assignedSites = { $in: req.user.assignedSites };
     }
-    
+
     const users = await User.find(query)
       .select('fullName username role')
       .sort({ fullName: 1 });
-    
+
     res.json({
       success: true,
       data: users
@@ -234,7 +243,7 @@ export const getEngineers = async (req, res, next) => {
       .populate('siteId', 'siteName')
       .populate('assignedSites', 'siteName')
       .sort({ fullName: 1 });
-    
+
     res.json({
       success: true,
       data: engineers
@@ -256,7 +265,7 @@ export const getContacts = async (req, res, next) => {
     })
       .select('fullName username role email mobileNumber')
       .sort({ role: 1, fullName: 1 });
-    
+
     res.json({
       success: true,
       data: contacts
@@ -276,14 +285,14 @@ export const activateUser = async (req, res, next) => {
       { isActive: true },
       { new: true }
     ).select('-passwordHash');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     res.json({
       success: true,
       data: user,
@@ -304,14 +313,14 @@ export const deactivateUser = async (req, res, next) => {
       { isActive: false },
       { new: true }
     ).select('-passwordHash');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
     res.json({
       success: true,
       data: user,
@@ -328,25 +337,33 @@ export const deactivateUser = async (req, res, next) => {
 export const resetPassword = async (req, res, next) => {
   try {
     const { newPassword } = req.body;
-    
-    const passwordHash = await hashPassword(newPassword || 'Reset@123');
-    
+
+    // Store new password for email
+    const resetPassword = newPassword || 'Reset@123';
+
+    const passwordHash = await hashPassword(resetPassword);
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { passwordHash },
       { new: true }
     ).select('-passwordHash');
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
+
+    // Send password reset email
+    if (user.email) {
+      await sendPasswordResetEmail(user, resetPassword);
+    }
+
     res.json({
       success: true,
-      message: 'Password reset successfully'
+      message: 'Password reset successfully. Email notification has been sent.'
     });
   } catch (error) {
     next(error);
@@ -359,13 +376,13 @@ export const resetPassword = async (req, res, next) => {
 export const getEscalationUsers = async (req, res, next) => {
   try {
     const { siteId, level } = req.query;
-    
+
     // Determine which rights to look for based on level
     let escalationRights = ['ESCALATION_L1', 'ESCALATION_L2', 'ESCALATION_L3'];
     if (level) {
       escalationRights = [`ESCALATION_L${level}`];
     }
-    
+
     let query = {
       $or: [
         { globalRights: { $in: escalationRights } },
@@ -375,14 +392,14 @@ export const getEscalationUsers = async (req, res, next) => {
 
     const userRights = await UserRight.find(query).select('user');
     const userIds = userRights.map(ur => ur.user);
-    
-    const users = await User.find({ 
+
+    const users = await User.find({
       _id: { $in: userIds },
-      isActive: true 
+      isActive: true
     })
-    .select('fullName username role siteId assignedSites')
-    .sort({ fullName: 1 });
-    
+      .select('fullName username role siteId assignedSites')
+      .sort({ fullName: 1 });
+
     res.json({
       success: true,
       data: users

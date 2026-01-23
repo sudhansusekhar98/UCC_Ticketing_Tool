@@ -4,6 +4,7 @@ import User from '../models/User.model.js';
 import Asset from '../models/Asset.model.js';
 import TicketActivity from '../models/TicketActivity.model.js';
 import SLAPolicy from '../models/SLAPolicy.model.js';
+import { sendTicketAssignmentEmail, sendTicketEscalationEmail } from '../utils/email.utils.js';
 
 // @desc    Get all tickets
 // @route   GET /api/tickets
@@ -334,7 +335,9 @@ export const assignTicket = async (req, res, next) => {
         updatedAt: new Date()
       },
       { new: true }
-    ).populate('assignedTo', 'fullName username');
+    ).populate('assignedTo', 'fullName username email')
+      .populate('siteId', 'siteName')
+      .populate('assetId', 'assetCode');
 
     if (!ticket) {
       return res.status(404).json({
@@ -356,6 +359,11 @@ export const assignTicket = async (req, res, next) => {
       content: activityContent
     });
 
+    // Send email notification to assigned user
+    if (ticket.assignedTo?.email) {
+      await sendTicketAssignmentEmail(ticket, ticket.assignedTo, req.user);
+    }
+
     // Emit socket event
     const io = req.app.get('io');
     if (io) {
@@ -366,7 +374,7 @@ export const assignTicket = async (req, res, next) => {
     res.json({
       success: true,
       data: ticket,
-      message: 'Ticket assigned successfully'
+      message: 'Ticket assigned successfully. Email notification has been sent.'
     });
   } catch (error) {
     next(error);
@@ -784,7 +792,9 @@ export const escalateTicket = async (req, res, next) => {
       });
     }
 
-    const ticket = await Ticket.findById(req.params.id);
+    const ticket = await Ticket.findById(req.params.id)
+      .populate('siteId', 'siteName')
+      .populate('assetId', 'assetCode');
 
     if (!ticket) {
       return res.status(404).json({
@@ -828,6 +838,36 @@ export const escalateTicket = async (req, res, next) => {
       content: `Ticket escalated to Level ${nextLevel} by ${req.user.fullName}. Reason: ${reason.trim()}`
     });
 
+    // Get escalation users for this level and send email notifications
+    try {
+      const UserRight = mongoose.model('UserRight');
+      const escalationRight = `ESCALATION_L${nextLevel}`;
+
+      const userRights = await UserRight.find({
+        $or: [
+          { globalRights: escalationRight },
+          { 'siteRights.rights': escalationRight }
+        ]
+      }).select('user');
+
+      const userIds = userRights.map(ur => ur.user);
+
+      const escalationUsers = await User.find({
+        _id: { $in: userIds },
+        isActive: true
+      }).select('fullName email');
+
+      // Send email to each escalation user
+      for (const escalationUser of escalationUsers) {
+        if (escalationUser.email) {
+          await sendTicketEscalationEmail(ticket, escalationUser, req.user, reason.trim());
+        }
+      }
+    } catch (emailError) {
+      console.error('Error sending escalation emails:', emailError);
+      // Don't fail the escalation if email fails
+    }
+
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
@@ -843,7 +883,7 @@ export const escalateTicket = async (req, res, next) => {
     res.json({
       success: true,
       data: ticket,
-      message: `Ticket escalated to Level ${nextLevel} successfully.`
+      message: `Ticket escalated to Level ${nextLevel} successfully. Email notifications have been sent.`
     });
   } catch (error) {
     next(error);
