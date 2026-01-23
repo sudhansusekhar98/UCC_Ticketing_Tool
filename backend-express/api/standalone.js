@@ -10,7 +10,7 @@ app.use(express.json());
 // Test endpoint
 app.get('/', (req, res) => {
   res.json({
-    message: 'UCC Ticketing API - Standalone Test',
+    message: 'TicketOps API - Standalone Test',
     status: 'working',
     timestamp: new Date().toISOString()
   });

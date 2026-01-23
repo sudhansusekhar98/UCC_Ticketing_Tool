@@ -1,7 +1,7 @@
 # Email Notification System
 
 ## Overview
-The UCC Ticketing Tool now includes comprehensive email notifications to keep users informed about important events and actions within the system.
+The TicketOps now includes comprehensive email notifications to keep users informed about important events and actions within the system.
 
 ## SMTP Configuration
 

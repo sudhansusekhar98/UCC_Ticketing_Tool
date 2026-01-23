@@ -1,6 +1,6 @@
-# UCC Ticketing Tool - Frontend
+# TicketOps - Frontend
 
-React + Vite application for the UCC Ticketing Tool.
+React + Vite application for TicketOps.
 
 ## 🚀 Quick Start
 

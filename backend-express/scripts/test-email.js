@@ -38,9 +38,9 @@ async function testEmailConfig() {
         // Send test email
         console.log('Sending test email...');
         const info = await transporter.sendMail({
-            from: `"UCC Ticketing System" <${process.env.SMTP_USER}>`,
+            from: `"TicketOps" <${process.env.SMTP_USER}>`,
             to: process.env.SMTP_USER, // Send to self for testing
-            subject: 'Test Email - UCC Ticketing System',
+            subject: 'Test Email - TicketOps',
             html: `
         <!DOCTYPE html>
         <html>
@@ -60,7 +60,7 @@ async function testEmailConfig() {
             </div>
             <div class="content">
               <p class="success">✓ Your SMTP configuration is working correctly!</p>
-              <p>This is a test email from the UCC Ticketing System.</p>
+              <p>This is a test email from TicketOps.</p>
               <p><strong>Configuration Details:</strong></p>
               <ul>
                 <li>SMTP Host: ${process.env.SMTP_HOST}</li>

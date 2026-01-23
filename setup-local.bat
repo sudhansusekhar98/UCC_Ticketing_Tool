@@ -1,9 +1,7 @@
 @echo off
 REM Setup script for local development environment
 
-echo ========================================
-echo UCC Ticketing Tool - Local Setup
-echo ========================================
+echo TicketOps - Local Setup
 echo.
 
 REM Check if .env already exists

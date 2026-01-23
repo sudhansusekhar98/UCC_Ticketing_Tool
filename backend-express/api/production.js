@@ -71,7 +71,7 @@ app.set('io', {
 // Root endpoint for verification
 app.get('/', (req, res) => {
   res.json({
-    message: 'UCC Ticketing API - Production Live',
+    message: 'TicketOps API - Production Live',
     status: 'running',
     timestamp: new Date().toISOString()
   });

@@ -59,8 +59,8 @@ export default function Settings() {
     const isAdmin = user?.role === 'Admin';
 
     // Filter tabs based on role
-    const visibleTabs = isAdmin 
-        ? settingsTabs 
+    const visibleTabs = isAdmin
+        ? settingsTabs
         : settingsTabs.filter(tab => ['general', 'appearance'].includes(tab.id));
 
     const [activeTab, setActiveTab] = useState('general');
@@ -71,7 +71,7 @@ export default function Settings() {
 
     // General Settings State - Initialize regional fields from user preferences if available
     const [generalSettings, setGeneralSettings] = useState(() => ({
-        companyName: 'UCC Ticketing',
+        companyName: 'TicketOps',
         companyAddress: '',
         timezone: user?.preferences?.timezone || 'Asia/Kolkata',
         dateFormat: user?.preferences?.dateFormat || 'DD/MM/YYYY',
@@ -114,9 +114,9 @@ export default function Settings() {
         smtpUsername: '',
         smtpPassword: '',
         smtpUseTLS: true,
-        senderName: 'UCC Ticketing',
+        senderName: 'TicketOps',
         senderEmail: 'noreply@example.com',
-        emailFooter: 'This is an automated message from UCC Ticketing System.',
+        emailFooter: 'This is an automated message from TicketOps.',
     });
 
     // Security Settings State
@@ -236,7 +236,7 @@ export default function Settings() {
             if (data.Appearance) {
                 const appearanceData = mapSettings(data.Appearance, keyMappings.Appearance, appearanceSettings);
                 setAppearanceSettings(appearanceData);
-                
+
                 // Fallback sync theme if no user preference
                 if (!user?.preferences?.theme && appearanceData.theme && appearanceData.theme !== currentTheme) {
                     setTheme(appearanceData.theme);
@@ -246,7 +246,7 @@ export default function Settings() {
             // 2. Override with User Preferences if available
             if (user?.preferences) {
                 const prefs = user.preferences;
-                
+
                 // Appearance preferences
                 setAppearanceSettings(prev => ({
                     ...prev,
@@ -361,19 +361,19 @@ export default function Settings() {
                     language: generalSettings.language,
                     autoRefreshInterval: generalSettings.autoRefreshInterval
                 };
-                
+
                 const response = await authApi.updatePreferences(preferences);
-                
+
                 if (response.data.success) {
                     setUserPreferences(preferences);
                 }
-                
+
                 // If Admin is on 'general' tab, also save organization-level settings
                 if (isAdmin && activeTab === 'general') {
                     const payload = buildSettingsPayload();
                     await settingsApi.update(payload);
                 }
-            } 
+            }
             // If Admin saving other tabs (notifications, sla, email, security), update Global Settings
             else if (isAdmin) {
                 const payload = buildSettingsPayload();
@@ -435,7 +435,7 @@ export default function Settings() {
                     />
                 </div>
             </div>
-            
+
             {!isAdmin && (
                 <div className="info-note mt-6">
                     <Info size={16} />

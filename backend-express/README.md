@@ -1,6 +1,6 @@
-# UCC Ticketing Tool - Backend
+# TicketOps - Backend
 
-Express.js + MongoDB backend API for the UCC Ticketing Tool with Socket.io for real-time updates.
+Express.js + MongoDB backend API for TicketOps with Socket.io for real-time updates.
 
 ## 🚀 Quick Start
 

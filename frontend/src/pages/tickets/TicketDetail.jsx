@@ -63,21 +63,21 @@ export default function TicketDetail() {
     const canRejectResolution = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId);
     const canAcknowledgeRejection = isAssignedToMe;
     const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId) || hasRight('CREATE_TICKET', ticketSiteId);
-    
+
     // Escalation-specific logic: If escalation is accepted, only the escalation user (current assignee) and Admin can resolve/close
     const isEscalationAccepted = !!ticket?.escalationAcceptedBy;
     const isAdmin = hasRole('Admin');
-    
-    const canResolve = isEscalationAccepted 
+
+    const canResolve = isEscalationAccepted
         ? (isAssignedToMe || isAdmin)
         : (isAssignedToMe || hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']));
-        
+
     const canClose = isEscalationAccepted
         ? (isAssignedToMe || isAdmin)
         : (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('DELETE_TICKET', ticketSiteId));
     const canEscalate = ticket?.escalationLevel < 3 && ticket?.status !== 'Escalated' && !['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status) && (isAssignedToMe || hasRole(['Admin', 'Supervisor', 'Dispatcher']));
     const canAcceptEscalation = ticket?.status === 'Escalated' && (
-        hasRole(['Admin', 'Supervisor', 'Dispatcher']) || 
+        hasRole(['Admin', 'Supervisor', 'Dispatcher']) ||
         (ticket?.escalationLevel === 1 && (hasRight('ESCALATION_L1', ticketSiteId) || hasRight('ESCALATION_L2', ticketSiteId) || hasRight('ESCALATION_L3', ticketSiteId))) ||
         (ticket?.escalationLevel === 2 && (hasRight('ESCALATION_L2', ticketSiteId) || hasRight('ESCALATION_L3', ticketSiteId))) ||
         (ticket?.escalationLevel === 3 && hasRight('ESCALATION_L3', ticketSiteId))
@@ -126,8 +126,8 @@ export default function TicketDetail() {
                 createdByName: ticketData.createdBy?.fullName || ticketData.createdByName,
                 assignedToName: ticketData.assignedTo?.fullName || ticketData.assignedToName,
                 assignedTo: typeof ticketData.assignedTo === 'object' ? ticketData.assignedTo?._id : ticketData.assignedTo,
-                slaStatus: ticketData.isSLARestoreBreached ? 'Breached' : 
-                           (ticketData.isSLAResponseBreached ? 'AtRisk' : 'OnTrack')
+                slaStatus: ticketData.isSLARestoreBreached ? 'Breached' :
+                    (ticketData.isSLAResponseBreached ? 'AtRisk' : 'OnTrack')
             });
         } catch (error) {
             toast.error('Failed to load ticket');
@@ -453,8 +453,8 @@ export default function TicketDetail() {
                     )}
 
                     {canAcceptEscalation && (
-                        <button 
-                            className="btn btn-success" 
+                        <button
+                            className="btn btn-success"
                             onClick={() => {
                                 if (canDelegateEscalation) {
                                     loadEscalationUsers();
@@ -555,8 +555,8 @@ export default function TicketDetail() {
 
                     {/* RMA Information */}
                     {ticket.assetId && (
-                        <RMASection 
-                            ticketId={ticket.ticketId} 
+                        <RMASection
+                            ticketId={ticket.ticketId}
                             siteId={ticket.siteId}
                             assetId={ticket.assetId?._id || ticket.assetId} // Correctly pass asset ID
                             ticketStatus={ticket.status}
@@ -570,7 +570,7 @@ export default function TicketDetail() {
 
                     {/* Asset Update Approval */}
                     {ticket.ticketId && (
-                        <AssetUpdateApproval 
+                        <AssetUpdateApproval
                             ticketId={ticket.ticketId}
                             onUpdate={() => {
                                 fetchTicket();
@@ -640,7 +640,7 @@ export default function TicketDetail() {
 
                         {ticket.slaRestoreDue && (
                             <div className="detail-row">
-                                <span className="detail-label">Restore Due</span>
+                                <span className="detail-label">Expected Resolution Time</span>
                                 <span className={`detail-value ${ticket.isSLARestoreBreached ? 'text-danger' : ''}`}>
                                     {format(new Date(ticket.slaRestoreDue), 'PPpp')}
                                     {ticket.isSLARestoreBreached && ' (Breached)'}
@@ -822,7 +822,7 @@ export default function TicketDetail() {
                     <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
                         <h3>Escalate Ticket</h3>
                         <p className="modal-description">
-                            Escalating this ticket will notify the specialized Escalation Team. 
+                            Escalating this ticket will notify the specialized Escalation Team.
                             Please provide a clear reason describing why this issue requires higher-level expertise.
                         </p>
                         <div className="form-group">
@@ -853,12 +853,12 @@ export default function TicketDetail() {
                         <p className="modal-description">
                             You can either accept this escalated ticket yourself or assign it to a specialized escalation user.
                         </p>
-                        
+
                         <div className="escalation-options">
                             <div className="option-section">
                                 <h4>Option 1: Work on it yourself</h4>
-                                <button 
-                                    className="btn btn-primary w-full" 
+                                <button
+                                    className="btn btn-primary w-full"
                                     onClick={() => handleAcceptEscalation()}
                                     disabled={actionLoading}
                                 >
@@ -887,8 +887,8 @@ export default function TicketDetail() {
                                                 ))}
                                             </select>
                                         </div>
-                                        <button 
-                                            className="btn btn-success w-full" 
+                                        <button
+                                            className="btn btn-success w-full"
                                             onClick={() => handleAcceptEscalation(selectedEscalationUser)}
                                             disabled={actionLoading || !selectedEscalationUser}
                                         >

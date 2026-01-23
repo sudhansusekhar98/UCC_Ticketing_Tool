@@ -1,4 +1,4 @@
-# Deployment Guide - UCC Ticketing Tool
+# Deployment Guide - TicketOps
 
 ## Overview
 

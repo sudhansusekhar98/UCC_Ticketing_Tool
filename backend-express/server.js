@@ -13,10 +13,8 @@ if (process.env.VERCEL !== '1') {
   dotenv.config();
 }
 
-
 // Initialize Express app
 const app = express();
-
 
 // Only create HTTP server and Socket.io in non-Vercel environments
 let httpServer;

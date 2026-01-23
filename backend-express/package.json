@@ -1,7 +1,7 @@
 {
   "name": "ucc-ticketing-backend",
   "version": "1.0.0",
-  "description": "UCC Ticketing Platform - Express.js Backend with MongoDB",
+  "description": "TicketOps - Express.js Backend with MongoDB",
   "main": "server.js",
   "type": "module",
   "scripts": {

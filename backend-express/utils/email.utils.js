@@ -65,10 +65,11 @@ const emailTemplate = (content, title) => `
       padding: 12px 24px;
       margin: 20px 0;
       background-color: #667eea;
-      color: #ffffff;
+      color: #ffffff !important;
       text-decoration: none;
       border-radius: 5px;
       font-weight: 500;
+      color: white;
     }
     .info-box {
       background-color: #f8f9fa;
@@ -90,7 +91,7 @@ const emailTemplate = (content, title) => `
       ${content}
     </div>
     <div class="email-footer">
-      <p>This is an automated email from UCC Ticketing System. Please do not reply to this email.</p>
+      <p>This is an automated email from TicketOps. Please do not reply to this email.</p>
       <p>&copy; ${new Date().getFullYear()} VL Access. All rights reserved.</p>
     </div>
   </div>
@@ -106,8 +107,8 @@ export const sendAccountCreationEmail = async (user, tempPassword) => {
         const transporter = createTransporter();
 
         const content = `
-      <p>Hello <strong>${user.name}</strong>,</p>
-      <p>Welcome to the UCC Ticketing System! Your account has been successfully created.</p>
+      <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
+      <p>Welcome to TicketOps! Your account has been successfully created.</p>
       
       <div class="info-box">
         <p><strong>Username:</strong> ${user.username}</p>
@@ -119,17 +120,17 @@ export const sendAccountCreationEmail = async (user, tempPassword) => {
       <p>For security reasons, please change your password after your first login.</p>
       <p>You can access the system by clicking the button below:</p>
       
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" class="btn">Login to System</a>
+      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/login" class="btn" style="color: white !important; text-decoration: none;">Login to System</a>
       
       <p>If you have any questions or need assistance, please contact your system administrator.</p>
       
-      <p>Best regards,<br/>UCC Ticketing System Team</p>
+      <p>Best regards,<br/>TicketOps Team</p>
     `;
 
         await transporter.sendMail({
-            from: `"UCC Ticketing System" <${process.env.SMTP_USER}>`,
+            from: `"TicketOps" <${process.env.SMTP_USER}>`,
             to: user.email,
-            subject: 'Welcome to UCC Ticketing System - Account Created',
+            subject: 'Welcome to TicketOps - Account Created',
             html: emailTemplate(content, 'Account Created'),
         });
 
@@ -148,17 +149,17 @@ export const sendTicketAssignmentEmail = async (ticket, assignedUser, assignedBy
         const transporter = createTransporter();
 
         const content = `
-      <p>Hello <strong>${assignedUser.name}</strong>,</p>
+      <p>Hello <strong>${assignedUser.fullName || assignedUser.username}</strong>,</p>
       <p>A new ticket has been assigned to you.</p>
       
       <div class="info-box">
         <p><strong>Ticket ID:</strong> ${ticket.ticketNumber}</p>
-        <p><strong>Subject:</strong> ${ticket.subject}</p>
+        <p><strong>Subject:</strong> ${ticket.title}</p>
         <p><strong>Priority:</strong> ${ticket.priority}</p>
         <p><strong>Status:</strong> ${ticket.status}</p>
-        <p><strong>Site:</strong> ${ticket.site?.name || 'N/A'}</p>
-        <p><strong>Due Date:</strong> ${ticket.dueDate ? new Date(ticket.dueDate).toLocaleString() : 'N/A'}</p>
-        <p><strong>Assigned By:</strong> ${assignedBy?.name || 'System'}</p>
+        <p><strong>Site:</strong> ${ticket.siteId?.siteName || ticket.site?.name || 'N/A'}</p>
+        <p><strong>Expected Resolution:</strong> ${ticket.slaRestoreDue ? new Date(ticket.slaRestoreDue).toLocaleString() : 'N/A'}</p>
+        <p><strong>Assigned By:</strong> ${assignedBy?.fullName || 'System'}</p>
       </div>
       
       <p><strong>Description:</strong></p>
@@ -166,15 +167,15 @@ export const sendTicketAssignmentEmail = async (ticket, assignedUser, assignedBy
       
       <p>Please acknowledge and start working on this ticket as soon as possible.</p>
       
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/tickets/${ticket._id}" class="btn">View Ticket</a>
+      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none;">View Ticket</a>
       
-      <p>Best regards,<br/>UCC Ticketing System</p>
+      <p>Best regards,<br/>TicketOps</p>
     `;
 
         await transporter.sendMail({
-            from: `"UCC Ticketing System" <${process.env.SMTP_USER}>`,
+            from: `"TicketOps" <${process.env.SMTP_USER}>`,
             to: assignedUser.email,
-            subject: `Ticket Assigned: ${ticket.ticketNumber} - ${ticket.subject}`,
+            subject: `Ticket Assigned: ${ticket.ticketNumber} - ${ticket.title}`,
             html: emailTemplate(content, 'Ticket Assigned'),
         });
 
@@ -192,17 +193,18 @@ export const sendTicketEscalationEmail = async (ticket, escalatedToUser, escalat
         const transporter = createTransporter();
 
         const content = `
-      <p>Hello <strong>${escalatedToUser.name}</strong>,</p>
+      <p>Hello <strong>${escalatedToUser.fullName || escalatedToUser.username}</strong>,</p>
       <p>A ticket has been escalated to you and requires your immediate attention.</p>
       
       <div class="info-box">
         <p><strong>Ticket ID:</strong> ${ticket.ticketNumber}</p>
-        <p><strong>Subject:</strong> ${ticket.subject}</p>
+        <p><strong>Subject:</strong> ${ticket.title}</p>
         <p><strong>Priority:</strong> ${ticket.priority}</p>
         <p><strong>Status:</strong> ${ticket.status}</p>
         <p><strong>Escalation Level:</strong> ${ticket.escalationLevel}</p>
-        <p><strong>Site:</strong> ${ticket.site?.name || 'N/A'}</p>
-        <p><strong>Escalated By:</strong> ${escalatedBy?.name || 'System'}</p>
+        <p><strong>Site:</strong> ${ticket.siteId?.siteName || ticket.site?.name || 'N/A'}</p>
+        <p><strong>Expected Resolution:</strong> ${ticket.slaRestoreDue ? new Date(ticket.slaRestoreDue).toLocaleString() : 'N/A'}</p>
+        <p><strong>Escalated By:</strong> ${escalatedBy?.fullName || 'System'}</p>
       </div>
       
       <p><strong>Escalation Reason:</strong></p>
@@ -213,15 +215,15 @@ export const sendTicketEscalationEmail = async (ticket, escalatedToUser, escalat
       
       <p><strong style="color: #dc3545;">This ticket requires urgent attention!</strong></p>
       
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/tickets/${ticket._id}" class="btn">View Ticket</a>
+      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none;">View Ticket</a>
       
-      <p>Best regards,<br/>UCC Ticketing System</p>
+      <p>Best regards,<br/>TicketOps</p>
     `;
 
         await transporter.sendMail({
-            from: `"UCC Ticketing System" <${process.env.SMTP_USER}>`,
+            from: `"TicketOps" <${process.env.SMTP_USER}>`,
             to: escalatedToUser.email,
-            subject: `🚨 ESCALATED: ${ticket.ticketNumber} - ${ticket.subject}`,
+            subject: `🚨 ESCALATED: ${ticket.ticketNumber} - ${ticket.title}`,
             html: emailTemplate(content, 'Ticket Escalated'),
         });
 
@@ -269,13 +271,13 @@ export const sendRMACreationEmail = async (rmaRequest, ticket, requestedBy, noti
       
       <p>Please review and process this RMA request at your earliest convenience.</p>
       
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/rma" class="btn">View RMA Details</a>
+      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/rma" class="btn" style="color: white !important; text-decoration: none;">View RMA Details</a>
       
-      <p>Best regards,<br/>UCC Ticketing System</p>
+      <p>Best regards,<br/>TicketOps</p>
     `;
 
         await transporter.sendMail({
-            from: `"UCC Ticketing System" <${process.env.SMTP_USER}>`,
+            from: `"TicketOps" <${process.env.SMTP_USER}>`,
             to: recipients.join(', '),
             subject: `New RMA Request: ${rmaRequest.rmaNumber}`,
             html: emailTemplate(content, 'RMA Request Generated'),
@@ -295,24 +297,24 @@ export const sendTicketStatusChangeEmail = async (ticket, user, oldStatus, newSt
         const transporter = createTransporter();
 
         const content = `
-      <p>Hello <strong>${user.name}</strong>,</p>
+      <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
       <p>The status of your ticket has been updated.</p>
       
       <div class="info-box">
         <p><strong>Ticket ID:</strong> ${ticket.ticketNumber}</p>
-        <p><strong>Subject:</strong> ${ticket.subject}</p>
+        <p><strong>Subject:</strong> ${ticket.title}</p>
         <p><strong>Previous Status:</strong> ${oldStatus}</p>
         <p><strong>New Status:</strong> ${newStatus}</p>
         ${comments ? `<p><strong>Comments:</strong> ${comments}</p>` : ''}
       </div>
       
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/tickets/${ticket._id}" class="btn">View Ticket</a>
+      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none;">View Ticket</a>
       
-      <p>Best regards,<br/>UCC Ticketing System</p>
+      <p>Best regards,<br/>TicketOps</p>
     `;
 
         await transporter.sendMail({
-            from: `"UCC Ticketing System" <${process.env.SMTP_USER}>`,
+            from: `"TicketOps" <${process.env.SMTP_USER}>`,
             to: user.email,
             subject: `Ticket Status Update: ${ticket.ticketNumber}`,
             html: emailTemplate(content, 'Ticket Status Updated'),
@@ -332,7 +334,7 @@ export const sendPasswordResetEmail = async (user, newPassword) => {
         const transporter = createTransporter();
 
         const content = `
-      <p>Hello <strong>${user.name}</strong>,</p>
+      <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
       <p>Your password has been reset by an administrator.</p>
       
       <div class="info-box">
@@ -342,15 +344,15 @@ export const sendPasswordResetEmail = async (user, newPassword) => {
       
       <p><strong style="color: #dc3545;">Important:</strong> Please change this password immediately after logging in for security purposes.</p>
       
-      <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" class="btn">Login to System</a>
+      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/login" class="btn" style="color: white !important; text-decoration: none;">Login to System</a>
       
       <p>If you did not request this password reset, please contact your system administrator immediately.</p>
       
-      <p>Best regards,<br/>UCC Ticketing System</p>
+      <p>Best regards,<br/>TicketOps</p>
     `;
 
         await transporter.sendMail({
-            from: `"UCC Ticketing System" <${process.env.SMTP_USER}>`,
+            from: `"TicketOps" <${process.env.SMTP_USER}>`,
             to: user.email,
             subject: 'Your Password Has Been Reset',
             html: emailTemplate(content, 'Password Reset'),
