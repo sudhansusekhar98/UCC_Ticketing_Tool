@@ -1,0 +1,13 @@
+{
+    "name": "ticketops-monorepo",
+    "private": true,
+    "workspaces": [
+        "frontend",
+        "backend-express"
+    ],
+    "scripts": {
+        "frontend:dev": "npm run dev --workspace=frontend",
+        "backend:dev": "npm run dev --workspace=backend-express",
+        "frontend:build": "npm run build --workspace=frontend"
+    }
+}

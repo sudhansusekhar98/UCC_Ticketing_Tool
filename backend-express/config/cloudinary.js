@@ -5,8 +5,8 @@ dotenv.config();
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME ,
-  api_key: process.env.CLOUDINARY_API_KEY ,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
@@ -19,16 +19,16 @@ cloudinary.config({
 export const uploadToCloudinary = async (filePathOrBuffer, options = {}) => {
   try {
     let uploadSource = filePathOrBuffer;
-    
+
     // If buffer, convert to base64 data URI
     if (Buffer.isBuffer(filePathOrBuffer)) {
       const base64 = filePathOrBuffer.toString('base64');
       const mimeType = options.mimeType || 'application/octet-stream';
       uploadSource = `data:${mimeType};base64,${base64}`;
     }
-    
+
     const result = await cloudinary.uploader.upload(uploadSource, {
-      folder: options.folder || 'ucc-ticketing/attachments',
+      folder: options.folder || 'ticketops/attachments',
       resource_type: options.resourceType || 'auto',
       ...options
     });

@@ -1,5 +1,5 @@
 {
-  "name": "ucc-ticketing-backend",
+  "name": "ticketops-backend",
   "version": "1.0.0",
   "description": "TicketOps - Express.js Backend with MongoDB",
   "main": "server.js",
@@ -14,7 +14,7 @@
   },
   "keywords": [
     "ticketing",
-    "ucc",
+    "ticketops",
     "express",
     "mongodb"
   ],

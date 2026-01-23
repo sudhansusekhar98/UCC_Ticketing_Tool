@@ -10,17 +10,17 @@ import fs from 'fs';
 export const getActivities = async (req, res, next) => {
   try {
     const { ticketId } = req.params;
-    
+
     const activities = await TicketActivity.find({ ticketId })
       .populate('userId', 'fullName username role')
       .sort({ createdOn: 1 }); // Sort ascending (oldest first) for chat display
-    
+
     // Get attachments for each activity
     const activitiesWithAttachments = await Promise.all(
       activities.map(async (activity) => {
         const attachments = await TicketAttachment.find({ activityId: activity._id })
           .select('fileName contentType fileSize attachmentType filePath cloudinaryUrl uploadedOn');
-        
+
         // Map to frontend expected format
         const mappedAttachments = attachments.map(att => ({
           attachmentId: att._id,
@@ -31,7 +31,7 @@ export const getActivities = async (req, res, next) => {
           storageType: att.cloudinaryUrl ? 'Cloudinary' : 'FileSystem',
           url: att.cloudinaryUrl || `/uploads/${att.filePath?.split(/[/\\]/).pop()}`
         }));
-        
+
         return {
           activityId: activity._id,
           ticketId: activity.ticketId,
@@ -46,13 +46,13 @@ export const getActivities = async (req, res, next) => {
         };
       })
     );
-    
+
     // Also get standalone attachments (not linked to activities) and show them as activity entries
-    const standaloneAttachments = await TicketAttachment.find({ 
-      ticketId, 
-      activityId: null 
+    const standaloneAttachments = await TicketAttachment.find({
+      ticketId,
+      activityId: null
     }).populate('uploadedBy', 'fullName role').sort({ uploadedOn: 1 });
-    
+
     // Convert standalone attachments to activity-like entries
     const attachmentActivities = standaloneAttachments.map(att => ({
       activityId: `att-${att._id}`,
@@ -74,11 +74,11 @@ export const getActivities = async (req, res, next) => {
         url: att.cloudinaryUrl || `/uploads/${att.filePath?.split(/[/\\]/).pop()}`
       }]
     }));
-    
+
     // Merge and sort all activities by createdOn
     const allActivities = [...activitiesWithAttachments, ...attachmentActivities]
       .sort((a, b) => new Date(a.createdOn) - new Date(b.createdOn));
-    
+
     res.json({
       success: true,
       data: allActivities
@@ -95,7 +95,7 @@ export const createActivity = async (req, res, next) => {
   try {
     const { ticketId } = req.params;
     const { content, activityType = 'Comment', isInternal = false } = req.body;
-    
+
     const activity = await TicketActivity.create({
       ticketId,
       userId: req.user._id,
@@ -103,16 +103,16 @@ export const createActivity = async (req, res, next) => {
       content,
       isInternal
     });
-    
+
     const populatedActivity = await TicketActivity.findById(activity._id)
       .populate('userId', 'fullName username role');
-    
+
     // Emit socket event
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticketId}`).emit('activity:created', { ticketId, activity: populatedActivity });
     }
-    
+
     res.status(201).json({
       success: true,
       data: {
@@ -140,30 +140,30 @@ export const uploadAttachment = async (req, res, next) => {
   try {
     const { ticketId } = req.params;
     const { activityId } = req.query;
-    
+
     if (!req.file) {
       return res.status(400).json({
         success: false,
         message: 'No file uploaded'
       });
     }
-    
+
     const file = req.file;
     const isImage = file.mimetype.startsWith('image/');
-    
+
     // Detect if using memory storage (Vercel) or disk storage (local)
     const isMemoryStorage = !!file.buffer;
-    
+
     // Upload to Cloudinary (works with both path and buffer)
     const cloudinaryResult = await uploadToCloudinary(
-      isMemoryStorage ? file.buffer : file.path, 
+      isMemoryStorage ? file.buffer : file.path,
       {
-        folder: `ucc-ticketing/tickets/${ticketId}`,
+        folder: `ticketops/tickets/${ticketId}`,
         resourceType: isImage ? 'image' : 'auto',
         mimeType: file.mimetype // For buffer uploads
       }
     );
-    
+
     if (!cloudinaryResult.success) {
       // If Cloudinary upload fails and we're on Vercel (memory storage), we can't fallback
       if (isMemoryStorage) {
@@ -173,11 +173,11 @@ export const uploadAttachment = async (req, res, next) => {
           message: 'File upload failed. Cloudinary is required for serverless deployments.'
         });
       }
-      
+
       // If on local (disk storage), fall back to local storage
       console.error('Cloudinary upload failed:', cloudinaryResult.error);
       const fileName = file.path.split(/[/\\]/).pop();
-      
+
       const attachment = await TicketAttachment.create({
         ticketId,
         activityId: activityId || null,
@@ -189,13 +189,13 @@ export const uploadAttachment = async (req, res, next) => {
         filePath: file.path,
         attachmentType: isImage ? 'image' : 'document'
       });
-      
+
       // Emit socket event for real-time update
       const io = req.app.get('io');
       if (io) {
         io.to(`ticket_${ticketId}`).emit('activity:created', { ticketId, type: 'attachment', attachment });
       }
-      
+
       return res.status(201).json({
         success: true,
         data: {
@@ -210,7 +210,7 @@ export const uploadAttachment = async (req, res, next) => {
         message: 'File uploaded to local storage'
       });
     }
-    
+
     // Create attachment record with Cloudinary URL
     const attachment = await TicketAttachment.create({
       ticketId,
@@ -225,7 +225,7 @@ export const uploadAttachment = async (req, res, next) => {
       cloudinaryPublicId: cloudinaryResult.publicId,
       attachmentType: isImage ? 'image' : 'document'
     });
-    
+
     // Delete local file after successful Cloudinary upload (only for disk storage)
     if (!isMemoryStorage && file.path) {
       try {
@@ -234,13 +234,13 @@ export const uploadAttachment = async (req, res, next) => {
         console.error('Failed to delete local file:', err);
       }
     }
-    
+
     // Emit socket event for real-time update
     const io = req.app.get('io');
     if (io) {
       io.to(`ticket_${ticketId}`).emit('activity:created', { ticketId, type: 'attachment', attachment });
     }
-    
+
     res.status(201).json({
       success: true,
       data: {
@@ -265,19 +265,19 @@ export const uploadAttachment = async (req, res, next) => {
 export const downloadAttachment = async (req, res, next) => {
   try {
     const attachment = await TicketAttachment.findById(req.params.id);
-    
+
     if (!attachment) {
       return res.status(404).json({
         success: false,
         message: 'Attachment not found'
       });
     }
-    
+
     // If Cloudinary, redirect to URL
     if (attachment.storageType === 'Cloudinary' && attachment.cloudinaryUrl) {
       return res.redirect(attachment.cloudinaryUrl);
     }
-    
+
     // If FileSystem, send file
     if (attachment.storageType === 'FileSystem') {
       const filePath = path.resolve(attachment.filePath);
@@ -285,7 +285,7 @@ export const downloadAttachment = async (req, res, next) => {
         return res.download(filePath, attachment.fileName);
       }
     }
-    
+
     res.status(404).json({
       success: false,
       message: 'File not found'
@@ -301,14 +301,14 @@ export const downloadAttachment = async (req, res, next) => {
 export const deleteAttachment = async (req, res, next) => {
   try {
     const attachment = await TicketAttachment.findById(req.params.id);
-    
+
     if (!attachment) {
       return res.status(404).json({
         success: false,
         message: 'Attachment not found'
       });
     }
-    
+
     // Delete from Cloudinary if stored there
     if (attachment.storageType === 'Cloudinary' && attachment.cloudinaryPublicId) {
       try {
@@ -317,7 +317,7 @@ export const deleteAttachment = async (req, res, next) => {
         console.error('Failed to delete from Cloudinary:', err);
       }
     }
-    
+
     // Delete file from filesystem if exists
     if (attachment.storageType === 'FileSystem' && attachment.filePath) {
       const filePath = path.resolve(attachment.filePath);
@@ -325,9 +325,9 @@ export const deleteAttachment = async (req, res, next) => {
         fs.unlinkSync(filePath);
       }
     }
-    
+
     await attachment.deleteOne();
-    
+
     res.json({
       success: true,
       message: 'Attachment deleted successfully'

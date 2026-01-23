@@ -31,9 +31,9 @@ let createdSlaPolicies = [];
 
 async function seedSLAPolicies() {
   console.log('\n📋 Creating SLA Policies...');
-  
+
   await SLAPolicy.deleteMany({});
-  
+
   const policies = [
     {
       policyName: 'P1 - Critical Priority',
@@ -42,8 +42,8 @@ async function seedSLAPolicies() {
       restoreTimeMinutes: 60,
       escalationLevel1Minutes: 30,
       escalationLevel2Minutes: 45,
-      escalationL1Emails: 'supervisor@uccticket.com',
-      escalationL2Emails: 'admin@uccticket.com',
+      escalationL1Emails: 'supervisor@ticketops.vluccc.com',
+      escalationL2Emails: 'admin@ticketops.vluccc.com',
       isActive: true
     },
     {
@@ -53,8 +53,8 @@ async function seedSLAPolicies() {
       restoreTimeMinutes: 240,
       escalationLevel1Minutes: 120,
       escalationLevel2Minutes: 180,
-      escalationL1Emails: 'supervisor@uccticket.com',
-      escalationL2Emails: 'admin@uccticket.com',
+      escalationL1Emails: 'supervisor@ticketops.vluccc.com',
+      escalationL2Emails: 'admin@ticketops.vluccc.com',
       isActive: true
     },
     {
@@ -64,8 +64,8 @@ async function seedSLAPolicies() {
       restoreTimeMinutes: 480,
       escalationLevel1Minutes: 240,
       escalationLevel2Minutes: 360,
-      escalationL1Emails: 'supervisor@uccticket.com',
-      escalationL2Emails: 'admin@uccticket.com',
+      escalationL1Emails: 'supervisor@ticketops.vluccc.com',
+      escalationL2Emails: 'admin@ticketops.vluccc.com',
       isActive: true
     },
     {
@@ -75,21 +75,21 @@ async function seedSLAPolicies() {
       restoreTimeMinutes: 1440,
       escalationLevel1Minutes: 720,
       escalationLevel2Minutes: 1080,
-      escalationL1Emails: 'supervisor@uccticket.com',
-      escalationL2Emails: 'admin@uccticket.com',
+      escalationL1Emails: 'supervisor@ticketops.vluccc.com',
+      escalationL2Emails: 'admin@ticketops.vluccc.com',
       isActive: true
     }
   ];
-  
+
   createdSlaPolicies = await SLAPolicy.insertMany(policies);
   console.log(`  ✅ Created ${createdSlaPolicies.length} SLA Policies`);
 }
 
 async function seedSites() {
   console.log('\n📋 Creating Sites...');
-  
+
   await Site.deleteMany({});
-  
+
   const sites = [
     {
       siteName: 'City Center Command Station',
@@ -170,20 +170,20 @@ async function seedSites() {
       isActive: true
     }
   ];
-  
+
   createdSites = await Site.insertMany(sites);
   console.log(`  ✅ Created ${createdSites.length} Sites`);
 }
 
 async function seedUsers() {
   console.log('\n📋 Creating Users...');
-  
+
   await User.deleteMany({});
-  
+
   const users = [
     {
       fullName: 'System Administrator',
-      email: 'admin@uccticket.com',
+      email: 'admin@ticketops.vluccc.com',
       username: 'admin',
       passwordHash: await hashPassword('Admin@123'),
       role: 'Admin',
@@ -193,7 +193,7 @@ async function seedUsers() {
     },
     {
       fullName: 'Chief Dispatcher',
-      email: 'dispatcher@uccticket.com',
+      email: 'dispatcher@ticketops.vluccc.com',
       username: 'dispatcher',
       passwordHash: await hashPassword('Dispatcher@123'),
       role: 'Dispatcher',
@@ -203,7 +203,7 @@ async function seedUsers() {
     },
     {
       fullName: 'Rajesh Sharma',
-      email: 'rajesh.sharma@uccticket.com',
+      email: 'rajesh.sharma@ticketops.vluccc.com',
       username: 'rajesh.sharma',
       passwordHash: await hashPassword('Engineer@123'),
       role: 'L1Engineer',
@@ -214,7 +214,7 @@ async function seedUsers() {
     },
     {
       fullName: 'Priya Patel',
-      email: 'priya.patel@uccticket.com',
+      email: 'priya.patel@ticketops.vluccc.com',
       username: 'priya.patel',
       passwordHash: await hashPassword('Engineer@123'),
       role: 'L1Engineer',
@@ -225,7 +225,7 @@ async function seedUsers() {
     },
     {
       fullName: 'Amit Kumar',
-      email: 'amit.kumar@uccticket.com',
+      email: 'amit.kumar@ticketops.vluccc.com',
       username: 'amit.kumar',
       passwordHash: await hashPassword('Engineer@123'),
       role: 'L2Engineer',
@@ -236,7 +236,7 @@ async function seedUsers() {
     },
     {
       fullName: 'Sneha Das',
-      email: 'sneha.das@uccticket.com',
+      email: 'sneha.das@ticketops.vluccc.com',
       username: 'sneha.das',
       passwordHash: await hashPassword('Engineer@123'),
       role: 'L2Engineer',
@@ -247,7 +247,7 @@ async function seedUsers() {
     },
     {
       fullName: 'Operations Supervisor',
-      email: 'supervisor@uccticket.com',
+      email: 'supervisor@ticketops.vluccc.com',
       username: 'supervisor',
       passwordHash: await hashPassword('Supervisor@123'),
       role: 'Supervisor',
@@ -257,7 +257,7 @@ async function seedUsers() {
     },
     {
       fullName: 'Client Viewer',
-      email: 'client@uccticket.com',
+      email: 'client@ticketops.vluccc.com',
       username: 'client',
       passwordHash: await hashPassword('Client@123'),
       role: 'ClientViewer',
@@ -266,32 +266,32 @@ async function seedUsers() {
       isActive: true
     }
   ];
-  
+
   createdUsers = await User.insertMany(users);
   console.log(`  ✅ Created ${createdUsers.length} Users`);
 }
 
 async function seedAssets() {
   console.log('\n📋 Creating Assets...');
-  
+
   await Asset.deleteMany({});
-  
+
   const assetTypes = ['Camera', 'NVR', 'Switch', 'Router', 'Server'];
   const assetStatuses = ['Operational', 'Degraded', 'Offline', 'Maintenance'];
   const makes = ['Hikvision', 'Dahua', 'Axis', 'Cisco', 'HP', 'Dell'];
   const models = ['DS-2CD2183G2-I', 'IPC-HFW2831S', 'P3245-V', 'SG300-28', 'ProLiant DL380'];
-  
+
   const assets = [];
   let assetCounter = 1;
-  
+
   for (const site of createdSites) {
     // Create 5-10 assets per site
     const assetCount = Math.floor(Math.random() * 6) + 5;
-    
+
     for (let i = 0; i < assetCount; i++) {
       const assetType = assetTypes[Math.floor(Math.random() * assetTypes.length)];
       const make = makes[Math.floor(Math.random() * makes.length)];
-      
+
       assets.push({
         assetCode: `AST-${String(assetCounter).padStart(4, '0')}`,
         assetType,
@@ -311,20 +311,20 @@ async function seedAssets() {
         usedFor: 'Surveillance',
         isActive: true
       });
-      
+
       assetCounter++;
     }
   }
-  
+
   createdAssets = await Asset.insertMany(assets);
   console.log(`  ✅ Created ${createdAssets.length} Assets`);
 }
 
 async function seedTickets() {
   console.log('\n📋 Creating Tickets...');
-  
+
   await Ticket.deleteMany({});
-  
+
   const categories = ['Hardware', 'Software', 'Network', 'Power', 'Connectivity'];
   const subCategories = {
     Hardware: ['Camera Malfunction', 'NVR Failure', 'Cable Damage', 'Physical Damage'],
@@ -335,15 +335,15 @@ async function seedTickets() {
   };
   const statuses = ['Open', 'Assigned', 'Acknowledged', 'InProgress', 'OnHold', 'Resolved', 'Closed'];
   const priorities = ['P1', 'P2', 'P3', 'P4'];
-  
+
   const tickets = [];
   const dispatcher = createdUsers.find(u => u.role === 'Dispatcher');
   const engineers = createdUsers.filter(u => u.role === 'L1Engineer' || u.role === 'L2Engineer');
-  
+
   // Generate date for ticket number
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-  
+
   for (let i = 1; i <= 25; i++) {
     const category = categories[Math.floor(Math.random() * categories.length)];
     const subCat = subCategories[category][Math.floor(Math.random() * subCategories[category].length)];
@@ -352,9 +352,9 @@ async function seedTickets() {
     const asset = createdAssets[Math.floor(Math.random() * createdAssets.length)];
     const assignedEngineer = status !== 'Open' ? engineers[Math.floor(Math.random() * engineers.length)] : null;
     const slaPolicy = createdSlaPolicies.find(p => p.priority === priority);
-    
+
     const createdDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
-    
+
     tickets.push({
       ticketNumber: `TKT-${dateStr}-${String(i).padStart(4, '0')}`,
       assetId: asset._id,
@@ -372,11 +372,11 @@ async function seedTickets() {
       assignedTo: assignedEngineer?._id || null,
       slaPolicyId: slaPolicy?._id,
       assignedOn: status !== 'Open' ? new Date(createdDate.getTime() + 15 * 60 * 1000) : null,
-      acknowledgedOn: ['Acknowledged', 'InProgress', 'Resolved', 'Closed'].includes(status) 
+      acknowledgedOn: ['Acknowledged', 'InProgress', 'Resolved', 'Closed'].includes(status)
         ? new Date(createdDate.getTime() + 30 * 60 * 1000) : null,
-      resolvedOn: ['Resolved', 'Closed'].includes(status) 
+      resolvedOn: ['Resolved', 'Closed'].includes(status)
         ? new Date(createdDate.getTime() + 120 * 60 * 1000) : null,
-      closedOn: status === 'Closed' 
+      closedOn: status === 'Closed'
         ? new Date(createdDate.getTime() + 180 * 60 * 1000) : null,
       slaResponseDue: new Date(createdDate.getTime() + slaPolicy.responseTimeMinutes * 60 * 1000),
       slaRestoreDue: new Date(createdDate.getTime() + slaPolicy.restoreTimeMinutes * 60 * 1000),
@@ -389,27 +389,27 @@ async function seedTickets() {
       createdAt: createdDate
     });
   }
-  
+
   createdTickets = await Ticket.insertMany(tickets);
   console.log(`  ✅ Created ${createdTickets.length} Tickets`);
 }
 
 async function seedTicketActivities() {
   console.log('\n📋 Creating Ticket Activities...');
-  
+
   await TicketActivity.deleteMany({});
-  
+
   const activityTypes = ['Comment', 'StatusChange', 'Assignment', 'Resolution'];
   const activities = [];
-  
+
   for (const ticket of createdTickets) {
     // Add 1-5 activities per ticket
     const activityCount = Math.floor(Math.random() * 5) + 1;
-    
+
     for (let i = 0; i < activityCount; i++) {
       const activityType = activityTypes[Math.floor(Math.random() * activityTypes.length)];
       const user = createdUsers[Math.floor(Math.random() * createdUsers.length)];
-      
+
       let content = '';
       switch (activityType) {
         case 'Comment':
@@ -425,7 +425,7 @@ async function seedTicketActivities() {
           content = 'Issue has been resolved. Component replaced.';
           break;
       }
-      
+
       activities.push({
         ticketId: ticket._id,
         userId: user._id,
@@ -436,33 +436,33 @@ async function seedTicketActivities() {
       });
     }
   }
-  
+
   const createdActivities = await TicketActivity.insertMany(activities);
   console.log(`  ✅ Created ${createdActivities.length} Ticket Activities`);
 }
 
 async function seedWorkOrders() {
   console.log('\n📋 Creating Work Orders...');
-  
+
   await WorkOrder.deleteMany({});
-  
+
   const workOrderStatuses = ['Pending', 'Accepted', 'InProgress', 'Completed'];
   const workOrders = [];
-  
+
   const engineers = createdUsers.filter(u => u.role === 'L1Engineer' || u.role === 'L2Engineer');
   const today = new Date();
   const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
-  
+
   // Create work orders for some tickets
-  const ticketsWithWO = createdTickets.filter(t => 
+  const ticketsWithWO = createdTickets.filter(t =>
     ['Assigned', 'Acknowledged', 'InProgress', 'Resolved', 'Closed'].includes(t.status)
   );
-  
+
   let woCounter = 1;
   for (const ticket of ticketsWithWO.slice(0, 15)) {
     const engineer = engineers[Math.floor(Math.random() * engineers.length)];
     const status = workOrderStatuses[Math.floor(Math.random() * workOrderStatuses.length)];
-    
+
     workOrders.push({
       workOrderNumber: `WO-${dateStr}-${String(woCounter).padStart(4, '0')}`,
       ticketId: ticket._id,
@@ -480,37 +480,37 @@ async function seedWorkOrders() {
         { part: 'Network Cable', quantity: 2 }
       ]) : null,
       scheduledDate: new Date(ticket.createdAt.getTime() + 24 * 60 * 60 * 1000),
-      startedOn: ['InProgress', 'Completed'].includes(status) 
+      startedOn: ['InProgress', 'Completed'].includes(status)
         ? new Date(ticket.createdAt.getTime() + 2 * 60 * 60 * 1000) : null,
-      completedOn: status === 'Completed' 
+      completedOn: status === 'Completed'
         ? new Date(ticket.createdAt.getTime() + 4 * 60 * 60 * 1000) : null,
       workPerformed: status === 'Completed' ? 'Replaced faulty cable and tested connectivity' : null,
       remarks: 'Standard maintenance procedure followed',
       requiresApproval: false
     });
-    
+
     woCounter++;
   }
-  
+
   const createdWorkOrders = await WorkOrder.insertMany(workOrders);
   console.log(`  ✅ Created ${createdWorkOrders.length} Work Orders`);
 }
 
 async function seedSystemSettings() {
   console.log('\n📋 Creating System Settings...');
-  
+
   const settingsCollection = mongoose.connection.collection('systemsettings');
   await settingsCollection.deleteMany({});
-  
+
   const settings = [
-    { key: 'company_name', value: 'UCC Ticketing Platform', dataType: 'string', category: 'General', description: 'Company name displayed in the application' },
+    { key: 'company_name', value: 'TicketOps', dataType: 'string', category: 'General', description: 'Company name displayed in the application' },
     { key: 'default_priority', value: 'P3', dataType: 'string', category: 'Tickets', description: 'Default priority for new tickets' },
     { key: 'sla_check_interval', value: '60', dataType: 'number', category: 'SLA', description: 'SLA check interval in seconds' },
     { key: 'email_notifications', value: 'true', dataType: 'boolean', category: 'Notifications', description: 'Enable email notifications' },
     { key: 'max_file_size', value: '10485760', dataType: 'number', category: 'Uploads', description: 'Maximum file upload size in bytes' },
     { key: 'session_timeout', value: '60', dataType: 'number', category: 'Security', description: 'Session timeout in minutes' }
   ];
-  
+
   await settingsCollection.insertMany(settings);
   console.log(`  ✅ Created ${settings.length} System Settings`);
 }
@@ -519,7 +519,7 @@ async function printSummary() {
   console.log('\n' + '═'.repeat(60));
   console.log('📊 SEED SUMMARY');
   console.log('═'.repeat(60));
-  
+
   const counts = {
     'SLA Policies': await SLAPolicy.countDocuments(),
     'Sites': await Site.countDocuments(),
@@ -529,13 +529,13 @@ async function printSummary() {
     'Ticket Activities': await TicketActivity.countDocuments(),
     'Work Orders': await WorkOrder.countDocuments()
   };
-  
+
   let total = 0;
   for (const [name, count] of Object.entries(counts)) {
     console.log(`✅ ${name.padEnd(20)} : ${count}`);
     total += count;
   }
-  
+
   console.log('─'.repeat(60));
   console.log(`📈 TOTAL DOCUMENTS      : ${total}`);
   console.log('═'.repeat(60));
@@ -546,12 +546,12 @@ async function seedDatabase() {
   console.log('🌱 FULL DATABASE SEED');
   console.log('═'.repeat(60));
   console.log(`Started at: ${new Date().toISOString()}\n`);
-  
+
   try {
     // Connect to MongoDB
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('✅ Connected to MongoDB');
-    
+
     // Seed in order (respecting dependencies)
     await seedSLAPolicies();
     await seedSites();
@@ -561,10 +561,10 @@ async function seedDatabase() {
     await seedTicketActivities();
     await seedWorkOrders();
     await seedSystemSettings();
-    
+
     // Print summary
     await printSummary();
-    
+
     console.log('\n📝 Default Login Credentials:');
     console.log('━'.repeat(60));
     console.log('Admin:       username: admin          | password: Admin@123');
@@ -574,10 +574,10 @@ async function seedDatabase() {
     console.log('Supervisor:  username: supervisor     | password: Supervisor@123');
     console.log('Client:      username: client         | password: Client@123');
     console.log('━'.repeat(60));
-    
+
     console.log('\n🎉 Database seeded successfully!');
     console.log(`Completed at: ${new Date().toISOString()}`);
-    
+
   } catch (error) {
     console.error('\n❌ Seed failed:', error);
   } finally {

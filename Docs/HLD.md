@@ -3,7 +3,7 @@
 
 ## 1. System Overview
 
-The system is a centralized **UCC Ticketing & Maintenance Platform** used to:
+The system is a centralized **TicketOps - Ticketing & Maintenance Platform** used to:
 
 * Monitor surveillance infrastructure health
 * Automatically generate tickets from alarms

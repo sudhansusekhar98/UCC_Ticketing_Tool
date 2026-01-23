@@ -87,8 +87,7 @@ app.use(helmet()); // Security headers
 // CORS Configuration - supports multiple origins
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://ucc-ticketing-tool.vercel.app',
-  'https://ucc-ticketing-tool-znae.vercel.app',
+  'https://ticketops.vluccc.com',
   // Add the CORS_ORIGIN from env (remove trailing slash if present)
   ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN.replace(/\/$/, '')] : [])
 ];

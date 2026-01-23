@@ -124,7 +124,7 @@ export const sendYourNotificationEmail = async (data, recipient) => {
     `;
 
     await transporter.sendMail({
-      from: `"UCC Ticketing System" <${process.env.SMTP_USER}>`,
+      from: `"TicketOps" <${process.env.SMTP_USER}>`,
       to: recipient.email,
       subject: 'Your Email Subject',
       html: emailTemplate(content, 'Email Title'),
