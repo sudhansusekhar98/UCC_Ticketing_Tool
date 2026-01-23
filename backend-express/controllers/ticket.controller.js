@@ -981,7 +981,7 @@ export const getAuditTrail = async (req, res, next) => {
   }
 };
 
-// @desc    Get dashboard stats
+// @desc    Get dashboard stats - OPTIMIZED VERSION
 // @route   GET /api/tickets/dashboard/stats
 // @access  Private
 export const getDashboardStats = async (req, res, next) => {
@@ -991,7 +991,10 @@ export const getDashboardStats = async (req, res, next) => {
 
     // Role-based filtering
     if (user.role !== 'Admin') {
-      const siteAssetIds = await Asset.find({ siteId: { $in: user.assignedSites || [] } }).distinct('_id');
+      const siteAssetIds = await Asset.find({
+        siteId: { $in: user.assignedSites || [] }
+      }).distinct('_id').lean();
+
       matchQuery.$or = [
         { assignedTo: user._id },
         { createdBy: user._id },
@@ -999,95 +1002,110 @@ export const getDashboardStats = async (req, res, next) => {
       ];
     }
 
-    const [
-      totalOpen,
-      totalAssigned,
-      totalAcknowledged,
-      totalInProgress,
-      totalResolved,
-      totalClosed,
-      totalEscalated,
-      totalTickets,
-      slaBreached,
-      slaAtRisk,
-      totalAssets,
-      offlineAssets,
-      byPriority,
-      byStatus,
-      byCategory,
-      resolvedToday
-    ] = await Promise.all([
-      Ticket.countDocuments({ ...matchQuery, status: 'Open' }),
-      Ticket.countDocuments({ ...matchQuery, status: 'Assigned' }),
-      Ticket.countDocuments({ ...matchQuery, status: 'Acknowledged' }),
-      Ticket.countDocuments({ ...matchQuery, status: 'InProgress' }),
-      Ticket.countDocuments({ ...matchQuery, status: 'Resolved' }),
-      Ticket.countDocuments({ ...matchQuery, status: 'Closed' }),
-      Ticket.countDocuments({ ...matchQuery, status: 'Escalated' }),
-      Ticket.countDocuments(matchQuery),
-      Ticket.countDocuments({ ...matchQuery, isSLARestoreBreached: true, status: { $nin: ['Closed', 'Cancelled'] } }),
-      Ticket.countDocuments({
-        ...matchQuery,
-        slaRestoreDue: { $lte: new Date(Date.now() + 30 * 60 * 1000) }, // Within 30 minutes
-        status: { $nin: ['Closed', 'Cancelled', 'Resolved'] }
-      }),
-      // Asset counts (filtered by site for non-admins)
-      user.role === 'Admin'
-        ? mongoose.connection.collection('assets').countDocuments({ isActive: true })
-        : mongoose.connection.collection('assets').countDocuments({ isActive: true, siteId: { $in: user.assignedSites.map(s => new mongoose.Types.ObjectId(s)) || [] } }),
-      user.role === 'Admin'
-        ? mongoose.connection.collection('assets').countDocuments({ isActive: true, status: 'Offline' })
-        : mongoose.connection.collection('assets').countDocuments({ isActive: true, status: 'Offline', siteId: { $in: user.assignedSites.map(s => new mongoose.Types.ObjectId(s)) || [] } }),
-      // Priority breakdown
-      Ticket.aggregate([
-        { $match: { ...matchQuery, status: { $nin: ['Closed', 'Cancelled'] } } },
-        { $group: { _id: '$priority', count: { $sum: 1 } } }
-      ]),
-      // Status breakdown
-      Ticket.aggregate([
-        { $match: matchQuery },
-        { $group: { _id: '$status', count: { $sum: 1 } } }
-      ]),
-      // Category breakdown
-      Ticket.aggregate([
-        { $match: { ...matchQuery, status: { $nin: ['Closed', 'Cancelled'] } } },
-        { $group: { _id: '$category', count: { $sum: 1 } } }
-      ]),
-      // Resolved today
-      Ticket.countDocuments({
-        ...matchQuery,
-        resolvedOn: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) }
-      })
+    // Single aggregation with $facet for all stats - much faster than multiple queries
+    const [stats] = await Ticket.aggregate([
+      { $match: matchQuery },
+      {
+        $facet: {
+          // All status counts in one pass
+          statusCounts: [
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+          ],
+          // Priority breakdown (non-closed/cancelled)
+          priorityBreakdown: [
+            { $match: { status: { $nin: ['Closed', 'Cancelled'] } } },
+            { $group: { _id: '$priority', count: { $sum: 1 } } }
+          ],
+          // Category breakdown (non-closed/cancelled)
+          categoryBreakdown: [
+            { $match: { status: { $nin: ['Closed', 'Cancelled'] } } },
+            { $group: { _id: '$category', count: { $sum: 1 } } }
+          ],
+          // SLA breached count
+          slaBreached: [
+            { $match: { isSLARestoreBreached: true, status: { $nin: ['Closed', 'Cancelled'] } } },
+            { $count: 'count' }
+          ],
+          // SLA at risk count
+          slaAtRisk: [
+            {
+              $match: {
+                slaRestoreDue: { $lte: new Date(Date.now() + 30 * 60 * 1000) },
+                status: { $nin: ['Closed', 'Cancelled', 'Resolved'] }
+              }
+            },
+            { $count: 'count' }
+          ],
+          // Resolved today
+          resolvedToday: [
+            { $match: { resolvedOn: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } } },
+            { $count: 'count' }
+          ],
+          // SLA compliance counts
+          closedCompliant: [
+            { $match: { status: 'Closed', isSLARestoreBreached: false } },
+            { $count: 'count' }
+          ],
+          totalClosed: [
+            { $match: { status: 'Closed' } },
+            { $count: 'count' }
+          ],
+          // Total tickets
+          totalCount: [
+            { $count: 'count' }
+          ]
+        }
+      }
     ]);
 
-    // Calculate SLA compliance
-    const closedWithSLA = await Ticket.countDocuments({
-      ...matchQuery,
-      status: 'Closed',
-      isSLARestoreBreached: false
+    // Get asset counts in parallel (only 2 queries)
+    const assetMatchQuery = user.role === 'Admin'
+      ? { isActive: true }
+      : { isActive: true, siteId: { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) } };
+
+    const [totalAssets, offlineAssets] = await Promise.all([
+      mongoose.connection.collection('assets').countDocuments(assetMatchQuery),
+      mongoose.connection.collection('assets').countDocuments({ ...assetMatchQuery, status: 'Offline' })
+    ]);
+
+    // Process status counts into an object
+    const statusCounts = {};
+    (stats.statusCounts || []).forEach(item => {
+      statusCounts[item._id] = item.count;
     });
-    const totalClosedForSLA = await Ticket.countDocuments({
-      ...matchQuery,
-      status: 'Closed'
-    });
+
+    // Extract values with defaults
+    const totalOpen = statusCounts['Open'] || 0;
+    const totalAssigned = statusCounts['Assigned'] || 0;
+    const totalAcknowledged = statusCounts['Acknowledged'] || 0;
+    const totalInProgress = statusCounts['InProgress'] || 0;
+    const totalResolved = statusCounts['Resolved'] || 0;
+    const totalClosed = statusCounts['Closed'] || 0;
+    const totalEscalated = statusCounts['Escalated'] || 0;
+    const totalTickets = stats.totalCount[0]?.count || 0;
+    const slaBreached = stats.slaBreached[0]?.count || 0;
+    const slaAtRisk = stats.slaAtRisk[0]?.count || 0;
+    const resolvedToday = stats.resolvedToday[0]?.count || 0;
+
+    // SLA compliance
+    const closedWithSLA = stats.closedCompliant[0]?.count || 0;
+    const totalClosedForSLA = stats.totalClosed[0]?.count || 0;
     const slaCompliancePercent = totalClosedForSLA > 0
       ? Math.round((closedWithSLA / totalClosedForSLA) * 100)
       : 100;
 
-    // Format tickets by priority for charts
-    const ticketsByPriority = byPriority.map(item => ({
+    // Format chart data
+    const ticketsByPriority = (stats.priorityBreakdown || []).map(item => ({
       priority: item._id,
       count: item.count
     }));
 
-    // Format tickets by status for charts
-    const ticketsByStatus = byStatus.map(item => ({
+    const ticketsByStatus = (stats.statusCounts || []).map(item => ({
       status: item._id,
       count: item.count
     }));
 
-    // Format tickets by category for charts
-    const ticketsByCategory = byCategory.map(item => ({
+    const ticketsByCategory = (stats.categoryBreakdown || []).map(item => ({
       category: item._id || 'Uncategorized',
       count: item.count
     }));
@@ -1095,7 +1113,7 @@ export const getDashboardStats = async (req, res, next) => {
     res.json({
       success: true,
       data: {
-        // Main stats (matching frontend expectations)
+        // Main stats
         openTickets: totalOpen,
         inProgressTickets: totalInProgress,
         escalatedTickets: totalEscalated,
@@ -1109,15 +1127,15 @@ export const getDashboardStats = async (req, res, next) => {
         totalAssets,
         offlineAssets,
 
-        // Available engineers count
-        availableEngineers: 0, // Can be implemented with user workload check
+        // Available engineers
+        availableEngineers: 0,
 
         // Charts data
         ticketsByPriority,
         ticketsByStatus,
         ticketsByCategory,
 
-        // Legacy fields for compatibility
+        // Legacy fields
         totalOpen,
         totalAssigned,
         totalInProgress,
