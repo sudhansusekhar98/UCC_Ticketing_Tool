@@ -100,13 +100,13 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
     // Initial load and Socket.IO connection
     useEffect(() => {
         fetchActivities();
-        
+
         // Connect to socket and set up listener
         const socket = socketService.connect();
-        
+
         // Join the ticket room for targeted updates
         socketService.joinTicketRoom(ticketId);
-        
+
         // Handler for activity created events
         const handleActivityCreated = (data) => {
             // Only refresh if the activity is for this ticket
@@ -115,10 +115,10 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                 fetchActivities();
             }
         };
-        
+
         // Subscribe to activity events
         socketService.onActivityCreated(handleActivityCreated);
-        
+
         // Cleanup on unmount
         return () => {
             socketService.leaveTicketRoom(ticketId);
@@ -249,6 +249,76 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
 
+    const renderActivityText = (content) => {
+        if (!content) return null;
+
+        // Check if this is an RMA/Device Replacement Request
+        if (content.includes('RMA/Device Replacement Request Submitted')) {
+            const lines = content.split('\n');
+            const sections = {
+                title: '',
+                reason: '',
+                asset: '',
+                sn: '',
+                ip: '',
+                footer: ''
+            };
+
+            lines.forEach(line => {
+                const cleanLine = line.replace(/\*\*/g, '').replace(/_/g, '').trim();
+                if (line.includes('RMA/Device Replacement Request Submitted')) sections.title = cleanLine;
+                else if (line.toLowerCase().includes('reason:')) sections.reason = cleanLine.split(/reason:/i)[1]?.trim();
+                else if (line.toLowerCase().includes('asset:')) sections.asset = cleanLine.split(/asset:/i)[1]?.trim();
+                else if (line.toLowerCase().includes('current s/n:')) sections.sn = cleanLine.split(/current s\/n:/i)[1]?.trim();
+                else if (line.toLowerCase().includes('current ip:')) sections.ip = cleanLine.split(/current ip:/i)[1]?.trim();
+                else if (line.includes('Awaiting approval')) sections.footer = cleanLine;
+            });
+
+            return (
+                <div className="rma-request-card">
+                    <div className="rma-card-header">
+                        <RefreshCw size={14} className="rma-icon" />
+                        <span className="rma-title">RMA / Device Replacement Request</span>
+                    </div>
+                    <div className="rma-details">
+                        {sections.reason && (
+                            <div className="rma-detail-row">
+                                <span className="rma-label">Reason:</span>
+                                <span className="rma-value">{sections.reason}</span>
+                            </div>
+                        )}
+                        {sections.asset && (
+                            <div className="rma-detail-row">
+                                <span className="rma-label">Asset:</span>
+                                <span className="rma-value">{sections.asset}</span>
+                            </div>
+                        )}
+                        {sections.sn && (
+                            <div className="rma-detail-row">
+                                <span className="rma-label">Current S/N:</span>
+                                <span className="rma-value code">{sections.sn}</span>
+                            </div>
+                        )}
+                        {sections.ip && (
+                            <div className="rma-detail-row">
+                                <span className="rma-label">Current IP:</span>
+                                <span className="rma-value code">{sections.ip}</span>
+                            </div>
+                        )}
+                    </div>
+                    {sections.footer && (
+                        <div className="rma-footer">
+                            <Clock size={12} />
+                            {sections.footer}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        return <div className="activity-text">{content}</div>;
+    };
+
     if (loading) {
         return (
             <div className="activity-section glass-card">
@@ -268,8 +338,8 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                 <div className="activity-header-left">
                     <h3><MessageSquare size={18} /> Activity & Comments</h3>
                     <span className="activity-count">{activities.length} entries</span>
-                    <button 
-                        className="refresh-btn" 
+                    <button
+                        className="refresh-btn"
                         onClick={handleManualRefresh}
                         disabled={refreshing}
                         title="Refresh activities"
@@ -315,7 +385,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                                         {getActivityTypeIcon(activity.activityType)}
                                     </span>
                                 </div>
-                                <div className="activity-text">{activity.content}</div>
+                                {renderActivityText(activity.content)}
 
                                 {activity.attachments?.length > 0 && (
                                     <div className="activity-attachments">
@@ -323,10 +393,10 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                                             // Construct full URL for database-stored files
                                             const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
                                             const BASE_URL = API_BASE_URL.replace('/api', '');
-                                            const fullUrl = att.storageType === 'Cloudinary' 
-                                                ? att.url 
+                                            const fullUrl = att.storageType === 'Cloudinary'
+                                                ? att.url
                                                 : `${BASE_URL}${att.url}`;
-                                            
+
                                             return (
                                                 <div key={att.attachmentId} className="attachment-item">
                                                     {isImage(att.contentType) ? (

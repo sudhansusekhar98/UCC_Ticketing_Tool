@@ -53,13 +53,6 @@ const emailTemplate = (content, title) => `
       color: #333333;
       line-height: 1.6;
     }
-    .email-footer {
-      background-color: #f8f9fa;
-      padding: 20px;
-      text-align: center;
-      color: #6c757d;
-      font-size: 12px;
-    }
     .btn {
       display: inline-block;
       padding: 12px 24px;
@@ -69,7 +62,13 @@ const emailTemplate = (content, title) => `
       text-decoration: none;
       border-radius: 5px;
       font-weight: 500;
-      color: white;
+    }
+    .email-footer {
+      background-color: #f8f9fa;
+      padding: 20px;
+      text-align: center;
+      color: #6c757d;
+      font-size: 12px;
     }
     .info-box {
       background-color: #f8f9fa;
@@ -79,6 +78,25 @@ const emailTemplate = (content, title) => `
     }
     .info-box strong {
       color: #667eea;
+    }
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 15px 0;
+      font-size: 14px;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background-color: #f8f9fa;
+      color: #4a5568;
+      border-bottom: 1px solid #edf2f7;
+      width: 40%;
+    }
+    .data-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #edf2f7;
+      color: #2d3748;
     }
   </style>
 </head>
@@ -110,21 +128,23 @@ export const sendAccountCreationEmail = async (user, tempPassword) => {
       <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
       <p>Welcome to TicketOps! Your account has been successfully created.</p>
       
-      <div class="info-box">
-        <p><strong>Username:</strong> ${user.username}</p>
-        <p><strong>Email:</strong> ${user.email}</p>
-        <p><strong>Temporary Password:</strong> ${tempPassword}</p>
-        <p><strong>Role:</strong> ${user.role}</p>
-      </div>
+      <table class="data-table">
+        <tr><th>Username</th><td>${user.username}</td></tr>
+        <tr><th>Email</th><td>${user.email}</td></tr>
+        <tr><th>Temporary Password</th><td><code>${tempPassword}</code></td></tr>
+        <tr><th>Role</th><td>${user.role}</td></tr>
+      </table>
       
       <p>For security reasons, please change your password after your first login.</p>
       <p>You can access the system by clicking the button below:</p>
       
-      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/login" class="btn" style="color: white !important; text-decoration: none;">Login to System</a>
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/login" class="btn" style="color: white !important; text-decoration: none;">Login to System</a>
+      </div>
       
       <p>If you have any questions or need assistance, please contact your system administrator.</p>
       
-      <p>Best regards,<br/>TicketOps Team</p>
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
         await transporter.sendMail({
@@ -152,24 +172,26 @@ export const sendTicketAssignmentEmail = async (ticket, assignedUser, assignedBy
       <p>Hello <strong>${assignedUser.fullName || assignedUser.username}</strong>,</p>
       <p>A new ticket has been assigned to you.</p>
       
-      <div class="info-box">
-        <p><strong>Ticket ID:</strong> ${ticket.ticketNumber}</p>
-        <p><strong>Subject:</strong> ${ticket.title}</p>
-        <p><strong>Priority:</strong> ${ticket.priority}</p>
-        <p><strong>Status:</strong> ${ticket.status}</p>
-        <p><strong>Site:</strong> ${ticket.siteId?.siteName || ticket.site?.name || 'N/A'}</p>
-        <p><strong>Expected Resolution:</strong> ${ticket.slaRestoreDue ? new Date(ticket.slaRestoreDue).toLocaleString() : 'N/A'}</p>
-        <p><strong>Assigned By:</strong> ${assignedBy?.fullName || 'System'}</p>
-      </div>
+      <table class="data-table">
+        <tr><th>Ticket ID</th><td>${ticket.ticketNumber}</td></tr>
+        <tr><th>Subject</th><td>${ticket.title}</td></tr>
+        <tr><th>Priority</th><td>${ticket.priority}</td></tr>
+        <tr><th>Status</th><td>${ticket.status}</td></tr>
+        <tr><th>Site</th><td>${ticket.siteId?.siteName || ticket.site?.name || 'N/A'}</td></tr>
+        <tr><th>Expected Resolution</th><td>${ticket.slaRestoreDue ? new Date(ticket.slaRestoreDue).toLocaleString() : 'N/A'}</td></tr>
+        <tr><th>Assigned By</th><td>${assignedBy?.fullName || 'System'}</td></tr>
+      </table>
       
       <p><strong>Description:</strong></p>
-      <p>${ticket.description || 'No description provided'}</p>
+      <div class="info-box">${ticket.description || 'No description provided'}</div>
       
       <p>Please acknowledge and start working on this ticket as soon as possible.</p>
       
-      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none;">View Ticket</a>
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none;">View Ticket</a>
+      </div>
       
-      <p>Best regards,<br/>TicketOps</p>
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
         await transporter.sendMail({
@@ -196,28 +218,30 @@ export const sendTicketEscalationEmail = async (ticket, escalatedToUser, escalat
       <p>Hello <strong>${escalatedToUser.fullName || escalatedToUser.username}</strong>,</p>
       <p>A ticket has been escalated to you and requires your immediate attention.</p>
       
-      <div class="info-box">
-        <p><strong>Ticket ID:</strong> ${ticket.ticketNumber}</p>
-        <p><strong>Subject:</strong> ${ticket.title}</p>
-        <p><strong>Priority:</strong> ${ticket.priority}</p>
-        <p><strong>Status:</strong> ${ticket.status}</p>
-        <p><strong>Escalation Level:</strong> ${ticket.escalationLevel}</p>
-        <p><strong>Site:</strong> ${ticket.siteId?.siteName || ticket.site?.name || 'N/A'}</p>
-        <p><strong>Expected Resolution:</strong> ${ticket.slaRestoreDue ? new Date(ticket.slaRestoreDue).toLocaleString() : 'N/A'}</p>
-        <p><strong>Escalated By:</strong> ${escalatedBy?.fullName || 'System'}</p>
-      </div>
+      <table class="data-table">
+        <tr><th>Ticket ID</th><td>${ticket.ticketNumber}</td></tr>
+        <tr><th>Subject</th><td>${ticket.title}</td></tr>
+        <tr><th>Priority</th><td>${ticket.priority}</td></tr>
+        <tr><th>Status</th><td>${ticket.status}</td></tr>
+        <tr><th>Escalation Level</th><td><strong>Level ${ticket.escalationLevel}</strong></td></tr>
+        <tr><th>Site</th><td>${ticket.siteId?.siteName || ticket.site?.name || 'N/A'}</td></tr>
+        <tr><th>Expected Resolution</th><td>${ticket.slaRestoreDue ? new Date(ticket.slaRestoreDue).toLocaleString() : 'N/A'}</td></tr>
+        <tr><th>Escalated By</th><td>${escalatedBy?.fullName || 'System'}</td></tr>
+      </table>
       
       <p><strong>Escalation Reason:</strong></p>
-      <p>${escalationReason || 'No reason provided'}</p>
+      <div class="info-box" style="border-left-color: #dc3545;">${escalationReason || 'No reason provided'}</div>
       
       <p><strong>Original Description:</strong></p>
-      <p>${ticket.description || 'No description provided'}</p>
+      <div class="info-box">${ticket.description || 'No description provided'}</div>
       
-      <p><strong style="color: #dc3545;">This ticket requires urgent attention!</strong></p>
+      <p><strong style="color: #dc3545;">This ticket requires your immediate attention!</strong></p>
       
-      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none;">View Ticket</a>
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none; background-color: #dc3545;">View Urgent Ticket</a>
+      </div>
       
-      <p>Best regards,<br/>TicketOps</p>
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
         await transporter.sendMail({
@@ -252,28 +276,30 @@ export const sendRMACreationEmail = async (rmaRequest, ticket, requestedBy, noti
       <p>Hello,</p>
       <p>A new RMA (Return Merchandise Authorization) request has been generated.</p>
       
-      <div class="info-box">
-        <p><strong>RMA Number:</strong> ${rmaRequest.rmaNumber}</p>
-        <p><strong>Related Ticket:</strong> ${ticket?.ticketNumber || 'N/A'}</p>
-        <p><strong>Asset:</strong> ${rmaRequest.asset?.name || 'N/A'}</p>
-        <p><strong>Asset Type:</strong> ${rmaRequest.asset?.assetType || 'N/A'}</p>
-        <p><strong>Serial Number:</strong> ${rmaRequest.oldSerialNumber || 'N/A'}</p>
-        <p><strong>Status:</strong> ${rmaRequest.status}</p>
-        <p><strong>Requested By:</strong> ${requestedBy?.name || 'System'}</p>
-        <p><strong>Request Date:</strong> ${new Date(rmaRequest.createdAt).toLocaleString()}</p>
-      </div>
+      <table class="data-table">
+        <tr><th>RMA Number</th><td>${rmaRequest.rmaNumber}</td></tr>
+        <tr><th>Related Ticket</th><td>${ticket?.ticketNumber || 'N/A'}</td></tr>
+        <tr><th>Asset</th><td>${rmaRequest.asset?.name || 'N/A'}</td></tr>
+        <tr><th>Asset Type</th><td>${rmaRequest.asset?.assetType || 'N/A'}</td></tr>
+        <tr><th>Serial Number</th><td>${rmaRequest.oldSerialNumber || 'N/A'}</td></tr>
+        <tr><th>Status</th><td>${rmaRequest.status}</td></tr>
+        <tr><th>Requested By</th><td>${requestedBy?.name || 'System'}</td></tr>
+        <tr><th>Request Date</th><td>${new Date(rmaRequest.createdAt).toLocaleString()}</td></tr>
+      </table>
       
       <p><strong>Issue Description:</strong></p>
-      <p>${rmaRequest.issueDescription || 'No description provided'}</p>
+      <div class="info-box">${rmaRequest.issueDescription || 'No description provided'}</div>
       
       <p><strong>Failure Symptoms:</strong></p>
-      <p>${rmaRequest.failureSymptoms || 'No symptoms listed'}</p>
+      <div class="info-box">${rmaRequest.failureSymptoms || 'No symptoms listed'}</div>
       
       <p>Please review and process this RMA request at your earliest convenience.</p>
       
-      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/rma" class="btn" style="color: white !important; text-decoration: none;">View RMA Details</a>
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/rma" class="btn" style="color: white !important; text-decoration: none;">View RMA Details</a>
+      </div>
       
-      <p>Best regards,<br/>TicketOps</p>
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
         await transporter.sendMail({
@@ -300,17 +326,20 @@ export const sendTicketStatusChangeEmail = async (ticket, user, oldStatus, newSt
       <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
       <p>The status of your ticket has been updated.</p>
       
-      <div class="info-box">
-        <p><strong>Ticket ID:</strong> ${ticket.ticketNumber}</p>
-        <p><strong>Subject:</strong> ${ticket.title}</p>
-        <p><strong>Previous Status:</strong> ${oldStatus}</p>
-        <p><strong>New Status:</strong> ${newStatus}</p>
-        ${comments ? `<p><strong>Comments:</strong> ${comments}</p>` : ''}
+      <table class="data-table">
+        <tr><th>Ticket ID</th><td>${ticket.ticketNumber}</td></tr>
+        <tr><th>Subject</th><td>${ticket.title}</td></tr>
+        <tr><th>Previous Status</th><td>${oldStatus}</td></tr>
+        <tr><th>New Status</th><td><strong>${newStatus}</strong></td></tr>
+      </table>
+      
+      ${comments ? `<p><strong>Update Comments:</strong></p><div class="info-box">${comments}</div>` : ''}
+      
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none;">View Ticket</a>
       </div>
       
-      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none;">View Ticket</a>
-      
-      <p>Best regards,<br/>TicketOps</p>
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
         await transporter.sendMail({
@@ -337,18 +366,20 @@ export const sendPasswordResetEmail = async (user, newPassword) => {
       <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
       <p>Your password has been reset by an administrator.</p>
       
-      <div class="info-box">
-        <p><strong>Username:</strong> ${user.username}</p>
-        <p><strong>New Temporary Password:</strong> ${newPassword}</p>
-      </div>
+      <table class="data-table">
+        <tr><th>Username</th><td>${user.username}</td></tr>
+        <tr><th>New Temporary Password</th><td><code>${newPassword}</code></td></tr>
+      </table>
       
       <p><strong style="color: #dc3545;">Important:</strong> Please change this password immediately after logging in for security purposes.</p>
       
-      <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/login" class="btn" style="color: white !important; text-decoration: none;">Login to System</a>
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/login" class="btn" style="color: white !important; text-decoration: none;">Login to System</a>
+      </div>
       
       <p>If you did not request this password reset, please contact your system administrator immediately.</p>
       
-      <p>Best regards,<br/>TicketOps</p>
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
         await transporter.sendMail({

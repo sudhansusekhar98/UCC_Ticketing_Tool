@@ -193,20 +193,8 @@ export const createTicket = async (req, res, next) => {
       ticketData.assignedOn = new Date();
     }
 
-    // Auto-assign SLA policy based on priority
-    if (!ticketData.slaPolicyId && ticketData.priority) {
-      const slaPolicy = await SLAPolicy.findOne({
-        priority: ticketData.priority,
-        isActive: true
-      });
-      if (slaPolicy) {
-        ticketData.slaPolicyId = slaPolicy._id;
-        // Set SLA due times
-        const now = new Date();
-        ticketData.slaResponseDue = new Date(now.getTime() + slaPolicy.responseTimeMinutes * 60 * 1000);
-        ticketData.slaRestoreDue = new Date(now.getTime() + slaPolicy.restoreTimeMinutes * 60 * 1000);
-      }
-    }
+    // Note: SLA Policy and due dates are automatically assigned in the Ticket Model pre-save hook
+    // based on the impact, urgency and priority.
 
     const ticket = await Ticket.create(ticketData);
 
@@ -231,7 +219,7 @@ export const createTicket = async (req, res, next) => {
       .populate('siteId', 'siteName siteUniqueID city')
       .populate('assetId', 'assetCode assetType deviceType locationDescription siteId serialNumber ipAddress mac model make')
       .populate('createdBy', 'fullName username')
-      .populate('assignedTo', 'fullName username role')
+      .populate('assignedTo', 'fullName username role email')
       .populate('slaPolicyId', 'policyName');
 
     // Emit socket event for real-time updates
@@ -239,6 +227,11 @@ export const createTicket = async (req, res, next) => {
     if (io) {
       io.emit('ticket:created', populatedTicket);
       io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+    }
+
+    // Send email notification to assigned user if assigned during creation
+    if (populatedTicket.assignedTo?.email) {
+      await sendTicketAssignmentEmail(populatedTicket, populatedTicket.assignedTo, req.user);
     }
 
     res.status(201).json({
@@ -287,11 +280,16 @@ export const updateTicket = async (req, res, next) => {
       }
     }
 
-    const ticket = await Ticket.findByIdAndUpdate(
-      req.params.id,
-      { ...updates, updatedAt: new Date() },
-      { new: true, runValidators: true }
-    ).populate('assetId createdBy assignedTo slaPolicyId');
+    // Apply updates
+    Object.keys(updates).forEach(key => {
+      originalTicket[key] = updates[key];
+    });
+
+    await originalTicket.save();
+
+    // Re-fetch populated ticket
+    const ticket = await Ticket.findById(originalTicket._id)
+      .populate('assetId createdBy assignedTo slaPolicyId');
 
     // Log activity if fields were changed
     if (changedFields.length > 0) {
@@ -326,25 +324,25 @@ export const assignTicket = async (req, res, next) => {
   try {
     const { assignedTo, remarks } = req.body;
 
-    const ticket = await Ticket.findByIdAndUpdate(
-      req.params.id,
-      {
-        assignedTo,
-        assignedOn: new Date(),
-        status: 'Assigned',
-        updatedAt: new Date()
-      },
-      { new: true }
-    ).populate('assignedTo', 'fullName username email')
-      .populate('siteId', 'siteName')
-      .populate('assetId', 'assetCode');
-
+    let ticket = await Ticket.findById(req.params.id);
     if (!ticket) {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
       });
     }
+
+    ticket.assignedTo = assignedTo;
+    ticket.assignedOn = new Date();
+    ticket.status = 'Assigned';
+
+    await ticket.save();
+
+    // Re-fetch with populations
+    ticket = await Ticket.findById(ticket._id)
+      .populate('assignedTo', 'fullName username email')
+      .populate('siteId', 'siteName')
+      .populate('assetId', 'assetCode');
 
     // Create activity with assignment details
     let activityContent = `Ticket assigned to ${ticket.assignedTo.fullName}`;

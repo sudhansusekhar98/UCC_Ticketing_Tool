@@ -628,25 +628,26 @@ export default function TicketDetail() {
                             <span className="detail-value">{ticket.assignedToName || '—'}</span>
                         </div>
 
-                        {ticket.slaResponseDue && (
-                            <div className="detail-row">
-                                <span className="detail-label">Response Due</span>
-                                <span className={`detail-value ${ticket.isSLAResponseBreached ? 'text-danger' : ''}`}>
-                                    {format(new Date(ticket.slaResponseDue), 'PPpp')}
-                                    {ticket.isSLAResponseBreached && ' (Breached)'}
-                                </span>
-                            </div>
-                        )}
+                        <div className="detail-row">
+                            <span className="detail-label">SLA Policy</span>
+                            <span className="detail-value">{ticket.slaPolicyId?.policyName || 'Standard Policy'}</span>
+                        </div>
 
-                        {ticket.slaRestoreDue && (
-                            <div className="detail-row">
-                                <span className="detail-label">Expected Resolution Time</span>
-                                <span className={`detail-value ${ticket.isSLARestoreBreached ? 'text-danger' : ''}`}>
-                                    {format(new Date(ticket.slaRestoreDue), 'PPpp')}
-                                    {ticket.isSLARestoreBreached && ' (Breached)'}
-                                </span>
-                            </div>
-                        )}
+                        <div className="detail-row">
+                            <span className="detail-label">Response Target</span>
+                            <span className={`detail-value ${ticket.isSLAResponseBreached ? 'text-danger' : ''}`}>
+                                {ticket.slaResponseDue ? format(new Date(ticket.slaResponseDue), 'PPpp') : '—'}
+                                {ticket.isSLAResponseBreached && ' (Breached)'}
+                            </span>
+                        </div>
+
+                        <div className="detail-row">
+                            <span className="detail-label">Expected Resolution</span>
+                            <span className={`detail-value ${ticket.isSLARestoreBreached ? 'text-danger' : ''}`}>
+                                {ticket.slaRestoreDue ? format(new Date(ticket.slaRestoreDue), 'PPpp') : '—'}
+                                {ticket.isSLARestoreBreached && ' (Breached)'}
+                            </span>
+                        </div>
                     </div>
 
                     {/* Audit Trail - Compact */}

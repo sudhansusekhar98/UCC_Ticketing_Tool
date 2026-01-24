@@ -343,7 +343,7 @@ Impact (1–5) × Urgency (1–5) × Asset Criticality (1–3)
 
 This design:
 
-* Matches **UCC command center operations**
+* Matches **TicketOps command center operations**
 * Handles **high alarm volume**
 * Is **audit-safe and SLA-driven**
 * Can scale from **single city → multi-city**

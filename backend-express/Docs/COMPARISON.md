@@ -193,7 +193,7 @@ export default router;
 ```csharp
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddDbContext<UCCDbContext>(options =>
+builder.Services.AddDbContext<TicketOpsDbContext>(options =>
     options.UseSqlServer(connectionString));
 ```
 
@@ -346,12 +346,12 @@ router.post("/upload", upload.single("file"), (req, res) => {
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=.;Database=UCCTicketing;..."
+    "DefaultConnection": "Server=.;Database=TicketOps;..."
   },
   "Jwt": {
     "Secret": "your-secret-key",
-    "Issuer": "UCCTicketing",
-    "Audience": "UCCTicketing"
+    "Issuer": "TicketOps",
+    "Audience": "TicketOps"
   }
 }
 ```
@@ -359,7 +359,7 @@ router.post("/upload", upload.single("file"), (req, res) => {
 #### Express (.env)
 
 ```env
-MONGODB_URI=mongodb://localhost:27017/ucc_ticketing
+MONGODB_URI=mongodb://localhost:27017/ticketops
 JWT_SECRET=your-secret-key
 JWT_EXPIRE=7d
 PORT=5000
@@ -567,7 +567,7 @@ Both stacks are excellent choices. The Express.js + MongoDB stack offers:
 - **More flexible** data model
 - **Lower learning curve** for JavaScript developers
 
-The migration is **feasible and recommended** for this UCC Ticketing Platform.
+The migration is **feasible and recommended** for this TicketOps Ticketing Platform.
 
 ---
 

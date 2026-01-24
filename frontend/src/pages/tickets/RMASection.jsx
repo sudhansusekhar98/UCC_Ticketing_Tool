@@ -13,7 +13,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const [showRequestModal, setShowRequestModal] = useState(false);
     const [showProcessModal, setShowProcessModal] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
-    
+
     // Form States
     const [requestReason, setRequestReason] = useState('');
     const [shippingDetails, setShippingDetails] = useState({ address: '', trackingNumber: '', carrier: '' });
@@ -90,11 +90,11 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                 ticketId: ticketId,
                 assetId: assetId
             });
-            
+
             const { accessToken } = response.data.data;
-            
+
             toast.success('Access granted for 30 minutes!');
-            
+
             // Redirect to asset edit page with access token
             setTimeout(() => {
                 navigate(`/assets/${assetId}/edit?updateToken=${accessToken}`);
@@ -206,7 +206,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                 Update Order Details
                             </button>
                         )}
-                        
+
                         {canManageRMA && (rma.status === 'Ordered' || rma.status === 'Dispatched') && (
                             <button className="btn btn-sm btn-primary" onClick={() => { setActionRemark('Shipment update'); setShowProcessModal(true); }}>
                                 Update Shipping
@@ -214,7 +214,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         )}
 
                         {canInstall && (rma.status === 'Dispatched' || rma.status === 'Received' || rma.status === 'Ordered') && (
-                            <button style={{marginTop: '9px'}} className="btn btn-sm btn-success" onClick={handleInitiateAssetUpdate}>
+                            <button style={{ marginTop: '9px' }} className="btn btn-sm btn-success" onClick={handleInitiateAssetUpdate}>
                                 Complete Installation (Update Asset)
                             </button>
                         )}
@@ -228,16 +228,27 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
 
             {/* Request Modal */}
             {showRequestModal && (
-                <div className="modal-overlay">
-                    <div className="modal glass-card">
+                <div className="modal-overlay" onClick={() => setShowRequestModal(false)}>
+                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
                         <h3>Initiate RMA Request</h3>
                         <div className="form-group">
-                            <label>Reason for Replacement *</label>
-                            <textarea className="form-textarea" rows={3} value={requestReason} onChange={e => setRequestReason(e.target.value)} />
+                            <label className="form-label">Reason for Replacement *</label>
+                            <textarea
+                                className="form-textarea"
+                                rows={3}
+                                value={requestReason}
+                                onChange={e => setRequestReason(e.target.value)}
+                                placeholder="Describe why this device needs replacement..."
+                            />
                         </div>
                         <div className="form-group">
-                            <label>Shipping Address (Optional)</label>
-                            <input className="form-input" value={shippingDetails.address} onChange={e => setShippingDetails({...shippingDetails, address: e.target.value})} />
+                            <label className="form-label">Shipping Address (Optional)</label>
+                            <input
+                                className="form-input"
+                                value={shippingDetails.address}
+                                onChange={e => setShippingDetails({ ...shippingDetails, address: e.target.value })}
+                                placeholder="Where should the replacement be sent?"
+                            />
                         </div>
                         <div className="modal-actions">
                             <button className="btn btn-ghost" onClick={() => setShowRequestModal(false)}>Cancel</button>
@@ -249,16 +260,22 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
 
             {/* Process/Admin Modal */}
             {showProcessModal && (
-                <div className="modal-overlay">
-                    <div className="modal glass-card">
+                <div className="modal-overlay" onClick={() => setShowProcessModal(false)}>
+                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
                         <h3>Update RMA Logistics</h3>
-                        
+
                         {/* Vendor Fields */}
                         <div className="p-3 bg-secondary/20 rounded mb-3">
                             <h4 className="text-sm font-bold mb-2">Vendor & Order</h4>
                             <div className="grid grid-cols-2 gap-2">
-                                <input className="form-input" placeholder="Vendor Name" value={vendorDetails.vendorName} onChange={e => setVendorDetails({...vendorDetails, vendorName: e.target.value})} />
-                                <input className="form-input" placeholder="Order ID" value={vendorDetails.orderId} onChange={e => setVendorDetails({...vendorDetails, orderId: e.target.value})} />
+                                <div className="form-group mb-0">
+                                    <label className="form-label text-xs">Vendor Name</label>
+                                    <input className="form-input" placeholder="Vendor Name" value={vendorDetails.vendorName} onChange={e => setVendorDetails({ ...vendorDetails, vendorName: e.target.value })} />
+                                </div>
+                                <div className="form-group mb-0">
+                                    <label className="form-label text-xs">Order ID</label>
+                                    <input className="form-input" placeholder="Order ID" value={vendorDetails.orderId} onChange={e => setVendorDetails({ ...vendorDetails, orderId: e.target.value })} />
+                                </div>
                             </div>
                         </div>
 
@@ -266,8 +283,14 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         <div className="p-3 bg-secondary/20 rounded mb-3">
                             <h4 className="text-sm font-bold mb-2">Shipping & Tracking</h4>
                             <div className="grid grid-cols-2 gap-2">
-                                <input className="form-input" placeholder="Carrier" value={shippingDetails.carrier} onChange={e => setShippingDetails({...shippingDetails, carrier: e.target.value})} />
-                                <input className="form-input" placeholder="Tracking Number" value={shippingDetails.trackingNumber} onChange={e => setShippingDetails({...shippingDetails, trackingNumber: e.target.value})} />
+                                <div className="form-group mb-0">
+                                    <label className="form-label text-xs">Carrier</label>
+                                    <input className="form-input" placeholder="Carrier" value={shippingDetails.carrier} onChange={e => setShippingDetails({ ...shippingDetails, carrier: e.target.value })} />
+                                </div>
+                                <div className="form-group mb-0">
+                                    <label className="form-label text-xs">Tracking Number</label>
+                                    <input className="form-input" placeholder="Tracking Number" value={shippingDetails.trackingNumber} onChange={e => setShippingDetails({ ...shippingDetails, trackingNumber: e.target.value })} />
+                                </div>
                             </div>
                         </div>
 

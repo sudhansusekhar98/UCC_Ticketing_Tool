@@ -150,7 +150,8 @@ const ticketSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Indexes for better query performance (ticketNumber index is already created via unique: true)
+// Indexes for better query performance
+// Note: UNIQUE index for ticketNumber is handled in the field definition above.
 ticketSchema.index({ status: 1 });
 ticketSchema.index({ priority: 1 });
 ticketSchema.index({ createdBy: 1 });
@@ -180,38 +181,70 @@ ticketSchema.virtual('workOrders', {
   foreignField: 'ticketId'
 });
 
-// Pre-save hook to generate ticket number
-ticketSchema.pre('save', async function(next) {
+// Pre-save hook to generate ticket number and calculate SLA
+ticketSchema.pre('save', async function (next) {
+  // 1. Generate Ticket Number
   if (this.isNew && !this.ticketNumber) {
     const date = new Date();
     const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-    
+
     // Find the last ticket created today
     const lastTicket = await this.constructor.findOne({
       ticketNumber: new RegExp(`^TKT-${dateStr}-`)
     }).sort({ ticketNumber: -1 });
-    
+
     let sequence = 1;
     if (lastTicket) {
       const lastSequence = parseInt(lastTicket.ticketNumber.split('-')[2]);
       sequence = lastSequence + 1;
     }
-    
+
     this.ticketNumber = `TKT-${dateStr}-${sequence.toString().padStart(4, '0')}`;
   }
-  
-  // Calculate priority score
-  if (this.impact && this.urgency) {
-    const assetCriticality = this.assetId ? (await mongoose.model('Asset').findById(this.assetId))?.criticality || 2 : 2;
-    this.priorityScore = this.impact * this.urgency * assetCriticality;
-    
-    // Auto-assign priority based on score
-    if (this.priorityScore >= 50) this.priority = 'P1';
-    else if (this.priorityScore >= 25) this.priority = 'P2';
-    else if (this.priorityScore >= 10) this.priority = 'P3';
-    else this.priority = 'P4';
+
+  // 2. Calculate priority score if not set
+  if (this.impact && this.urgency && (!this.priority || this.isModified('impact') || this.isModified('urgency'))) {
+    try {
+      const assetCriticality = this.assetId ? (await mongoose.model('Asset').findById(this.assetId))?.criticality || 2 : 2;
+      this.priorityScore = this.impact * this.urgency * assetCriticality;
+
+      // Auto-assign priority based on score
+      if (this.priorityScore >= 50) this.priority = 'P1';
+      else if (this.priorityScore >= 25) this.priority = 'P2';
+      else if (this.priorityScore >= 10) this.priority = 'P3';
+      else this.priority = 'P4';
+    } catch (error) {
+      console.error('Error calculating priority score:', error);
+    }
   }
-  
+
+  // 3. Auto-assign SLA policy and calculate due dates
+  if (!this.slaPolicyId && this.priority) {
+    try {
+      const SLAPolicy = mongoose.model('SLAPolicy');
+      const slaPolicy = await SLAPolicy.findOne({
+        priority: this.priority,
+        isActive: true
+      });
+
+      if (slaPolicy) {
+        this.slaPolicyId = slaPolicy._id;
+        const now = this.createdAt || new Date();
+
+        if (!this.slaResponseDue) {
+          this.slaResponseDue = new Date(now.getTime() + slaPolicy.responseTimeMinutes * 60 * 1000);
+        }
+        if (!this.slaRestoreDue) {
+          this.slaRestoreDue = new Date(now.getTime() + slaPolicy.restoreTimeMinutes * 60 * 1000);
+        }
+      } else {
+        console.warn(`No active SLAPolicy found for priority: ${this.priority}`);
+      }
+    } catch (error) {
+      console.error('Error auto-assigning SLA policy in pre-save:', error);
+    }
+  }
+
   next();
 });
 

@@ -28,9 +28,9 @@ Express.js + MongoDB backend API for TicketOps with Socket.io for real-time upda
    PORT=5000
 
    # Database
-   MONGODB_URI=mongodb://localhost:27017/ucc-ticketing
+   MONGODB_URI=mongodb://localhost:27017/ticketops
    # Or MongoDB Atlas:
-   # MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/ucc-ticketing
+   # MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/ticketops
 
    # JWT
    JWT_SECRET=your-secret-key-min-32-characters
