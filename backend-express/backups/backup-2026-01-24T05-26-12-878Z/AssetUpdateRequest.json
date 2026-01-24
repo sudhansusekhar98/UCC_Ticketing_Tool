@@ -1,0 +1,40 @@
+[
+  {
+    "proposedChanges": {
+      "serialNumber": "G537740400023370061G - testing",
+      "ipAddress": "10.0.66.238 - testing",
+      "mac": "0C-BF-15-05-05-C0 - testing",
+      "model": "SharpV (Gen 3)",
+      "make": "Genetec",
+      "locationName": "Adarshmarg Chowk",
+      "locationDescription": "",
+      "userName": "admin",
+      "password": "",
+      "remark": ""
+    },
+    "originalValues": {
+      "serialNumber": "G537740400023370061G",
+      "ipAddress": "10.0.66.238",
+      "mac": "0C-BF-15-05-05-C0",
+      "model": "SharpV (Gen 3)",
+      "make": "Genetec",
+      "locationName": "Adarshmarg Chowk",
+      "userName": "admin"
+    },
+    "_id": "696e2cf023d1a1a118a03472",
+    "rmaId": "696e2c6b23d1a1a118a031a3",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "assetId": "6960a2af1110102da14f08f3",
+    "requestedBy": "6960a1aecd2efa6ca51eaff6",
+    "status": "Approved",
+    "accessToken": "055cd0baf9fcb3b9a32bdf2b406800f8f36a78af15818e3490ad5c260e83500f",
+    "accessExpiresAt": "2026-01-19T13:39:04.651Z",
+    "requestedAt": "2026-01-19T13:09:04.653Z",
+    "createdAt": "2026-01-19T13:09:04.655Z",
+    "updatedAt": "2026-01-19T13:23:17.575Z",
+    "__v": 0,
+    "submittedAt": "2026-01-19T13:10:06.334Z",
+    "approvedAt": "2026-01-19T13:23:17.575Z",
+    "approvedBy": "69609463ce9740494891db7a"
+  }
+]

@@ -67,7 +67,7 @@ export const authApi = {
     logout: () => api.post('/auth/logout'),
     refresh: (refreshToken) => api.post('/auth/refresh', { refreshToken }),
     changePassword: (currentPassword, newPassword) =>
-        api.post('/auth/change-password', { currentPassword, newPassword }),
+        api.put('/auth/change-password', { currentPassword, newPassword }),
     getProfile: () => api.get('/auth/me'),
     updatePreferences: (preferences) => api.put('/auth/preferences', { preferences }),
 };
@@ -182,7 +182,7 @@ export const settingsApi = {
     getAll: () => api.get('/settings'),
     getByCategory: (category) => api.get(`/settings/${category}`),
     update: (settings) => api.put('/settings', settings),
-    updateSingle: (category, key, value) => 
+    updateSingle: (category, key, value) =>
         api.patch(`/settings/${category}/${key}`, { value }),
 };
 
@@ -201,6 +201,7 @@ export const notificationsApi = {
     markAllAsRead: () => api.put('/notifications/read-all'),
     create: (data) => api.post('/notifications', data),
     delete: (id) => api.delete(`/notifications/${id}`),
+    getLogs: (params) => api.get('/notifications/logs', { params }), // New method
 };
 
 // RMA API

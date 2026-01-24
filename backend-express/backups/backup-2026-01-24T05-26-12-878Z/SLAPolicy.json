@@ -1,0 +1,62 @@
+[
+  {
+    "_id": "69609463ce9740494891db54",
+    "policyName": "P2 - High Priority",
+    "priority": "P2",
+    "responseTimeMinutes": 30,
+    "restoreTimeMinutes": 240,
+    "escalationLevel1Minutes": 120,
+    "escalationLevel2Minutes": 180,
+    "escalationL1Emails": "supervisor@uccticket.com",
+    "escalationL2Emails": "admin@uccticket.com",
+    "isActive": true,
+    "__v": 0,
+    "createdAt": "2026-01-09T05:38:43.026Z",
+    "updatedAt": "2026-01-09T05:38:43.026Z"
+  },
+  {
+    "_id": "69609463ce9740494891db53",
+    "policyName": "P1 - Critical Priority",
+    "priority": "P1",
+    "responseTimeMinutes": 15,
+    "restoreTimeMinutes": 60,
+    "escalationLevel1Minutes": 30,
+    "escalationLevel2Minutes": 45,
+    "escalationL1Emails": "supervisor@uccticket.com",
+    "escalationL2Emails": "admin@uccticket.com",
+    "isActive": true,
+    "__v": 0,
+    "createdAt": "2026-01-09T05:38:43.025Z",
+    "updatedAt": "2026-01-09T05:38:43.025Z"
+  },
+  {
+    "_id": "69609463ce9740494891db55",
+    "policyName": "P3 - Medium Priority",
+    "priority": "P3",
+    "responseTimeMinutes": 60,
+    "restoreTimeMinutes": 480,
+    "escalationLevel1Minutes": 240,
+    "escalationLevel2Minutes": 360,
+    "escalationL1Emails": "supervisor@uccticket.com",
+    "escalationL2Emails": "admin@uccticket.com",
+    "isActive": true,
+    "__v": 0,
+    "createdAt": "2026-01-09T05:38:43.026Z",
+    "updatedAt": "2026-01-09T05:38:43.026Z"
+  },
+  {
+    "_id": "69609463ce9740494891db56",
+    "policyName": "P4 - Low Priority",
+    "priority": "P4",
+    "responseTimeMinutes": 120,
+    "restoreTimeMinutes": 1440,
+    "escalationLevel1Minutes": 720,
+    "escalationLevel2Minutes": 1080,
+    "escalationL1Emails": "supervisor@uccticket.com",
+    "escalationL2Emails": "admin@uccticket.com",
+    "isActive": true,
+    "__v": 0,
+    "createdAt": "2026-01-09T05:38:43.026Z",
+    "updatedAt": "2026-01-09T05:38:43.026Z"
+  }
+]

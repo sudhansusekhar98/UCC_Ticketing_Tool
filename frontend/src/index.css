@@ -139,7 +139,8 @@
   --info-600: #1d4ed8;
 
   /* Light Theme Backgrounds */
-  --bg-primary: #f1f5f9; /* Darker background (slate-100) for better card contrast */
+  --bg-primary: #f1f5f9;
+  /* Darker background (slate-100) for better card contrast */
   --bg-secondary: #ffffff;
   --bg-tertiary: #f8fafc;
   --bg-card: #ffffff;
@@ -148,14 +149,19 @@
   --bg-glass: rgba(255, 255, 255, 0.9);
 
   /* Text Colors */
-  --text-primary: #0f172a; /* Slate 900 */
-  --text-secondary: #334155; /* Darkened from Slate 600 to Slate 700 */
-  --text-muted: #64748b; /* Slate 500 - kept same but background is darker now */
+  --text-primary: #0f172a;
+  /* Slate 900 */
+  --text-secondary: #334155;
+  /* Darkened from Slate 600 to Slate 700 */
+  --text-muted: #64748b;
+  /* Slate 500 - kept same but background is darker now */
   --text-inverse: #f8fafc;
 
   /* Borders - Increased contrast */
-  --border-light: #e2e8f0; /* Slate 200 - Solid and visible */
-  --border-medium: #cbd5e1; /* Slate 300 */
+  --border-light: #e2e8f0;
+  /* Slate 200 - Solid and visible */
+  --border-medium: #cbd5e1;
+  /* Slate 300 */
   --border-focus: #3b82f6;
 
   /* Shadows - Increased opacity */
@@ -258,7 +264,12 @@ body {
   transition: background-color var(--transition-normal), color var(--transition-normal);
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: 'Outfit', system-ui, -apple-system, sans-serif;
   font-weight: 600;
   line-height: 1.2;

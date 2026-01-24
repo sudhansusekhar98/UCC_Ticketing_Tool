@@ -1,0 +1,309 @@
+[
+  {
+    "_id": "69609463ce9740494891dc3a",
+    "key": "default_priority",
+    "value": "P3",
+    "dataType": "string",
+    "category": "Tickets",
+    "description": "Default priority for new tickets"
+  },
+  {
+    "_id": "69609463ce9740494891dc39",
+    "key": "company_name",
+    "value": "UCC Ticketing Platform",
+    "dataType": "string",
+    "category": "General",
+    "description": "Company name displayed in the application"
+  },
+  {
+    "_id": "69609463ce9740494891dc3b",
+    "key": "sla_check_interval",
+    "value": "60",
+    "dataType": "number",
+    "category": "SLA",
+    "description": "SLA check interval in seconds"
+  },
+  {
+    "_id": "69609463ce9740494891dc3c",
+    "key": "email_notifications",
+    "value": "true",
+    "dataType": "boolean",
+    "category": "Notifications",
+    "description": "Enable email notifications"
+  },
+  {
+    "_id": "69609463ce9740494891dc3d",
+    "key": "max_file_size",
+    "value": "10485760",
+    "dataType": "number",
+    "category": "Uploads",
+    "description": "Maximum file upload size in bytes"
+  },
+  {
+    "_id": "69609463ce9740494891dc3e",
+    "key": "session_timeout",
+    "value": "60",
+    "dataType": "number",
+    "category": "Security",
+    "description": "Session timeout in minutes"
+  },
+  {
+    "_id": "6960c9501110102da14f0c53",
+    "key": "CompanyName",
+    "category": "General",
+    "updatedAt": "2026-01-23T07:25:00.222Z",
+    "value": "VLAccess"
+  },
+  {
+    "_id": "6960c9511110102da14f0c54",
+    "category": "General",
+    "key": "CompanyAddress",
+    "updatedAt": "2026-01-23T07:25:00.324Z",
+    "value": "support@vlaccess.com"
+  },
+  {
+    "_id": "6960c9511110102da14f0c55",
+    "key": "Timezone",
+    "category": "General",
+    "updatedAt": "2026-01-23T07:25:00.428Z",
+    "value": "Asia/Kolkata"
+  },
+  {
+    "_id": "6960c9511110102da14f0c56",
+    "key": "DateFormat",
+    "category": "General",
+    "updatedAt": "2026-01-23T07:25:00.528Z",
+    "value": "DD/MM/YYYY"
+  },
+  {
+    "_id": "6960c9511110102da14f0c57",
+    "category": "General",
+    "key": "TimeFormat",
+    "updatedAt": "2026-01-23T07:25:00.631Z",
+    "value": "24h"
+  },
+  {
+    "_id": "6960c9511110102da14f0c58",
+    "category": "General",
+    "key": "Language",
+    "updatedAt": "2026-01-23T07:25:00.733Z",
+    "value": "en"
+  },
+  {
+    "_id": "6960c9511110102da14f0c59",
+    "key": "AutoRefreshInterval",
+    "category": "General",
+    "updatedAt": "2026-01-23T07:25:00.836Z",
+    "value": "30"
+  },
+  {
+    "_id": "6960c9511110102da14f0c5a",
+    "category": "Notifications",
+    "key": "EmailNotifications",
+    "updatedAt": "2026-01-23T07:25:00.939Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9511110102da14f0c5b",
+    "category": "Notifications",
+    "key": "TicketCreated",
+    "updatedAt": "2026-01-23T07:25:01.041Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9511110102da14f0c5c",
+    "category": "Notifications",
+    "key": "TicketAssigned",
+    "updatedAt": "2026-01-23T07:25:01.145Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9521110102da14f0c5d",
+    "category": "Notifications",
+    "key": "TicketUpdated",
+    "updatedAt": "2026-01-23T07:25:01.246Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9521110102da14f0c5e",
+    "category": "Notifications",
+    "key": "TicketResolved",
+    "updatedAt": "2026-01-23T07:25:01.348Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9521110102da14f0c5f",
+    "category": "Notifications",
+    "key": "SLAWarning",
+    "updatedAt": "2026-01-23T07:25:01.552Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9521110102da14f0c60",
+    "category": "Notifications",
+    "key": "SLABreach",
+    "updatedAt": "2026-01-23T07:25:01.655Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9521110102da14f0c61",
+    "category": "Notifications",
+    "key": "DailyDigest",
+    "updatedAt": "2026-01-23T07:25:01.757Z",
+    "value": "false"
+  },
+  {
+    "_id": "6960c9521110102da14f0c62",
+    "category": "Email",
+    "key": "SmtpServer",
+    "updatedAt": "2026-01-23T07:25:01.860Z",
+    "value": "smtp.gmail.com"
+  },
+  {
+    "_id": "6960c9521110102da14f0c63",
+    "category": "Email",
+    "key": "SmtpPort",
+    "updatedAt": "2026-01-23T07:25:01.962Z",
+    "value": "587"
+  },
+  {
+    "_id": "6960c9521110102da14f0c64",
+    "category": "Email",
+    "key": "SmtpUsername",
+    "updatedAt": "2026-01-23T07:25:02.064Z",
+    "value": "support@vlaccess.com"
+  },
+  {
+    "_id": "6960c9521110102da14f0c65",
+    "category": "Email",
+    "key": "SmtpPassword",
+    "updatedAt": "2026-01-23T07:25:02.168Z",
+    "value": "komqumdelemayjiy"
+  },
+  {
+    "_id": "6960c9521110102da14f0c66",
+    "category": "Email",
+    "key": "SmtpUseTLS",
+    "updatedAt": "2026-01-23T07:25:02.270Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9531110102da14f0c67",
+    "category": "Email",
+    "key": "SenderName",
+    "updatedAt": "2026-01-23T07:25:02.372Z",
+    "value": "TicketOps"
+  },
+  {
+    "_id": "6960c9531110102da14f0c68",
+    "category": "Email",
+    "key": "SenderEmail",
+    "updatedAt": "2026-01-23T07:25:02.474Z",
+    "value": "support@vlaccess.com"
+  },
+  {
+    "_id": "6960c9531110102da14f0c69",
+    "category": "Email",
+    "key": "EmailFooter",
+    "updatedAt": "2026-01-23T07:25:02.577Z",
+    "value": "This is an automated message from UCC Ticketing System."
+  },
+  {
+    "_id": "6960c9531110102da14f0c6a",
+    "category": "Security",
+    "key": "PasswordMinLength",
+    "updatedAt": "2026-01-23T07:25:02.680Z",
+    "value": "8"
+  },
+  {
+    "_id": "6960c9531110102da14f0c6b",
+    "key": "PasswordRequireUppercase",
+    "category": "Security",
+    "updatedAt": "2026-01-23T07:25:02.781Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9531110102da14f0c6c",
+    "category": "Security",
+    "key": "PasswordRequireLowercase",
+    "updatedAt": "2026-01-23T07:25:02.884Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9531110102da14f0c6d",
+    "category": "Security",
+    "key": "PasswordRequireNumber",
+    "updatedAt": "2026-01-23T07:25:02.986Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9531110102da14f0c6e",
+    "key": "PasswordRequireSpecial",
+    "category": "Security",
+    "updatedAt": "2026-01-23T07:25:03.088Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9531110102da14f0c6f",
+    "category": "Security",
+    "key": "SessionTimeout",
+    "updatedAt": "2026-01-23T07:25:03.191Z",
+    "value": "60"
+  },
+  {
+    "_id": "6960c9541110102da14f0c70",
+    "category": "Security",
+    "key": "MaxLoginAttempts",
+    "updatedAt": "2026-01-23T07:25:03.294Z",
+    "value": "5"
+  },
+  {
+    "_id": "6960c9541110102da14f0c71",
+    "category": "Security",
+    "key": "LockoutDuration",
+    "updatedAt": "2026-01-23T07:25:03.396Z",
+    "value": "15"
+  },
+  {
+    "_id": "6960c9541110102da14f0c72",
+    "key": "EnableTwoFactor",
+    "category": "Security",
+    "updatedAt": "2026-01-23T07:25:03.501Z",
+    "value": "false"
+  },
+  {
+    "_id": "6960c9541110102da14f0c73",
+    "category": "Security",
+    "key": "ForcePasswordChange",
+    "updatedAt": "2026-01-23T07:25:03.557Z",
+    "value": "90"
+  },
+  {
+    "_id": "6960c9541110102da14f0c74",
+    "category": "Appearance",
+    "key": "Theme",
+    "updatedAt": "2026-01-23T07:25:03.703Z",
+    "value": "light"
+  },
+  {
+    "_id": "6960c9541110102da14f0c75",
+    "category": "Appearance",
+    "key": "CompactMode",
+    "updatedAt": "2026-01-23T07:25:03.756Z",
+    "value": "false"
+  },
+  {
+    "_id": "6960c9541110102da14f0c76",
+    "category": "Appearance",
+    "key": "ShowWelcomeMessage",
+    "updatedAt": "2026-01-23T07:25:03.908Z",
+    "value": "true"
+  },
+  {
+    "_id": "6960c9541110102da14f0c77",
+    "category": "Appearance",
+    "key": "DashboardLayout",
+    "updatedAt": "2026-01-23T07:25:03.962Z",
+    "value": "default"
+  }
+]

@@ -319,12 +319,9 @@
   flex-direction: column;
   height: calc(100vh - 64px - 48px);
   overflow: hidden;
-  gap: var(--space-4);
 }
 
-.assets-page .filter-bar {
-  margin-bottom: 0;
-}
+
 
 .assets-page .table-wrapper {
   flex: 1;

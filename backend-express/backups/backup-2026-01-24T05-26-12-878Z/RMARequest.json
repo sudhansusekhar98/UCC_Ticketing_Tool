@@ -1,0 +1,255 @@
+[
+  {
+    "originalDetailsSnapshot": {
+      "serialNumber": "G537740400024123351G",
+      "ipAddress": "10.0.66.234",
+      "mac": "0C-BF-15-05-11-B3",
+      "model": "SharpV (Gen 3)",
+      "make": "Genetec"
+    },
+    "vendorDetails": {
+      "currency": "INR"
+    },
+    "_id": "6964d22b8be7c6ff49277b63",
+    "ticketId": "6960a86baa75b5834432f657",
+    "siteId": "6960a09fcd2efa6ca51eafa4",
+    "originalAssetId": "6960a2ae1110102da14f08ef",
+    "status": "Requested",
+    "requestReason": "Device is dead, need the RMA to be generated.",
+    "timeline": [
+      {
+        "status": "Requested",
+        "changedBy": "6960a1aecd2efa6ca51eaff6",
+        "remarks": "Device is dead, need the RMA to be generated.",
+        "_id": "6964d22b8be7c6ff49277b64",
+        "changedOn": "2026-01-12T10:51:23.941Z"
+      }
+    ],
+    "requestedBy": "6960a1aecd2efa6ca51eaff6",
+    "createdAt": "2026-01-12T10:51:23.950Z",
+    "updatedAt": "2026-01-12T10:51:23.950Z",
+    "__v": 0
+  },
+  {
+    "originalDetailsSnapshot": {
+      "ipAddress": "10.0.66.110",
+      "mac": "00-02-D1-B9-B2-60",
+      "model": "IB9383-HTV",
+      "make": "VivoTek"
+    },
+    "replacementDetails": {
+      "serialNumber": "",
+      "ipAddress": "",
+      "mac": "",
+      "model": ""
+    },
+    "shippingDetails": {
+      "address": "",
+      "trackingNumber": "20260112",
+      "carrier": "BlueDart"
+    },
+    "vendorDetails": {
+      "vendorName": "Cisco",
+      "orderId": "RMA20260112-0004",
+      "cost": null,
+      "currency": "INR"
+    },
+    "_id": "6964d27c8be7c6ff49277c82",
+    "ticketId": "6964d25d8be7c6ff49277c05",
+    "siteId": "6960a09fcd2efa6ca51eafa4",
+    "originalAssetId": "6960a23f1110102da14f0864",
+    "status": "Installed",
+    "requestReason": "Camera is damaged, RMA needed",
+    "timeline": [
+      {
+        "status": "Requested",
+        "changedBy": "6960a1aecd2efa6ca51eaff6",
+        "remarks": "Camera is damaged, RMA needed",
+        "_id": "6964d27c8be7c6ff49277c83",
+        "changedOn": "2026-01-12T10:52:44.312Z"
+      },
+      {
+        "status": "Approved",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Status changed from Requested to Approved",
+        "_id": "6964d41f8be7c6ff492781ab",
+        "changedOn": "2026-01-12T10:59:43.326Z"
+      },
+      {
+        "status": "Approved",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Status changed from Approved to Approved",
+        "_id": "6964d4278be7c6ff492781b3",
+        "changedOn": "2026-01-12T10:59:51.105Z"
+      },
+      {
+        "status": "Ordered",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Procurement started",
+        "_id": "6964d60cc176551156fbb749",
+        "changedOn": "2026-01-12T11:07:56.594Z"
+      },
+      {
+        "status": "Dispatched",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Shipment update",
+        "_id": "6964d620c176551156fbb76a",
+        "changedOn": "2026-01-12T11:08:16.450Z"
+      },
+      {
+        "status": "Dispatched",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Shipment update",
+        "_id": "6964d627c176551156fbb7a0",
+        "changedOn": "2026-01-12T11:08:23.929Z"
+      },
+      {
+        "status": "Installed",
+        "changedBy": "6960a1aecd2efa6ca51eaff6",
+        "remarks": "Status changed from Dispatched to Installed",
+        "_id": "696b864998846af6b768a233",
+        "changedOn": "2026-01-17T12:53:29.642Z"
+      }
+    ],
+    "requestedBy": "6960a1aecd2efa6ca51eaff6",
+    "createdAt": "2026-01-12T10:52:44.314Z",
+    "updatedAt": "2026-01-17T12:53:29.646Z",
+    "__v": 6,
+    "approvedBy": "69609463ce9740494891db7a",
+    "approvedOn": "2026-01-12T10:59:51.105Z",
+    "installedBy": "6960a1aecd2efa6ca51eaff6",
+    "installedOn": "2026-01-17T12:53:29.399Z"
+  },
+  {
+    "originalDetailsSnapshot": {
+      "serialNumber": "G537740400023370061G",
+      "ipAddress": "10.0.66.238",
+      "mac": "0C-BF-15-05-05-C0",
+      "model": "SharpV (Gen 3)",
+      "make": "Genetec"
+    },
+    "replacementDetails": {
+      "serialNumber": "G537740400023370061G - testing",
+      "ipAddress": "10.0.66.238 - testing",
+      "mac": "0C-BF-15-05-05-C0 - testing"
+    },
+    "shippingDetails": {
+      "address": "",
+      "trackingNumber": "001546598512",
+      "carrier": "BlueDart"
+    },
+    "vendorDetails": {
+      "vendorName": "Genetec",
+      "orderId": "ALPR001002",
+      "cost": null,
+      "currency": "INR"
+    },
+    "_id": "696e2c6b23d1a1a118a031a3",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "siteId": "6960a09fcd2efa6ca51eafa4",
+    "originalAssetId": "6960a2af1110102da14f08f3",
+    "status": "Installed",
+    "requestReason": "Followed all the troubleshooting steps still not active",
+    "timeline": [
+      {
+        "status": "Requested",
+        "changedBy": "6960a1aecd2efa6ca51eaff6",
+        "remarks": "Followed all the troubleshooting steps still not active",
+        "_id": "696e2c6b23d1a1a118a031a4",
+        "changedOn": "2026-01-19T13:06:51.056Z"
+      },
+      {
+        "status": "Approved",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Status changed from Requested to Approved",
+        "_id": "696e2c9423d1a1a118a03294",
+        "changedOn": "2026-01-19T13:07:32.531Z"
+      },
+      {
+        "status": "Ordered",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Procurement started",
+        "_id": "696e2cb523d1a1a118a032b1",
+        "changedOn": "2026-01-19T13:08:05.708Z"
+      },
+      {
+        "status": "Dispatched",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Shipment update",
+        "_id": "696e2cbe23d1a1a118a032d0",
+        "changedOn": "2026-01-19T13:08:14.108Z"
+      },
+      {
+        "status": "Ordered",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Shipment update",
+        "_id": "696e2cc523d1a1a118a032f1",
+        "changedOn": "2026-01-19T13:08:21.372Z"
+      },
+      {
+        "status": "Dispatched",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Shipment update",
+        "_id": "696e2cca23d1a1a118a03314",
+        "changedOn": "2026-01-19T13:08:26.899Z"
+      },
+      {
+        "status": "Installed",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Asset update approved and installed",
+        "_id": "696e30450216ef0643208ee9",
+        "changedOn": "2026-01-19T13:23:17.783Z"
+      }
+    ],
+    "requestedBy": "6960a1aecd2efa6ca51eaff6",
+    "createdAt": "2026-01-19T13:06:51.059Z",
+    "updatedAt": "2026-01-19T13:23:17.785Z",
+    "__v": 6,
+    "approvedBy": "69609463ce9740494891db7a",
+    "approvedOn": "2026-01-19T13:07:32.531Z",
+    "installedBy": "6960a1aecd2efa6ca51eaff6",
+    "installedOn": "2026-01-19T13:23:17.781Z"
+  },
+  {
+    "originalDetailsSnapshot": {
+      "serialNumber": "SN-1767937123523-15",
+      "mac": "00:1A:2B:3C:15:FF",
+      "model": "ProLiant DL380",
+      "make": "Dell"
+    },
+    "shippingDetails": {
+      "address": "To the Site Address",
+      "trackingNumber": "",
+      "carrier": ""
+    },
+    "vendorDetails": {
+      "currency": "INR"
+    },
+    "_id": "6973481528a351f0749f6cbb",
+    "ticketId": "697346e928a351f0749f6ba2",
+    "siteId": "69609463ce9740494891db64",
+    "originalAssetId": "69609463ce9740494891db92",
+    "status": "Rejected",
+    "requestReason": "Switch Port is damaged and cannot be used anymore.",
+    "timeline": [
+      {
+        "status": "Requested",
+        "changedBy": "69609463ce9740494891db7d",
+        "remarks": "Switch Port is damaged and cannot be used anymore.",
+        "_id": "6973481528a351f0749f6cbc",
+        "changedOn": "2026-01-23T10:06:13.702Z"
+      },
+      {
+        "status": "Rejected",
+        "changedBy": "69609463ce9740494891db7a",
+        "remarks": "Status changed from Requested to Rejected",
+        "_id": "69734ba028a351f0749f6da2",
+        "changedOn": "2026-01-23T10:21:20.550Z"
+      }
+    ],
+    "requestedBy": "69609463ce9740494891db7d",
+    "createdAt": "2026-01-23T10:06:13.704Z",
+    "updatedAt": "2026-01-23T10:21:20.552Z",
+    "__v": 1
+  }
+]

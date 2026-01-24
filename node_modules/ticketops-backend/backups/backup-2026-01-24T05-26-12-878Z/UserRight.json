@@ -1,0 +1,180 @@
+[
+  {
+    "globalRights": [],
+    "_id": "695f42d54ab835463361c0a7",
+    "user": "695e433a77f444ab43e95953",
+    "rights": [
+      "CREATE_TICKET",
+      "EDIT_TICKET"
+    ],
+    "createdAt": "2026-01-08T05:38:29.394Z",
+    "updatedAt": "2026-01-08T05:38:29.394Z",
+    "__v": 0,
+    "siteRights": []
+  },
+  {
+    "globalRights": [],
+    "_id": "695e1a404741f5bd09091ec9",
+    "user": "695b50c23737054ca71b7cd1",
+    "rights": [
+      "CREATE_TICKET",
+      "VIEW_REPORTS",
+      "MANAGE_ASSETS",
+      "MANAGE_USERS",
+      "EDIT_TICKET",
+      "DELETE_TICKET",
+      "MANAGE_SITES"
+    ],
+    "createdAt": "2026-01-07T08:33:04.089Z",
+    "updatedAt": "2026-01-07T08:33:04.089Z",
+    "__v": 0,
+    "siteRights": []
+  },
+  {
+    "globalRights": [],
+    "_id": "695e1a814741f5bd09091f0a",
+    "user": "695b50c23737054ca71b7cd3",
+    "rights": [
+      "CREATE_TICKET",
+      "EDIT_TICKET"
+    ],
+    "createdAt": "2026-01-07T08:34:09.772Z",
+    "updatedAt": "2026-01-07T08:34:09.772Z",
+    "__v": 0,
+    "siteRights": []
+  },
+  {
+    "_id": "6960a1becd2efa6ca51eb027",
+    "user": "6960a1aecd2efa6ca51eaff6",
+    "rights": [
+      "CREATE_TICKET",
+      "EDIT_TICKET"
+    ],
+    "createdAt": "2026-01-09T06:35:42.030Z",
+    "updatedAt": "2026-01-22T09:08:43.854Z",
+    "__v": 14,
+    "globalRights": [],
+    "siteRights": [
+      {
+        "site": "6960a09fcd2efa6ca51eafa4",
+        "rights": [
+          "EDIT_TICKET"
+        ],
+        "_id": "6960d176ebee0ce9e7645300"
+      },
+      {
+        "site": "69609463ce9740494891db68",
+        "rights": [],
+        "_id": "6960d17debee0ce9e7645306"
+      }
+    ]
+  },
+  {
+    "_id": "6960a1c6cd2efa6ca51eb02c",
+    "user": "69609463ce9740494891db7a",
+    "rights": [
+      "CREATE_TICKET",
+      "MANAGE_USERS",
+      "EDIT_TICKET",
+      "MANAGE_SITES",
+      "DELETE_TICKET",
+      "MANAGE_ASSETS",
+      "VIEW_REPORTS"
+    ],
+    "createdAt": "2026-01-09T06:35:50.570Z",
+    "updatedAt": "2026-01-12T07:24:40.567Z",
+    "__v": 2,
+    "globalRights": [
+      "CREATE_TICKET",
+      "EDIT_TICKET",
+      "MANAGE_USERS",
+      "MANAGE_SITES",
+      "DELETE_TICKET",
+      "MANAGE_ASSETS",
+      "VIEW_REPORTS",
+      "ESCALATION_L1",
+      "ESCALATION_L2",
+      "ESCALATION_L3"
+    ],
+    "siteRights": []
+  },
+  {
+    "_id": "6964c336dedba6fa36bc4162",
+    "user": "69609463ce9740494891db7c",
+    "siteRights": [],
+    "globalRights": [
+      "CREATE_TICKET",
+      "EDIT_TICKET",
+      "ESCALATION_L1"
+    ],
+    "createdAt": "2026-01-12T09:47:34.528Z",
+    "updatedAt": "2026-01-12T10:07:13.035Z",
+    "__v": 1
+  },
+  {
+    "_id": "6964c7d8dedba6fa36bc4f55",
+    "user": "69609463ce9740494891db7d",
+    "siteRights": [],
+    "globalRights": [
+      "CREATE_TICKET",
+      "EDIT_TICKET",
+      "ESCALATION_L2",
+      "ESCALATION_L3"
+    ],
+    "createdAt": "2026-01-12T10:07:20.471Z",
+    "updatedAt": "2026-01-12T10:15:43.152Z",
+    "__v": 1
+  },
+  {
+    "_id": "6964c7e0dedba6fa36bc4f6d",
+    "user": "69609463ce9740494891db7e",
+    "siteRights": [],
+    "globalRights": [
+      "ESCALATION_L3",
+      "CREATE_TICKET",
+      "EDIT_TICKET"
+    ],
+    "createdAt": "2026-01-12T10:07:28.160Z",
+    "updatedAt": "2026-01-12T10:07:28.160Z",
+    "__v": 0
+  },
+  {
+    "_id": "697308f27e36e6bbeccb1150",
+    "user": "6973070326f317a7cb258dc4",
+    "siteRights": [
+      {
+        "site": "69609463ce9740494891db64",
+        "rights": [
+          "CREATE_TICKET",
+          "EDIT_TICKET"
+        ],
+        "_id": "697309007e36e6bbeccb1155"
+      }
+    ],
+    "globalRights": [
+      "CREATE_TICKET",
+      "EDIT_TICKET"
+    ],
+    "createdAt": "2026-01-23T05:36:50.708Z",
+    "updatedAt": "2026-01-23T05:37:04.426Z",
+    "__v": 1
+  },
+  {
+    "_id": "6973272f2abfb03f819ea667",
+    "user": "697327192abfb03f819ea653",
+    "siteRights": [
+      {
+        "site": "69609463ce9740494891db64",
+        "rights": [
+          "CREATE_TICKET",
+          "EDIT_TICKET"
+        ],
+        "_id": "6973272f2abfb03f819ea668"
+      }
+    ],
+    "globalRights": [],
+    "createdAt": "2026-01-23T07:45:51.690Z",
+    "updatedAt": "2026-01-23T07:45:51.690Z",
+    "__v": 0
+  }
+]

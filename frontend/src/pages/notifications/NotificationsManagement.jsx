@@ -23,6 +23,7 @@ import {
 import { notificationsApi, usersApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import NotificationLogs from './NotificationLogs';
 import './NotificationsManagement.css';
 
 const notificationTypes = [
@@ -51,7 +52,8 @@ export default function NotificationsManagement() {
     const [showModal, setShowModal] = useState(false);
     const [editingNotification, setEditingNotification] = useState(null);
     const [saving, setSaving] = useState(false);
-    
+    const [activeTab, setActiveTab] = useState('notifications'); // notifications | logs
+
     // Form state
     const [formData, setFormData] = useState({
         title: '',
@@ -72,10 +74,11 @@ export default function NotificationsManagement() {
         try {
             setLoading(true);
             const response = await notificationsApi.getAll({ limit: 100 });
-            setNotifications(response.data.data || []);
+            setNotifications(response.data?.data || []);
         } catch (error) {
             toast.error('Failed to load notifications');
             console.error(error);
+            setNotifications([]);
         } finally {
             setLoading(false);
         }
@@ -84,9 +87,10 @@ export default function NotificationsManagement() {
     const fetchUsers = async () => {
         try {
             const response = await usersApi.getAll({ limit: 100 });
-            setUsers(response.data.data || []);
+            setUsers(response.data?.data || []);
         } catch (error) {
             console.error('Failed to load users', error);
+            setUsers([]);
         }
     };
 
@@ -141,7 +145,7 @@ export default function NotificationsManagement() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!formData.title.trim() || !formData.message.trim()) {
             toast.error('Title and message are required');
             return;
@@ -191,7 +195,7 @@ export default function NotificationsManagement() {
     };
 
     const filteredNotifications = notifications.filter(notification => {
-        const matchesSearch = 
+        const matchesSearch =
             notification.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             notification.message?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesType = filterType === 'all' || notification.type === filterType;
@@ -210,130 +214,158 @@ export default function NotificationsManagement() {
                         <p>Create and manage announcements and notifications</p>
                     </div>
                 </div>
-                <button className="btn-primary" onClick={() => handleOpenModal()}>
-                    <Plus size={18} />
-                    Create Notification
-                </button>
-            </div>
-
-            {/* Filters */}
-            <div className="filters-bar glass-card">
-                <div className="search-box">
-                    <Search size={18} />
-                    <Filter size={16} style={{ marginLeft: '8px', opacity: 0.5 }} />
-                    <input
-                        type="text"
-                        placeholder="Search notifications..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <select 
-                    className="filter-select"
-                    value={filterType} 
-                    onChange={(e) => setFilterType(e.target.value)}
-                >
-                    <option value="all">All Types</option>
-                    {notificationTypes.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                </select>
-                <div className="results-count">
-                    {filteredNotifications.length} notification{filteredNotifications.length !== 1 ? 's' : ''}
-                </div>
-            </div>
-
-            {/* Notifications List */}
-            <div className="notifications-list glass-card">
-                {loading ? (
-                    <div className="loading-state">
-                        <Loader size={32} className="animate-spin" />
-                        <p>Loading notifications...</p>
+                <div className="header-actions">
+                    <div className="tab-switcher">
+                        <button
+                            className={`tab-btn ${activeTab === 'notifications' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('notifications')}
+                        >
+                            Notifications
+                        </button>
+                        <button
+                            className={`tab-btn ${activeTab === 'logs' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('logs')}
+                        >
+                            Logs
+                        </button>
                     </div>
-                ) : filteredNotifications.length === 0 ? (
-                    <div className="empty-state">
-                        <Bell size={48} />
-                        <h3>No notifications found</h3>
-                        <p>Create your first notification to get started</p>
+                    {activeTab === 'notifications' && (
                         <button className="btn-primary" onClick={() => handleOpenModal()}>
                             <Plus size={18} />
                             Create Notification
                         </button>
-                    </div>
-                ) : (
-                    <div className="notifications-table">
-                        <div className="table-header">
-                            <div className="col-type">Type</div>
-                            <div className="col-title">Title & Message</div>
-                            <div className="col-target">Target</div>
-                            <div className="col-date">Created</div>
-                            <div className="col-status">Status</div>
-                            <div className="col-actions">Actions</div>
-                        </div>
-                        {filteredNotifications.map(notification => (
-                            <div key={notification._id} className="table-row">
-                                <div className="col-type">
-                                    <div className="type-badge">
-                                        {getTypeIcon(notification.type)}
-                                        <span>{notification.type}</span>
-                                    </div>
-                                </div>
-                                <div className="col-title">
-                                    <div className="notification-title">{notification.title}</div>
-                                    <div className="notification-message">{notification.message}</div>
-                                    {notification.link && (
-                                        <div className="notification-link">
-                                            🔗 {notification.link}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="col-target">
-                                    {notification.isBroadcast ? (
-                                        <span className="target-badge broadcast">
-                                            <Users size={14} />
-                                            All Users
-                                        </span>
-                                    ) : (
-                                        <span className="target-badge specific">
-                                            <User size={14} />
-                                            Specific User
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="col-date">
-                                    {format(new Date(notification.createdAt), 'MMM dd, yyyy')}
-                                    <div className="date-time">
-                                        {format(new Date(notification.createdAt), 'HH:mm')}
-                                    </div>
-                                </div>
-                                <div className="col-status">
-                                    {notification.expiresAt && new Date(notification.expiresAt) < new Date() ? (
-                                        <span className="status-badge expired">Expired</span>
-                                    ) : (
-                                        <span className="status-badge active">Active</span>
-                                    )}
-                                </div>
-                                <div className="col-actions">
-                                    <button 
-                                        className="action-btn edit"
-                                        onClick={() => handleOpenModal(notification)}
-                                        title="Edit"
-                                    >
-                                        <Edit2 size={16} />
-                                    </button>
-                                    <button 
-                                        className="action-btn delete"
-                                        onClick={() => handleDelete(notification._id)}
-                                        title="Delete"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
+
+            {activeTab === 'logs' ? (
+                <NotificationLogs embedded={true} />
+            ) : (
+                <>
+                    {/* Filters */}
+                    <div className="filters-bar glass-card">
+                        <div className="search-box">
+                            <Search size={18} />
+                            <input
+                                type="text"
+                                placeholder="Search notifications..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        <div className="filter-controls">
+                            <div className="filter-select-wrapper">
+                                <Filter size={16} />
+                                <select
+                                    className="filter-select"
+                                    value={filterType}
+                                    onChange={(e) => setFilterType(e.target.value)}
+                                >
+                                    <option value="all">All Types</option>
+                                    {notificationTypes.map(type => (
+                                        <option key={type.value} value={type.value}>{type.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="results-count">
+                                <span>{filteredNotifications.length}</span> results
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Notifications List */}
+                    <div className="notifications-list glass-card">
+                        {loading ? (
+                            <div className="loading-state">
+                                <Loader size={32} className="animate-spin" />
+                                <p>Loading notifications...</p>
+                            </div>
+                        ) : filteredNotifications.length === 0 ? (
+                            <div className="empty-state">
+                                <Bell size={48} />
+                                <h3>No notifications found</h3>
+                                <p>Create your first notification to get started</p>
+                                <button className="btn-primary" onClick={() => handleOpenModal()}>
+                                    <Plus size={18} />
+                                    Create Notification
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="notifications-table">
+                                <div className="table-header">
+                                    <div className="col-type">Type</div>
+                                    <div className="col-title">Title & Message</div>
+                                    <div className="col-target">Target</div>
+                                    <div className="col-date">Created</div>
+                                    <div className="col-status">Status</div>
+                                    <div className="col-actions">Actions</div>
+                                </div>
+                                {filteredNotifications.map(notification => (
+                                    <div key={notification._id} className="table-row">
+                                        <div className="col-type">
+                                            <div className="type-badge">
+                                                {getTypeIcon(notification.type)}
+                                                <span>{notification.type}</span>
+                                            </div>
+                                        </div>
+                                        <div className="col-title">
+                                            <div className="notification-title">{notification.title}</div>
+                                            <div className="notification-message">{notification.message}</div>
+                                            {notification.link && (
+                                                <div className="notification-link">
+                                                    🔗 {notification.link}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="col-target">
+                                            {notification.isBroadcast ? (
+                                                <span className="target-badge broadcast">
+                                                    <Users size={14} />
+                                                    All Users
+                                                </span>
+                                            ) : (
+                                                <span className="target-badge specific">
+                                                    <User size={14} />
+                                                    Specific User
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="col-date">
+                                            {format(new Date(notification.createdAt), 'MMM dd, yyyy')}
+                                            <div className="date-time">
+                                                {format(new Date(notification.createdAt), 'HH:mm')}
+                                            </div>
+                                        </div>
+                                        <div className="col-status">
+                                            {notification.expiresAt && new Date(notification.expiresAt) < new Date() ? (
+                                                <span className="status-badge expired">Expired</span>
+                                            ) : (
+                                                <span className="status-badge active">Active</span>
+                                            )}
+                                        </div>
+                                        <div className="col-actions">
+                                            <button
+                                                className="action-btn edit"
+                                                onClick={() => handleOpenModal(notification)}
+                                                title="Edit"
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button
+                                                className="action-btn delete"
+                                                onClick={() => handleDelete(notification._id)}
+                                                title="Delete"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </>
+            )}
 
             {/* Create/Edit Modal */}
             {showModal && (

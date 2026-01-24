@@ -1,0 +1,28 @@
+# ========================================
+# OPTION 1: Use Local MongoDB (Quick Test)
+# ========================================
+# Copy this line to your .env file to test locally:
+MONGODB_URI=mongodb://localhost:27017/ucc_ticketing
+
+# ========================================
+# OPTION 2: MongoDB Atlas - Standard Format
+# ========================================
+# To get this:
+# 1. Go to MongoDB Atlas Dashboard
+# 2. Click "Connect" on your cluster
+# 3. Select "Connect your application"
+# 4. Choose "Node.js" driver
+# 5. Copy the "Standard connection string" (not SRV)
+# 
+# It should look like this (replace with your actual connection string):
+# MONGODB_URI=mongodb://sekhar_db_user:duIt4u0UJmxyozxM@vlaccess-shard-00-00.4xch4e4.mongodb.net:27017,vlaccess-shard-00-01.4xch4e4.mongodb.net:27017,vlaccess-shard-00-02.4xch4e4.mongodb.net:27017/ucc_ticketing?ssl=true&replicaSet=atlas-xxxxx-shard-0&authSource=admin&retryWrites=true&w=majority
+
+# ========================================
+# OPTION 3: Fix DNS (Advanced)
+# ========================================
+# Change your DNS servers to Google DNS:
+# 1. Open Network Settings
+# 2. Change adapter settings
+# 3. Set DNS to: 8.8.8.8 and 8.8.4.4
+# 4. Then use the SRV format:
+# MONGODB_URI=mongodb+srv://sekhar_db_user:duIt4u0UJmxyozxM@vlaccess.4xch4e4.mongodb.net/ucc_ticketing?retryWrites=true&w=majority

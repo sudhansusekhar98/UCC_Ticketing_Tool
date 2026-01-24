@@ -28,6 +28,7 @@ import Settings from './pages/settings/Settings';
 import Profile from './pages/profile/Profile';
 import NotificationsManagement from './pages/notifications/NotificationsManagement';
 import NotificationsList from './pages/notifications/NotificationsList';
+import NotificationLogs from './pages/notifications/NotificationLogs';
 import Help from './pages/help/Help';
 
 // Protected Route Component
@@ -174,7 +175,7 @@ function App() {
           <Route
             path="/tickets/new"
             element={
-              <ProtectedRoute 
+              <ProtectedRoute
                 allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
                 requiredRight="CREATE_TICKET"
               >
@@ -313,12 +314,20 @@ function App() {
             }
           />
 
-          {/* Notifications Management - Admin Only */}
           <Route
             path="/notifications/manage"
             element={
               <ProtectedRoute allowedRoles={['Admin']}>
                 <NotificationsManagement />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/notifications/logs"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <NotificationLogs />
               </ProtectedRoute>
             }
           />

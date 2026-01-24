@@ -1,0 +1,1702 @@
+[
+  {
+    "_id": "69609463ce9740494891dbd4",
+    "ticketId": "69609463ce9740494891dbb7",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-15T16:01:07.228Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbe5",
+    "ticketId": "69609463ce9740494891dbbb",
+    "userId": "69609463ce9740494891db7e",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-15T17:50:17.765Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc00",
+    "ticketId": "69609463ce9740494891dbc3",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": true,
+    "createdOn": "2025-12-22T08:28:56.880Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc03",
+    "ticketId": "69609463ce9740494891dbc3",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-22T09:58:56.880Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc04",
+    "ticketId": "69609463ce9740494891dbc4",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-18T05:02:37.341Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc20",
+    "ticketId": "69609463ce9740494891dbce",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-20T10:01:25.542Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbd7",
+    "ticketId": "69609463ce9740494891dbb8",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": true,
+    "createdOn": "2026-01-08T05:12:53.165Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbf8",
+    "ticketId": "69609463ce9740494891dbc1",
+    "userId": "69609463ce9740494891db7f",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2026-01-04T10:29:17.283Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbfe",
+    "ticketId": "69609463ce9740494891dbc2",
+    "userId": "69609463ce9740494891db7e",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-26T15:55:44.628Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc15",
+    "ticketId": "69609463ce9740494891dbcb",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "StatusChange",
+    "content": "Status changed to Open",
+    "isInternal": false,
+    "createdOn": "2025-12-20T13:17:55.462Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc1b",
+    "ticketId": "69609463ce9740494891dbcc",
+    "userId": "69609463ce9740494891db7c",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": true,
+    "createdOn": "2025-12-30T08:08:51.467Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc1c",
+    "ticketId": "69609463ce9740494891dbcc",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": true,
+    "createdOn": "2025-12-30T08:38:51.467Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc1f",
+    "ticketId": "69609463ce9740494891dbce",
+    "userId": "69609463ce9740494891db7c",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2025-12-20T09:31:25.542Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbdd",
+    "ticketId": "69609463ce9740494891dbb9",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-10T08:50:29.080Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbff",
+    "ticketId": "69609463ce9740494891dbc3",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": true,
+    "createdOn": "2025-12-22T07:58:56.880Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc05",
+    "ticketId": "69609463ce9740494891dbc5",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": true,
+    "createdOn": "2025-12-10T12:09:59.804Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc0d",
+    "ticketId": "69609463ce9740494891dbc8",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "StatusChange",
+    "content": "Status changed to OnHold",
+    "isInternal": true,
+    "createdOn": "2025-12-30T13:02:58.642Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbf0",
+    "ticketId": "69609463ce9740494891dbbe",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2026-01-05T02:36:14.307Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc16",
+    "ticketId": "69609463ce9740494891dbcb",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "StatusChange",
+    "content": "Status changed to Open",
+    "isInternal": false,
+    "createdOn": "2025-12-20T13:47:55.462Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbd2",
+    "ticketId": "69609463ce9740494891dbb7",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "StatusChange",
+    "content": "Status changed to Open",
+    "isInternal": false,
+    "createdOn": "2025-12-15T15:01:07.228Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbe2",
+    "ticketId": "69609463ce9740494891dbba",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-10T19:21:24.971Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbf9",
+    "ticketId": "69609463ce9740494891dbc1",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2026-01-04T10:59:17.283Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc01",
+    "ticketId": "69609463ce9740494891dbc3",
+    "userId": "69609463ce9740494891db7f",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-22T08:58:56.880Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc10",
+    "ticketId": "69609463ce9740494891dbc9",
+    "userId": "69609463ce9740494891db7e",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-26T00:28:49.098Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbd9",
+    "ticketId": "69609463ce9740494891dbb8",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2026-01-08T06:12:53.165Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbe4",
+    "ticketId": "69609463ce9740494891dbbb",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": true,
+    "createdOn": "2025-12-15T17:20:17.765Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc0c",
+    "ticketId": "69609463ce9740494891dbc8",
+    "userId": "69609463ce9740494891db7f",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-30T12:32:58.642Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc14",
+    "ticketId": "69609463ce9740494891dbcb",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2025-12-20T12:47:55.462Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc24",
+    "ticketId": "69609463ce9740494891dbcf",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-17T10:21:59.049Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbd3",
+    "ticketId": "69609463ce9740494891dbb7",
+    "userId": "69609463ce9740494891db7c",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": true,
+    "createdOn": "2025-12-15T15:31:07.228Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbde",
+    "ticketId": "69609463ce9740494891dbb9",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": true,
+    "createdOn": "2025-12-10T09:20:29.080Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbe3",
+    "ticketId": "69609463ce9740494891dbba",
+    "userId": "69609463ce9740494891db7c",
+    "activityType": "StatusChange",
+    "content": "Status changed to OnHold",
+    "isInternal": false,
+    "createdOn": "2025-12-10T19:51:24.971Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbed",
+    "ticketId": "69609463ce9740494891dbbd",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": true,
+    "createdOn": "2025-12-24T10:50:58.910Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbf2",
+    "ticketId": "69609463ce9740494891dbbf",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-29T00:49:25.696Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbf3",
+    "ticketId": "69609463ce9740494891dbbf",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": true,
+    "createdOn": "2025-12-29T01:19:25.696Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbfc",
+    "ticketId": "69609463ce9740494891dbc2",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2025-12-26T14:55:44.628Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbfd",
+    "ticketId": "69609463ce9740494891dbc2",
+    "userId": "69609463ce9740494891db7c",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2025-12-26T15:25:44.628Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc07",
+    "ticketId": "69609463ce9740494891dbc6",
+    "userId": "69609463ce9740494891db7c",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-20T01:15:57.411Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbd5",
+    "ticketId": "69609463ce9740494891dbb7",
+    "userId": "69609463ce9740494891db7f",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": true,
+    "createdOn": "2025-12-15T16:31:07.228Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbf1",
+    "ticketId": "69609463ce9740494891dbbe",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2026-01-05T03:06:14.307Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc06",
+    "ticketId": "69609463ce9740494891dbc6",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-20T00:45:57.411Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc0f",
+    "ticketId": "69609463ce9740494891dbc9",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": true,
+    "createdOn": "2025-12-25T23:58:49.098Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc17",
+    "ticketId": "69609463ce9740494891dbcb",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": true,
+    "createdOn": "2025-12-20T14:17:55.462Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbe8",
+    "ticketId": "69609463ce9740494891dbbc",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "StatusChange",
+    "content": "Status changed to OnHold",
+    "isInternal": true,
+    "createdOn": "2025-12-24T22:26:06.292Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbea",
+    "ticketId": "69609463ce9740494891dbbd",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": true,
+    "createdOn": "2025-12-24T09:20:58.910Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbf6",
+    "ticketId": "69609463ce9740494891dbbf",
+    "userId": "69609463ce9740494891db7e",
+    "activityType": "StatusChange",
+    "content": "Status changed to InProgress",
+    "isInternal": false,
+    "createdOn": "2025-12-29T02:49:25.696Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbfb",
+    "ticketId": "69609463ce9740494891dbc2",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-26T14:25:44.628Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc0e",
+    "ticketId": "69609463ce9740494891dbc9",
+    "userId": "69609463ce9740494891db7e",
+    "activityType": "StatusChange",
+    "content": "Status changed to OnHold",
+    "isInternal": false,
+    "createdOn": "2025-12-25T23:28:49.098Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc13",
+    "ticketId": "69609463ce9740494891dbcb",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Status changed to Open",
+    "isInternal": false,
+    "createdOn": "2025-12-20T12:17:55.462Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc18",
+    "ticketId": "69609463ce9740494891dbcc",
+    "userId": "69609463ce9740494891db7c",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-30T06:38:51.467Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc1d",
+    "ticketId": "69609463ce9740494891dbcd",
+    "userId": "69609463ce9740494891db7c",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-26T17:47:09.687Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc23",
+    "ticketId": "69609463ce9740494891dbcf",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "StatusChange",
+    "content": "Status changed to Closed",
+    "isInternal": true,
+    "createdOn": "2025-12-17T09:51:59.049Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbd6",
+    "ticketId": "69609463ce9740494891dbb7",
+    "userId": "69609463ce9740494891db7f",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": true,
+    "createdOn": "2025-12-15T17:01:07.228Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbda",
+    "ticketId": "69609463ce9740494891dbb8",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2026-01-08T06:42:53.165Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbe9",
+    "ticketId": "69609463ce9740494891dbbc",
+    "userId": "69609463ce9740494891db7c",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-24T22:56:06.292Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbeb",
+    "ticketId": "69609463ce9740494891dbbd",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-24T09:50:58.910Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc1e",
+    "ticketId": "69609463ce9740494891dbcd",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": true,
+    "createdOn": "2025-12-26T18:17:09.687Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbd8",
+    "ticketId": "69609463ce9740494891dbb8",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "StatusChange",
+    "content": "Status changed to Open",
+    "isInternal": false,
+    "createdOn": "2026-01-08T05:42:53.165Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbe1",
+    "ticketId": "69609463ce9740494891dbba",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "StatusChange",
+    "content": "Status changed to OnHold",
+    "isInternal": false,
+    "createdOn": "2025-12-10T18:51:24.971Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbec",
+    "ticketId": "69609463ce9740494891dbbd",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-24T10:20:58.910Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbf7",
+    "ticketId": "69609463ce9740494891dbc0",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-22T17:55:38.000Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc02",
+    "ticketId": "69609463ce9740494891dbc3",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": true,
+    "createdOn": "2025-12-22T09:28:56.880Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc0a",
+    "ticketId": "69609463ce9740494891dbc7",
+    "userId": "69609463ce9740494891db7c",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2026-01-07T00:18:04.039Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbe0",
+    "ticketId": "69609463ce9740494891dbba",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-10T18:21:24.971Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbef",
+    "ticketId": "69609463ce9740494891dbbe",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2026-01-05T02:06:14.307Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc11",
+    "ticketId": "69609463ce9740494891dbc9",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2025-12-26T00:58:49.098Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc21",
+    "ticketId": "69609463ce9740494891dbce",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2025-12-20T10:31:25.542Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc22",
+    "ticketId": "69609463ce9740494891dbce",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-20T11:01:25.542Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbdf",
+    "ticketId": "69609463ce9740494891dbba",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2025-12-10T17:51:24.971Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbe7",
+    "ticketId": "69609463ce9740494891dbbb",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2025-12-15T18:50:17.765Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbee",
+    "ticketId": "69609463ce9740494891dbbd",
+    "userId": "69609463ce9740494891db81",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-24T11:20:58.910Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbf4",
+    "ticketId": "69609463ce9740494891dbbf",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2025-12-29T01:49:25.696Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbdb",
+    "ticketId": "69609463ce9740494891dbb9",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-10T07:50:29.080Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbf5",
+    "ticketId": "69609463ce9740494891dbbf",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "StatusChange",
+    "content": "Status changed to InProgress",
+    "isInternal": true,
+    "createdOn": "2025-12-29T02:19:25.696Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc08",
+    "ticketId": "69609463ce9740494891dbc6",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to engineer",
+    "isInternal": false,
+    "createdOn": "2025-12-20T01:45:57.411Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc09",
+    "ticketId": "69609463ce9740494891dbc7",
+    "userId": "69609463ce9740494891db80",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2026-01-06T23:48:04.039Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc12",
+    "ticketId": "69609463ce9740494891dbca",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2026-01-05T02:46:38.097Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbdc",
+    "ticketId": "69609463ce9740494891dbb9",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": true,
+    "createdOn": "2025-12-10T08:20:29.080Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbe6",
+    "ticketId": "69609463ce9740494891dbbb",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": true,
+    "createdOn": "2025-12-15T18:20:17.765Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dbfa",
+    "ticketId": "69609463ce9740494891dbc1",
+    "userId": "69609463ce9740494891db7b",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2026-01-04T11:29:17.283Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc0b",
+    "ticketId": "69609463ce9740494891dbc7",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Comment",
+    "content": "Investigating the issue. Will update shortly.",
+    "isInternal": false,
+    "createdOn": "2026-01-07T00:48:04.039Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc19",
+    "ticketId": "69609463ce9740494891dbcc",
+    "userId": "69609463ce9740494891db7e",
+    "activityType": "Resolution",
+    "content": "Issue has been resolved. Component replaced.",
+    "isInternal": false,
+    "createdOn": "2025-12-30T07:08:51.467Z",
+    "__v": 0
+  },
+  {
+    "_id": "69609463ce9740494891dc1a",
+    "ticketId": "69609463ce9740494891dbcc",
+    "userId": "69609463ce9740494891db7f",
+    "activityType": "StatusChange",
+    "content": "Status changed to InProgress",
+    "isInternal": false,
+    "createdOn": "2025-12-30T07:38:51.467Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960a86baa75b5834432f65b",
+    "ticketId": "6960a86baa75b5834432f657",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket created",
+    "isInternal": false,
+    "createdOn": "2026-01-09T07:04:11.664Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960b795a388563a927b279a",
+    "ticketId": "6960a86baa75b5834432f657",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to Sanat Padhan",
+    "isInternal": false,
+    "createdOn": "2026-01-09T08:08:53.555Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960b92e47248590f63d6db6",
+    "ticketId": "6960b92d47248590f63d6db1",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket created and assigned to Sanat Padhan",
+    "isInternal": false,
+    "createdOn": "2026-01-09T08:15:42.193Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960b95b47248590f63d6e8f",
+    "ticketId": "6960b92d47248590f63d6db1",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket acknowledged",
+    "isInternal": false,
+    "createdOn": "2026-01-09T08:16:27.703Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960b96b47248590f63d6edd",
+    "ticketId": "6960b92d47248590f63d6db1",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Work started on ticket",
+    "isInternal": false,
+    "createdOn": "2026-01-09T08:16:43.273Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960bb18ae0da5916c39b0b4",
+    "ticketId": "6960b92d47248590f63d6db1",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Comment",
+    "content": "Changed the cable to fix the issue.",
+    "isInternal": false,
+    "createdOn": "2026-01-09T08:23:52.480Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960bb37ae0da5916c39b0cd",
+    "ticketId": "6960b92d47248590f63d6db1",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Resolution",
+    "content": "Ticket resolved. Replaced the cable and fixed the issue.",
+    "isInternal": false,
+    "createdOn": "2026-01-09T08:24:23.752Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960bd46c888dd91dbd1a95b",
+    "ticketId": "6960a86baa75b5834432f657",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket details updated: Title changed",
+    "isInternal": false,
+    "createdOn": "2026-01-09T08:33:10.105Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960c6abc888dd91dbd1a9e6",
+    "ticketId": "6960a86baa75b5834432f657",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket acknowledged",
+    "isInternal": false,
+    "createdOn": "2026-01-09T09:13:15.238Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960c6b3c888dd91dbd1aa0a",
+    "ticketId": "6960a86baa75b5834432f657",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Work started on ticket",
+    "isInternal": false,
+    "createdOn": "2026-01-09T09:13:23.837Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960d6e7ebee0ce9e7645e3e",
+    "ticketId": "6960a86baa75b5834432f657",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Comment",
+    "content": "What is progress, please update ASAP?",
+    "isInternal": false,
+    "createdOn": "2026-01-09T10:22:31.089Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960d715ebee0ce9e7645f58",
+    "ticketId": "6960a86baa75b5834432f657",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Comment",
+    "content": "Visiting the site to check the issue.",
+    "isInternal": false,
+    "createdOn": "2026-01-09T10:23:17.579Z",
+    "__v": 0
+  },
+  {
+    "_id": "6960d746ebee0ce9e7645fa0",
+    "ticketId": "6960a86baa75b5834432f657",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Comment",
+    "content": "Please update the status.",
+    "isInternal": false,
+    "createdOn": "2026-01-09T10:24:06.839Z",
+    "__v": 0
+  },
+  {
+    "_id": "696226337150c38b9553746e",
+    "ticketId": "696226327150c38b9553746a",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket created and assigned to System Administrator",
+    "isInternal": false,
+    "createdOn": "2026-01-10T10:13:07.086Z",
+    "__v": 0
+  },
+  {
+    "_id": "696226447150c38b9553749e",
+    "ticketId": "696226327150c38b9553746a",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket acknowledged",
+    "isInternal": false,
+    "createdOn": "2026-01-10T10:13:24.905Z",
+    "__v": 0
+  },
+  {
+    "_id": "696226587150c38b955374bc",
+    "ticketId": "696226327150c38b9553746a",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Work started on ticket",
+    "isInternal": false,
+    "createdOn": "2026-01-10T10:13:44.355Z",
+    "__v": 0
+  },
+  {
+    "_id": "6962270f7150c38b955374fa",
+    "ticketId": "696226327150c38b9553746a",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Resolution",
+    "content": "Ticket resolved. Replaced the POE injector, issue fixed.",
+    "isInternal": false,
+    "createdOn": "2026-01-10T10:16:47.896Z",
+    "__v": 0
+  },
+  {
+    "_id": "696227287150c38b9553751b",
+    "ticketId": "696226327150c38b9553746a",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket closed",
+    "isInternal": false,
+    "createdOn": "2026-01-10T10:17:12.133Z",
+    "__v": 0
+  },
+  {
+    "_id": "69622e257150c38b95537d6b",
+    "ticketId": "69622e247150c38b95537d67",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket created",
+    "isInternal": false,
+    "createdOn": "2026-01-10T10:47:01.127Z",
+    "__v": 0
+  },
+  {
+    "_id": "69622e427150c38b95537e39",
+    "ticketId": "69622e247150c38b95537d67",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to Sanat Padhan",
+    "isInternal": false,
+    "createdOn": "2026-01-10T10:47:30.698Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964942bf34fc5de32de9c5c",
+    "ticketId": "6964942af34fc5de32de9c57",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket created and assigned to Sanat Padhan",
+    "isInternal": false,
+    "createdOn": "2026-01-12T06:26:51.375Z",
+    "__v": 0
+  },
+  {
+    "_id": "696496bef34fc5de32de9d41",
+    "ticketId": "696496bef34fc5de32de9d3c",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket created and assigned to Sanat Padhan",
+    "isInternal": false,
+    "createdOn": "2026-01-12T06:37:50.724Z",
+    "__v": 0
+  },
+  {
+    "_id": "696496d7f34fc5de32de9d96",
+    "ticketId": "696496bef34fc5de32de9d3c",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket acknowledged",
+    "isInternal": false,
+    "createdOn": "2026-01-12T06:38:15.913Z",
+    "__v": 0
+  },
+  {
+    "_id": "696496dcf34fc5de32de9dc5",
+    "ticketId": "696496bef34fc5de32de9d3c",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Work started on ticket",
+    "isInternal": false,
+    "createdOn": "2026-01-12T06:38:20.314Z",
+    "__v": 0
+  },
+  {
+    "_id": "696496f2f34fc5de32de9df5",
+    "ticketId": "696496bef34fc5de32de9d3c",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Resolution",
+    "content": "Ticket resolved. testing issue fixed",
+    "isInternal": false,
+    "createdOn": "2026-01-12T06:38:42.123Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649a521bbe99083e8549aa",
+    "ticketId": "696496bef34fc5de32de9d3c",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket closed",
+    "isInternal": false,
+    "createdOn": "2026-01-12T06:53:06.180Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649ca9abb74cc7bcb0bd92",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket created",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:03:05.429Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649cb2abb74cc7bcb0bdda",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to Sanat Padhan",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:03:14.009Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649cb5abb74cc7bcb0be0a",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket acknowledged",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:03:17.909Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649cb8abb74cc7bcb0be3b",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Work started on ticket",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:03:20.011Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649cc9abb74cc7bcb0be6d",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Resolution",
+    "content": "Ticket resolved. issue fixed",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:03:37.558Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649cf3abb74cc7bcb0bf54",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Resolution rejected by System Administrator. Reason: Issue still persist.\n\nPlease reinvestigate and provide an update.",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:04:19.141Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649d12abb74cc7bcb0c07d",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Rejection acknowledged. Work resumed on the ticket.",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:04:50.881Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649d2babb74cc7bcb0c0b2",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Resolution",
+    "content": "Ticket resolved. fixed",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:05:15.559Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649d3dabb74cc7bcb0c1a0",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket closed",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:05:33.669Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649d5dabb74cc7bcb0c2c5",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket reopened. Reason: Same issue occurs now.",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:06:05.329Z",
+    "__v": 0
+  },
+  {
+    "_id": "69649d67abb74cc7bcb0c2fe",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to Sanat Padhan",
+    "isInternal": false,
+    "createdOn": "2026-01-12T07:06:15.878Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964be258e1357122f01455c",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Escalation",
+    "content": "Ticket escalated by System Administrator. Reason: After the troubleshooting issue still persist.",
+    "isInternal": false,
+    "createdOn": "2026-01-12T09:25:57.055Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964be518e1357122f01460f",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Escalation accepted by System Administrator. Ticket is now in progress.",
+    "isInternal": false,
+    "createdOn": "2026-01-12T09:26:41.704Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c318dedba6fa36bc40f5",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Escalation",
+    "content": "Ticket escalated by System Administrator. Reason: test",
+    "isInternal": false,
+    "createdOn": "2026-01-12T09:47:04.216Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c349dedba6fa36bc41e2",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Escalation accepted by System Administrator. Ticket is now in progress.",
+    "isInternal": false,
+    "createdOn": "2026-01-12T09:47:53.367Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c3f9dedba6fa36bc44e6",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Escalation",
+    "content": "Ticket escalated by System Administrator. Reason: test",
+    "isInternal": false,
+    "createdOn": "2026-01-12T09:50:49.688Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c402dedba6fa36bc451f",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Escalation accepted by System Administrator and assigned to Rajesh Sharma.",
+    "isInternal": false,
+    "createdOn": "2026-01-12T09:50:58.085Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c472dedba6fa36bc4754",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Comment",
+    "content": "What is the update?",
+    "isInternal": false,
+    "createdOn": "2026-01-12T09:52:50.937Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c98352f70d71b18fef5a",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Escalation",
+    "content": "Ticket escalated to Level 1 by System Administrator. Reason: escalating to L1",
+    "isInternal": false,
+    "createdOn": "2026-01-12T10:14:27.101Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c98e52f70d71b18fef96",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Escalation accepted by System Administrator and assigned to Rajesh Sharma.",
+    "isInternal": false,
+    "createdOn": "2026-01-12T10:14:38.593Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c99b52f70d71b18fefce",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Escalation",
+    "content": "Ticket escalated to Level 2 by System Administrator. Reason: Escalating to L2",
+    "isInternal": false,
+    "createdOn": "2026-01-12T10:14:51.261Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c9ac52f70d71b18ff00c",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Escalation accepted by System Administrator and assigned to Priya Patel.",
+    "isInternal": false,
+    "createdOn": "2026-01-12T10:15:08.673Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c9e952f70d71b18ff13b",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Escalation",
+    "content": "Ticket escalated to Level 3 by System Administrator. Reason: Escalating to L3",
+    "isInternal": false,
+    "createdOn": "2026-01-12T10:16:09.702Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964c9f452f70d71b18ff17b",
+    "ticketId": "69649ca8abb74cc7bcb0bd8e",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Escalation accepted by System Administrator and assigned to Amit Kumar.",
+    "isInternal": false,
+    "createdOn": "2026-01-12T10:16:20.140Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964d25d8be7c6ff49277c0a",
+    "ticketId": "6964d25d8be7c6ff49277c05",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket created and assigned to Sanat Padhan",
+    "isInternal": false,
+    "createdOn": "2026-01-12T10:52:13.694Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964d3f08be7c6ff49277f75",
+    "ticketId": "6964d25d8be7c6ff49277c05",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket acknowledged",
+    "isInternal": false,
+    "createdOn": "2026-01-12T10:58:56.939Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964d3f38be7c6ff49277fa5",
+    "ticketId": "6964d25d8be7c6ff49277c05",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Work started on ticket",
+    "isInternal": false,
+    "createdOn": "2026-01-12T10:58:59.658Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964d60cc176551156fbb74b",
+    "ticketId": "6964d25d8be7c6ff49277c05",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "RMA",
+    "content": "RMA Status Updated: Ordered. Procurement started",
+    "isInternal": false,
+    "createdOn": "2026-01-12T11:07:56.693Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964d620c176551156fbb76c",
+    "ticketId": "6964d25d8be7c6ff49277c05",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "RMA",
+    "content": "RMA Status Updated: Dispatched. Shipment update",
+    "isInternal": false,
+    "createdOn": "2026-01-12T11:08:16.517Z",
+    "__v": 0
+  },
+  {
+    "_id": "6964d628c176551156fbb7a2",
+    "ticketId": "6964d25d8be7c6ff49277c05",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "RMA",
+    "content": "RMA Status Updated: Dispatched. Shipment update",
+    "isInternal": false,
+    "createdOn": "2026-01-12T11:08:24.028Z",
+    "__v": 0
+  },
+  {
+    "_id": "696b864998846af6b768a235",
+    "ticketId": "6964d25d8be7c6ff49277c05",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "RMA",
+    "content": "RMA Status Updated: Installed. ",
+    "isInternal": false,
+    "createdOn": "2026-01-17T12:53:29.743Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2bbb23d1a1a118a02f74",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket created",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:03:55.542Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2bdd23d1a1a118a02fb6",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to Sanat Padhan",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:04:29.436Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2bf923d1a1a118a030da",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Ticket acknowledged",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:04:57.187Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2c0123d1a1a118a0310b",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "StatusChange",
+    "content": "Work started on ticket",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:05:05.174Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2c2c23d1a1a118a0313c",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Comment",
+    "content": "Firewall updated, done the gpupdate still not active",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:05:48.285Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2c4323d1a1a118a0316c",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Comment",
+    "content": "Checked with the cabling no issues found.",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:06:11.324Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2c6b23d1a1a118a031a6",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "RMA",
+    "content": "RMA Request Initiated: Followed all the troubleshooting steps still not active",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:06:51.159Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2c9423d1a1a118a03296",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "RMA",
+    "content": "RMA Status Updated: Approved. ",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:07:32.633Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2cb523d1a1a118a032b3",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "RMA",
+    "content": "RMA Status Updated: Ordered. Procurement started",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:08:05.810Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2cbe23d1a1a118a032d2",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "RMA",
+    "content": "RMA Status Updated: Dispatched. Shipment update",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:08:14.206Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2cc523d1a1a118a032f3",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "RMA",
+    "content": "RMA Status Updated: Ordered. Shipment update",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:08:21.474Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2ccb23d1a1a118a03316",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "RMA",
+    "content": "RMA Status Updated: Dispatched. Shipment update",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:08:27.105Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2cf023d1a1a118a03474",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "RMA",
+    "content": "Asset update request initiated. Access granted for 30 minutes.",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:09:04.793Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e2d2e23d1a1a118a034d8",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "RMA",
+    "content": "Asset update details submitted. Pending admin approval.",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:10:06.436Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e30450216ef0643208eeb",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "RMA",
+    "content": "Asset update approved and applied. Device replacement completed.",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:23:17.884Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e3214f94a9936969cbd30",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "6960a1aecd2efa6ca51eaff6",
+    "activityType": "Resolution",
+    "content": "Ticket resolved. RMA created and new device installed",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:31:00.026Z",
+    "__v": 0
+  },
+  {
+    "_id": "696e3225f94a9936969cbe6e",
+    "ticketId": "696e2bbb23d1a1a118a02f70",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket closed",
+    "isInternal": false,
+    "createdOn": "2026-01-19T13:31:17.731Z",
+    "__v": 0
+  },
+  {
+    "_id": "69720413eb6b163ca9e2dae2",
+    "ticketId": "6964d25d8be7c6ff49277c05",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Escalation",
+    "content": "Ticket escalated to Level 1 by System Administrator. Reason: Issue is not fixed, new RMA needs to be raised.",
+    "isInternal": false,
+    "createdOn": "2026-01-22T11:03:47.452Z",
+    "__v": 0
+  },
+  {
+    "_id": "697312bdf7f75a7e53d3b292",
+    "ticketId": "697312bcf7f75a7e53d3b28d",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "StatusChange",
+    "content": "Ticket created and assigned to Atulya Kumar Dash",
+    "isInternal": false,
+    "createdOn": "2026-01-23T06:18:37.734Z",
+    "__v": 0
+  },
+  {
+    "_id": "697328ecf837b66a6a8323d6",
+    "ticketId": "697312bcf7f75a7e53d3b28d",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to Atuly Kumar Dash\nRemarks: Resolve the issue",
+    "isInternal": false,
+    "createdOn": "2026-01-23T07:53:16.091Z",
+    "__v": 0
+  },
+  {
+    "_id": "697339d7ed0b1b4affbe090f",
+    "ticketId": "697312bcf7f75a7e53d3b28d",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "Assignment",
+    "content": "Ticket assigned to Priya Patel",
+    "isInternal": false,
+    "createdOn": "2026-01-23T09:05:27.095Z",
+    "__v": 0
+  },
+  {
+    "_id": "697344b5fc3f1b95a3488ad3",
+    "ticketId": "697312bcf7f75a7e53d3b28d",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "StatusChange",
+    "content": "Ticket acknowledged",
+    "isInternal": false,
+    "createdOn": "2026-01-23T09:51:49.305Z",
+    "__v": 0
+  },
+  {
+    "_id": "697344c0fc3f1b95a3488af9",
+    "ticketId": "697312bcf7f75a7e53d3b28d",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "StatusChange",
+    "content": "Work started on ticket",
+    "isInternal": false,
+    "createdOn": "2026-01-23T09:52:00.053Z",
+    "__v": 0
+  },
+  {
+    "_id": "697346ea28a351f0749f6ba8",
+    "ticketId": "697346e928a351f0749f6ba2",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "StatusChange",
+    "content": "Ticket created and assigned to Priya Patel",
+    "isInternal": false,
+    "createdOn": "2026-01-23T10:01:14.031Z",
+    "__v": 0
+  },
+  {
+    "_id": "6973471628a351f0749f6bf5",
+    "ticketId": "697346e928a351f0749f6ba2",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "StatusChange",
+    "content": "Ticket acknowledged",
+    "isInternal": false,
+    "createdOn": "2026-01-23T10:01:58.634Z",
+    "__v": 0
+  },
+  {
+    "_id": "6973471a28a351f0749f6c1b",
+    "ticketId": "697346e928a351f0749f6ba2",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "StatusChange",
+    "content": "Work started on ticket",
+    "isInternal": false,
+    "createdOn": "2026-01-23T10:02:02.192Z",
+    "__v": 0
+  },
+  {
+    "_id": "6973473a28a351f0749f6c41",
+    "ticketId": "697346e928a351f0749f6ba2",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "Comment",
+    "content": "The port is damage is completely and cannot be used for further usages.",
+    "isInternal": false,
+    "createdOn": "2026-01-23T10:02:34.472Z",
+    "__v": 0
+  },
+  {
+    "_id": "6973478b28a351f0749f6c66",
+    "ticketId": "697346e928a351f0749f6ba2",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "Comment",
+    "content": "Attached this photo here.",
+    "isInternal": false,
+    "createdOn": "2026-01-23T10:03:55.872Z",
+    "__v": 0
+  },
+  {
+    "_id": "6973481528a351f0749f6cbf",
+    "ticketId": "697346e928a351f0749f6ba2",
+    "userId": "69609463ce9740494891db7d",
+    "activityType": "RMA",
+    "content": "🔄 **RMA/Device Replacement Request Submitted**\n\n**Reason:** Switch Port is damaged and cannot be used anymore.\n**Asset:** AST-0015 (Server)\n**Current S/N:** SN-1767937123523-15\n**Current IP:** N/A\n\n_Awaiting approval from Admin/Supervisor_",
+    "isInternal": false,
+    "createdOn": "2026-01-23T10:06:13.911Z",
+    "__v": 0
+  },
+  {
+    "_id": "69734ba028a351f0749f6da4",
+    "ticketId": "697346e928a351f0749f6ba2",
+    "userId": "69609463ce9740494891db7a",
+    "activityType": "RMA",
+    "content": "❌ **RMA Request Rejected**\n\nThe device replacement request has been declined.",
+    "isInternal": false,
+    "createdOn": "2026-01-23T10:21:20.648Z",
+    "__v": 0
+  }
+]
