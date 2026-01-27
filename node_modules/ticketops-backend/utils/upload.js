@@ -29,7 +29,7 @@ const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt|csv/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
-  
+
   if (extname || mimetype) {
     return cb(null, true);
   }
@@ -39,7 +39,7 @@ const fileFilter = (req, file, cb) => {
 // Create multer instance based on environment
 const createUploader = (options = {}) => {
   const { limits = { fileSize: 10 * 1024 * 1024 } } = options; // Default 10MB
-  
+
   return multer({
     storage: isVercel ? memoryStorage : diskStorage,
     limits,
@@ -50,9 +50,23 @@ const createUploader = (options = {}) => {
 // Default upload instance
 const upload = createUploader();
 
-// Simple upload (for bulk import) - just uses memory storage on Vercel
+// Simple upload (for bulk import) - uses proper storage based on environment
+const importDiskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadsDir = 'uploads/';
+    if (!isVercel && !fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'import-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
 const simpleUpload = multer({
-  storage: isVercel ? memoryStorage : multer.diskStorage({ dest: 'uploads/' }),
+  storage: isVercel ? memoryStorage : importDiskStorage,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB for bulk imports
 });
 

@@ -241,6 +241,8 @@
     opacity: 0;
     transform: scale(0.8);
     transition: all 0.3s ease;
+    position: relative;
+    z-index: 2;
 }
 
 .export-report-card.selected .export-report-check {
@@ -350,6 +352,54 @@
     overflow: hidden;
 }
 
+/* Background blob for visual interest */
+.stat-card-bg-blob {
+    position: absolute;
+    bottom: -20px;
+    right: -20px;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.1;
+    z-index: 1;
+    transition: all 0.5s ease;
+}
+
+.stat-card:hover .stat-card-bg-blob {
+    opacity: 0.2;
+    transform: scale(1.5);
+}
+
+.stat-card.primary .stat-card-bg-blob {
+    background: var(--primary-500);
+}
+
+.stat-card.success .stat-card-bg-blob {
+    background: var(--success-500);
+}
+
+.stat-card.warning .stat-card-bg-blob {
+    background: var(--warning-500);
+}
+
+.stat-card.danger .stat-card-bg-blob {
+    background: var(--danger-500);
+}
+
+.stat-card.purple .stat-card-bg-blob {
+    background: #8b5cf6;
+}
+
+.stat-card.cyan .stat-card-bg-blob {
+    background: #06b6d4;
+}
+
+.stat-card.orange .stat-card-bg-blob {
+    background: #f97316;
+}
+
+
 .stat-card:hover {
     transform: translateY(-5px);
     box-shadow: var(--shadow-xl);
@@ -392,6 +442,8 @@
 
 .stat-info {
     flex: 1;
+    position: relative;
+    z-index: 2;
 }
 
 .stat-info h3 {

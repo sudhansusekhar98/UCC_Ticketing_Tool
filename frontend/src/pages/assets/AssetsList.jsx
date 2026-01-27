@@ -46,7 +46,6 @@ export default function AssetsList() {
     const [siteFilter, setSiteFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
-    const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'active', 'inactive'
     const [sites, setSites] = useState([]);
     const [locations, setLocations] = useState([]);
     const [locationFilter, setLocationFilter] = useState('');
@@ -95,16 +94,12 @@ export default function AssetsList() {
     // Fetch assets when filters or page change
     useEffect(() => {
         fetchAssets();
-    }, [page, debouncedSearchValue, siteFilter, locationFilter, typeFilter, statusFilter, activeFilter]);
+    }, [page, debouncedSearchValue, siteFilter, locationFilter, typeFilter, statusFilter]);
 
     // Fetch locations when site changes
     useEffect(() => {
-        if (siteFilter) {
-            loadLocations(siteFilter);
-        } else {
-            setLocations([]);
-            setLocationFilter('');
-        }
+        loadLocations(siteFilter);
+        setLocationFilter('');
     }, [siteFilter]);
 
     const loadDropdowns = async () => {
@@ -158,7 +153,6 @@ export default function AssetsList() {
                 locationName: locationFilter || undefined,
                 assetType: typeFilter || undefined,
                 status: statusFilter || undefined,
-                isActive: activeFilter === 'all' ? undefined : activeFilter === 'active',
             });
             // Handle both Express and .NET response formats
             const assetData = response.data.data || response.data.items || response.data || [];
@@ -287,7 +281,9 @@ export default function AssetsList() {
             setImportResult(response.data);
             if (response.data.success) {
                 toast.success(response.data.message);
+                // Refresh both assets and filter dropdowns to include new values from imported data
                 fetchAssets();
+                loadDropdowns();
             } else {
                 toast.error(response.data.message);
             }
@@ -411,8 +407,7 @@ export default function AssetsList() {
                         className="form-select compact-select"
                         value={locationFilter}
                         onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
-                        disabled={!siteFilter}
-                        title={!siteFilter ? "Select a site first" : "Filter by location"}
+                        title="Filter by location"
                     >
                         <option value="">All Locations</option>
                         {locations.map(loc => (
@@ -438,16 +433,6 @@ export default function AssetsList() {
                         {assetStatuses.map(status => (
                             <option key={status.value} value={status.value}>{status.label}</option>
                         ))}
-                    </select>
-                    <select
-                        className="form-select compact-select"
-                        value={activeFilter}
-                        onChange={(e) => { setActiveFilter(e.target.value); setPage(1); }}
-                        title="Filter by active status"
-                    >
-                        <option value="all">All Assets</option>
-                        <option value="active">Active Only</option>
-                        <option value="inactive">Inactive Only</option>
                     </select>
                     <button className="btn btn-secondary btn-icon" onClick={fetchAssets}>
                         <RefreshCw size={18} />

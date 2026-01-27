@@ -124,12 +124,11 @@ export const getDashboardStatsOptimized = async (req, res, next) => {
 
         // Get asset counts in parallel
         const assetMatchQuery = user.role === 'Admin'
-            ? { isActive: true }
-            : { isActive: true, siteId: { $in: user.assignedSites.map(s => new mongoose.Types.ObjectId(s)) } };
-
+            ? {}
+            : { siteId: { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) } };
         const [totalAssets, offlineAssets] = await Promise.all([
-            mongoose.connection.collection('assets').countDocuments(assetMatchQuery),
-            mongoose.connection.collection('assets').countDocuments({ ...assetMatchQuery, status: 'Offline' })
+            Asset.countDocuments(assetMatchQuery),
+            Asset.countDocuments({ ...assetMatchQuery, status: 'Offline' })
         ]);
 
         // Process results

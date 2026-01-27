@@ -100,9 +100,29 @@ export const getAssetTypesEndpoint = async (req, res, next) => {
 // @access  Private
 export const getAssetStatusesEndpoint = async (req, res, next) => {
   try {
+    // Get unique statuses from database
+    const statuses = await Asset.distinct('status');
+
+    // Map to status objects with colors
+    const statusColors = {
+      'Operational': '#27ae60',
+      'Degraded': '#f39c12',
+      'Offline': '#e74c3c',
+      'Maintenance': '#9b59b6',
+      'Not Installed': '#7f8c8d'
+    };
+
+    const formattedStatuses = statuses.length > 0
+      ? statuses.filter(s => s).map(s => ({
+        value: s,
+        label: s,
+        color: statusColors[s] || '#7f8c8d'
+      }))
+      : getAssetStatuses();
+
     res.json({
       success: true,
-      data: getAssetStatuses()
+      data: formattedStatuses
     });
   } catch (error) {
     next(error);
@@ -199,7 +219,7 @@ export const getDeviceTypesEndpoint = async (req, res, next) => {
   try {
     const { assetType } = req.query;
 
-    let query = { isActive: true };
+    let query = {};
     if (assetType) {
       query.assetType = assetType;
     }
@@ -232,7 +252,7 @@ export const getAllDeviceTypesEndpoint = async (req, res, next) => {
   try {
     // Aggregate to get unique assetType + deviceType combinations from Assets
     const results = await Asset.aggregate([
-      { $match: { isActive: true, deviceType: { $ne: null, $ne: '' } } },
+      { $match: { deviceType: { $ne: null, $ne: '' } } },
       { $group: { _id: { assetType: '$assetType', deviceType: '$deviceType' } } },
       { $sort: { '_id.assetType': 1, '_id.deviceType': 1 } }
     ]);

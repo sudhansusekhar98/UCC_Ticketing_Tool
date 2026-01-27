@@ -1074,10 +1074,9 @@ export const getDashboardStats = async (req, res, next) => {
     ]);
 
     // Get asset counts in parallel (only 2 queries)
-
     const [totalAssets, offlineAssets] = await Promise.all([
-      mongoose.connection.collection('assets').countDocuments(assetMatchQuery),
-      mongoose.connection.collection('assets').countDocuments({ ...assetMatchQuery, status: 'Offline' })
+      Asset.countDocuments(assetMatchQuery),
+      Asset.countDocuments({ ...assetMatchQuery, status: 'Offline' })
     ]);
 
     // Process status counts into an object

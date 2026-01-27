@@ -22,14 +22,14 @@ const buildDateQuery = (startDate, endDate, field = 'createdAt') => {
 export const getTicketStats = async (req, res, next) => {
   try {
     const { startDate, endDate, siteId } = req.query;
-    
+
     const dateQuery = buildDateQuery(startDate, endDate);
     const matchStage = { ...dateQuery };
-    
+
     if (siteId) {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
-    
+
     // Run aggregations in parallel for performance
     const [statusStats, priorityStats, categoryStats, resolutionStats] = await Promise.all([
       // Status Distribution
@@ -37,27 +37,27 @@ export const getTicketStats = async (req, res, next) => {
         { $match: matchStage },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ]),
-      
+
       // Priority Distribution
       Ticket.aggregate([
         { $match: matchStage },
         { $group: { _id: '$priority', count: { $sum: 1 } } }
       ]),
-      
+
       // Category Distribution
       Ticket.aggregate([
         { $match: matchStage },
         { $group: { _id: '$category', count: { $sum: 1 } } }
       ]),
-      
+
       // Avg Resolution Time
       Ticket.aggregate([
-        { 
-          $match: { 
-            ...matchStage, 
+        {
+          $match: {
+            ...matchStage,
             status: { $in: ['Resolved', 'Verified', 'Closed'] },
-            resolvedOn: { $exists: true } 
-          } 
+            resolvedOn: { $exists: true }
+          }
         },
         {
           $project: {
@@ -99,21 +99,21 @@ export const getSLAPerformance = async (req, res, next) => {
     const { startDate, endDate, siteId } = req.query;
     const dateQuery = buildDateQuery(startDate, endDate);
     const matchStage = { ...dateQuery };
-    
+
     if (siteId) {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
 
     const slaStats = await Ticket.aggregate([
       { $match: matchStage },
-      { 
-        $group: { 
-          _id: { 
+      {
+        $group: {
+          _id: {
             breached: '$isSLARestoreBreached',
             status: '$status'
-          }, 
-          count: { $sum: 1 } 
-        } 
+          },
+          count: { $sum: 1 }
+        }
       }
     ]);
 
@@ -129,11 +129,11 @@ export const getSLAPerformance = async (req, res, next) => {
       // If breached is false or undefined, AND it is resolved/closed, we count as met.
       // If it's still open and not breached yet, it's pending (or 'met' so far).
       // Let's stick to explicit flags if available.
-      
+
       const isBreached = stat._id.breached === true;
       const count = stat.count;
       summary.total += count;
-      
+
       if (isBreached) {
         summary.breached += count;
       } else {
@@ -157,7 +157,7 @@ export const getAssetStats = async (req, res, next) => {
   try {
     const { siteId } = req.query;
     const matchStage = {};
-    
+
     if (siteId) {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
@@ -193,7 +193,7 @@ export const getRMAStats = async (req, res, next) => {
     const { startDate, endDate, siteId } = req.query;
     const dateQuery = buildDateQuery(startDate, endDate);
     const matchStage = { ...dateQuery };
-    
+
     if (siteId) {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
@@ -263,14 +263,14 @@ export const getRMAStats = async (req, res, next) => {
 export const exportReport = async (req, res, next) => {
   try {
     const { startDate, endDate, siteId } = req.query;
-    
+
     const dateQuery = buildDateQuery(startDate, endDate);
     const query = { ...dateQuery };
-    
+
     if (siteId) {
       query.siteId = siteId;
     }
-    
+
     // Fetch tickets with related data
     const tickets = await Ticket.find(query)
       .populate('siteId', 'siteName')
@@ -279,7 +279,7 @@ export const exportReport = async (req, res, next) => {
       .populate('createdBy', 'fullName')
       .sort({ createdAt: -1 })
       .lean();
-      
+
     // Transform data for Excel
     const data = tickets.map(ticket => ({
       'Ticket Number': ticket.ticketNumber,
@@ -295,21 +295,21 @@ export const exportReport = async (req, res, next) => {
       'Resolved On': ticket.resolvedOn ? new Date(ticket.resolvedOn).toLocaleString() : '',
       'SLA Status': ticket.isSLARestoreBreached ? 'Breached' : 'On Track'
     }));
-    
+
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
-    
+
     // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Tickets Report');
-    
+
     // Generate buffer
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    
+
     // Set headers for download
     res.setHeader('Content-Disposition', 'attachment; filename="tickets-report.xlsx"');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    
+
     // Send buffer
     res.send(buffer);
   } catch (error) {
@@ -324,9 +324,9 @@ export const exportReport = async (req, res, next) => {
 export const exportEmployeeStatusReport = async (req, res, next) => {
   try {
     const { siteId } = req.query;
-    
-    const matchStage = { isActive: true };
-    
+
+    const matchStage = {};
+
     // If siteId is provided and not 'all', filter by site
     if (siteId && siteId !== 'all') {
       matchStage.$or = [
@@ -334,7 +334,7 @@ export const exportEmployeeStatusReport = async (req, res, next) => {
         { assignedSites: new mongoose.Types.ObjectId(siteId) }
       ];
     }
-    
+
     // Fetch employees with related data
     const employees = await User.find(matchStage)
       .populate('siteId', 'siteName siteCode city')
@@ -373,7 +373,7 @@ export const exportEmployeeStatusReport = async (req, res, next) => {
       const empStats = statsMap[emp._id.toString()] || { Open: 0, InProgress: 0, Resolved: 0, Closed: 0, Total: 0 };
       const primarySite = emp.siteId?.siteName || 'Not Assigned';
       const assignedSitesList = emp.assignedSites?.map(s => s.siteName).join(', ') || 'None';
-      
+
       return {
         'Employee Name': emp.fullName,
         'Email': emp.email,
@@ -392,31 +392,31 @@ export const exportEmployeeStatusReport = async (req, res, next) => {
         'Total Tickets': empStats.Total
       };
     });
-    
+
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
-    
+
     // Set column widths
     ws['!cols'] = [
       { wch: 25 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 20 },
       { wch: 15 }, { wch: 25 }, { wch: 40 }, { wch: 10 }, { wch: 20 },
       { wch: 12 }, { wch: 18 }, { wch: 16 }, { wch: 14 }, { wch: 14 }
     ];
-    
+
     // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Employee Status Report');
-    
+
     // Generate buffer
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    
+
     const siteSuffix = siteId && siteId !== 'all' ? `_site_${siteId}` : '_all_sites';
     const filename = `employee_status_report${siteSuffix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    
+
     // Set headers for download
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    
+
     // Send buffer
     res.send(buffer);
   } catch (error) {
@@ -431,14 +431,14 @@ export const exportEmployeeStatusReport = async (req, res, next) => {
 export const exportAssetStatusReport = async (req, res, next) => {
   try {
     const { siteId } = req.query;
-    
+
     const matchStage = {};
-    
+
     // If siteId is provided and not 'all', filter by site
     if (siteId && siteId !== 'all') {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
-    
+
     // Fetch assets with related data
     const assets = await Asset.find(matchStage)
       .populate('siteId', 'siteName siteCode city')
@@ -470,7 +470,7 @@ export const exportAssetStatusReport = async (req, res, next) => {
     // Transform data for Excel
     const data = assets.map(asset => {
       const rmaInfo = rmaMap[asset._id.toString()] || { rmaCount: 0, lastRmaDate: null };
-      
+
       return {
         'Asset Code': asset.assetCode,
         'Asset Type': asset.assetType,
@@ -493,11 +493,11 @@ export const exportAssetStatusReport = async (req, res, next) => {
         'Last Updated': asset.updatedAt ? new Date(asset.updatedAt).toLocaleDateString() : 'N/A'
       };
     });
-    
+
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
-    
+
     // Set column widths
     ws['!cols'] = [
       { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 25 },
@@ -505,20 +505,20 @@ export const exportAssetStatusReport = async (req, res, next) => {
       { wch: 18 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
       { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }
     ];
-    
+
     // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, 'Asset Status Report');
-    
+
     // Generate buffer
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    
+
     const siteSuffix = siteId && siteId !== 'all' ? `_site_${siteId}` : '_all_sites';
     const filename = `asset_status_report${siteSuffix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    
+
     // Set headers for download
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    
+
     // Send buffer
     res.send(buffer);
   } catch (error) {
@@ -533,15 +533,15 @@ export const exportAssetStatusReport = async (req, res, next) => {
 export const exportRMAReport = async (req, res, next) => {
   try {
     const { siteId, startDate, endDate } = req.query;
-    
+
     const dateQuery = buildDateQuery(startDate, endDate);
     const matchStage = { ...dateQuery };
-    
+
     // If siteId is provided and not 'all', filter by site
     if (siteId && siteId !== 'all') {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
-    
+
     // Fetch RMA requests with related data
     // Note: Using originalAssetId as per RMARequest schema
     const rmaRequests = await RMARequest.find(matchStage)
@@ -599,11 +599,11 @@ export const exportRMAReport = async (req, res, next) => {
         'Order ID': rma.vendorDetails?.orderId || 'N/A'
       };
     });
-    
+
     // Create workbook and worksheet
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
-    
+
     // Set column widths
     ws['!cols'] = [
       { wch: 12 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 15 },
@@ -613,20 +613,20 @@ export const exportRMAReport = async (req, res, next) => {
       { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 20 },
       { wch: 15 }
     ];
-    
+
     // Add worksheet to workbook
     XLSX.utils.book_append_sheet(wb, ws, 'RMA Report');
-    
+
     // Generate buffer
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    
+
     const siteSuffix = siteId && siteId !== 'all' ? `_site_${siteId}` : '_all_sites';
     const filename = `rma_report${siteSuffix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    
+
     // Set headers for download
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    
+
     // Send buffer
     res.send(buffer);
   } catch (error) {

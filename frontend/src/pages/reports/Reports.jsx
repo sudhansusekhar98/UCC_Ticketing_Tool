@@ -301,7 +301,7 @@ export default function Reports() {
 
             {/* Summary Cards */}
             <div className="stats-grid">
-                <div className="stat-card">
+                <div className="stat-card primary">
                     <div className="stat-icon bg-blue-100 text-blue-600">
                         <Activity size={24} />
                     </div>
@@ -311,9 +311,10 @@ export default function Reports() {
                             {ticketStats?.status?.reduce((acc, curr) => acc + curr.count, 0) || 0}
                         </p>
                     </div>
+                    <div className="stat-card-bg-blob"></div>
                 </div>
 
-                <div className="stat-card">
+                <div className="stat-card danger">
                     <div className="stat-icon bg-red-100 text-red-600">
                         <AlertCircle size={24} />
                     </div>
@@ -324,9 +325,10 @@ export default function Reports() {
                             {slaStats?.total ? ((slaStats.breached / slaStats.total) * 100).toFixed(1) : 0}% of total
                         </span>
                     </div>
+                    <div className="stat-card-bg-blob"></div>
                 </div>
 
-                <div className="stat-card">
+                <div className="stat-card success">
                     <div className="stat-icon bg-green-100 text-green-600">
                         <CheckCircle size={24} />
                     </div>
@@ -334,9 +336,10 @@ export default function Reports() {
                         <h3>SLA Target Met</h3>
                         <p className="stat-value">{slaStats?.met || 0}</p>
                     </div>
+                    <div className="stat-card-bg-blob"></div>
                 </div>
 
-                <div className="stat-card">
+                <div className="stat-card purple">
                     <div className="stat-icon bg-purple-100 text-purple-600">
                         <Package size={24} />
                     </div>
@@ -346,9 +349,10 @@ export default function Reports() {
                             {assetStats?.byType?.reduce((acc, curr) => acc + curr.count, 0) || 0}
                         </p>
                     </div>
+                    <div className="stat-card-bg-blob"></div>
                 </div>
 
-                <div className="stat-card">
+                <div className="stat-card orange">
                     <div className="stat-icon bg-orange-100 text-orange-600">
                         <RotateCcw size={24} />
                     </div>
@@ -356,9 +360,10 @@ export default function Reports() {
                         <h3>Total RMAs</h3>
                         <p className="stat-value">{rmaStats?.summary?.total || 0}</p>
                     </div>
+                    <div className="stat-card-bg-blob"></div>
                 </div>
 
-                <div className="stat-card">
+                <div className="stat-card cyan">
                     <div className="stat-icon bg-cyan-100 text-cyan-600">
                         <Monitor size={24} />
                     </div>
@@ -368,6 +373,7 @@ export default function Reports() {
                             {assetStats?.byStatus?.find(s => s._id === 'Operational')?.count || 0}
                         </p>
                     </div>
+                    <div className="stat-card-bg-blob"></div>
                 </div>
             </div>
 
