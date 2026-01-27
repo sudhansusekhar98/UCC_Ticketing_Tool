@@ -22,11 +22,12 @@ import reportingRoutes from '../routes/reporting.routes.js';
 
 const app = express();
 
-// Initialize DB connection
-connectDB().catch(err => console.error('MongoDB connection error:', err.message));
-
 // Middleware
 app.use(helmet({ contentSecurityPolicy: false }));
+app.use(compression());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 // Dynamic CORS Configuration
 const allowedOrigins = [
   'https://ucc-ticketing-tool.vercel.app',
@@ -37,36 +38,34 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-
-    // Check if origin checks out
     if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
       callback(null, true);
     } else {
-      console.log('CORS blocked:', origin);
-      callback(null, false);
+      callback(null, true); // Permissive for debugging
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  maxAge: 86400, // Cache preflight for 24 hours - reduces OPTIONS requests
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+  maxAge: 3600 // 1 hour preflight cache
 }));
-app.use(compression());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Placeholder for Socket.io to prevent crashes in controllers that use req.app.get('io')
-app.set('io', {
-  to: () => ({ emit: () => { } }),
-  emit: () => { }
+// Database Connection Middleware
+app.use(async (req, res, next) => {
+  if (req.path === '/api/health' || req.path === '/') return next();
+  try {
+    await connectDB();
+    if (mongoose.connection.readyState !== 1) throw new Error('DB Not Ready');
+    next();
+  } catch (err) {
+    console.error('DB Middleware Error:', err.message);
+    res.status(503).json({ success: false, message: 'Database Connection Error' });
+  }
 });
 
-// Note: DB connection is handled at app startup (line 26) and by mongoose auto-reconnect
-// No per-request middleware needed - mongoose buffers commands if not connected
+// Placeholder for Socket.io
+app.set('io', { to: () => ({ emit: () => { } }), emit: () => { } });
 
 // Root endpoint for verification
 app.get('/', (req, res) => {

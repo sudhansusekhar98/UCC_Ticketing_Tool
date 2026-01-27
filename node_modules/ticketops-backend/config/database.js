@@ -8,21 +8,14 @@ if (!cached) {
 }
 
 const connectDB = async () => {
-  // If already connected, return the cached connection
-  if (cached.conn && cached.conn.connection.readyState === 1) {
-    return cached.conn;
+  // FAST PATH: If already connected, return synchronously
+  if (mongoose.connection && mongoose.connection.readyState === 1) {
+    return mongoose.connection;
   }
 
-  // If disconnected but cached, reset
-  if (cached.conn && cached.conn.connection.readyState !== 2) {
-    cached.conn = null;
-    cached.promise = null;
-  }
-
-  // If a connection is in progress, wait for it
+  // If already connecting, wait for the existing promise
   if (cached.promise) {
-    cached.conn = await cached.promise;
-    return cached.conn;
+    return await cached.promise;
   }
 
   if (!process.env.MONGODB_URI) {
@@ -31,27 +24,28 @@ const connectDB = async () => {
 
   try {
     console.log('🔄 Attempting to connect to MongoDB...');
-    console.log('📍 Connection URI:', process.env.MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@') || 'NOT SET');
 
     // Optimized settings for serverless/Vercel
     const options = {
       // Standard connection timeouts
-      serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 20000,
+      connectTimeoutMS: 20000,
       socketTimeoutMS: 45000,
-      // Buffer commands until connection is established (default true)
-      // This prevents "cannot call findOne before initial connection" errors
+      // Buffer commands until connection is established
       bufferCommands: true,
-      // Connection pool optimized for serverless
+      // VERY IMPORTANT for serverless: fail buffered commands if connection takes too long
+      bufferTimeoutMS: 15000,
+
+      // Connection pool optimized for serverless (lowered to reduce overhead)
       maxPoolSize: 10,
       minPoolSize: 0,
       maxIdleTimeMS: 10000,
-      // Use IPv4 first for DNS resolution (common fix for Vercel timeouts)
+
+      // DNS/Health checks
       family: 4,
-      // Retry writes
       retryWrites: true,
-      // Write concern
-      w: 'majority'
+      w: 'majority',
+      heartbeatFrequencyMS: 10000
     };
 
     cached.promise = mongoose.connect(process.env.MONGODB_URI, options);

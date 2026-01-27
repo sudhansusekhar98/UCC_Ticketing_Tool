@@ -982,26 +982,34 @@ export const getAuditTrail = async (req, res, next) => {
 // @desc    Get dashboard stats - OPTIMIZED VERSION
 // @route   GET /api/tickets/dashboard/stats
 // @access  Private
+// Simple in-memory cache for dashboard stats
+const statsCache = new Map();
+const CACHE_TTL = 5000; // 5 seconds
+
 export const getDashboardStats = async (req, res, next) => {
   try {
     const user = req.user;
     const { siteId } = req.query;
+
+    // Create a cache key based on user and siteId
+    const cacheKey = `${user._id}_${siteId || 'all'}`;
+    const cachedData = statsCache.get(cacheKey);
+
+    if (cachedData && (Date.now() - cachedData.timestamp < CACHE_TTL)) {
+      return res.json({ success: true, data: cachedData.data, fromCache: true });
+    }
+
     let matchQuery = {};
 
-    // Site filtering from query params
+    // Site filtering
     if (siteId) {
-      // Validate access for non-admins
       if (user.role !== 'Admin') {
         const hasAccess = user.assignedSites?.some(s => s.toString() === siteId);
-        if (!hasAccess) {
-          return res.status(403).json({ success: false, message: 'Access denied to this site' });
-        }
+        if (!hasAccess) return res.status(403).json({ success: false, message: 'Access denied' });
       }
       matchQuery.siteId = new mongoose.Types.ObjectId(siteId);
     } else if (user.role !== 'Admin') {
-      // Existing role-based filtering: tickets from assigned sites OR created/assigned to me
       const assignedSiteIds = (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s));
-
       matchQuery.$or = [
         { assignedTo: user._id },
         { createdBy: user._id },
@@ -1009,7 +1017,6 @@ export const getDashboardStats = async (req, res, next) => {
       ];
     }
 
-    // Role-based filtering for assets
     let assetMatchQuery = {};
     if (siteId) {
       assetMatchQuery.siteId = new mongoose.Types.ObjectId(siteId);
@@ -1017,153 +1024,87 @@ export const getDashboardStats = async (req, res, next) => {
       assetMatchQuery.siteId = { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) };
     }
 
-    // Single aggregation with $facet for all stats - much faster than multiple queries
+    // Single aggregation pass
     const [stats] = await Ticket.aggregate([
       { $match: matchQuery },
       {
         $facet: {
-          // All status counts in one pass
-          statusCounts: [
-            { $group: { _id: '$status', count: { $sum: 1 } } }
-          ],
-          // Priority breakdown (non-closed/cancelled)
+          statusCounts: [{ $group: { _id: '$status', count: { $sum: 1 } } }],
           priorityBreakdown: [
             { $match: { status: { $nin: ['Closed', 'Cancelled'] } } },
             { $group: { _id: '$priority', count: { $sum: 1 } } }
           ],
-          // Category breakdown (non-closed/cancelled)
           categoryBreakdown: [
             { $match: { status: { $nin: ['Closed', 'Cancelled'] } } },
             { $group: { _id: '$category', count: { $sum: 1 } } }
           ],
-          // SLA breached count
-          slaBreached: [
-            { $match: { isSLARestoreBreached: true, status: { $nin: ['Closed', 'Cancelled'] } } },
-            { $count: 'count' }
-          ],
-          // SLA at risk count
-          slaAtRisk: [
+          slaStats: [
             {
-              $match: {
-                slaRestoreDue: { $lte: new Date(Date.now() + 30 * 60 * 1000) },
-                status: { $nin: ['Closed', 'Cancelled', 'Resolved'] }
+              $facet: {
+                breached: [{ $match: { isSLARestoreBreached: true, status: { $nin: ['Closed', 'Cancelled'] } } }, { $count: 'cnt' }],
+                atRisk: [{ $match: { slaRestoreDue: { $lte: new Date(Date.now() + 30 * 60 * 1000) }, status: { $nin: ['Closed', 'Cancelled', 'Resolved'] } } }, { $count: 'cnt' }],
+                resolvedToday: [{ $match: { resolvedOn: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } } }, { $count: 'cnt' }],
+                closedCompliant: [{ $match: { status: 'Closed', isSLARestoreBreached: false } }, { $count: 'cnt' }],
+                totalClosed: [{ $match: { status: 'Closed' } }, { $count: 'cnt' }]
               }
-            },
-            { $count: 'count' }
+            }
           ],
-          // Resolved today
-          resolvedToday: [
-            { $match: { resolvedOn: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } } },
-            { $count: 'count' }
-          ],
-          // SLA compliance counts
-          closedCompliant: [
-            { $match: { status: 'Closed', isSLARestoreBreached: false } },
-            { $count: 'count' }
-          ],
-          totalClosed: [
-            { $match: { status: 'Closed' } },
-            { $count: 'count' }
-          ],
-          // Total tickets
-          totalCount: [
-            { $count: 'count' }
-          ]
+          total: [{ $count: 'cnt' }]
         }
       }
     ]);
 
-    // Get asset counts in parallel (only 2 queries)
     const [totalAssets, offlineAssets] = await Promise.all([
       Asset.countDocuments(assetMatchQuery),
       Asset.countDocuments({ ...assetMatchQuery, status: 'Offline' })
     ]);
 
-    // Process status counts into an object
     const statusCounts = {};
-    (stats.statusCounts || []).forEach(item => {
-      statusCounts[item._id] = item.count;
-    });
+    (stats.statusCounts || []).forEach(item => { statusCounts[item._id] = item.count; });
 
-    // Extract values with defaults
-    const totalOpen = statusCounts['Open'] || 0;
-    const totalAssigned = statusCounts['Assigned'] || 0;
-    const totalAcknowledged = statusCounts['Acknowledged'] || 0;
-    const totalInProgress = statusCounts['InProgress'] || 0;
-    const totalResolved = statusCounts['Resolved'] || 0;
-    const totalClosed = statusCounts['Closed'] || 0;
-    const totalEscalated = statusCounts['Escalated'] || 0;
-    const totalTickets = stats.totalCount[0]?.count || 0;
-    const slaBreached = stats.slaBreached[0]?.count || 0;
-    const slaAtRisk = stats.slaAtRisk[0]?.count || 0;
-    const resolvedToday = stats.resolvedToday[0]?.count || 0;
-
-    // SLA compliance
-    const closedWithSLA = stats.closedCompliant[0]?.count || 0;
-    const totalClosedForSLA = stats.totalClosed[0]?.count || 0;
+    const closedWithSLA = stats.slaStats[0].closedCompliant[0]?.cnt || 0;
+    const totalClosedForSLA = stats.slaStats[0].totalClosed[0]?.cnt || 0;
     const slaCompliancePercent = totalClosedForSLA > 0
       ? Math.round((closedWithSLA / totalClosedForSLA) * 100)
       : 100;
 
-    // Format chart data
-    const ticketsByPriority = (stats.priorityBreakdown || []).map(item => ({
-      priority: item._id,
-      count: item.count
-    }));
+    const resultData = {
+      openTickets: statusCounts['Open'] || 0,
+      inProgressTickets: statusCounts['InProgress'] || 0,
+      escalatedTickets: statusCounts['Escalated'] || 0,
+      slaBreached: stats.slaStats[0].breached[0]?.cnt || 0,
+      slaAtRisk: stats.slaStats[0].atRisk[0]?.cnt || 0,
+      resolvedToday: stats.slaStats[0].resolvedToday[0]?.cnt || 0,
+      slaCompliancePercent,
+      totalTickets: stats.total[0]?.cnt || 0,
+      totalAssets,
+      offlineAssets,
+      // Charts
+      ticketsByPriority: (stats.priorityBreakdown || []).map(i => ({ priority: i._id, count: i.count })),
+      ticketsByStatus: (stats.statusCounts || []).map(i => ({ status: i._id, count: i.count })),
+      ticketsByCategory: (stats.categoryBreakdown || []).map(i => ({ category: i._id || 'Other', count: i.count })),
+      // Legacy compatibility
+      totalOpen: statusCounts['Open'] || 0,
+      totalAssigned: statusCounts['Assigned'] || 0, // Assuming 'Assigned' is a status, or needs to be derived
+      totalInProgress: statusCounts['InProgress'] || 0,
+      totalResolved: statusCounts['Resolved'] || 0,
+      totalClosed: statusCounts['Closed'] || 0,
+      totalEscalated: statusCounts['Escalated'] || 0,
+      totalActive: (statusCounts['Open'] || 0) + (statusCounts['Assigned'] || 0) + (statusCounts['Acknowledged'] || 0) + (statusCounts['InProgress'] || 0),
+      // Debug info
+      _debug: {
+        assetQuery: JSON.stringify(assetMatchQuery),
+        deployVersion: '2026-01-27-v2',
+        userRole: user.role,
+        hasIsActiveFilter: false
+      },
+      availableEngineers: 0, // Placeholder
+    };
 
-    const ticketsByStatus = (stats.statusCounts || []).map(item => ({
-      status: item._id,
-      count: item.count
-    }));
+    // Store in cache
+    statsCache.set(cacheKey, { data: resultData, timestamp: Date.now() });
 
-    const ticketsByCategory = (stats.categoryBreakdown || []).map(item => ({
-      category: item._id || 'Uncategorized',
-      count: item.count
-    }));
-
-    res.json({
-      success: true,
-      data: {
-        // Main stats
-        openTickets: totalOpen,
-        inProgressTickets: totalInProgress,
-        escalatedTickets: totalEscalated,
-        slaBreached,
-        slaAtRisk,
-        slaCompliancePercent,
-        totalTickets,
-        resolvedToday,
-
-        // Asset stats
-        totalAssets,
-        offlineAssets,
-
-        // Debug info (remove after verification)
-        _debug: {
-          assetQuery: JSON.stringify(assetMatchQuery),
-          deployVersion: '2026-01-27-v2',
-          userRole: user.role,
-          hasIsActiveFilter: false
-        },
-
-        // Available engineers
-        availableEngineers: 0,
-
-        // Charts data
-        ticketsByPriority,
-        ticketsByStatus,
-        ticketsByCategory,
-
-        // Legacy fields
-        totalOpen,
-        totalAssigned,
-        totalInProgress,
-        totalResolved,
-        totalClosed,
-        totalEscalated,
-        totalActive: totalOpen + totalAssigned + totalAcknowledged + totalInProgress
-      }
-    });
+    res.json({ success: true, data: resultData });
   } catch (error) {
     next(error);
   }
