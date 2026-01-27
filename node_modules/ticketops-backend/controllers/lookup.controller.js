@@ -9,12 +9,12 @@ export const getAllLookups = async (req, res, next) => {
     const [assetTypes] = await Promise.all([
       Asset.distinct('assetType')
     ]);
-    
+
     // Format asset types consistently
-    const formattedAssetTypes = assetTypes.length > 0 
+    const formattedAssetTypes = assetTypes.length > 0
       ? assetTypes.filter(type => type).map(type => ({ value: type, label: type }))
       : getDefaultAssetTypes();
-    
+
     res.json({
       success: true,
       data: {
@@ -80,12 +80,12 @@ export const getAssetTypesEndpoint = async (req, res, next) => {
   try {
     // Get unique asset types from database
     const assetTypes = await Asset.distinct('assetType');
-    
+
     // Always return in consistent { value, label } format
-    const formattedTypes = assetTypes.length > 0 
+    const formattedTypes = assetTypes.length > 0
       ? assetTypes.filter(type => type).map(type => ({ value: type, label: type }))
       : getDefaultAssetTypes();
-    
+
     res.json({
       success: true,
       data: formattedTypes
@@ -176,7 +176,8 @@ function getAssetStatuses() {
     { value: 'Operational', label: 'Operational', color: '#27ae60' },
     { value: 'Degraded', label: 'Degraded', color: '#f39c12' },
     { value: 'Offline', label: 'Offline', color: '#e74c3c' },
-    { value: 'Maintenance', label: 'Maintenance', color: '#9b59b6' }
+    { value: 'Maintenance', label: 'Maintenance', color: '#9b59b6' },
+    { value: 'Not Installed', label: 'Not Installed', color: '#7f8c8d' }
   ];
 }
 
@@ -197,15 +198,15 @@ function getRoles() {
 export const getDeviceTypesEndpoint = async (req, res, next) => {
   try {
     const { assetType } = req.query;
-    
+
     let query = { isActive: true };
     if (assetType) {
       query.assetType = assetType;
     }
-    
+
     // Get distinct device types from Assets collection
     const deviceTypes = await Asset.distinct('deviceType', query);
-    
+
     // Format for dropdown - filter out null/empty values
     const formatted = deviceTypes
       .filter(dt => dt && dt.trim() !== '')
@@ -214,7 +215,7 @@ export const getDeviceTypesEndpoint = async (req, res, next) => {
         value: dt,
         label: dt
       }));
-    
+
     res.json({
       success: true,
       data: formatted
@@ -235,7 +236,7 @@ export const getAllDeviceTypesEndpoint = async (req, res, next) => {
       { $group: { _id: { assetType: '$assetType', deviceType: '$deviceType' } } },
       { $sort: { '_id.assetType': 1, '_id.deviceType': 1 } }
     ]);
-    
+
     // Group by asset type
     const grouped = results.reduce((acc, item) => {
       const { assetType, deviceType } = item._id;
@@ -248,7 +249,7 @@ export const getAllDeviceTypesEndpoint = async (req, res, next) => {
       });
       return acc;
     }, {});
-    
+
     res.json({
       success: true,
       data: grouped
@@ -264,20 +265,20 @@ export const getAllDeviceTypesEndpoint = async (req, res, next) => {
 export const createDeviceTypeEndpoint = async (req, res, next) => {
   try {
     const { assetType, deviceType, description } = req.body;
-    
+
     if (!assetType || !deviceType) {
       return res.status(400).json({
         success: false,
         message: 'Asset Type and Device Type are required'
       });
     }
-    
+
     const newDeviceType = await DeviceType.create({
       assetType,
       deviceType,
       description
     });
-    
+
     res.status(201).json({
       success: true,
       data: newDeviceType,
@@ -300,14 +301,14 @@ export const createDeviceTypeEndpoint = async (req, res, next) => {
 export const deleteDeviceTypeEndpoint = async (req, res, next) => {
   try {
     const deviceType = await DeviceType.findByIdAndDelete(req.params.id);
-    
+
     if (!deviceType) {
       return res.status(404).json({
         success: false,
         message: 'Device Type not found'
       });
     }
-    
+
     res.json({
       success: true,
       message: 'Device Type deleted successfully'
@@ -323,10 +324,10 @@ export const deleteDeviceTypeEndpoint = async (req, res, next) => {
 export const seedDeviceTypesEndpoint = async (req, res, next) => {
   try {
     const defaultDeviceTypes = getDefaultDeviceTypes();
-    
+
     let created = 0;
     let skipped = 0;
-    
+
     for (const dt of defaultDeviceTypes) {
       try {
         await DeviceType.create(dt);
@@ -337,7 +338,7 @@ export const seedDeviceTypesEndpoint = async (req, res, next) => {
         }
       }
     }
-    
+
     res.json({
       success: true,
       message: `Seeded device types. Created: ${created}, Skipped (already exist): ${skipped}`
@@ -360,29 +361,29 @@ function getDefaultDeviceTypes() {
     { assetType: 'Camera', deviceType: 'Panoramic Camera' },
     { assetType: 'Camera', deviceType: 'ANPR Camera' },
     { assetType: 'Camera', deviceType: 'Fish Eye Camera' },
-    
+
     // NVR types
     { assetType: 'NVR', deviceType: 'Standard NVR' },
     { assetType: 'NVR', deviceType: 'Enterprise NVR' },
     { assetType: 'NVR', deviceType: 'Edge NVR' },
-    
+
     // Switch types
     { assetType: 'Switch', deviceType: 'PoE Switch' },
     { assetType: 'Switch', deviceType: 'Managed Switch' },
     { assetType: 'Switch', deviceType: 'Unmanaged Switch' },
     { assetType: 'Switch', deviceType: 'Layer 3 Switch' },
-    
+
     // Router types
     { assetType: 'Router', deviceType: 'Edge Router' },
     { assetType: 'Router', deviceType: 'Core Router' },
     { assetType: 'Router', deviceType: 'Wireless Router' },
-    
+
     // Server types
     { assetType: 'Server', deviceType: 'VMS Server' },
     { assetType: 'Server', deviceType: 'NMS Server' },
     { assetType: 'Server', deviceType: 'Storage Server' },
     { assetType: 'Server', deviceType: 'Application Server' },
-    
+
     // Other types
     { assetType: 'Other', deviceType: 'UPS' },
     { assetType: 'Other', deviceType: 'Media Converter' },

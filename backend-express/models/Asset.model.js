@@ -47,7 +47,7 @@ const assetSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Operational', 'Degraded', 'Offline', 'Maintenance'],
+    enum: ['Operational', 'Degraded', 'Offline', 'Maintenance', 'Not Installed'],
     default: 'Operational'
   },
   installationDate: {

@@ -985,19 +985,36 @@ export const getAuditTrail = async (req, res, next) => {
 export const getDashboardStats = async (req, res, next) => {
   try {
     const user = req.user;
+    const { siteId } = req.query;
     let matchQuery = {};
 
-    // Role-based filtering
-    if (user.role !== 'Admin') {
-      const siteAssetIds = await Asset.find({
-        siteId: { $in: user.assignedSites || [] }
-      }).distinct('_id').lean();
+    // Site filtering from query params
+    if (siteId) {
+      // Validate access for non-admins
+      if (user.role !== 'Admin') {
+        const hasAccess = user.assignedSites?.some(s => s.toString() === siteId);
+        if (!hasAccess) {
+          return res.status(403).json({ success: false, message: 'Access denied to this site' });
+        }
+      }
+      matchQuery.siteId = new mongoose.Types.ObjectId(siteId);
+    } else if (user.role !== 'Admin') {
+      // Existing role-based filtering: tickets from assigned sites OR created/assigned to me
+      const assignedSiteIds = (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s));
 
       matchQuery.$or = [
         { assignedTo: user._id },
         { createdBy: user._id },
-        { assetId: { $in: siteAssetIds } }
+        { siteId: { $in: assignedSiteIds } }
       ];
+    }
+
+    // Role-based filtering for assets
+    let assetMatchQuery = {};
+    if (siteId) {
+      assetMatchQuery.siteId = new mongoose.Types.ObjectId(siteId);
+    } else if (user.role !== 'Admin') {
+      assetMatchQuery.siteId = { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) };
     }
 
     // Single aggregation with $facet for all stats - much faster than multiple queries
@@ -1057,9 +1074,6 @@ export const getDashboardStats = async (req, res, next) => {
     ]);
 
     // Get asset counts in parallel (only 2 queries)
-    const assetMatchQuery = user.role === 'Admin'
-      ? { isActive: true }
-      : { isActive: true, siteId: { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) } };
 
     const [totalAssets, offlineAssets] = await Promise.all([
       mongoose.connection.collection('assets').countDocuments(assetMatchQuery),
