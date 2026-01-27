@@ -46,7 +46,7 @@ export default function AssetsList() {
     const [siteFilter, setSiteFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
-    const [activeFilter, setActiveFilter] = useState('active'); // 'all', 'active', 'inactive'
+    const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'active', 'inactive'
     const [sites, setSites] = useState([]);
     const [locations, setLocations] = useState([]);
     const [locationFilter, setLocationFilter] = useState('');
@@ -447,7 +447,7 @@ export default function AssetsList() {
                     >
                         <option value="all">All Assets</option>
                         <option value="active">Active Only</option>
-                        <option value="inactive">InActive Only</option>
+                        <option value="inactive">Inactive Only</option>
                     </select>
                     <button className="btn btn-secondary btn-icon" onClick={fetchAssets}>
                         <RefreshCw size={18} />

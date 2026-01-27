@@ -22,9 +22,13 @@ import {
     FileText,
     Settings,
     Bell,
-    Inbox
+    Inbox,
+    Package,
+    MapPin,
+    Search,
+    ChevronDown
 } from 'lucide-react';
-import { ticketsApi, usersApi, assetsApi } from '../../services/api';
+import { ticketsApi, usersApi, assetsApi, sitesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, AreaChart, Area, CartesianGrid } from 'recharts';
 import toast from 'react-hot-toast';
@@ -152,6 +156,11 @@ export default function Dashboard() {
     const [stats, setStats] = useState(null);
     const [engineers, setEngineers] = useState([]);
     const [assets, setAssets] = useState([]);
+    const [selectedSite, setSelectedSite] = useState('');
+    const [sites, setSites] = useState([]);
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [siteSearchTerm, setSiteSearchTerm] = useState('');
+    const dropdownRef = useRef(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const { user, hasRole } = useAuthStore();
@@ -171,7 +180,8 @@ export default function Dashboard() {
     const fetchStats = async (showToast = false) => {
         try {
             if (showToast) setRefreshing(true);
-            const response = await ticketsApi.getDashboardStats();
+            const params = selectedSite ? { siteId: selectedSite } : {};
+            const response = await ticketsApi.getDashboardStats(params);
             setStats(response.data.data || response.data);
             if (showToast) toast.success('Dashboard refreshed');
         } catch (error) {
@@ -181,6 +191,25 @@ export default function Dashboard() {
         } finally {
             setLoading(false);
             setRefreshing(false);
+        }
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsDropdownOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const fetchSites = async () => {
+        try {
+            const response = await sitesApi.getDropdown();
+            setSites(response.data.data || response.data || []);
+        } catch (error) {
+            console.error('Failed to fetch sites:', error);
         }
     };
 
@@ -199,14 +228,16 @@ export default function Dashboard() {
 
     const fetchAssets = async () => {
         try {
-            const response = await assetsApi.getAll({ limit: 50 });
+            const params = { limit: 50 };
+            if (selectedSite) params.siteId = selectedSite;
+            const response = await assetsApi.getAll(params);
             let assetData = response.data.data || response.data.items || response.data || [];
             assetData = assetData.map(a => ({
                 ...a,
                 assetId: a._id || a.assetId,
                 assetName: a.assetCode || a.assetName,
                 assetTypeName: a.assetType,
-                status: a.status === 'Operational' ? 'Online' : 'Offline'
+                status: a.status === 'Operational' ? 'Online' : (a.status === 'Not Installed' ? 'Not Installed' : 'Offline')
             }));
             setAssets(assetData);
         } catch (error) {
@@ -215,12 +246,16 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
-        fetchStats();
+        fetchSites();
         fetchEngineers();
+    }, []);
+
+    useEffect(() => {
+        fetchStats();
         fetchAssets();
         const interval = setInterval(() => fetchStats(), 30000); // 30s auto-refresh
         return () => clearInterval(interval);
-    }, []);
+    }, [selectedSite]);
 
     if (loading) return <DashboardSkeleton />;
 
@@ -239,15 +274,88 @@ export default function Dashboard() {
                         <p className="page-subtitle">Real-time insights into your workspace activity</p>
                     </div>
                 </div>
-                <button
-                    className={`btn btn-secondary dashboard-refresh-btn ${refreshing ? 'refreshing' : ''}`}
-                    onClick={() => fetchStats(true)}
-                    disabled={refreshing}
-                    title="Refresh Data"
-                >
-                    <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
-                    <span className="btn-text">Refresh</span>
-                </button>
+                <div className="header-actions">
+                    <div className="custom-dropdown site-dropdown" ref={dropdownRef}>
+                        <div
+                            className={`dropdown-trigger ${isDropdownOpen ? 'active' : ''}`}
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                        >
+                            <MapPin size={16} className="trigger-icon" />
+                            <div className="trigger-text">
+                                {selectedSite
+                                    ? sites.find(s => s._id === selectedSite)?.siteName || 'Unknown Site'
+                                    : 'All Assigned Sites'}
+                            </div>
+                            <ChevronDown size={16} className={`chevron-icon ${isDropdownOpen ? 'rotate' : ''}`} />
+                        </div>
+
+                        {isDropdownOpen && (
+                            <div className="dropdown-menu animate-slide-in">
+                                <div className="dropdown-search">
+                                    <Search size={14} className="search-icon" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search sites..."
+                                        value={siteSearchTerm}
+                                        onChange={(e) => setSiteSearchTerm(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="dropdown-options">
+                                    <div
+                                        className={`dropdown-option ${!selectedSite ? 'selected' : ''}`}
+                                        onClick={() => {
+                                            setSelectedSite('');
+                                            setIsDropdownOpen(false);
+                                            setSiteSearchTerm('');
+                                        }}
+                                    >
+                                        <div className="option-info">
+                                            <span className="option-label">All Assigned Sites</span>
+                                            <span className="option-subtext">Global overview</span>
+                                        </div>
+                                        {!selectedSite && <CheckCircle size={14} className="check-icon" />}
+                                    </div>
+                                    <div className="dropdown-divider"></div>
+                                    {sites
+                                        .filter(s => s.siteName.toLowerCase().includes(siteSearchTerm.toLowerCase()) ||
+                                            s.siteUniqueID.toLowerCase().includes(siteSearchTerm.toLowerCase()))
+                                        .map(site => (
+                                            <div
+                                                key={site._id}
+                                                className={`dropdown-option ${selectedSite === site._id ? 'selected' : ''}`}
+                                                onClick={() => {
+                                                    setSelectedSite(site._id);
+                                                    setIsDropdownOpen(false);
+                                                    setSiteSearchTerm('');
+                                                }}
+                                            >
+                                                <div className="option-info">
+                                                    <span className="option-label">{site.siteName}</span>
+                                                    <span className="option-subtext">{site.siteUniqueID}</span>
+                                                </div>
+                                                {selectedSite === site._id && <CheckCircle size={14} className="check-icon" />}
+                                            </div>
+                                        ))}
+                                    {sites.filter(s => s.siteName.toLowerCase().includes(siteSearchTerm.toLowerCase()) ||
+                                        s.siteUniqueID.toLowerCase().includes(siteSearchTerm.toLowerCase())).length === 0 && (
+                                            <div className="dropdown-no-results">No sites found</div>
+                                        )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <button
+                        className={`btn btn-secondary dashboard-refresh-btn ${refreshing ? 'refreshing' : ''}`}
+                        onClick={() => fetchStats(true)}
+                        disabled={refreshing}
+                        title="Refresh Data"
+                    >
+                        <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+                        <span className="btn-text">Refresh</span>
+                    </button>
+                </div>
             </div>
 
             {/* Stats Cards */}
@@ -428,14 +536,14 @@ export default function Dashboard() {
                         <div className="assets-list">
                             {assets.slice(0, 5).map((asset, index) => (
                                 <div key={asset.assetId} className="asset-item" style={{ animationDelay: `${index * 50}ms` }}>
-                                    <div className={`asset-status-icon ${asset.status === 'Online' ? 'online' : 'offline'}`}>
-                                        {asset.status === 'Online' ? <Wifi size={12} /> : <WifiOff size={12} />}
+                                    <div className={`asset-status-icon ${asset.status === 'Online' ? 'online' : (asset.status === 'Not Installed' ? 'not-installed' : 'offline')}`}>
+                                        {asset.status === 'Online' ? <Wifi size={12} /> : (asset.status === 'Not Installed' ? <Package size={12} /> : <WifiOff size={12} />)}
                                     </div>
                                     <div className="asset-info">
                                         <span className="asset-name">{asset.assetName}</span>
                                         <span className="asset-type">{asset.assetTypeName || asset.assetType}</span>
                                     </div>
-                                    <span className={`asset-status-badge ${asset.status.toLowerCase()}`}>{asset.status}</span>
+                                    <span className={`asset-status-badge ${asset.status.replace(/\s+/g, '-').toLowerCase()}`}>{asset.status}</span>
                                 </div>
                             ))}
                             {(stats?.totalAssets || assets.length) > 5 && (

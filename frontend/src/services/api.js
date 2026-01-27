@@ -138,7 +138,7 @@ export const ticketsApi = {
     close: (id, data) => api.post(`/tickets/${id}/close`, data),
     reopen: (id, reason) => api.post(`/tickets/${id}/reopen`, { reason }),
     getAuditTrail: (id) => api.get(`/tickets/${id}/audit`),
-    getDashboardStats: () => api.get('/tickets/dashboard/stats'),
+    getDashboardStats: (params) => api.get('/tickets/dashboard/stats', { params }),
 };
 
 // Lookups API
