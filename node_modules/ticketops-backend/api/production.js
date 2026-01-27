@@ -48,14 +48,32 @@ app.use(cors({
 
 // Database Connection Middleware
 app.use(async (req, res, next) => {
+  // Allow health check and root to skip DB check if needed
   if (req.path === '/api/health' || req.path === '/') return next();
+
   try {
+    // connectDB already handles caching and waiting for active promises
     await connectDB();
-    if (mongoose.connection.readyState !== 1) throw new Error('DB Not Ready');
+
+    // Safety check - we want readyState 1 (connected) or 2 (connecting)
+    // Actually, Mongoose will buffer if in state 2, so state 1 or 2 is acceptable
+    if (mongoose.connection.readyState === 0 || mongoose.connection.readyState === 3) {
+      throw new Error(`Database connection is ${mongoose.connection.readyState === 0 ? 'disconnected' : 'disconnecting'}`);
+    }
+
     next();
   } catch (err) {
-    console.error('DB Middleware Error:', err.message);
-    res.status(503).json({ success: false, message: 'Database Connection Error' });
+    console.error('❌ Database Middleware Error:', err.message);
+    res.status(503).json({
+      success: false,
+      message: 'Database Connection Error',
+      error: err.message,
+      debug: {
+        readyState: mongoose.connection.readyState,
+        hasUri: !!process.env.MONGODB_URI,
+        env: process.env.NODE_ENV
+      }
+    });
   }
 });
 
