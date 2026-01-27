@@ -1138,6 +1138,14 @@ export const getDashboardStats = async (req, res, next) => {
         totalAssets,
         offlineAssets,
 
+        // Debug info (remove after verification)
+        _debug: {
+          assetQuery: JSON.stringify(assetMatchQuery),
+          deployVersion: '2026-01-27-v2',
+          userRole: user.role,
+          hasIsActiveFilter: false
+        },
+
         // Available engineers
         availableEngineers: 0,
 
