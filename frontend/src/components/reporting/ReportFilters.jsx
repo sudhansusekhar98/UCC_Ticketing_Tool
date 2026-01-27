@@ -69,10 +69,11 @@ const ReportFilters = ({ filters, onFilterChange }) => {
                     </div>
 
                     <div className="filter-group">
-                        <label>SITE</label>
+                        <label htmlFor="site-filter">SITE</label>
                         <div className="site-input-wrapper">
                             <span className="label-text">Select Site</span>
                             <select
+                                id="site-filter"
                                 name="siteId"
                                 value={filters.siteId || ''}
                                 onChange={handleChange}
@@ -85,8 +86,7 @@ const ReportFilters = ({ filters, onFilterChange }) => {
                                     </option>
                                 ))}
                             </select>
-                        </div>
-                    </div>
+                        </div>                    </div>
                 </div>
             )}
         </div>
