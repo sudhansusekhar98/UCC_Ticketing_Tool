@@ -358,3 +358,35 @@ export const getNotificationLogs = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get single notification
+// @route   GET /api/notifications/:id
+// @access  Private
+export const getNotificationById = async (req, res, next) => {
+  try {
+    const notification = await Notification.findById(req.params.id)
+      .populate('createdBy', 'fullName');
+
+    if (!notification) {
+      return res.status(404).json({
+        success: false,
+        message: 'Notification not found'
+      });
+    }
+
+    // Only allow user to view their own notifications or broadcast notifications
+    if (notification.userId && notification.userId.toString() !== req.user._id.toString() && !notification.isBroadcast) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to view this notification'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: notification
+    });
+  } catch (error) {
+    next(error);
+  }
+};

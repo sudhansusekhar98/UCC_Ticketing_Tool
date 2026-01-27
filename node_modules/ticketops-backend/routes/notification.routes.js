@@ -6,7 +6,8 @@ import {
   markAllAsRead,
   createNotification,
   deleteNotification,
-  getNotificationLogs
+  getNotificationLogs,
+  getNotificationById
 } from '../controllers/notification.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
@@ -21,6 +22,12 @@ router.get('/', getNotifications);
 // Get unread count
 router.get('/unread-count', getUnreadCount);
 
+// Get notification logs (Admin only)
+router.get('/logs', authorize('Admin'), getNotificationLogs);
+
+// Get single notification
+router.get('/:id', getNotificationById);
+
 // Mark all as read
 router.put('/read-all', markAllAsRead);
 
@@ -32,8 +39,5 @@ router.post('/', authorize('Admin'), createNotification);
 
 // Delete notification
 router.delete('/:id', deleteNotification);
-
-// Get notification logs (Admin only)
-router.get('/logs', authorize('Admin'), getNotificationLogs);
 
 export default router;

@@ -196,6 +196,7 @@ export const userRightsApi = {
 // Notifications API
 export const notificationsApi = {
     getAll: (params) => api.get('/notifications', { params }),
+    getById: (id) => api.get(`/notifications/${id}`),
     getUnreadCount: () => api.get('/notifications/unread-count'),
     markAsRead: (id) => api.put(`/notifications/${id}/read`),
     markAllAsRead: () => api.put('/notifications/read-all'),

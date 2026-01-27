@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { reportingApi, sitesApi } from '../../services/api';
 import ReportFilters from '../../components/reporting/ReportFilters';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
 } from 'recharts';
 import { FileDown, Activity, AlertCircle, CheckCircle, Package, RefreshCw, RotateCcw, Monitor, Users, HardDrive, FileText, ChevronDown, Download, Building2 } from 'lucide-react';
 import './Reports.css';
 import toast from 'react-hot-toast';
-    
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7c43'];
 const RMA_COLORS = {
     'Requested': '#f59e0b',
@@ -50,12 +50,12 @@ export default function Reports() {
         endDate: '',
         siteId: ''
     });
-    
+
     const [ticketStats, setTicketStats] = useState(null);
     const [slaStats, setSlaStats] = useState(null);
     const [assetStats, setAssetStats] = useState(null);
     const [rmaStats, setRmaStats] = useState(null);
-    
+
     // Export modal state
     const [showExportPanel, setShowExportPanel] = useState(false);
     const [selectedReportType, setSelectedReportType] = useState('tickets');
@@ -79,7 +79,7 @@ export default function Reports() {
 
     const fetchData = async () => {
         setLoading(true);
-        
+
         try {
             // Use allSettled to allow partial data loading
             const results = await Promise.allSettled([
@@ -137,7 +137,7 @@ export default function Reports() {
         try {
             let response;
             let filename;
-            const exportParams = { 
+            const exportParams = {
                 siteId: exportSiteId,
                 startDate: filters.startDate,
                 endDate: filters.endDate
@@ -162,7 +162,7 @@ export default function Reports() {
                     filename = `tickets_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
                     break;
             }
-            
+
             // Create download link
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
@@ -172,7 +172,7 @@ export default function Reports() {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-            
+
             toast.success('Report exported successfully!');
             setShowExportPanel(false);
         } catch (error) {
@@ -192,8 +192,8 @@ export default function Reports() {
     return (
         <div className="reports-page animate-fade-in">
             <div className="page-header">
-                <div>
-                    <h1 className="page-title">Reports & Analytics &nbsp;</h1>
+                <div className="header-titles">
+                    <h1 className="page-title">Reports & Analytics</h1>
                     <p className="page-subtitle">Overview of system performance and metrics</p>
                 </div>
                 <div className="flex gap-3">
@@ -201,8 +201,8 @@ export default function Reports() {
                         <RefreshCw size={18} />
                         Refresh
                     </button>
-                    <button 
-                        className="btn btn-primary flex items-center gap-2" 
+                    <button
+                        className="btn btn-primary flex items-center gap-2"
                         onClick={() => setShowExportPanel(!showExportPanel)}
                     >
                         <FileDown size={18} />
@@ -219,13 +219,13 @@ export default function Reports() {
                         <h3><Download size={20} /> Export Reports</h3>
                         <p>Select a report type and choose filtering options to generate your export</p>
                     </div>
-                    
+
                     <div className="export-panel-content">
                         <div className="export-report-types">
                             {REPORT_TYPES.map((report) => {
                                 const IconComponent = report.icon;
                                 return (
-                                    <div 
+                                    <div
                                         key={report.id}
                                         className={`export-report-card ${selectedReportType === report.id ? 'selected' : ''}`}
                                         onClick={() => setSelectedReportType(report.id)}
@@ -253,8 +253,8 @@ export default function Reports() {
                                     <Building2 size={16} />
                                     Filter by Site
                                 </label>
-                                <select 
-                                    value={exportSiteId} 
+                                <select
+                                    value={exportSiteId}
                                     onChange={(e) => setExportSiteId(e.target.value)}
                                     className="export-select"
                                 >
@@ -269,14 +269,14 @@ export default function Reports() {
                         </div>
 
                         <div className="export-actions">
-                            <button 
-                                className="btn btn-outline" 
+                            <button
+                                className="btn btn-outline"
                                 onClick={() => setShowExportPanel(false)}
                             >
                                 Cancel
                             </button>
-                            <button 
-                                className="btn btn-primary export-btn" 
+                            <button
+                                className="btn btn-primary export-btn"
                                 onClick={handleExport}
                                 disabled={exporting}
                             >
@@ -335,7 +335,7 @@ export default function Reports() {
                         <p className="stat-value">{slaStats?.met || 0}</p>
                     </div>
                 </div>
-                 
+
                 <div className="stat-card">
                     <div className="stat-icon bg-purple-100 text-purple-600">
                         <Package size={24} />
@@ -343,7 +343,7 @@ export default function Reports() {
                     <div className="stat-info">
                         <h3>Total Assets</h3>
                         <p className="stat-value">
-                           {assetStats?.byType?.reduce((acc, curr) => acc + curr.count, 0) || 0}
+                            {assetStats?.byType?.reduce((acc, curr) => acc + curr.count, 0) || 0}
                         </p>
                     </div>
                 </div>
@@ -365,7 +365,7 @@ export default function Reports() {
                     <div className="stat-info">
                         <h3>Assets Operational</h3>
                         <p className="stat-value">
-                           {assetStats?.byStatus?.find(s => s._id === 'Operational')?.count || 0}
+                            {assetStats?.byStatus?.find(s => s._id === 'Operational')?.count || 0}
                         </p>
                     </div>
                 </div>
@@ -381,7 +381,7 @@ export default function Reports() {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                 <XAxis dataKey="_id" axisLine={false} tickLine={false} />
                                 <YAxis axisLine={false} tickLine={false} />
-                                <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(59, 130, 246, 0.1)'}} />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }} />
                                 <Bar dataKey="count" fill="#3b82f6" name="Tickets" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
@@ -424,7 +424,7 @@ export default function Reports() {
                                 <CartesianGrid strokeDasharray="3 3" horizontal={true} stroke="#e2e8f0" />
                                 <XAxis type="number" axisLine={false} tickLine={false} />
                                 <YAxis dataKey="_id" type="category" width={80} axisLine={false} tickLine={false} />
-                                <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(245, 158, 11, 0.1)'}} />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(245, 158, 11, 0.1)' }} />
                                 <Bar dataKey="count" fill="#f59e0b" name="Tickets" radius={[0, 4, 4, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
@@ -503,7 +503,7 @@ export default function Reports() {
                                 <CartesianGrid strokeDasharray="3 3" horizontal={true} stroke="#e2e8f0" />
                                 <XAxis type="number" axisLine={false} tickLine={false} />
                                 <YAxis dataKey="_id" type="category" width={100} axisLine={false} tickLine={false} />
-                                <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(139, 92, 246, 0.1)'}} />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }} />
                                 <Bar dataKey="count" fill="#8b5cf6" name="Assets" radius={[0, 4, 4, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
@@ -519,7 +519,7 @@ export default function Reports() {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                                 <XAxis dataKey="_id" axisLine={false} tickLine={false} />
                                 <YAxis axisLine={false} tickLine={false} />
-                                <Tooltip content={<CustomTooltip />} cursor={{fill: 'rgba(249, 115, 22, 0.1)'}} />
+                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(249, 115, 22, 0.1)' }} />
                                 <Bar dataKey="count" name="RMAs" radius={[4, 4, 0, 0]}>
                                     {rmaStats?.byStatus?.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={RMA_COLORS[entry._id] || COLORS[index % COLORS.length]} />
@@ -540,18 +540,18 @@ export default function Reports() {
                                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
                                 <YAxis axisLine={false} tickLine={false} />
                                 <Tooltip content={<CustomTooltip />} />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="count" 
-                                    stroke="#f97316" 
-                                    fill="url(#rmaGradient)" 
+                                <Area
+                                    type="monotone"
+                                    dataKey="count"
+                                    stroke="#f97316"
+                                    fill="url(#rmaGradient)"
                                     name="RMAs"
                                     strokeWidth={2}
                                 />
                                 <defs>
                                     <linearGradient id="rmaGradient" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
                                     </linearGradient>
                                 </defs>
                             </AreaChart>

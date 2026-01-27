@@ -53,6 +53,7 @@ export default function NotificationsManagement() {
     const [editingNotification, setEditingNotification] = useState(null);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('notifications'); // notifications | logs
+    const [expandedIds, setExpandedIds] = useState(new Set());
 
     // Form state
     const [formData, setFormData] = useState({
@@ -141,6 +142,18 @@ export default function NotificationsManagement() {
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
+    };
+
+    const toggleExpand = (id) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
     };
 
     const handleSubmit = async (e) => {
@@ -302,22 +315,39 @@ export default function NotificationsManagement() {
                                 </div>
                                 {filteredNotifications.map(notification => (
                                     <div key={notification._id} className="table-row">
-                                        <div className="col-type">
+                                        <div className="col-type" data-label="Type">
                                             <div className="type-badge">
                                                 {getTypeIcon(notification.type)}
                                                 <span>{notification.type}</span>
                                             </div>
                                         </div>
-                                        <div className="col-title">
+                                        <div className="col-title" data-label="Content">
                                             <div className="notification-title">{notification.title}</div>
-                                            <div className="notification-message">{notification.message}</div>
+                                            <div className="notification-message">
+                                                {expandedIds.has(notification._id)
+                                                    ? notification.message
+                                                    : (notification.message?.length > 100
+                                                        ? `${notification.message.substring(0, 100)}...`
+                                                        : notification.message)}
+                                                {notification.message?.length > 100 && (
+                                                    <button
+                                                        className="read-more-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleExpand(notification._id);
+                                                        }}
+                                                    >
+                                                        {expandedIds.has(notification._id) ? 'Show Less' : 'Read More'}
+                                                    </button>
+                                                )}
+                                            </div>
                                             {notification.link && (
                                                 <div className="notification-link">
                                                     🔗 {notification.link}
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="col-target">
+                                        <div className="col-target" data-label="Target">
                                             {notification.isBroadcast ? (
                                                 <span className="target-badge broadcast">
                                                     <Users size={14} />
@@ -330,13 +360,13 @@ export default function NotificationsManagement() {
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="col-date">
+                                        <div className="col-date" data-label="Date">
                                             {format(new Date(notification.createdAt), 'MMM dd, yyyy')}
                                             <div className="date-time">
                                                 {format(new Date(notification.createdAt), 'HH:mm')}
                                             </div>
                                         </div>
-                                        <div className="col-status">
+                                        <div className="col-status" data-label="Status">
                                             {notification.expiresAt && new Date(notification.expiresAt) < new Date() ? (
                                                 <span className="status-badge expired">Expired</span>
                                             ) : (

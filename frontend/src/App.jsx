@@ -28,6 +28,7 @@ import Settings from './pages/settings/Settings';
 import Profile from './pages/profile/Profile';
 import NotificationsManagement from './pages/notifications/NotificationsManagement';
 import NotificationsList from './pages/notifications/NotificationsList';
+import NotificationRead from './pages/notifications/NotificationRead';
 import NotificationLogs from './pages/notifications/NotificationLogs';
 import Help from './pages/help/Help';
 
@@ -338,6 +339,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <NotificationsList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications/:id"
+            element={
+              <ProtectedRoute>
+                <NotificationRead />
               </ProtectedRoute>
             }
           />

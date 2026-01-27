@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-    HelpCircle, 
-    Book, 
-    LayoutDashboard, 
-    Ticket, 
-    Monitor, 
-    MapPin, 
-    Users, 
-    BarChart3, 
-    Settings, 
-    Bell, 
-    RotateCcw, 
-    User, 
+import {
+    HelpCircle,
+    Book,
+    LayoutDashboard,
+    Ticket,
+    Monitor,
+    MapPin,
+    Users,
+    BarChart3,
+    Settings,
+    Bell,
+    RotateCcw,
+    User,
     LogIn,
     ChevronRight,
     ChevronDown,
@@ -195,8 +195,20 @@ const HELP_SECTIONS = [
                 content: `
                     <h2>Ticket Lifecycle</h2>
                     
-                    <div class="workflow-diagram">
-                        <code>Open → Assigned → Acknowledged → In Progress → Resolved → Verified → Closed</code>
+                    <div class="workflow-steps">
+                        <span class="step">Open</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Assigned</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Acknowledged</span>
+                        <span class="arrow">→</span>
+                        <span class="step">In Progress</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Resolved</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Verified</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Closed</span>
                     </div>
                     
                     <h3>Status Descriptions</h3>
@@ -557,9 +569,20 @@ const HELP_SECTIONS = [
                     <h2>RMA (Return Merchandise Authorization)</h2>
                     <p>Handle device replacement workflows within tickets. Request, approve, and track the replacement process.</p>
                     
-                    <h3>RMA Workflow</h3>
-                    <div class="workflow-diagram">
-                        <code>Request → Approval → Ordering → Dispatch → Receive → Install → Complete</code>
+                    <div class="workflow-steps">
+                        <span class="step">Request</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Approval</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Ordering</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Dispatch</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Receive</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Install</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Complete</span>
                     </div>
                     
                     <h3>Status Definitions</h3>
@@ -739,14 +762,14 @@ export default function Help() {
 
     const smoothNavigate = (subsectionId) => {
         if (activeSubsection === subsectionId) return;
-        
+
         // Start fade out
         setIsTransitioning(true);
-        
+
         // After fade out, change content
         setTimeout(() => {
             setActiveSubsection(subsectionId);
-            
+
             // Scroll content to top smoothly
             if (contentRef.current) {
                 contentRef.current.scrollTo({
@@ -754,7 +777,7 @@ export default function Help() {
                     behavior: 'smooth'
                 });
             }
-            
+
             // Fade in
             setTimeout(() => {
                 setIsTransitioning(false);
@@ -772,10 +795,10 @@ export default function Help() {
         return '<p>Select a topic from the sidebar to view help content.</p>';
     };
 
-    const filteredSections = searchQuery 
-        ? HELP_SECTIONS.filter(section => 
+    const filteredSections = searchQuery
+        ? HELP_SECTIONS.filter(section =>
             section.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            section.subsections?.some(sub => 
+            section.subsections?.some(sub =>
                 sub.title.toLowerCase().includes(searchQuery.toLowerCase())
             )
         )
@@ -800,9 +823,9 @@ export default function Help() {
                 </div>
                 <div className="help-search">
                     <Search size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="Search help topics..." 
+                    <input
+                        type="text"
+                        placeholder="Search help topics..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
@@ -815,10 +838,10 @@ export default function Help() {
                         {filteredSections.map((section) => {
                             const Icon = section.icon;
                             const isExpanded = expandedSection === section.id;
-                            
+
                             return (
                                 <div key={section.id} className="help-nav-section">
-                                    <button 
+                                    <button
                                         className={`help-nav-item ${isExpanded ? 'active' : ''}`}
                                         onClick={() => handleSectionClick(section.id)}
                                     >
@@ -826,11 +849,11 @@ export default function Help() {
                                         <span>{section.title}</span>
                                         {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                     </button>
-                                    
+
                                     {isExpanded && section.subsections && (
                                         <div className="help-nav-subsections animate-slide-down">
                                             {section.subsections.map((sub) => (
-                                                <button 
+                                                <button
                                                     key={sub.id}
                                                     className={`help-nav-subitem ${activeSubsection === sub.id ? 'active' : ''}`}
                                                     onClick={() => handleSubsectionClick(sub.id)}
@@ -847,7 +870,7 @@ export default function Help() {
                 </aside>
 
                 <main className="help-content" ref={contentRef}>
-                    <article 
+                    <article
                         className={`help-article ${isTransitioning ? 'transitioning' : ''}`}
                         dangerouslySetInnerHTML={{ __html: getCurrentContent() }}
                     />

@@ -53,6 +53,14 @@ export default function Layout({ children }) {
 
     return (
         <div className="layout">
+            {/* Sidebar Backdrop for mobile */}
+            {sidebarOpen && (
+                <div
+                    className="sidebar-backdrop"
+                    onClick={() => setSidebarOpen(false)}
+                ></div>
+            )}
+
             {/* Sidebar */}
             <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
                 <div className="sidebar-header">
@@ -70,6 +78,7 @@ export default function Layout({ children }) {
                             key={item.path}
                             to={item.path}
                             className={`nav-item ${location.pathname.startsWith(item.path) ? 'active' : ''}`}
+                            onClick={() => window.innerWidth <= 1024 && setSidebarOpen(false)}
                         >
                             <item.icon size={20} />
                             {sidebarOpen && <span>{item.label}</span>}
@@ -90,6 +99,12 @@ export default function Layout({ children }) {
                 {/* Header */}
                 <header className="header">
                     <div className="header-left">
+                        <button
+                            className="mobile-sidebar-toggle"
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                        >
+                            <Menu size={24} />
+                        </button>
                         <div className="search-box">
                             <Search size={18} />
                             <input

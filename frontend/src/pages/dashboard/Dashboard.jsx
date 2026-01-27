@@ -125,9 +125,9 @@ const DashboardSkeleton = () => (
     <div className="dashboard">
         <div className="page-header">
             <div className="header-content" style={{ width: '100%' }}>
-                <div className="skeleton skeleton-text" style={{ width: '180px', height: '16px' }}></div>
-                <div className="skeleton skeleton-title" style={{ width: '280px', height: '36px', marginTop: '8px' }}></div>
-                <div className="skeleton skeleton-text" style={{ width: '320px', height: '14px', marginTop: '8px' }}></div>
+                <div className="skeleton skeleton-text" style={{ width: '180px', maxWidth: '100%', height: '16px' }}></div>
+                <div className="skeleton skeleton-title" style={{ width: '280px', maxWidth: '100%', height: '36px', marginTop: '8px' }}></div>
+                <div className="skeleton skeleton-text" style={{ width: '320px', maxWidth: '100%', height: '14px', marginTop: '8px' }}></div>
             </div>
         </div>
         <div className="stats-grid">
@@ -228,14 +228,14 @@ export default function Dashboard() {
         <div className="dashboard">
             <div className="page-header animate-enter">
                 <div className="header-content">
-                    <div className="greeting-row">&nbsp;
+                    <div className="greeting-row">
                         <span className="greeting-text">
-                            {getGreeting()}, {user?.fullName || user?.firstName || 'there'} 👋
+                            {getGreeting()}, {user?.fullName || user?.firstName || 'there'}!
                         </span>
                         <LiveIndicator />
                     </div>
-                    <div>
-                        <h1 className="page-title" >Dashboard Overview &nbsp;&nbsp;&nbsp;</h1>
+                    <div className="dashboard-header-titles">
+                        <h1 className="page-title">Dashboard Overview</h1>
                         <p className="page-subtitle">Real-time insights into your workspace activity</p>
                     </div>
                 </div>

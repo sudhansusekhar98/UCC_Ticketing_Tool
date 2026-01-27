@@ -47,9 +47,12 @@
 }
 
 @keyframes pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: scale(1);
     }
+
     50% {
         transform: scale(1.1);
     }
@@ -78,6 +81,7 @@
         opacity: 0;
         transform: translateY(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -222,7 +226,8 @@
     margin-bottom: 2px;
 }
 
-.notification-message {
+/* Specific scoping to prevent leakage to full-page views */
+.notification-item .notification-message {
     font-size: var(--text-xs);
     color: var(--text-secondary);
     line-height: 1.4;
@@ -303,9 +308,19 @@
 /* Responsive */
 @media (max-width: 480px) {
     .notification-dropdown {
-        width: 100vw;
-        right: -70px;
-        border-radius: 0;
-        max-height: 70vh;
+        width: calc(100vw - 32px);
+        /* Centered with 16px margins */
+        position: fixed;
+        top: 80px;
+        /* Margin below the 72px header */
+        left: 16px;
+        right: 16px;
+        max-height: calc(100vh - 100px);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .notification-list {
+        max-height: calc(100vh - 250px);
     }
 }

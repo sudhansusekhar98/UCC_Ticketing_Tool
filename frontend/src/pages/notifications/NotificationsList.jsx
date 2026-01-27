@@ -36,6 +36,7 @@ const getNotificationIcon = (type) => {
 export default function NotificationsList() {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [expandedIds, setExpandedIds] = useState(new Set());
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
     const navigate = useNavigate();
@@ -46,13 +47,13 @@ export default function NotificationsList() {
             const response = await notificationsApi.getAll({ page: pageNum, limit: 20 });
             const newNotifications = response.data.data || [];
             const pagination = response.data.pagination;
-            
+
             if (append) {
                 setNotifications(prev => [...prev, ...newNotifications]);
             } else {
                 setNotifications(newNotifications);
             }
-            
+
             setHasMore(pagination ? pageNum < pagination.pages : false);
         } catch (error) {
             toast.error('Failed to load notifications');
@@ -62,6 +63,18 @@ export default function NotificationsList() {
         }
     }, []);
 
+    const toggleExpand = (id) => {
+        setExpandedIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    };
+
     useEffect(() => {
         fetchNotifications();
     }, [fetchNotifications]);
@@ -69,7 +82,7 @@ export default function NotificationsList() {
     const handleMarkAsRead = async (id) => {
         try {
             await notificationsApi.markAsRead(id);
-            setNotifications(prev => 
+            setNotifications(prev =>
                 prev.map(n => n._id === id ? { ...n, isRead: true } : n)
             );
         } catch (error) {
@@ -97,13 +110,8 @@ export default function NotificationsList() {
         }
     };
 
-    const handleNotificationClick = async (notification) => {
-        if (!notification.isRead) {
-            await handleMarkAsRead(notification._id);
-        }
-        if (notification.link) {
-            navigate(notification.link);
-        }
+    const handleNotificationClick = (notification) => {
+        navigate(`/notifications/${notification._id}`);
     };
 
     const handleLoadMore = () => {
@@ -117,22 +125,22 @@ export default function NotificationsList() {
     return (
         <div className="notifications-list-page">
             <div className="page-header">
-                <div className="header-left">
-                    <button className="back-btn" onClick={() => navigate(-1)}>
-                        <ArrowLeft size={20} />
-                    </button>
+                <div className="header-top-nav">
                     <div className="header-icon">
                         <Bell size={24} />
                     </div>
-                    <div>
-                        <h1>My Notifications</h1>
-                        <p>{notifications.length} notification{notifications.length !== 1 ? 's' : ''}</p>
-                    </div>
+                    <button className="back-btn" onClick={() => navigate(-1)}>
+                        <ArrowLeft size={20} />
+                    </button>
+                </div>
+                <div className="header-text">
+                    <h1>My Notifications</h1>
+                    <p>{notifications.length} notification{notifications.length !== 1 ? 's' : ''}</p>
                 </div>
                 {unreadCount > 0 && (
-                    <button className="btn-secondary" onClick={handleMarkAllAsRead}>
+                    <button className="btn-secondary mark-all-btn" onClick={handleMarkAllAsRead}>
                         <CheckCheck size={18} />
-                        Mark all as read
+                        Mark all read
                     </button>
                 )}
             </div>
@@ -153,7 +161,7 @@ export default function NotificationsList() {
                     <>
                         <div className="notifications-list">
                             {notifications.map(notification => (
-                                <div 
+                                <div
                                     key={notification._id}
                                     className={`notification-card ${!notification.isRead ? 'unread' : ''} ${notification.link ? 'clickable' : ''}`}
                                     onClick={() => handleNotificationClick(notification)}
@@ -168,14 +176,31 @@ export default function NotificationsList() {
                                                 {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                                             </span>
                                         </div>
-                                        <p className="notification-message">{notification.message}</p>
+                                        <p className="notification-message">
+                                            {expandedIds.has(notification._id)
+                                                ? notification.message
+                                                : (notification.message?.length > 100
+                                                    ? `${notification.message.substring(0, 100)}...`
+                                                    : notification.message)}
+                                            {notification.message?.length > 100 && (
+                                                <button
+                                                    className="read-more-link"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleExpand(notification._id);
+                                                    }}
+                                                >
+                                                    {expandedIds.has(notification._id) ? 'Show Less' : 'Read More'}
+                                                </button>
+                                            )}
+                                        </p>
                                         {notification.link && (
                                             <span className="notification-link">Click to view →</span>
                                         )}
                                     </div>
                                     <div className="notification-actions">
                                         {!notification.isRead && (
-                                            <button 
+                                            <button
                                                 className="action-btn"
                                                 onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notification._id); }}
                                                 title="Mark as read"
@@ -183,7 +208,7 @@ export default function NotificationsList() {
                                                 <Check size={16} />
                                             </button>
                                         )}
-                                        <button 
+                                        <button
                                             className="action-btn delete"
                                             onClick={(e) => { e.stopPropagation(); handleDelete(notification._id); }}
                                             title="Delete"
@@ -197,7 +222,7 @@ export default function NotificationsList() {
 
                         {hasMore && (
                             <div className="load-more">
-                                <button 
+                                <button
                                     className="btn-secondary"
                                     onClick={handleLoadMore}
                                     disabled={loading}

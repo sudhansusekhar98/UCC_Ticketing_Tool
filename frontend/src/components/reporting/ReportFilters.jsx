@@ -43,7 +43,7 @@ const ReportFilters = ({ filters, onFilterChange }) => {
             {showFilters && (
                 <div className="filters-body">
                     <div className="filter-group">
-                        <label>Date Range</label>
+                        <label>DATE RANGE</label>
                         <div className="date-inputs">
                             <div className="date-field">
                                 <span className="label-text">From</span>
@@ -69,20 +69,23 @@ const ReportFilters = ({ filters, onFilterChange }) => {
                     </div>
 
                     <div className="filter-group">
-                        <label>Site</label>
-                        <select
-                            name="siteId"
-                            value={filters.siteId || ''}
-                            onChange={handleChange}
-                            className="form-select"
-                        >
-                            <option value="">All Sites</option>
-                            {sites.map(site => (
-                                <option key={site.value} value={site.value}>
-                                    {site.label}
-                                </option>
-                            ))}
-                        </select>
+                        <label>SITE</label>
+                        <div className="site-input-wrapper">
+                            <span className="label-text">Select Site</span>
+                            <select
+                                name="siteId"
+                                value={filters.siteId || ''}
+                                onChange={handleChange}
+                                className="form-select"
+                            >
+                                <option value="">All Sites</option>
+                                {sites.map(site => (
+                                    <option key={site.value} value={site.value}>
+                                        {site.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
             )}

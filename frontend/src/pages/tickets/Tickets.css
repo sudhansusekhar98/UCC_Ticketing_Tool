@@ -438,8 +438,22 @@
 
 /* Ticket Form */
 .ticket-form-page {
-  height: calc(100vh - 64px - 48px);
+  height: auto;
+  min-height: calc(100vh - 72px);
   overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.ticket-form-page .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  width: 100%;
+}
+
+.ticket-form-page .page-title {
+  margin-bottom: 0;
 }
 
 .ticket-form-page .form-card {
@@ -554,6 +568,22 @@
   .data-table td:nth-child(7) {
     display: none;
     /* Assigned To */
+  }
+
+  .ticket-form-page .page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .ticket-form-page .page-title {
+    font-size: var(--text-lg);
+  }
+
+  .ticket-form-page .back-link {
+    font-size: var(--text-xs);
+    white-space: nowrap;
   }
 
   .ticket-form-page .form-grid {

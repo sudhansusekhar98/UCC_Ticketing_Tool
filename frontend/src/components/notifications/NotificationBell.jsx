@@ -49,7 +49,7 @@ export default function NotificationBell() {
 
         // Connect to socket for real-time notifications
         const socket = socketService.connect();
-        
+
         const handleNewNotification = (notification) => {
             setNotifications(prev => [notification, ...prev.slice(0, 9)]);
             setUnreadCount(prev => prev + 1);
@@ -78,7 +78,7 @@ export default function NotificationBell() {
         e.stopPropagation();
         try {
             await notificationsApi.markAsRead(id);
-            setNotifications(prev => 
+            setNotifications(prev =>
                 prev.map(n => n._id === id ? { ...n, isRead: true } : n)
             );
             setUnreadCount(prev => Math.max(0, prev - 1));
@@ -113,25 +113,13 @@ export default function NotificationBell() {
     };
 
     const handleNotificationClick = async (notification) => {
-        // Mark as read if unread
-        if (!notification.isRead) {
-            await notificationsApi.markAsRead(notification._id);
-            setNotifications(prev => 
-                prev.map(n => n._id === notification._id ? { ...n, isRead: true } : n)
-            );
-            setUnreadCount(prev => Math.max(0, prev - 1));
-        }
-
-        // Navigate if there's a link
-        if (notification.link) {
-            setIsOpen(false);
-            navigate(notification.link);
-        }
+        setIsOpen(false);
+        navigate(`/notifications/${notification._id}`);
     };
 
     return (
         <div className="notification-bell-container" ref={dropdownRef}>
-            <button 
+            <button
                 className={`notification-bell-btn ${unreadCount > 0 ? 'has-unread' : ''}`}
                 onClick={() => setIsOpen(!isOpen)}
                 title="Notifications"
@@ -149,7 +137,7 @@ export default function NotificationBell() {
                     <div className="notification-header">
                         <h3>Notifications</h3>
                         {unreadCount > 0 && (
-                            <button 
+                            <button
                                 className="mark-all-read-btn"
                                 onClick={handleMarkAllAsRead}
                                 title="Mark all as read"
@@ -170,7 +158,7 @@ export default function NotificationBell() {
                             </div>
                         ) : (
                             notifications.map(notification => (
-                                <div 
+                                <div
                                     key={notification._id}
                                     className={`notification-item ${!notification.isRead ? 'unread' : ''} ${notification.link ? 'clickable' : ''}`}
                                     onClick={() => handleNotificationClick(notification)}
@@ -187,7 +175,7 @@ export default function NotificationBell() {
                                     </div>
                                     <div className="notification-actions">
                                         {!notification.isRead && (
-                                            <button 
+                                            <button
                                                 className="notification-action-btn"
                                                 onClick={(e) => handleMarkAsRead(notification._id, e)}
                                                 title="Mark as read"
@@ -195,7 +183,7 @@ export default function NotificationBell() {
                                                 <Check size={14} />
                                             </button>
                                         )}
-                                        <button 
+                                        <button
                                             className="notification-action-btn delete"
                                             onClick={(e) => handleDelete(notification._id, e)}
                                             title="Delete"

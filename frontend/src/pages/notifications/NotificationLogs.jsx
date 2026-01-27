@@ -197,13 +197,13 @@ export default function NotificationLogs({ embedded = false }) {
                                 <tbody>
                                     {(logs || []).map(log => (
                                         <tr key={log._id}>
-                                            <td>
+                                            <td data-label="Type">
                                                 <span className={`category-badge ${log.type === 'Email' ? 'warning' : 'info'}`} style={{ fontSize: '0.8rem' }}>
                                                     {log.type || 'Email'}
                                                 </span>
                                             </td>
-                                            <td>{getStatusBadge(log.status)}</td>
-                                            <td>
+                                            <td data-label="Status">{getStatusBadge(log.status)}</td>
+                                            <td data-label="Date">
                                                 <div className="datetime">
                                                     <span className="date">
                                                         {log.sentAt ? format(new Date(log.sentAt), 'MMM dd, yyyy') : '-'}
@@ -213,7 +213,7 @@ export default function NotificationLogs({ embedded = false }) {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Recipient">
                                                 <div className="recipient-info">
                                                     <span className="email">{log.recipient}</span>
                                                     {log.recipientId && typeof log.recipientId === 'object' && log.recipientId.fullName && (
@@ -221,10 +221,10 @@ export default function NotificationLogs({ embedded = false }) {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Category">
                                                 <span className="category-badge">{formatCategory(log.category)}</span>
                                             </td>
-                                            <td>
+                                            <td data-label="Subject">
                                                 <div className="subject-cell" title={log.subject}>
                                                     {log.subject}
                                                     {log.error && (
@@ -232,7 +232,7 @@ export default function NotificationLogs({ embedded = false }) {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td>
+                                            <td data-label="Action">
                                                 {log.relatedTicketId ? (
                                                     <Link to={`/tickets/${log.relatedTicketId}`} className="ticket-link">
                                                         <ExternalLink size={14} />
