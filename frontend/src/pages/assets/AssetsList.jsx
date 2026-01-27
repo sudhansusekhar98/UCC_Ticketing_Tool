@@ -46,6 +46,7 @@ export default function AssetsList() {
     const [siteFilter, setSiteFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const [activeFilter, setActiveFilter] = useState('active'); // 'all', 'active', 'inactive'
     const [sites, setSites] = useState([]);
     const [locations, setLocations] = useState([]);
     const [locationFilter, setLocationFilter] = useState('');
@@ -63,7 +64,7 @@ export default function AssetsList() {
     const [importResult, setImportResult] = useState(null);
     const [exporting, setExporting] = useState(false);
     const fileInputRef = useRef(null);
-    
+
     // Password visibility state
     const [visiblePasswords, setVisiblePasswords] = useState({});
 
@@ -94,7 +95,7 @@ export default function AssetsList() {
     // Fetch assets when filters or page change
     useEffect(() => {
         fetchAssets();
-    }, [page, debouncedSearchValue, siteFilter, locationFilter, typeFilter, statusFilter]);
+    }, [page, debouncedSearchValue, siteFilter, locationFilter, typeFilter, statusFilter, activeFilter]);
 
     // Fetch locations when site changes
     useEffect(() => {
@@ -119,13 +120,13 @@ export default function AssetsList() {
                 value: s._id || s.value || s.siteId,
                 label: s.siteName || s.label
             })));
-            
+
             const typeData = typesRes.data.data || typesRes.data || [];
             setAssetTypes(typeData.map ? typeData.map(t => ({
                 value: t.value || t,
                 label: t.label || t
             })) : []);
-            
+
             const statusData = statusesRes.data.data || statusesRes.data || [];
             setAssetStatuses(statusData);
         } catch (error) {
@@ -157,12 +158,12 @@ export default function AssetsList() {
                 locationName: locationFilter || undefined,
                 assetType: typeFilter || undefined,
                 status: statusFilter || undefined,
-                isActive: true,
+                isActive: activeFilter === 'all' ? undefined : activeFilter === 'active',
             });
             // Handle both Express and .NET response formats
             const assetData = response.data.data || response.data.items || response.data || [];
             const total = response.data.pagination?.total || response.data.totalCount || assetData.length;
-            
+
             // Map to expected format
             const mappedAssets = assetData.map(a => ({
                 ...a,
@@ -170,7 +171,7 @@ export default function AssetsList() {
                 locationName: a.locationDescription || a.siteId?.siteName || a.locationName,
                 macAddress: a.mac || a.macAddress
             }));
-            
+
             setAssets(mappedAssets);
             setTotalCount(total);
         } catch (error) {
@@ -196,8 +197,8 @@ export default function AssetsList() {
     const handleDownloadTemplate = async () => {
         try {
             const response = await assetsApi.downloadTemplate();
-            const blob = new Blob([response.data], { 
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+            const blob = new Blob([response.data], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -205,13 +206,13 @@ export default function AssetsList() {
             a.download = 'assets_import_template.xlsx';
             document.body.appendChild(a);
             a.click();
-            
+
             // Clean up
             setTimeout(() => {
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
             }, 100);
-            
+
             toast.success('Template downloaded successfully');
         } catch (error) {
             console.error('Download error:', error);
@@ -228,8 +229,8 @@ export default function AssetsList() {
                 assetType: typeFilter || undefined,
                 status: statusFilter || undefined,
             });
-            const blob = new Blob([response.data], { 
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+            const blob = new Blob([response.data], {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -237,7 +238,7 @@ export default function AssetsList() {
             a.download = `assets_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
             document.body.appendChild(a);
             a.click();
-            
+
             // Clean up
             setTimeout(() => {
                 window.URL.revokeObjectURL(url);
@@ -437,6 +438,16 @@ export default function AssetsList() {
                         {assetStatuses.map(status => (
                             <option key={status.value} value={status.value}>{status.label}</option>
                         ))}
+                    </select>
+                    <select
+                        className="form-select compact-select"
+                        value={activeFilter}
+                        onChange={(e) => { setActiveFilter(e.target.value); setPage(1); }}
+                        title="Filter by active status"
+                    >
+                        <option value="all">All Assets</option>
+                        <option value="active">Active Only</option>
+                        <option value="inactive">InActive Only</option>
                     </select>
                     <button className="btn btn-secondary btn-icon" onClick={fetchAssets}>
                         <RefreshCw size={18} />
