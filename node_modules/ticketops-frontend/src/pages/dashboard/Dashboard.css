@@ -4,7 +4,7 @@
     height: calc(100vh - 72px);
     /* Fixed height relative to layout header */
     overflow-y: auto;
-    padding: var(--space-4);
+    padding: 0.5rem;
     width: 100%;
     box-sizing: border-box;
 }
@@ -116,7 +116,7 @@
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    margin-bottom: var(--space-6);
+    margin-bottom: var(--space-2) !important;
     padding-top: var(--space-2);
     position: relative;
     z-index: 100;
@@ -395,22 +395,35 @@
     border-radius: var(--radius-xl);
 }
 
-/* Stats Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: var(--space-5);
-    margin-bottom: var(--space-6);
+/* Stats Grid - Top 6 cards - FLEXBOX FORCED SINGLE ROW */
+.dashboard-stats-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 0.5rem !important;
+    margin-bottom: var(--space-2) !important;
     width: 100%;
 }
 
-.stats-grid.secondary-stats {
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+.dashboard-stats-grid>* {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
 }
 
-.stats-grid.secondary-stats .stat-card {
+/* Secondary Stats Grid - Assets, Engineers, Sites - FLEXBOX FORCED SINGLE ROW */
+.dashboard-stats-grid.secondary-stats {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 0.5rem !important;
+    margin-bottom: var(--space-4) !important;
+}
+
+.dashboard-stats-grid.secondary-stats>* {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+}
+
+.dashboard-stats-grid.secondary-stats .stat-card {
     align-items: stretch;
-    /* Explicitly ensure stretch for these cards */
 }
 
 /* Enhanced Stat Card */
@@ -461,7 +474,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--space-4);
+    margin-bottom: 0 !important;
     color: var(--text-muted);
     min-height: 28px;
     z-index: 2;
@@ -615,8 +628,10 @@
 
 /* Engineers & Assets Card Refinements */
 .engineers-card,
-.assets-card {
-    min-height: 260px;
+.assets-card,
+.sites-card {
+    min-height: 280px;
+    max-height: 280px;
 }
 
 /* Position count in top right corner for these cards */
@@ -787,23 +802,135 @@
     color: var(--text-muted);
 }
 
-/* Charts Grid Refinement */
-.charts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: var(--space-5);
-    margin-bottom: var(--space-6);
+/* Sites Card - Same styling pattern as assets and engineers */
+.sites-card .stat-value {
+    position: absolute;
+    top: var(--space-3);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2rem;
+    margin-bottom: 0;
+    text-align: center;
+    line-height: 1;
+    z-index: 1;
+    pointer-events: none;
 }
 
-.chart-card {
-    padding: var(--space-3);
-    min-height: 220px;
+.sites-card .stat-label {
+    position: absolute;
+    top: calc(var(--space-3) + 2.2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: 10px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.sites-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding-top: 0;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.site-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-tertiary);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+    animation: fadeInUp 0.3s ease-out forwards;
+    opacity: 0;
+}
+
+.site-item:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--primary-500);
+    transform: translateX(4px);
+}
+
+.site-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-md);
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--primary-500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.site-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.site-name {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.site-city {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.site-status-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.site-status-badge.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success-500);
+}
+
+/* Charts Grid - FLEXBOX FORCED SINGLE ROW */
+.dashboard-charts-grid {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 0.5rem !important;
+    margin-bottom: var(--space-4) !important;
+}
+
+.dashboard-charts-grid>* {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+}
+
+.dashboard-chart-card {
+    padding: 0.5rem;
+    min-height: 280px;
+    max-height: 280px;
     background: var(--bg-card);
     border: 1px solid var(--border-light);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-lg);
     backdrop-filter: blur(20px);
     display: flex;
     flex-direction: column;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    overflow: hidden;
 }
 
 .chart-title {
@@ -817,7 +944,7 @@
 }
 
 .chart-container {
-    height: 150px;
+    height: 180px;
     width: 100%;
     /* Ensure charts don't overflow */
     overflow: visible;
@@ -1273,11 +1400,11 @@
 }
 
 /* Chart Card Hover Effect */
-.chart-card {
+.dashboard-chart-card {
     transition: all 0.3s ease;
 }
 
-.chart-card:hover {
+.dashboard-chart-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
 }
@@ -1326,7 +1453,7 @@
     opacity: 1 !important;
 }
 
-[data-theme="light"] .chart-card {
+[data-theme="light"] .dashboard-chart-card {
     background: #ffffff;
     border: 1px solid #e2e8f0;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
@@ -1335,7 +1462,7 @@
 }
 
 
-[data-theme="light"] .chart-card h3 {
+[data-theme="light"] .dashboard-chart-card h3 {
     color: #0f172a !important;
     font-weight: 700;
 }
@@ -1441,47 +1568,6 @@
    ROBUST RESPONSIVE OVERRIDES (Always at end)
    ============================================ */
 
-@media (max-width: 1200px) {
-    .stats-grid {
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    }
-
-    .charts-grid {
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-    }
-}
-
-@media (max-width: 992px) {
-    .dashboard .page-header {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-        gap: var(--space-4);
-    }
-
-    .dashboard-header-titles {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .dashboard .page-title {
-        font-size: 1.6rem !important;
-        line-height: 1.2;
-        margin: 0;
-    }
-
-    .dashboard .page-subtitle {
-        font-size: 0.9rem;
-        margin: 0;
-        opacity: 0.8;
-    }
-
-    .dashboard-refresh-btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-
 @media (max-width: 768px) {
     .dashboard {
         padding: var(--space-3);
@@ -1489,16 +1575,28 @@
         min-height: 100vh;
     }
 
-    .stats-grid {
-        grid-template-columns: repeat(3, 1fr) !important;
+    .dashboard-stats-grid {
+        flex-wrap: wrap !important;
         gap: var(--space-2) !important;
     }
 
-    .stats-grid.secondary-stats {
-        grid-template-columns: 1fr !important;
+    .dashboard-stats-grid>* {
+        flex: 1 1 calc(50% - 0.5rem) !important;
+        min-width: 140px !important;
     }
 
-    .stat-card {
+    .dashboard-stats-grid.secondary-stats,
+    .dashboard-charts-grid {
+        flex-wrap: wrap !important;
+    }
+
+    .dashboard-stats-grid.secondary-stats>*,
+    .dashboard-charts-grid>* {
+        flex: 1 1 100% !important;
+    }
+
+    .stat-card,
+    .dashboard-chart-card {
         padding: var(--space-2) !important;
         min-height: 100px !important;
         display: flex;
@@ -1532,16 +1630,10 @@
 
     .stat-link {
         display: none !important;
-        /* Hide "View All" on mobile to save space */
     }
 
     .stat-footer {
         display: none !important;
-        /* Hide footer on small mobile cards */
-    }
-
-    .charts-grid {
-        grid-template-columns: 1fr;
     }
 
     .actions-grid {
@@ -1554,7 +1646,7 @@
         padding: var(--space-2);
     }
 
-    .stats-grid {
+    .dashboard-stats-grid {
         grid-template-columns: repeat(3, 1fr) !important;
         gap: 6px !important;
     }

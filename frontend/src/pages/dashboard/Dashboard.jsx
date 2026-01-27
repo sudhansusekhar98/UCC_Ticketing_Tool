@@ -26,7 +26,8 @@ import {
     Package,
     MapPin,
     Search,
-    ChevronDown
+    ChevronDown,
+    Building2
 } from 'lucide-react';
 import { ticketsApi, usersApi, assetsApi, sitesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
@@ -359,7 +360,7 @@ export default function Dashboard() {
             </div>
 
             {/* Stats Cards */}
-            <div className="stats-grid">
+            <div className="dashboard-stats-grid">
                 <Link to="/tickets?status=Open" className="stat-card primary animate-enter delay-100">
                     <div className="stat-card-bg-blob"></div>
                     <div className="stat-header">
@@ -517,7 +518,7 @@ export default function Dashboard() {
             </div>
 
             {/* Second Row - Assets & Engineers */}
-            <div className="stats-grid secondary-stats animate-enter delay-200">
+            <div className="dashboard-stats-grid secondary-stats animate-enter delay-200">
                 <div className="stat-card assets-card">
                     <div className="stat-header">
                         <div className="stat-icon-wrapper" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
@@ -590,12 +591,51 @@ export default function Dashboard() {
                         <EmptyState icon={Users} title="No engineers available" description="Team members will appear here" />
                     )}
                 </div>
+
+                <div className="stat-card sites-card">
+                    <div className="stat-header">
+                        <div className="stat-icon-wrapper" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+                            <Building2 size={20} />
+                        </div>
+                        {isAdmin && (
+                            <Link to="/sites" className="stat-link">
+                                Manage Sites <ArrowUpRight size={14} />
+                            </Link>
+                        )}
+                    </div>
+                    <div className="stat-value" style={{ fontSize: '2.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)' }}>
+                        {sites.length || 0}
+                    </div>
+                    <div className="stat-label">Active Sites</div>
+
+                    {sites.length > 0 ? (
+                        <div className="sites-list">
+                            {sites.slice(0, 5).map((site, index) => (
+                                <div key={site._id} className="site-item" style={{ animationDelay: `${index * 50}ms` }}>
+                                    <div className="site-icon">
+                                        <MapPin size={14} />
+                                    </div>
+                                    <div className="site-info">
+                                        <span className="site-name">{site.siteName}</span>
+                                        <span className="site-city">{site.city || site.siteUniqueID}</span>
+                                    </div>
+                                    <span className="site-status-badge active">Active</span>
+                                </div>
+                            ))}
+                            {sites.length > 5 && (
+                                <Link to="/sites" className="view-more-link">+{sites.length - 5} more sites</Link>
+                            )}
+                        </div>
+                    ) : (
+                        <EmptyState icon={Building2} title="No sites found" description="Add sites to manage locations" />
+                    )}
+                </div>
             </div>
 
             {/* Charts Section */}
-            <div className="charts-grid animate-enter delay-300">
+            <div className="dashboard-charts-grid animate-enter delay-300">
                 {/* Tickets by Priority */}
-                <div className="chart-card">
+                <div className="dashboard-chart-card">
                     <h3 className="chart-title"><Zap size={18} className="text-warning-500" /> Tickets by Priority</h3>
                     <div className="chart-container">
                         {stats?.ticketsByPriority?.length > 0 ? (
@@ -635,7 +675,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Tickets by Status */}
-                <div className="chart-card">
+                <div className="dashboard-chart-card">
                     <h3 className="chart-title"><BarChart2 size={18} className="text-primary-500" /> Tickets by Status</h3>
                     <div className="chart-container">
                         {stats?.ticketsByStatus?.length > 0 ? (
@@ -665,7 +705,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Tickets by Category */}
-                <div className="chart-card">
+                <div className="dashboard-chart-card">
                     <h3 className="chart-title"><Layers size={18} className="text-secondary" /> Ticket Categories</h3>
                     <div className="category-list">
                         {stats?.ticketsByCategory?.length > 0 ? (
