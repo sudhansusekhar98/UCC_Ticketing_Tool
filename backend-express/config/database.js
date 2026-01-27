@@ -32,21 +32,23 @@ const connectDB = async () => {
     // Optimized settings for serverless/Vercel
     const options = {
       // Faster connection timeouts for serverless
-      serverSelectionTimeoutMS: 5000, // Reduced from 30s - fail fast on cold starts
-      connectTimeoutMS: 5000, // Fast connection timeout
-      socketTimeoutMS: 45000, // Socket timeout
+      serverSelectionTimeoutMS: 10000, // Reduced from 30s
+      connectTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
       // Buffer commands until connection is established
-      bufferCommands: true,
+      bufferCommands: false, // Set to false to fail fast if connection is not ready
       // Connection pool optimized for serverless
-      maxPoolSize: 5, // Reduced for serverless (fewer connections)
-      minPoolSize: 0, // Allow pool to shrink to 0
-      maxIdleTimeMS: 10000, // Close idle connections after 10s
-      // Use IPv4 first for DNS resolution
+      maxPoolSize: 10,
+      minPoolSize: 0,
+      maxIdleTimeMS: 10000,
+      // Use IPv4 first for DNS resolution (common fix for Vercel timeouts)
       family: 4,
       // Retry writes
       retryWrites: true,
       // Write concern
-      w: 'majority'
+      w: 'majority',
+      // Explicitly handle buffer timeout if it were enabled
+      bufferTimeoutMS: 10000
     };
 
     cached.promise = mongoose.connect(process.env.MONGODB_URI, options);

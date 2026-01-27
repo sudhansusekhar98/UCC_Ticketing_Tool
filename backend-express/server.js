@@ -79,13 +79,30 @@ if (process.env.VERCEL !== '1') {
 }
 
 
-// Connect to MongoDB (non-blocking, happens in background)
-connectDB().then(() => {
-  // Only setup cron jobs in non-serverless environments
-  if (process.env.VERCEL !== '1') {
-    setupCronJobs();
+// Database Connection Middleware (Ensures DB is connected before processing requests)
+app.use(async (req, res, next) => {
+  try {
+    // Skip for root route if desired
+    if (req.path === '/' || req.path === '/api/health') return next();
+
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('❌ Database connection middleware error:', err.message);
+    res.status(503).json({
+      success: false,
+      message: 'Database connection failed. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
-}).catch(err => console.error('MongoDB connection failed:', err));
+});
+
+// Setup cron jobs in non-serverless environments
+if (process.env.VERCEL !== '1') {
+  connectDB().then(() => {
+    setupCronJobs();
+  }).catch(err => console.error('MongoDB connection failed for cron jobs:', err));
+}
 // Middleware
 app.use(helmet()); // Security headers
 
