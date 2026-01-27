@@ -5,21 +5,19 @@
       "src": "api/production.js",
       "use": "@vercel/node",
       "config": {
-        "maxLambdaSize": "15mb",
-        "memory": 1024,
-        "maxDuration": 30
+        "maxLambdaSize": "15mb"
       }
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/api/production.js"
+      "source": "/(.*)",
+      "destination": "/api/production.js"
     }
   ],
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
