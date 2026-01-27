@@ -86,6 +86,12 @@ app.use(async (req, res, next) => {
     if (req.path === '/' || req.path === '/api/health') return next();
 
     await connectDB();
+
+    // Safety check: ensure mongoose is actually connected
+    if (mongoose.connection.readyState !== 1) {
+      throw new Error('Database connection is not ready');
+    }
+
     next();
   } catch (err) {
     console.error('❌ Database connection middleware error:', err.message);

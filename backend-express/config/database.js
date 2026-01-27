@@ -25,18 +25,23 @@ const connectDB = async () => {
     return cached.conn;
   }
 
+  if (!process.env.MONGODB_URI) {
+    throw new Error('MONGODB_URI is not defined in environment variables');
+  }
+
   try {
     console.log('🔄 Attempting to connect to MongoDB...');
     console.log('📍 Connection URI:', process.env.MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@') || 'NOT SET');
 
     // Optimized settings for serverless/Vercel
     const options = {
-      // Faster connection timeouts for serverless
-      serverSelectionTimeoutMS: 10000, // Reduced from 30s
-      connectTimeoutMS: 10000,
+      // Standard connection timeouts
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 30000,
       socketTimeoutMS: 45000,
-      // Buffer commands until connection is established
-      bufferCommands: false, // Set to false to fail fast if connection is not ready
+      // Buffer commands until connection is established (default true)
+      // This prevents "cannot call findOne before initial connection" errors
+      bufferCommands: true,
       // Connection pool optimized for serverless
       maxPoolSize: 10,
       minPoolSize: 0,
@@ -46,9 +51,7 @@ const connectDB = async () => {
       // Retry writes
       retryWrites: true,
       // Write concern
-      w: 'majority',
-      // Explicitly handle buffer timeout if it were enabled
-      bufferTimeoutMS: 10000
+      w: 'majority'
     };
 
     cached.promise = mongoose.connect(process.env.MONGODB_URI, options);
