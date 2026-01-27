@@ -37,24 +37,28 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-
-    // Check if origin checks out
-    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked:', origin);
-      callback(null, false);
-    }
+    // Permissive for troubleshooting
+    callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  maxAge: 86400, // Cache preflight for 24 hours - reduces OPTIONS requests
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+  maxAge: 3600
 }));
+
+// Database Connection Middleware
+app.use(async (req, res, next) => {
+  if (req.path === '/api/health' || req.path === '/') return next();
+  try {
+    await connectDB();
+    if (mongoose.connection.readyState !== 1) throw new Error('DB Not Ready');
+    next();
+  } catch (err) {
+    console.error('DB Middleware Error:', err.message);
+    res.status(503).json({ success: false, message: 'Database Connection Error' });
+  }
+});
+
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
