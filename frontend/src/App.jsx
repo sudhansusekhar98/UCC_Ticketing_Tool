@@ -31,6 +31,13 @@ import NotificationsList from './pages/notifications/NotificationsList';
 import NotificationRead from './pages/notifications/NotificationRead';
 import NotificationLogs from './pages/notifications/NotificationLogs';
 import Help from './pages/help/Help';
+import StockDashboard from './pages/stock/StockDashboard';
+import AddStock from './pages/stock/AddStock';
+import InventoryList from './pages/stock/InventoryList';
+import RequisitionList from './pages/stock/RequisitionList';
+import TransferList from './pages/stock/TransferList';
+import StockTransferForm from './pages/stock/StockTransferForm';
+import BulkAddStock from './pages/stock/BulkAddStock';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles, requiredRight }) {
@@ -357,6 +364,64 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Stock Management */}
+          <Route
+            path="/stock"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <StockDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stock/add"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <AddStock />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stock/bulk"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <BulkAddStock />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stock/inventory"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <InventoryList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stock/requisitions"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <RequisitionList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stock/transfers"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <TransferList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stock/transfers/new"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <StockTransferForm />
               </ProtectedRoute>
             }
           />

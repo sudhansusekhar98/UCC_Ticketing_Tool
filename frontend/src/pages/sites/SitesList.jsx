@@ -10,6 +10,7 @@ import {
     Edit,
     Trash2,
     ExternalLink,
+    Warehouse,
 } from 'lucide-react';
 import { sitesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
@@ -62,13 +63,13 @@ export default function SitesList() {
             // Handle Express response format
             const siteData = response.data.data || response.data.items || response.data || [];
             const total = response.data.pagination?.total || response.data.totalCount || siteData.length;
-            
+
             // Map to expected format
             const mappedSites = siteData.map(s => ({
                 ...s,
                 siteId: s._id || s.siteId
             }));
-            
+
             setSites(mappedSites);
             setTotalCount(total);
         } catch (error) {
@@ -177,7 +178,15 @@ export default function SitesList() {
                                 {filteredSites.map((site) => (
                                     <tr key={site.siteId}>
                                         <td>
-                                            <div className="cell-primary">{site.siteName}</div>
+                                            <div className="cell-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                {site.siteName}
+                                                {site.isHeadOffice && (
+                                                    <span className="badge badge-info" style={{ textTransform: 'none', fontSize: '10px', padding: '2px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Warehouse size={12} />
+                                                        Head Office
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td>
                                             <div className="cell-primary">{site.siteUniqueID}</div>

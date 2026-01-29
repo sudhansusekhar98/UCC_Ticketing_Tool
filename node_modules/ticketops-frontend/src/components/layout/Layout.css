@@ -177,7 +177,8 @@
     border-bottom: 1px solid var(--border-light);
     position: sticky;
     top: 0;
-    z-index: 40;
+    z-index: 10000;
+    /* Extremely high to stay above all page content (even dashboard dropdowns) */
     height: 72px;
     box-sizing: border-box;
 }
@@ -335,6 +336,8 @@
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-xl);
     padding: var(--space-2);
+    z-index: 10001;
+    /* Ensure dropdown is above the header itself */
     animation: fadeIn 0.2s ease-out;
 }
 
@@ -374,7 +377,7 @@
 /* Main Content */
 .main-content {
     flex: 1;
-    padding: 0.3rem 0.5rem;
+    padding: var(--space-2);
     animation: fadeIn 0.3s ease-out;
 }
 

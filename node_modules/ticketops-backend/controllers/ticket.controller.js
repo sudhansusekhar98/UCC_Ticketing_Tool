@@ -1075,7 +1075,7 @@ export const getDashboardStats = async (req, res, next) => {
 
     // Get asset counts in parallel (only 2 queries)
     const [totalAssets, offlineAssets] = await Promise.all([
-      Asset.countDocuments(assetMatchQuery),
+      Asset.countDocuments({ ...assetMatchQuery, status: { $ne: 'Spare' } }),
       Asset.countDocuments({ ...assetMatchQuery, status: 'Offline' })
     ]);
 
@@ -1110,7 +1110,7 @@ export const getDashboardStats = async (req, res, next) => {
       priority: item._id,
       count: item.count
     }));
-
+    
     const ticketsByStatus = (stats.statusCounts || []).map(item => ({
       status: item._id,
       count: item.count

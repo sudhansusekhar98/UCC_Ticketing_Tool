@@ -784,3 +784,25 @@
   border-top: 1px solid var(--border-light);
   align-items: flex-start;
 }
+
+/* Stock Panel Integration */
+.stock-panel {
+  border-left: 4px solid var(--primary-500) !important;
+}
+
+.spare-selection-list {
+  padding-right: 8px;
+}
+
+.spare-item-card {
+  transition: all 0.2s ease;
+}
+
+.spare-item-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.spare-item-card.border-primary {
+  background: var(--primary-500-10) !important;
+}

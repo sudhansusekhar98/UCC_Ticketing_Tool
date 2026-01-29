@@ -647,7 +647,7 @@ export default function Dashboard() {
                                         nameKey="priority"
                                         cx="50%"
                                         cy="50%"
-                                        outerRadius={80}
+                                        outerRadius={75}
                                         innerRadius={55}
                                         paddingAngle={5}
                                         label={({ priority, percent }) => `${priority} ${(percent * 100).toFixed(0)}%`}

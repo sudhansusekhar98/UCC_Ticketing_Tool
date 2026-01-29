@@ -113,7 +113,7 @@ export const getAssetStatusesEndpoint = async (req, res, next) => {
     };
 
     const formattedStatuses = statuses.length > 0
-      ? statuses.filter(s => s).map(s => ({
+      ? statuses.filter(s => s && s !== 'Spare').map(s => ({
         value: s,
         label: s,
         color: statusColors[s] || '#7f8c8d'
@@ -234,6 +234,42 @@ export const getDeviceTypesEndpoint = async (req, res, next) => {
       .map(dt => ({
         value: dt,
         label: dt
+      }));
+
+    res.json({
+      success: true,
+      data: formatted
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get models by asset type and device type (from Assets collection)
+// @route   GET /api/lookups/models
+// @access  Private
+export const getModelsEndpoint = async (req, res, next) => {
+  try {
+    const { assetType, deviceType } = req.query;
+
+    let query = {};
+    if (assetType) {
+      query.assetType = assetType;
+    }
+    if (deviceType) {
+      query.deviceType = deviceType;
+    }
+
+    // Get distinct models from Assets collection
+    const models = await Asset.distinct('model', query);
+
+    // Format for dropdown - filter out null/empty values
+    const formatted = models
+      .filter(m => m && m.trim() !== '')
+      .sort()
+      .map(m => ({
+        value: m,
+        label: m
       }));
 
     res.json({

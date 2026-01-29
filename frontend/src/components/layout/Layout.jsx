@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -16,6 +16,7 @@ import {
     Bell,
     BarChart3,
     HelpCircle,
+    Package,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import NotificationBell from '../notifications/NotificationBell';
@@ -28,6 +29,7 @@ const menuItems = [
     { path: '/reports', icon: BarChart3, label: 'Reports', roles: ['Admin', 'Supervisor', 'Dispatcher'] },
     { path: '/assets', icon: Monitor, label: 'Assets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer', 'L1Engineer', 'L2Engineer'] },
     { path: '/sites', icon: MapPin, label: 'Sites', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer'] },
+    { path: '/stock', icon: Package, label: 'Stock', roles: ['Admin', 'Supervisor'] },
     { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },
     { path: '/user-rights', icon: Shield, label: 'User Rights', roles: ['Admin'] },
     { path: '/notifications/manage', icon: Bell, label: 'Notifications', roles: ['Admin'] },
@@ -41,6 +43,24 @@ export default function Layout({ children }) {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useAuthStore();
+    const userMenuRef = useRef(null);
+
+    // Close user menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+                setUserMenuOpen(false);
+            }
+        };
+
+        if (userMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [userMenuOpen]);
 
     const handleLogout = async () => {
         await logout();
@@ -120,7 +140,7 @@ export default function Layout({ children }) {
                         <NotificationBell />
 
                         {/* User Menu */}
-                        <div className="user-menu-container">
+                        <div className="user-menu-container" ref={userMenuRef}>
                             <button
                                 className="user-menu-btn"
                                 onClick={() => setUserMenuOpen(!userMenuOpen)}

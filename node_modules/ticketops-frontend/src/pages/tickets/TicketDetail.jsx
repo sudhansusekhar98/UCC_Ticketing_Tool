@@ -21,7 +21,9 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import ActivitySection from './ActivitySection';
 import RMASection from './RMASection';
+import TicketStockPanel from './TicketStockPanel';
 import AssetUpdateApproval from './AssetUpdateApproval';
+import { createPortal } from 'react-dom';
 import './Tickets.css';
 
 export default function TicketDetail() {
@@ -553,6 +555,20 @@ export default function TicketDetail() {
                         </div>
                     )}
 
+                    {/* Stock Availability & Replacement */}
+                    {ticket.assetId && (
+                        <TicketStockPanel
+                            ticketId={ticket.ticketId}
+                            assetId={ticket.assetId?._id || ticket.assetId}
+                            ticketStatus={ticket.status}
+                            isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
+                            onUpdate={() => {
+                                fetchTicket();
+                                fetchAuditTrail();
+                            }}
+                        />
+                    )}
+
                     {/* RMA Information */}
                     {ticket.assetId && (
                         <RMASection
@@ -690,221 +706,254 @@ export default function TicketDetail() {
             </div>
 
             {/* Assign Modal */}
-            {showAssignModal && (
+            {showAssignModal && createPortal(
                 <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
                     <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
-                        <h3>Assign Ticket</h3>
-                        <div className="form-group">
-                            <label className="form-label">Select Engineer</label>
-                            <select
-                                className="form-select"
-                                value={assignData.assignedTo}
-                                onChange={(e) => setAssignData({ ...assignData, assignedTo: e.target.value })}
-                            >
-                                <option value="">Choose engineer...</option>
-                                {engineers.map((eng) => (
-                                    <option key={eng.value} value={eng.value}>{eng.label}</option>
-                                ))}
-                            </select>
+                        <div className="modal-header">
+                            <h3>Assign Ticket</h3>
                         </div>
-                        <div className="form-group">
-                            <label className="form-label">Remarks (optional)</label>
-                            <textarea
-                                className="form-textarea"
-                                value={assignData.remarks}
-                                onChange={(e) => setAssignData({ ...assignData, remarks: e.target.value })}
-                                placeholder="Add any notes..."
-                            />
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label className="form-label">Select Engineer</label>
+                                <select
+                                    className="form-select"
+                                    value={assignData.assignedTo}
+                                    onChange={(e) => setAssignData({ ...assignData, assignedTo: e.target.value })}
+                                >
+                                    <option value="">Choose engineer...</option>
+                                    {engineers.map((eng) => (
+                                        <option key={eng.value} value={eng.value}>{eng.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Remarks (optional)</label>
+                                <textarea
+                                    className="form-textarea"
+                                    value={assignData.remarks}
+                                    onChange={(e) => setAssignData({ ...assignData, remarks: e.target.value })}
+                                    placeholder="Add any notes..."
+                                />
+                            </div>
                         </div>
-                        <div className="modal-actions">
+                        <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowAssignModal(false)}>Cancel</button>
                             <button className="btn btn-primary" onClick={handleAssign} disabled={actionLoading}>
                                 {actionLoading ? 'Assigning...' : 'Assign'}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Resolve Modal */}
-            {showResolveModal && (
+            {showResolveModal && createPortal(
                 <div className="modal-overlay" onClick={() => setShowResolveModal(false)}>
                     <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
-                        <h3>Resolve Ticket</h3>
-                        <div className="form-group">
-                            <label className="form-label">Root Cause *</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                value={resolveData.rootCause}
-                                onChange={(e) => setResolveData({ ...resolveData, rootCause: e.target.value })}
-                                placeholder="What caused the issue?"
-                            />
+                        <div className="modal-header">
+                            <h3>Resolve Ticket</h3>
                         </div>
-                        <div className="form-group">
-                            <label className="form-label">Resolution Summary *</label>
-                            <textarea
-                                className="form-textarea"
-                                value={resolveData.resolutionSummary}
-                                onChange={(e) => setResolveData({ ...resolveData, resolutionSummary: e.target.value })}
-                                placeholder="Describe how the issue was resolved..."
-                            />
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label className="form-label">Root Cause *</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={resolveData.rootCause}
+                                    onChange={(e) => setResolveData({ ...resolveData, rootCause: e.target.value })}
+                                    placeholder="What caused the issue?"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Resolution Summary *</label>
+                                <textarea
+                                    className="form-textarea"
+                                    value={resolveData.resolutionSummary}
+                                    onChange={(e) => setResolveData({ ...resolveData, resolutionSummary: e.target.value })}
+                                    placeholder="Describe how the issue was resolved..."
+                                />
+                            </div>
                         </div>
-                        <div className="modal-actions">
+                        <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowResolveModal(false)}>Cancel</button>
                             <button className="btn btn-success" onClick={handleResolve} disabled={actionLoading}>
                                 {actionLoading ? 'Resolving...' : 'Resolve Ticket'}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Re-open Modal */}
-            {showReopenModal && (
+            {showReopenModal && createPortal(
                 <div className="modal-overlay" onClick={() => setShowReopenModal(false)}>
                     <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
-                        <h3>Re-open Ticket</h3>
-                        <p className="modal-description">
-                            This ticket is currently closed. Provide a reason to re-open it for further action.
-                        </p>
-                        <div className="form-group">
-                            <label className="form-label">Reason for Re-opening *</label>
-                            <textarea
-                                className="form-textarea"
-                                value={reopenReason}
-                                onChange={(e) => setReopenReason(e.target.value)}
-                                placeholder="Why does this ticket need to be re-opened?"
-                                rows={3}
-                            />
+                        <div className="modal-header">
+                            <h3>Re-open Ticket</h3>
                         </div>
-                        <div className="modal-actions">
+                        <div className="modal-body">
+                            <p className="modal-description">
+                                This ticket is currently closed. Provide a reason to re-open it for further action.
+                            </p>
+                            <div className="form-group">
+                                <label className="form-label">Reason for Re-opening *</label>
+                                <textarea
+                                    className="form-textarea"
+                                    value={reopenReason}
+                                    onChange={(e) => setReopenReason(e.target.value)}
+                                    placeholder="Why does this ticket need to be re-opened?"
+                                    rows={3}
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowReopenModal(false)}>Cancel</button>
                             <button className="btn btn-warning" onClick={handleReopen} disabled={actionLoading}>
                                 {actionLoading ? 'Re-opening...' : 'Re-open Ticket'}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Reject Resolution Modal */}
-            {showRejectModal && (
+            {showRejectModal && createPortal(
                 <div className="modal-overlay" onClick={() => setShowRejectModal(false)}>
                     <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
-                        <h3>Reject Resolution</h3>
-                        <p className="modal-description">
-                            The issue is still ongoing. Rejecting the resolution will notify the assigned user
-                            to reinvestigate and provide an update.
-                        </p>
-                        <div className="form-group">
-                            <label className="form-label">Reason for Rejection *</label>
-                            <textarea
-                                className="form-textarea"
-                                value={rejectReason}
-                                onChange={(e) => setRejectReason(e.target.value)}
-                                placeholder="Explain why the resolution is being rejected and what needs to be investigated..."
-                                rows={4}
-                            />
+                        <div className="modal-header">
+                            <h3>Reject Resolution</h3>
                         </div>
-                        <div className="modal-actions">
+                        <div className="modal-body">
+                            <p className="modal-description">
+                                The issue is still ongoing. Rejecting the resolution will notify the assigned user
+                                to reinvestigate and provide an update.
+                            </p>
+                            <div className="form-group">
+                                <label className="form-label">Reason for Rejection *</label>
+                                <textarea
+                                    className="form-textarea"
+                                    value={rejectReason}
+                                    onChange={(e) => setRejectReason(e.target.value)}
+                                    placeholder="Explain why the resolution is being rejected and what needs to be investigated..."
+                                    rows={4}
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowRejectModal(false)}>Cancel</button>
                             <button className="btn btn-danger" onClick={handleRejectResolution} disabled={actionLoading}>
                                 {actionLoading ? 'Rejecting...' : 'Reject Resolution'}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Escalate Modal */}
-            {showEscalateModal && (
+            {showEscalateModal && createPortal(
                 <div className="modal-overlay" onClick={() => setShowEscalateModal(false)}>
                     <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
-                        <h3>Escalate Ticket</h3>
-                        <p className="modal-description">
-                            Escalating this ticket will notify the specialized Escalation Team.
-                            Please provide a clear reason describing why this issue requires higher-level expertise.
-                        </p>
-                        <div className="form-group">
-                            <label className="form-label">Reason for Escalation *</label>
-                            <textarea
-                                className="form-textarea"
-                                value={escalationReason}
-                                onChange={(e) => setEscalationReason(e.target.value)}
-                                placeholder="Describe the technical complexity or roadblock requiring escalation..."
-                                rows={4}
-                            />
+                        <div className="modal-header">
+                            <h3>Escalate Ticket</h3>
                         </div>
-                        <div className="modal-actions">
+                        <div className="modal-body">
+                            <p className="modal-description">
+                                Escalating this ticket will notify the specialized Escalation Team.
+                                Please provide a clear reason describing why this issue requires higher-level expertise.
+                            </p>
+                            <div className="form-group">
+                                <label className="form-label">Reason for Escalation *</label>
+                                <textarea
+                                    className="form-textarea"
+                                    value={escalationReason}
+                                    onChange={(e) => setEscalationReason(e.target.value)}
+                                    placeholder="Describe the technical complexity or roadblock requiring escalation..."
+                                    rows={4}
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowEscalateModal(false)}>Cancel</button>
                             <button className="btn btn-warning" onClick={handleEscalate} disabled={actionLoading}>
-                                {actionLoading ? 'Escalating...' : `Escalate to Level ${(ticket?.escalationLevel || 0) + 1}`}
+                                {actionLoading ? 'Escalating...' : 'Escalate Ticket'}
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
+
+
             {/* Accept Escalation Modal */}
-            {showAcceptEscalationModal && (
+            {showAcceptEscalationModal && createPortal(
                 <div className="modal-overlay" onClick={() => setShowAcceptEscalationModal(false)}>
                     <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
-                        <h3>Manage Escalation (Level {ticket?.escalationLevel})</h3>
-                        <p className="modal-description">
-                            You can either accept this escalated ticket yourself or assign it to a specialized escalation user.
-                        </p>
+                        <div className="modal-header">
+                            <h3>Manage Escalation (Level {ticket?.escalationLevel})</h3>
+                        </div>
+                        <div className="modal-body">
+                            <p className="modal-description">
+                                You can either accept this escalated ticket yourself or assign it to a specialized escalation user.
+                            </p>
 
-                        <div className="escalation-options">
-                            <div className="option-section">
-                                <h4>Option 1: Work on it yourself</h4>
-                                <button
-                                    className="btn btn-primary w-full"
-                                    onClick={() => handleAcceptEscalation()}
-                                    disabled={actionLoading}
-                                >
-                                    Accept & Start Working
-                                </button>
-                            </div>
+                            <div className="escalation-options space-y-6">
+                                <div className="option-section p-4 bg-secondary/10 rounded-lg">
+                                    <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Option 1: Work on it yourself</h4>
+                                    <button
+                                        className="btn btn-primary w-full"
+                                        onClick={() => handleAcceptEscalation()}
+                                        disabled={actionLoading}
+                                    >
+                                        Accept & Start Working
+                                    </button>
+                                </div>
 
-                            {canDelegateEscalation && (
-                                <>
-                                    <div className="option-divider">
-                                        <span>OR</span>
-                                    </div>
-
-                                    <div className="option-section">
-                                        <h4>Option 2: Assign to escalation user</h4>
-                                        <div className="form-group">
-                                            <label className="form-label">Select Escalation User</label>
-                                            <select
-                                                className="form-select"
-                                                value={selectedEscalationUser}
-                                                onChange={(e) => setSelectedEscalationUser(e.target.value)}
-                                            >
-                                                <option value="">Choose user...</option>
-                                                {escalationUsers.map((u) => (
-                                                    <option key={u.value} value={u.value}>{u.label}</option>
-                                                ))}
-                                            </select>
+                                {canDelegateEscalation && (
+                                    <>
+                                        <div className="relative py-2">
+                                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>
+                                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-bg-card px-2 text-muted">OR</span></div>
                                         </div>
-                                        <button
-                                            className="btn btn-success w-full"
-                                            onClick={() => handleAcceptEscalation(selectedEscalationUser)}
-                                            disabled={actionLoading || !selectedEscalationUser}
-                                        >
-                                            Assign & Acknowledge
-                                        </button>
-                                    </div>
-                                </>
-                            )}
+
+                                        <div className="option-section p-4 bg-secondary/10 rounded-lg">
+                                            <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Option 2: Assign to escalation user</h4>
+                                            <div className="form-group mb-4">
+                                                <label className="form-label">Select Escalation User</label>
+                                                <select
+                                                    className="form-select"
+                                                    value={selectedEscalationUser}
+                                                    onChange={(e) => setSelectedEscalationUser(e.target.value)}
+                                                >
+                                                    <option value="">Choose user...</option>
+                                                    {escalationUsers.map((u) => (
+                                                        <option key={u.value} value={u.value}>{u.label}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <button
+                                                className="btn btn-success w-full"
+                                                onClick={() => handleAcceptEscalation(selectedEscalationUser)}
+                                                disabled={actionLoading || !selectedEscalationUser}
+                                            >
+                                                Assign & Acknowledge
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="modal-actions mt-4">
+                        <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowAcceptEscalationModal(false)}>Cancel</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

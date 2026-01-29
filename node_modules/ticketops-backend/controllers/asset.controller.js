@@ -33,7 +33,14 @@ const buildAssetQuery = (req) => {
 
   if (locationName) query.locationName = locationName;
   if (assetType) query.assetType = assetType;
-  if (status) query.status = status;
+
+  // By default, exclude Spare assets from general asset lists
+  if (status) {
+    query.status = status;
+  } else {
+    query.status = { $ne: 'Spare' };
+  }
+
   if (criticality) query.criticality = parseInt(criticality);
   if (isActive !== undefined) query.isActive = isActive === 'true';
 
@@ -265,6 +272,9 @@ export const getAssetsDropdown = async (req, res, next) => {
       query.assetType = assetType;
     }
 
+    // Exclude Spares from dropdowns
+    query.status = { $ne: 'Spare' };
+
     const assets = await Asset.find(query)
       .select('assetCode assetType deviceType locationName locationDescription siteId')
       .populate('siteId', 'siteName')
@@ -301,6 +311,9 @@ export const getLocationNames = async (req, res, next) => {
     } else if (siteId) {
       query.siteId = siteId;
     }
+
+    // Exclude Spare assets from location lookups
+    query.status = { $ne: 'Spare' };
 
     const locationNames = await Asset.distinct('locationName', {
       ...query,
@@ -341,6 +354,9 @@ export const getAssetTypesForSite = async (req, res, next) => {
 
     if (locationName) query.locationName = locationName;
 
+    // Exclude Spare assets
+    query.status = { $ne: 'Spare' };
+
     const assetTypes = await Asset.distinct('assetType', query);
     const sortedTypes = assetTypes.filter(Boolean).sort();
 
@@ -376,6 +392,9 @@ export const getDeviceTypesForSite = async (req, res, next) => {
 
     if (locationName) query.locationName = locationName;
     if (assetType) query.assetType = assetType;
+
+    // Exclude Spare assets
+    query.status = { $ne: 'Spare' };
 
     const deviceTypes = await Asset.distinct('deviceType', query);
     const sortedTypes = deviceTypes.filter(Boolean).sort();
@@ -547,13 +566,26 @@ export const exportAssets = async (req, res, next) => {
     const exportData = assets.map(asset => ({
       'Asset Code': asset.assetCode || '',
       'Asset Type': asset.assetType || '',
+      'Device Type': asset.deviceType || '',
+      'Make': asset.make || '',
+      'Model': asset.model || '',
       'Serial Number': asset.serialNumber || '',
       'IP Address': asset.ipAddress || '',
       'MAC': asset.mac || '',
       'Site ID': asset.siteId?.siteUniqueID || '',
       'Site Name': asset.siteId?.siteName || '',
       'Location Name': asset.locationName || '',
+      'Location Description': asset.locationDescription || '',
+      'Used For': asset.usedFor || '',
+      'Criticality': asset.criticality || 2,
       'Status': asset.status || '',
+      'VMS Ref ID': asset.vmsReferenceId || '',
+      'NMS Ref ID': asset.nmsReferenceId || '',
+      'Username': asset.userName || '',
+      'Password': asset.password || '',
+      'Installation Date': asset.installationDate ? new Date(asset.installationDate).toLocaleDateString() : '',
+      'Warranty End Date': asset.warrantyEndDate ? new Date(asset.warrantyEndDate).toLocaleDateString() : '',
+      'Remark': asset.remark || '',
       'Is Active': asset.isActive ? 'Yes' : 'No'
     }));
 
@@ -576,8 +608,25 @@ export const downloadTemplate = async (req, res, next) => {
     const templateData = [{
       'AssetCode': 'CAM-001',
       'AssetType': 'Camera',
+      'DeviceType': 'Fixed Dome',
       'SiteId': 'SITE-001',
+      'Make': 'Hikvision',
+      'Model': 'DS-2CD2385G1-I',
+      'SerialNumber': 'ABC123456789',
+      'IPAddress': '192.168.1.10',
+      'MAC': 'AA:BB:CC:DD:EE:FF',
+      'LocationName': 'Entrance A',
+      'LocationDescription': 'Main gate entrance',
+      'UsedFor': 'General Surveillance',
+      'Criticality': '1 (Low), 2 (Medium), 3 (High)',
       'Status': 'Operational/Degraded/Offline/Maintenance/Not Installed',
+      'VMSReferenceId': '',
+      'NMSReferenceId': '',
+      'UserName': 'admin',
+      'Password': 'password123',
+      'InstallationDate': 'YYYY-MM-DD',
+      'WarrantyEndDate': 'YYYY-MM-DD',
+      'Remark': '',
       'IsActive': 'Yes/No'
     }];
     const worksheet = XLSX.utils.json_to_sheet(templateData);

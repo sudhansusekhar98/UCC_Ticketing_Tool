@@ -6,7 +6,7 @@ import Site from '../models/Site.model.js';
 export const getSites = async (req, res, next) => {
   try {
     const { city, zone, isActive, search, page = 1, limit = 50 } = req.query;
-    
+
     const query = {};
     const user = req.user;
 
@@ -21,7 +21,7 @@ export const getSites = async (req, res, next) => {
       }
       query._id = { $in: user.assignedSites };
     }
-    
+
     if (city) query.city = city;
     if (zone) query.zone = zone;
     if (isActive !== undefined) query.isActive = isActive === 'true';
@@ -32,9 +32,9 @@ export const getSites = async (req, res, next) => {
         { address: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [sites, total] = await Promise.all([
       Site.find(query)
         .sort({ createdAt: -1 })
@@ -42,7 +42,7 @@ export const getSites = async (req, res, next) => {
         .limit(parseInt(limit)),
       Site.countDocuments(query)
     ]);
-    
+
     res.json({
       success: true,
       data: sites,
@@ -64,14 +64,14 @@ export const getSites = async (req, res, next) => {
 export const getSiteById = async (req, res, next) => {
   try {
     const site = await Site.findById(req.params.id);
-    
+
     if (!site) {
       return res.status(404).json({
         success: false,
         message: 'Site not found'
       });
     }
-    
+
     res.json({
       success: true,
       data: site
@@ -86,8 +86,19 @@ export const getSiteById = async (req, res, next) => {
 // @access  Private (Admin, Dispatcher)
 export const createSite = async (req, res, next) => {
   try {
+    // Check if site is being set as Head Office
+    if (req.body.isHeadOffice) {
+      const existingHO = await Site.findOne({ isHeadOffice: true });
+      if (existingHO) {
+        return res.status(400).json({
+          success: false,
+          message: `A Head Office already exists: ${existingHO.siteName}. Only one Head Office is allowed.`
+        });
+      }
+    }
+
     const site = await Site.create(req.body);
-    
+
     res.status(201).json({
       success: true,
       data: site,
@@ -109,19 +120,30 @@ export const createSite = async (req, res, next) => {
 // @access  Private (Admin, Dispatcher)
 export const updateSite = async (req, res, next) => {
   try {
+    // Check if site is being updated to Head Office
+    if (req.body.isHeadOffice) {
+      const existingHO = await Site.findOne({ isHeadOffice: true, _id: { $ne: req.params.id } });
+      if (existingHO) {
+        return res.status(400).json({
+          success: false,
+          message: `A Head Office already exists: ${existingHO.siteName}. Only one Head Office is allowed.`
+        });
+      }
+    }
+
     const site = await Site.findByIdAndUpdate(
       req.params.id,
       { ...req.body, updatedAt: new Date() },
       { new: true, runValidators: true }
     );
-    
+
     if (!site) {
       return res.status(404).json({
         success: false,
         message: 'Site not found'
       });
     }
-    
+
     res.json({
       success: true,
       data: site,
@@ -138,14 +160,14 @@ export const updateSite = async (req, res, next) => {
 export const deleteSite = async (req, res, next) => {
   try {
     const site = await Site.findByIdAndDelete(req.params.id);
-    
+
     if (!site) {
       return res.status(404).json({
         success: false,
         message: 'Site not found'
       });
     }
-    
+
     res.json({
       success: true,
       message: 'Site deleted successfully'
@@ -161,7 +183,7 @@ export const deleteSite = async (req, res, next) => {
 export const getSitesDropdown = async (req, res, next) => {
   try {
     const query = { isActive: true };
-    
+
     if (req.user.role !== 'Admin') {
       if (!req.user.assignedSites || req.user.assignedSites.length === 0) {
         return res.json({ success: true, data: [] });
@@ -172,7 +194,7 @@ export const getSitesDropdown = async (req, res, next) => {
     const sites = await Site.find(query)
       .select('siteName siteUniqueID')
       .sort({ siteName: 1 });
-    
+
     res.json({
       success: true,
       data: sites
@@ -188,7 +210,7 @@ export const getSitesDropdown = async (req, res, next) => {
 export const getCities = async (req, res, next) => {
   try {
     const cities = await Site.distinct('city', { isActive: true });
-    
+
     res.json({
       success: true,
       data: cities.sort()

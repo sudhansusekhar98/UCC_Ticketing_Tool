@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     Plus,
@@ -569,9 +570,9 @@ export default function AssetsList() {
             </div>
 
             {/* Import Modal */}
-            {showImportModal && (
-                <div className="modal-overlay">
-                    <div className="import-modal glass-card">
+            {showImportModal && createPortal(
+                <div className="modal-overlay" onClick={closeImportModal}>
+                    <div className="modal glass-card w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3>
                                 <Upload size={20} />
@@ -657,7 +658,7 @@ export default function AssetsList() {
                         </div>
 
                         <div className="modal-footer">
-                            <button className="btn btn-secondary" onClick={closeImportModal}>
+                            <button className="btn btn-ghost" onClick={closeImportModal}>
                                 Cancel
                             </button>
                             <button
@@ -679,7 +680,8 @@ export default function AssetsList() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

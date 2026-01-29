@@ -58,6 +58,10 @@ const siteSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  isHeadOffice: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true,

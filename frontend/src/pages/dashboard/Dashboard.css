@@ -919,9 +919,8 @@
 }
 
 .dashboard-chart-card {
-    padding: 0.5rem;
-    min-height: 280px;
-    max-height: 280px;
+    padding: 1rem;
+    min-height: 320px;
     background: var(--bg-card);
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
@@ -944,10 +943,13 @@
 }
 
 .chart-container {
-    height: 180px;
+    height: 200px;
     width: 100%;
     /* Ensure charts don't overflow */
     overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Custom Tooltip Styles for Recharts */
@@ -1006,6 +1008,8 @@
     flex-direction: column;
     gap: var(--space-3);
     flex: 1;
+    justify-content: center;
+    padding: 0 var(--space-2);
 }
 
 .category-item {

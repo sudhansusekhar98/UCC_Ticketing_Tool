@@ -8,7 +8,8 @@ import {
   getAssetStatusesEndpoint,
   getRolesEndpoint,
   getDeviceTypesEndpoint,
-  getAllDeviceTypesEndpoint
+  getAllDeviceTypesEndpoint,
+  getModelsEndpoint
 } from '../controllers/lookup.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
 
@@ -27,5 +28,6 @@ router.get('/roles', getRolesEndpoint);
 // Device Type routes - fetches from Assets collection
 router.get('/device-types', getDeviceTypesEndpoint);
 router.get('/device-types/all', getAllDeviceTypesEndpoint);
+router.get('/models', getModelsEndpoint);
 
 export default router;

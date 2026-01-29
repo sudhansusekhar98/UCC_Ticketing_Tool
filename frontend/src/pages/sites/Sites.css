@@ -2,15 +2,16 @@
 
 /* Page Container - Fit to Screen */
 .page-container {
-    /* Adjusted to ensure bottom scrollbar is visible. 
-       100vh - Header(64px) - Padding(48px) - Buffer(28px) = ~140px subtraction */
-    height: calc(100vh - 140px);
+    /* Allow flexible height for scrollable content */
+    min-height: calc(100vh - 140px);
+    max-height: calc(100vh - 140px);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-/* Allow scrolling for form views */
+/* Maintain scrolling for form views */
 .page-container.form-view {
     overflow-y: auto;
 }
@@ -20,6 +21,29 @@
     padding: var(--space-3);
     margin-bottom: var(--space-4) !important;
     flex-shrink: 0;
+}
+
+.back-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    background: var(--bg-card);
+    width: fit-content;
+    /* Ensure it doesn't expand full width */
+}
+
+.back-link:hover {
+    color: var(--primary-500);
+    border-color: var(--primary-300);
+    background: var(--primary-50);
 }
 
 .compact-select {
@@ -175,22 +199,27 @@
 
 /* Form Adjustments */
 .form-card {
-    max-width: 1200px;
-    padding: var(--space-5);
-    flex: 1;
-    overflow-y: auto;
-    max-height: calc(100vh - 180px);
+    max-width: 1400px;
+    padding: var(--space-4) var(--space-6);
+    margin: var(--space-1) auto;
+    flex: none;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 }
 
 .form-section-title {
-    font-size: var(--text-sm);
-    font-weight: 600;
-    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--primary-500);
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-top: var(--space-4);
-    margin-bottom: var(--space-3);
-    padding-bottom: var(--space-2);
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-2);
+    padding-bottom: var(--space-1);
     border-bottom: 1px solid var(--border-light);
 }
 
@@ -200,17 +229,44 @@
 
 .form-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-3);
-    margin-bottom: var(--space-2);
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-1);
 }
 
-.form-group.full-width {
-    grid-column: span 3;
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.form-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    height: 42px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    line-height: 1.6;
+    box-sizing: border-box;
 }
 
 .form-textarea {
-    min-height: 60px;
+    height: auto;
+    min-height: 40px;
+}
+
+.form-group.full-width {
+    grid-column: span 4;
 }
 
 .password-input-wrapper {
@@ -241,11 +297,12 @@
 
 .form-actions {
     display: flex;
-    gap: var(--space-3);
+    gap: var(--space-4);
     justify-content: flex-end;
-    margin-top: var(--space-4);
-    padding-top: var(--space-3);
-    border-top: 1px solid var(--border-light);
+    margin-top: var(--space-10);
+    /* More space before actions */
+    padding-top: var(--space-6);
+    border-top: 2px solid var(--border-light);
 }
 
 /* Criticality Indicator */
@@ -280,6 +337,12 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 120px;
+}
+
+.assets-table td.col-actions {
+    overflow: visible;
+    text-overflow: clip;
+    max-width: none;
 }
 
 .assets-table th {
@@ -351,8 +414,8 @@
 }
 
 .assets-table .col-actions {
-    width: 7%;
-    min-width: 80px;
+    width: 110px;
+    min-width: 110px;
     text-align: center;
 }
 
@@ -393,4 +456,10 @@
     .compact-select {
         width: 100%;
     }
+}
+
+/* Page Header positioning for forms */
+.form-view .page-header {
+    margin-bottom: var(--space-2);
+    padding: var(--space-2) 0;
 }

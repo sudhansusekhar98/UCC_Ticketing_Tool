@@ -162,13 +162,16 @@ export const getAssetStats = async (req, res, next) => {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
 
+    // Exclude Spare assets from reporting counts
+    matchStage.status = { $ne: 'Spare' };
+
     const [typeStats, statusStats] = await Promise.all([
       Asset.aggregate([
-        { $match: matchStage },
+        { $match: { ...matchStage, status: { $ne: 'Spare' } } },
         { $group: { _id: '$deviceType', count: { $sum: 1 } } }
       ]),
       Asset.aggregate([
-        { $match: matchStage },
+        { $match: { ...matchStage, status: { $ne: 'Spare' } } },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ])
     ]);
@@ -439,6 +442,9 @@ export const exportAssetStatusReport = async (req, res, next) => {
       matchStage.siteId = new mongoose.Types.ObjectId(siteId);
     }
 
+    // Exclude Spare assets from asset status report
+    matchStage.status = { $ne: 'Spare' };
+
     // Fetch assets with related data
     const assets = await Asset.find(matchStage)
       .populate('siteId', 'siteName siteCode city')
@@ -476,17 +482,20 @@ export const exportAssetStatusReport = async (req, res, next) => {
         'Asset Type': asset.assetType,
         'Device Type': asset.deviceType || 'N/A',
         'Status': asset.status,
+        'Make': asset.make || 'N/A',
+        'Model': asset.model || 'N/A',
+        'Serial Number': asset.serialNumber || 'N/A',
+        'IP Address': asset.ipAddress || 'N/A',
+        'MAC Address': asset.mac || 'N/A',
         'Site': asset.siteId?.siteName || 'N/A',
         'Site Code': asset.siteId?.siteCode || 'N/A',
         'City': asset.siteId?.city || 'N/A',
         'Location Name': asset.locationName || 'N/A',
-        'Serial Number': asset.serialNumber || 'N/A',
-        'IP Address': asset.ipAddress || 'N/A',
-        'MAC Address': asset.macAddress || 'N/A',
-        'Manufacturer': asset.manufacturer || 'N/A',
-        'Model': asset.model || 'N/A',
+        'Location Description': asset.locationDescription || 'N/A',
+        'Criticality': asset.criticality ?? 2, 'VMS Ref ID': asset.vmsReferenceId || 'N/A',
+        'NMS Ref ID': asset.nmsReferenceId || 'N/A',
         'Installation Date': asset.installationDate ? new Date(asset.installationDate).toLocaleDateString() : 'N/A',
-        'Warranty Expiry': asset.warrantyExpiry ? new Date(asset.warrantyExpiry).toLocaleDateString() : 'N/A',
+        'Warranty End Date': asset.warrantyEndDate ? new Date(asset.warrantyEndDate).toLocaleDateString() : 'N/A',
         'RMA Count': rmaInfo.rmaCount,
         'Last RMA Date': rmaInfo.lastRmaDate ? new Date(rmaInfo.lastRmaDate).toLocaleDateString() : 'N/A',
         'Created On': asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : 'N/A',
@@ -498,12 +507,13 @@ export const exportAssetStatusReport = async (req, res, next) => {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(data);
 
-    // Set column widths
+    // Set column widths (23 columns)
     ws['!cols'] = [
-      { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 25 },
-      { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 20 }, { wch: 15 },
-      { wch: 18 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
-      { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 12 }
+      { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 18 },
+      { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 25 },
+      { wch: 12 }, { wch: 15 }, { wch: 20 }, { wch: 30 }, { wch: 12 },
+      { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 18 }, { wch: 12 },
+      { wch: 18 }, { wch: 15 }, { wch: 15 }
     ];
 
     // Add worksheet to workbook

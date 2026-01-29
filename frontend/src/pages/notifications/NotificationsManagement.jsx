@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
     Bell,
     Plus,
@@ -398,142 +399,149 @@ export default function NotificationsManagement() {
             )}
 
             {/* Create/Edit Modal */}
-            {showModal && (
+            {showModal && createPortal(
                 <div className="modal-overlay" onClick={handleCloseModal}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                    <div className="modal glass-card w-full max-w-2xl" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>
                                 {editingNotification ? 'Edit Notification' : 'Create Notification'}
                             </h2>
-                            <button className="close-btn" onClick={handleCloseModal}>
+                            <button className="btn btn-ghost btn-icon" onClick={handleCloseModal}>
                                 <X size={20} />
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="modal-body">
-                            <div className="form-group">
-                                <label>Notification Type</label>
-                                <div className="type-selector">
-                                    {notificationTypes.map(type => (
-                                        <button
-                                            key={type.value}
-                                            type="button"
-                                            className={`type-option ${formData.type === type.value ? 'active' : ''}`}
-                                            onClick={() => setFormData(prev => ({ ...prev, type: type.value }))}
-                                            style={{ '--type-color': type.color }}
-                                        >
-                                            <type.icon size={18} />
-                                            <span>{type.label}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="title">Title *</label>
-                                <input
-                                    type="text"
-                                    id="title"
-                                    name="title"
-                                    value={formData.title}
-                                    onChange={handleInputChange}
-                                    placeholder="Enter notification title"
-                                    maxLength={200}
-                                    required
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="message">Message *</label>
-                                <textarea
-                                    id="message"
-                                    name="message"
-                                    value={formData.message}
-                                    onChange={handleInputChange}
-                                    placeholder="Enter notification message"
-                                    rows={4}
-                                    maxLength={1000}
-                                    required
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label htmlFor="link">Link (Optional)</label>
-                                <input
-                                    type="text"
-                                    id="link"
-                                    name="link"
-                                    value={formData.link}
-                                    onChange={handleInputChange}
-                                    placeholder="/tickets/123 or https://example.com"
-                                />
-                                <small>Users will be redirected when clicking the notification</small>
-                            </div>
-
-                            <div className="form-row">
+                        <form onSubmit={handleSubmit}>
+                            <div className="modal-body space-y-4">
                                 <div className="form-group">
-                                    <label>Target Audience</label>
-                                    <div className="toggle-group">
-                                        <button
-                                            type="button"
-                                            className={`toggle-btn ${formData.isBroadcast ? 'active' : ''}`}
-                                            onClick={() => setFormData(prev => ({ ...prev, isBroadcast: true }))}
-                                        >
-                                            <Users size={16} />
-                                            All Users
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`toggle-btn ${!formData.isBroadcast ? 'active' : ''}`}
-                                            onClick={() => setFormData(prev => ({ ...prev, isBroadcast: false }))}
-                                        >
-                                            <User size={16} />
-                                            Specific User
-                                        </button>
+                                    <label className="form-label">Notification Type</label>
+                                    <div className="type-selector grid grid-cols-4 md:grid-cols-7 gap-2">
+                                        {notificationTypes.map(type => (
+                                            <button
+                                                key={type.value}
+                                                type="button"
+                                                className={`type-option p-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${formData.type === type.value ? 'bg-primary/10 border-primary' : 'border-border hover:bg-secondary/10'}`}
+                                                onClick={() => setFormData(prev => ({ ...prev, type: type.value }))}
+                                                style={{ '--type-color': type.color }}
+                                            >
+                                                <type.icon size={18} />
+                                                <span className="text-[10px] font-bold uppercase">{type.label}</span>
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 
-                                {!formData.isBroadcast && (
-                                    <div className="form-group">
-                                        <label htmlFor="userId">Select User</label>
-                                        <select
-                                            id="userId"
-                                            name="userId"
-                                            value={formData.userId}
-                                            onChange={handleInputChange}
-                                            required={!formData.isBroadcast}
-                                        >
-                                            <option value="">Select a user...</option>
-                                            {users.map(user => (
-                                                <option key={user._id} value={user._id}>
-                                                    {user.fullName} ({user.role})
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
-                            </div>
+                                <div className="form-group">
+                                    <label className="form-label" htmlFor="title">Title *</label>
+                                    <input
+                                        type="text"
+                                        id="title"
+                                        name="title"
+                                        className="form-input"
+                                        value={formData.title}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter notification title"
+                                        maxLength={200}
+                                        required
+                                    />
+                                </div>
 
-                            <div className="form-group">
-                                <label htmlFor="expiresAt">
-                                    <Calendar size={16} />
-                                    Expiry Date (Optional)
-                                </label>
-                                <input
-                                    type="datetime-local"
-                                    id="expiresAt"
-                                    name="expiresAt"
-                                    value={formData.expiresAt}
-                                    onChange={handleInputChange}
-                                />
-                                <small>Notification will be automatically hidden after this date</small>
+                                <div className="form-group">
+                                    <label className="form-label" htmlFor="message">Message *</label>
+                                    <textarea
+                                        id="message"
+                                        name="message"
+                                        className="form-textarea"
+                                        value={formData.message}
+                                        onChange={handleInputChange}
+                                        placeholder="Enter notification message"
+                                        rows={4}
+                                        maxLength={1000}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label" htmlFor="link">Link (Optional)</label>
+                                    <input
+                                        type="text"
+                                        id="link"
+                                        name="link"
+                                        className="form-input"
+                                        value={formData.link}
+                                        onChange={handleInputChange}
+                                        placeholder="/tickets/123 or https://example.com"
+                                    />
+                                    <small className="text-xs text-muted block mt-1">Users will be redirected when clicking the notification</small>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="form-group">
+                                        <label className="form-label">Target Audience</label>
+                                        <div className="toggle-group flex bg-secondary/20 p-1 rounded-lg">
+                                            <button
+                                                type="button"
+                                                className={`flex-1 py-1.5 px-3 rounded-md text-sm flex items-center justify-center gap-2 transition-all ${formData.isBroadcast ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-secondary/30'}`}
+                                                onClick={() => setFormData(prev => ({ ...prev, isBroadcast: true }))}
+                                            >
+                                                <Users size={14} />
+                                                All Users
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`flex-1 py-1.5 px-3 rounded-md text-sm flex items-center justify-center gap-2 transition-all ${!formData.isBroadcast ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-secondary/30'}`}
+                                                onClick={() => setFormData(prev => ({ ...prev, isBroadcast: false }))}
+                                            >
+                                                <User size={14} />
+                                                Specific
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {!formData.isBroadcast && (
+                                        <div className="form-group">
+                                            <label className="form-label" htmlFor="userId">Select User</label>
+                                            <select
+                                                id="userId"
+                                                name="userId"
+                                                className="form-select"
+                                                value={formData.userId}
+                                                onChange={handleInputChange}
+                                                required={!formData.isBroadcast}
+                                            >
+                                                <option value="">Select a user...</option>
+                                                {users.map(user => (
+                                                    <option key={user._id} value={user._id}>
+                                                        {user.fullName} ({user.role})
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="form-group">
+                                    <label className="form-label" htmlFor="expiresAt">
+                                        <Calendar size={14} className="inline mr-1" />
+                                        Expiry Date (Optional)
+                                    </label>
+                                    <input
+                                        type="datetime-local"
+                                        id="expiresAt"
+                                        name="expiresAt"
+                                        className="form-input"
+                                        value={formData.expiresAt}
+                                        onChange={handleInputChange}
+                                    />
+                                    <small className="text-xs text-muted block mt-1">Notification will be automatically hidden after this date</small>
+                                </div>
                             </div>
 
                             <div className="modal-footer">
-                                <button type="button" className="btn-secondary" onClick={handleCloseModal}>
+                                <button type="button" className="btn btn-ghost" onClick={handleCloseModal}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn-primary" disabled={saving}>
+                                <button type="submit" className="btn btn-primary" disabled={saving}>
                                     {saving ? (
                                         <>
                                             <Loader size={18} className="animate-spin" />
@@ -549,7 +557,8 @@ export default function NotificationsManagement() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

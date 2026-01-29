@@ -421,6 +421,7 @@ export default function TicketForm() {
             </div>
 
             <form onSubmit={handleSubmit} className="form-card glass-card">
+                <div className='asset-form-container' style={{ margin: "1rem" }}>
                 <div className="form-grid">
                     {/* Site Selection (mandatory) */}
                     <div className="form-group">
@@ -781,6 +782,7 @@ export default function TicketForm() {
                             </>
                         )}
                     </button>
+                </div>
                 </div>
             </form>
         </div >

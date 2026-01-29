@@ -153,6 +153,8 @@ export const lookupsApi = {
     // Device Types
     getDeviceTypes: (assetType) => api.get('/lookups/device-types', { params: { assetType } }),
     getAllDeviceTypes: () => api.get('/lookups/device-types/all'),
+    // Models
+    getModels: (assetType, deviceType) => api.get('/lookups/models', { params: { assetType, deviceType } }),
     createDeviceType: (data) => api.post('/lookups/device-types', data),
     deleteDeviceType: (id) => api.delete(`/lookups/device-types/${id}`),
     seedDeviceTypes: () => api.post('/lookups/device-types/seed'),
@@ -235,4 +237,29 @@ export const reportingApi = {
     exportEmployeeStatus: (params) => api.get('/reporting/export/employees', { params, responseType: 'blob' }),
     exportAssetStatus: (params) => api.get('/reporting/export/assets', { params, responseType: 'blob' }),
     exportRMA: (params) => api.get('/reporting/export/rma', { params, responseType: 'blob' }),
+};
+
+// Stock API
+export const stockApi = {
+    getInventory: (params) => api.get('/stock/inventory', { params }),
+    getAvailability: (ticketId) => api.get(`/stock/availability/${ticketId}`),
+    addStock: (data) => api.post('/stock/add', data),
+    // Requisitions
+    getRequisitions: (params) => api.get('/stock/requisitions', { params }),
+    createRequisition: (data) => api.post('/stock/requisitions', data),
+    approveRequisition: (id) => api.put(`/stock/requisitions/${id}/approve`),
+    fulfillRequisition: (id, assetId) => api.put(`/stock/requisitions/${id}/fulfill`, { assetId }),
+    rejectRequisition: (id, reason) => api.put(`/stock/requisitions/${id}/reject`, { reason }),
+    // Transfers
+    getTransfers: (params) => api.get('/stock/transfers', { params }),
+    initiateTransfer: (data) => api.post('/stock/transfers', data),
+    dispatchTransfer: (id) => api.put(`/stock/transfers/${id}/dispatch`),
+    receiveTransfer: (id) => api.put(`/stock/transfers/${id}/receive`),
+    // Bulk
+    bulkUpload: (formData) => api.post('/stock/bulk-upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    downloadTemplate: (format) => api.get(`/stock/export-template?format=${format}`, { responseType: 'blob' }),
+    replaceAsset: (data) => api.post('/stock/replace', data),
+    getReplacementHistory: (assetId) => api.get(`/stock/asset/${assetId}/history`),
 };

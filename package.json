@@ -9,5 +9,8 @@
         "frontend:dev": "npm run dev --workspace=frontend",
         "backend:dev": "npm run dev --workspace=backend-express",
         "frontend:build": "npm run build --workspace=frontend"
+    },
+    "dependencies": {
+        "@ai-sdk/anthropic": "^3.0.28"
     }
 }

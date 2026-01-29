@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { rmaApi, assetUpdateRequestApi } from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { Package, Truck, CheckCircle, AlertTriangle, Clock, Server, FileText, History } from 'lucide-react';
@@ -227,115 +228,139 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
             )}
 
             {/* Request Modal */}
-            {showRequestModal && (
+            {showRequestModal && createPortal(
                 <div className="modal-overlay" onClick={() => setShowRequestModal(false)}>
                     <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
-                        <h3>Initiate RMA Request</h3>
-                        <div className="form-group">
-                            <label className="form-label">Reason for Replacement *</label>
-                            <textarea
-                                className="form-textarea"
-                                rows={3}
-                                value={requestReason}
-                                onChange={e => setRequestReason(e.target.value)}
-                                placeholder="Describe why this device needs replacement..."
-                            />
+                        <div className="modal-header">
+                            <h3>Initiate RMA Request</h3>
                         </div>
-                        <div className="form-group">
-                            <label className="form-label">Shipping Address (Optional)</label>
-                            <input
-                                className="form-input"
-                                value={shippingDetails.address}
-                                onChange={e => setShippingDetails({ ...shippingDetails, address: e.target.value })}
-                                placeholder="Where should the replacement be sent?"
-                            />
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label className="form-label">Reason for Replacement *</label>
+                                <textarea
+                                    className="form-textarea"
+                                    rows={3}
+                                    value={requestReason}
+                                    onChange={e => setRequestReason(e.target.value)}
+                                    placeholder="Describe why this device needs replacement..."
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Shipping Address (Optional)</label>
+                                <input
+                                    className="form-input"
+                                    value={shippingDetails.address}
+                                    onChange={e => setShippingDetails({ ...shippingDetails, address: e.target.value })}
+                                    placeholder="Where should the replacement be sent?"
+                                />
+                            </div>
                         </div>
-                        <div className="modal-actions">
+                        <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowRequestModal(false)}>Cancel</button>
                             <button className="btn btn-primary" onClick={handleRequestRMA}>Submit Request</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
 
             {/* Process/Admin Modal */}
-            {showProcessModal && (
+            {showProcessModal && createPortal(
                 <div className="modal-overlay" onClick={() => setShowProcessModal(false)}>
                     <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
-                        <h3>Update RMA Logistics</h3>
+                        <div className="modal-header">
+                            <h3>Update RMA Logistics</h3>
+                        </div>
 
-                        {/* Vendor Fields */}
-                        <div className="p-3 bg-secondary/20 rounded mb-3">
-                            <h4 className="text-sm font-bold mb-2">Vendor & Order</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="form-group mb-0">
-                                    <label className="form-label text-xs">Vendor Name</label>
-                                    <input className="form-input" placeholder="Vendor Name" value={vendorDetails.vendorName} onChange={e => setVendorDetails({ ...vendorDetails, vendorName: e.target.value })} />
+                        <div className="modal-body">
+                            {/* Vendor Fields */}
+                            <div className="p-3 bg-secondary/20 rounded mb-4">
+                                <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Vendor & Order</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="form-group mb-0">
+                                        <label className="form-label text-xs">Vendor Name</label>
+                                        <input className="form-input" placeholder="Vendor Name" value={vendorDetails.vendorName} onChange={e => setVendorDetails({ ...vendorDetails, vendorName: e.target.value })} />
+                                    </div>
+                                    <div className="form-group mb-0">
+                                        <label className="form-label text-xs">Order ID</label>
+                                        <input className="form-input" placeholder="Order ID" value={vendorDetails.orderId} onChange={e => setVendorDetails({ ...vendorDetails, orderId: e.target.value })} />
+                                    </div>
                                 </div>
-                                <div className="form-group mb-0">
-                                    <label className="form-label text-xs">Order ID</label>
-                                    <input className="form-input" placeholder="Order ID" value={vendorDetails.orderId} onChange={e => setVendorDetails({ ...vendorDetails, orderId: e.target.value })} />
+                            </div>
+
+                            {/* Shipping Fields */}
+                            <div className="p-3 bg-secondary/20 rounded">
+                                <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Shipping & Tracking</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="form-group mb-0">
+                                        <label className="form-label text-xs">Carrier</label>
+                                        <input className="form-input" placeholder="Carrier" value={shippingDetails.carrier} onChange={e => setShippingDetails({ ...shippingDetails, carrier: e.target.value })} />
+                                    </div>
+                                    <div className="form-group mb-0">
+                                        <label className="form-label text-xs">Tracking Number</label>
+                                        <input className="form-input" placeholder="Tracking Number" value={shippingDetails.trackingNumber} onChange={e => setShippingDetails({ ...shippingDetails, trackingNumber: e.target.value })} />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Shipping Fields */}
-                        <div className="p-3 bg-secondary/20 rounded mb-3">
-                            <h4 className="text-sm font-bold mb-2">Shipping & Tracking</h4>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="form-group mb-0">
-                                    <label className="form-label text-xs">Carrier</label>
-                                    <input className="form-input" placeholder="Carrier" value={shippingDetails.carrier} onChange={e => setShippingDetails({ ...shippingDetails, carrier: e.target.value })} />
-                                </div>
-                                <div className="form-group mb-0">
-                                    <label className="form-label text-xs">Tracking Number</label>
-                                    <input className="form-input" placeholder="Tracking Number" value={shippingDetails.trackingNumber} onChange={e => setShippingDetails({ ...shippingDetails, trackingNumber: e.target.value })} />
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="modal-actions">
+                        <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowProcessModal(false)}>Cancel</button>
                             <button className="btn btn-primary" onClick={() => handleUpdateStatus('Ordered')}>Mark Ordered</button>
                             <button className="btn btn-primary" onClick={() => handleUpdateStatus('Dispatched')}>Mark Dispatched</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
+
             {/* History Modal */}
-            {showHistoryModal && (
+            {showHistoryModal && createPortal(
                 <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
-                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
-                        <h3>Replacement History</h3>
-                        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                            {rmaHistory.map((h) => (
-                                <div key={h._id} className="p-3 bg-secondary/20 rounded border border-border">
-                                    <div className="flex justify-between mb-2">
-                                        <span className="font-bold text-sm">RMA via Ticket: {h.ticketId?.ticketNumber || 'N/A'}</span>
-                                        <span className="text-xs text-muted">{new Date(h.createdAt).toLocaleDateString()}</span>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div>
-                                            <span className="block text-muted">Original S/N</span>
-                                            <span>{h.originalDetailsSnapshot?.serialNumber || 'N/A'}</span>
-                                        </div>
-                                        <div>
-                                            <span className="block text-muted">New S/N</span>
-                                            <span>{h.replacementDetails?.serialNumber || 'Pending'}</span>
-                                        </div>
-                                        <div className="col-span-2">
-                                            <span className="block text-muted">Reason</span>
-                                            <span>{h.requestReason}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                    <div className="modal glass-card max-w-xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="flex items-center gap-2">
+                                <History size={20} />
+                                Replacement History
+                            </h3>
                         </div>
-                        <div className="modal-actions mt-4">
+                        <div className="modal-body">
+                            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                                {rmaHistory.map((h) => (
+                                    <div key={h._id} className="p-3 bg-secondary/10 rounded border border-border/50 hover:border-primary/30 transition-colors">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <span className="font-bold text-sm text-primary">Ticket: {h.ticketId?.ticketNumber || 'N/A'}</span>
+                                            <span className="text-[10px] uppercase font-bold text-muted bg-secondary/30 px-2 py-1 rounded">
+                                                {new Date(h.createdAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-xs">
+                                            <div>
+                                                <span className="block text-muted mb-1 uppercase tracking-tighter">Original S/N</span>
+                                                <span className="font-mono">{h.originalDetailsSnapshot?.serialNumber || 'N/A'}</span>
+                                            </div>
+                                            <div>
+                                                <span className="block text-muted mb-1 uppercase tracking-tighter">New S/N</span>
+                                                <span className="font-mono text-success-500 font-bold">{h.replacementDetails?.serialNumber || 'Pending'}</span>
+                                            </div>
+                                            <div className="col-span-2 pt-2 border-t border-border/20">
+                                                <span className="block text-muted mb-1 uppercase tracking-tighter">Reason</span>
+                                                <span className="italic">"{h.requestReason}"</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {rmaHistory.length === 0 && (
+                                    <div className="text-center py-8 text-muted italic">No history found.</div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowHistoryModal(false)}>Close</button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

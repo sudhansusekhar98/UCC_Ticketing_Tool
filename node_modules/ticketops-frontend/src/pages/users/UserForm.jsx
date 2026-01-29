@@ -54,7 +54,7 @@ export default function UserForm() {
                 value: s._id || s.value || s.siteId,
                 label: s.siteName || s.label
             })));
-            
+
             const roleData = rolesRes.data.data || rolesRes.data || [];
             setRoles(roleData);
         } catch (error) {
@@ -199,15 +199,14 @@ export default function UserForm() {
 
     return (
         <div className="page-container animate-fade-in">
-            <Link to="/users" className="back-link">
-                <ArrowLeft size={18} />
-                Back to Users
-            </Link>
-
             <div className="page-header">
                 <h1 className="page-title">
                     {isEditing ? 'Edit User' : 'Add New User'}
                 </h1>
+                <Link to="/users" className="back-link">
+                    <ArrowLeft size={18} />
+                    Back to Users
+                </Link>
             </div>
 
             <form onSubmit={handleSubmit} className="form-card glass-card">
@@ -336,15 +335,15 @@ export default function UserForm() {
                         <div className="flex justify-between items-center">
                             <label className="form-label">Site Access *</label>
                             <div className="flex gap-2">
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     className="btn btn-ghost btn-xs"
                                     onClick={() => handleChange('assignedSites', sites.map(s => s.value))}
                                 >
                                     Select All
                                 </button>
-                                <button 
-                                    type="button" 
+                                <button
+                                    type="button"
                                     className="btn btn-ghost btn-xs"
                                     onClick={() => handleChange('assignedSites', [])}
                                 >

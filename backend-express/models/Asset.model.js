@@ -47,8 +47,13 @@ const assetSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Operational', 'Degraded', 'Offline', 'Maintenance', 'Not Installed'],
+    enum: ['Operational', 'Degraded', 'Offline', 'Maintenance', 'Not Installed', 'Spare', 'InTransit', 'Damaged'],
     default: 'Operational'
+  },
+  stockLocation: {
+    type: String,
+    maxlength: 100,
+    trim: true
   },
   installationDate: {
     type: Date
@@ -144,7 +149,11 @@ export const AssetStatuses = {
   OPERATIONAL: 'Operational',
   DEGRADED: 'Degraded',
   OFFLINE: 'Offline',
-  MAINTENANCE: 'Maintenance'
+  MAINTENANCE: 'Maintenance',
+  NOT_INSTALLED: 'Not Installed',
+  SPARE: 'Spare',
+  IN_TRANSIT: 'InTransit',
+  DAMAGED: 'Damaged'
 };
 
 export default mongoose.model('Asset', assetSchema);
