@@ -108,8 +108,8 @@
 }
 
 .logo-icon-large {
-    width: 120px;
-    height: 100px;
+    width: 10rem;
+    height: 8rem;
     background: transparent;
     border-radius: var(--radius-xl);
     display: flex;

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
-import TOpsLogo from '../../assets/TOps.svg';
+import TOpsLogo from '../../assets/TicketOps.png';
 import './Login.css';
 
 export default function Login() {
