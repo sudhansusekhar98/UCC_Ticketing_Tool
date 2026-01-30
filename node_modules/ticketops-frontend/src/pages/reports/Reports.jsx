@@ -194,6 +194,10 @@ export default function Reports() {
 
     const selectedReport = REPORT_TYPES.find(r => r.id === selectedReportType);
 
+    // Calculate dynamic heights for vertical charts
+    const priorityChartHeight = Math.max(250, (ticketStats?.priority?.length || 0) * 40 + 60);
+    const assetTypeChartHeight = Math.max(300, (assetStats?.byType?.length || 0) * 35 + 60);
+
     return (
         <div className="reports-page animate-fade-in">
             <div className="page-header">
@@ -387,11 +391,11 @@ export default function Reports() {
                 <div className="chart-card">
                     <h3>Tickets by Status</h3>
                     <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={300}>
+                        <ResponsiveContainer width="100%" height={250}>
                             <BarChart data={ticketStats?.status}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="_id" axisLine={false} tickLine={false} />
-                                <YAxis axisLine={false} tickLine={false} />
+                                <XAxis dataKey="_id" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }} />
                                 <Bar dataKey="count" fill="#3b82f6" name="Tickets" radius={[4, 4, 0, 0]} />
                             </BarChart>
@@ -403,15 +407,15 @@ export default function Reports() {
                 <div className="chart-card">
                     <h3>Tickets by Category</h3>
                     <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={300}>
+                        <ResponsiveContainer width="100%" height={250}>
                             <PieChart>
                                 <Pie
                                     data={ticketStats?.category}
                                     cx="50%"
                                     cy="50%"
                                     labelLine={false}
-                                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                    outerRadius={100}
+                                    label={{ fontSize: 9 }}
+                                    outerRadius={70}
                                     fill="#8884d8"
                                     dataKey="count"
                                     nameKey="_id"
@@ -429,12 +433,12 @@ export default function Reports() {
                 {/* Tickets by Priority */}
                 <div className="chart-card">
                     <h3>Tickets by Priority</h3>
-                    <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={300}>
+                    <div className="chart-container" style={{ minHeight: priorityChartHeight }}>
+                        <ResponsiveContainer width="100%" height={priorityChartHeight}>
                             <BarChart data={ticketStats?.priority} layout="vertical">
                                 <CartesianGrid strokeDasharray="3 3" horizontal={true} stroke="#e2e8f0" />
-                                <XAxis type="number" axisLine={false} tickLine={false} />
-                                <YAxis dataKey="_id" type="category" width={80} axisLine={false} tickLine={false} />
+                                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                                <YAxis dataKey="_id" type="category" width={80} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(245, 158, 11, 0.1)' }} />
                                 <Bar dataKey="count" fill="#f59e0b" name="Tickets" radius={[0, 4, 4, 0]} />
                             </BarChart>
@@ -446,7 +450,7 @@ export default function Reports() {
                 <div className="chart-card">
                     <h3>SLA Overview</h3>
                     <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={300}>
+                        <ResponsiveContainer width="100%" height={250}>
                             <PieChart>
                                 <Pie
                                     data={[
@@ -455,8 +459,8 @@ export default function Reports() {
                                     ]}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={60}
-                                    outerRadius={100}
+                                    innerRadius={40}
+                                    outerRadius={70}
                                     fill="#8884d8"
                                     dataKey="value"
                                     paddingAngle={5}
@@ -465,7 +469,7 @@ export default function Reports() {
                                     <Cell fill="#22c55e" />
                                 </Pie>
                                 <Tooltip content={<CustomTooltip />} />
-                                <Legend verticalAlign="bottom" height={36} />
+                                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px' }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -475,15 +479,15 @@ export default function Reports() {
                 <div className="chart-card">
                     <h3>Asset Status Distribution</h3>
                     <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={300}>
+                        <ResponsiveContainer width="100%" height={250}>
                             <PieChart>
                                 <Pie
                                     data={assetStats?.byStatus}
                                     cx="50%"
                                     cy="50%"
                                     labelLine={false}
-                                    label={({ _id, percent }) => `${_id} ${(percent * 100).toFixed(0)}%`}
-                                    outerRadius={100}
+                                    label={{ fontSize: 9 }}
+                                    outerRadius={70}
                                     fill="#8884d8"
                                     dataKey="count"
                                     nameKey="_id"
@@ -499,37 +503,37 @@ export default function Reports() {
                                     })}
                                 </Pie>
                                 <Tooltip content={<CustomTooltip />} />
-                                <Legend verticalAlign="bottom" height={36} />
+                                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px' }} />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
                 {/* Asset by Type */}
-                <div className="chart-card">
+                {/* <div className="chart-card">
                     <h3>Assets by Type</h3>
-                    <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={300}>
+                    <div className="chart-container" style={{ minHeight: assetTypeChartHeight }}>
+                        <ResponsiveContainer width="100%" height={assetTypeChartHeight}>
                             <BarChart data={assetStats?.byType} layout="vertical">
                                 <CartesianGrid strokeDasharray="3 3" horizontal={true} stroke="#e2e8f0" />
-                                <XAxis type="number" axisLine={false} tickLine={false} />
-                                <YAxis dataKey="_id" type="category" width={100} axisLine={false} tickLine={false} />
+                                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                                <YAxis dataKey="_id" type="category" width={100} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }} />
                                 <Bar dataKey="count" fill="#8b5cf6" name="Assets" radius={[0, 4, 4, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
-                </div>
+                </div> */}
 
                 {/* RMA by Status */}
-                <div className="chart-card">
+                {/* <div className="chart-card">
                     <h3>RMA Requests by Status</h3>
                     <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={300}>
+                        <ResponsiveContainer width="100%" height={250}>
                             <BarChart data={rmaStats?.byStatus}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="_id" axisLine={false} tickLine={false} />
-                                <YAxis axisLine={false} tickLine={false} />
+                                <XAxis dataKey="_id" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(249, 115, 22, 0.1)' }} />
                                 <Bar dataKey="count" name="RMAs" radius={[4, 4, 0, 0]}>
                                     {rmaStats?.byStatus?.map((entry, index) => (
@@ -539,17 +543,17 @@ export default function Reports() {
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
-                </div>
+                </div> */}
 
                 {/* RMA Trend */}
                 <div className="chart-card">
                     <h3>RMA Trend (Monthly)</h3>
                     <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={300}>
+                        <ResponsiveContainer width="100%" height={250}>
                             <AreaChart data={rmaStats?.trend}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                                <YAxis axisLine={false} tickLine={false} />
+                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                                 <Tooltip content={<CustomTooltip />} />
                                 <Area
                                     type="monotone"

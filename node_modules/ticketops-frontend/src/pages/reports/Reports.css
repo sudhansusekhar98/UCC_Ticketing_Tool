@@ -497,13 +497,13 @@
 /* Charts Grid */
 .charts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
 }
 
 .chart-card {
     background: var(--bg-card);
-    padding: 1.75rem;
+    padding: 1.25rem;
     border-radius: 16px;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border-light);
@@ -516,9 +516,9 @@
 }
 
 .chart-card h3 {
-    font-size: 1.25rem;
+    font-size: 1rem;
     font-weight: 700;
-    margin: 0 0 2rem 0;
+    margin: 0 0 1rem 0;
     color: var(--text-primary);
     display: flex;
     align-items: center;
@@ -527,7 +527,7 @@
 
 .chart-container {
     width: 100%;
-    min-height: 350px;
+    min-height: 250px;
 }
 
 /* Custom Tooltip in Charts */
@@ -543,11 +543,12 @@
 .tooltip-label {
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.125rem;
+    font-size: 0.75rem;
 }
 
 .tooltip-item {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
 }
 
@@ -558,7 +559,7 @@
     }
 
     .charts-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     }
 
     .stat-card {
