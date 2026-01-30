@@ -1,13 +1,15 @@
 import express from 'express';
-import { 
-  login, 
-  getMe, 
-  refreshToken, 
-  logout, 
+import {
+  login,
+  getMe,
+  refreshToken,
+  logout,
   changePassword,
-  updatePreferences
+  updatePreferences,
+  updateProfilePicture
 } from '../controllers/auth.controller.js';
 import { protect } from '../middleware/auth.middleware.js';
+import upload from '../utils/upload.js';
 
 const router = express.Router();
 
@@ -20,5 +22,6 @@ router.get('/me', protect, getMe);
 router.post('/logout', protect, logout);
 router.put('/change-password', protect, changePassword);
 router.put('/preferences', protect, updatePreferences);
+router.put('/profile-picture', protect, upload.single('profilePicture'), updateProfilePicture);
 
 export default router;

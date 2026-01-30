@@ -1,13 +1,14 @@
 import express from 'express';
-import { 
-  getTicketStats, 
-  getSLAPerformance, 
+import {
+  getTicketStats,
+  getSLAPerformance,
   getAssetStats,
   getRMAStats,
   exportReport,
   exportEmployeeStatusReport,
   exportAssetStatusReport,
-  exportRMAReport
+  exportRMAReport,
+  exportSpareStockReport
 } from '../controllers/reporting.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
@@ -25,5 +26,6 @@ router.get('/export', exportReport);
 router.get('/export/employees', exportEmployeeStatusReport);
 router.get('/export/assets', exportAssetStatusReport);
 router.get('/export/rma', exportRMAReport);
+router.get('/export/spare-stock', exportSpareStockReport);
 
 export default router;

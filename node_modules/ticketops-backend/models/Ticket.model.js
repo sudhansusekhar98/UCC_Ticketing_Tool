@@ -86,6 +86,7 @@ const ticketSchema = new mongoose.Schema({
   },
   assignedOn: Date,
   acknowledgedOn: Date,
+  startedOn: Date,
   resolvedOn: Date,
   closedOn: Date,
   // SLA Tracking

@@ -47,6 +47,13 @@
     border: 4px solid rgba(255, 255, 255, 0.3);
     position: relative;
     margin-bottom: var(--space-3);
+    overflow: hidden;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .avatar-edit-btn {

@@ -12,7 +12,7 @@ export const getActivities = async (req, res, next) => {
     const { ticketId } = req.params;
 
     const activities = await TicketActivity.find({ ticketId })
-      .populate('userId', 'fullName username role')
+      .populate('userId', 'fullName username role profilePicture')
       .sort({ createdOn: 1 }); // Sort ascending (oldest first) for chat display
 
     // Get attachments for each activity
@@ -38,6 +38,7 @@ export const getActivities = async (req, res, next) => {
           userId: activity.userId?._id,
           userName: activity.userId?.fullName || 'Unknown',
           userRole: activity.userId?.role || '',
+          userAvatar: activity.userId?.profilePicture || null,
           activityType: activity.activityType,
           content: activity.content,
           isInternal: activity.isInternal,
@@ -51,7 +52,7 @@ export const getActivities = async (req, res, next) => {
     const standaloneAttachments = await TicketAttachment.find({
       ticketId,
       activityId: null
-    }).populate('uploadedBy', 'fullName role').sort({ uploadedOn: 1 });
+    }).populate('uploadedBy', 'fullName role profilePicture').sort({ uploadedOn: 1 });
 
     // Convert standalone attachments to activity-like entries
     const attachmentActivities = standaloneAttachments.map(att => ({
@@ -60,6 +61,7 @@ export const getActivities = async (req, res, next) => {
       userId: att.uploadedBy?._id,
       userName: att.uploadedBy?.fullName || 'Unknown',
       userRole: att.uploadedBy?.role || '',
+      userAvatar: att.uploadedBy?.profilePicture || null,
       activityType: 'Attachment',
       content: `Uploaded: ${att.fileName}`,
       isInternal: false,
@@ -105,7 +107,7 @@ export const createActivity = async (req, res, next) => {
     });
 
     const populatedActivity = await TicketActivity.findById(activity._id)
-      .populate('userId', 'fullName username role');
+      .populate('userId', 'fullName username role profilePicture');
 
     // Emit socket event
     const io = req.app.get('io');
@@ -121,6 +123,7 @@ export const createActivity = async (req, res, next) => {
         userId: populatedActivity.userId?._id,
         userName: populatedActivity.userId?.fullName,
         userRole: populatedActivity.userId?.role,
+        userAvatar: populatedActivity.userId?.profilePicture || null,
         activityType: activity.activityType,
         content: activity.content,
         isInternal: activity.isInternal,

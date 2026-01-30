@@ -92,7 +92,7 @@ export default function Layout({ children }) {
                     </div>
                 </div>
 
-                <nav className="sidebar-nav">
+                <nav className="sidebar-nav custom-scrollbar">
                     {filteredMenuItems.map((item) => (
                         <Link
                             key={item.path}
@@ -146,7 +146,11 @@ export default function Layout({ children }) {
                                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                             >
                                 <div className="user-avatar">
-                                    {user?.fullName?.charAt(0) || 'U'}
+                                    {user?.profilePicture ? (
+                                        <img src={user.profilePicture} alt={user.fullName} className="header-avatar-img" />
+                                    ) : (
+                                        user?.fullName?.charAt(0) || 'U'
+                                    )}
                                 </div>
                                 <div className="user-info">
                                     <span className="user-name">{user?.fullName}</span>

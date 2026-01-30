@@ -25,6 +25,7 @@ const REPORT_TYPES = [
     { id: 'employees', label: 'Employee Status Report', icon: Users, description: 'Export employee details with assigned tickets summary' },
     { id: 'assets', label: 'Asset Status Report', icon: HardDrive, description: 'Export all assets with status, location, and RMA history' },
     { id: 'rma', label: 'RMA Report', icon: RotateCcw, description: 'Export RMA requests with timeline and status details' },
+    { id: 'spare-stock', label: 'Spare Stocks Report', icon: Package, description: 'Export available spare stock assets across sites' },
 ];
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -155,6 +156,10 @@ export default function Reports() {
                 case 'rma':
                     response = await reportingApi.exportRMA(exportParams);
                     filename = `rma_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                    break;
+                case 'spare-stock':
+                    response = await reportingApi.exportSpareStock(exportParams);
+                    filename = `spare_stock_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
                     break;
                 case 'tickets':
                 default:

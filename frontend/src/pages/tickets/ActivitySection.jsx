@@ -354,7 +354,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                 </div>
             </div>
 
-            <div className="activity-messages">
+            <div className="activity-messages custom-scrollbar">
                 {activities.length === 0 ? (
                     <div className="no-activities">
                         <MessageSquare size={32} />
@@ -368,7 +368,11 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                             className={`activity-item ${activity.userId === user?.userId ? 'own' : ''} ${activity.isInternal ? 'internal' : ''}`}
                         >
                             <div className="activity-avatar">
-                                {(activity.userName || 'U').charAt(0).toUpperCase()}
+                                {activity.userAvatar ? (
+                                    <img src={activity.userAvatar} alt={activity.userName} className="activity-avatar-img" />
+                                ) : (
+                                    (activity.userName || 'U').charAt(0).toUpperCase()
+                                )}
                             </div>
                             <div className="activity-content">
                                 <div className="activity-meta">

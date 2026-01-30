@@ -1,12 +1,14 @@
 import User from '../models/User.model.js';
 import UserRight from '../models/UserRight.model.js';
-import { 
-  generateToken, 
-  generateRefreshToken, 
-  hashPassword, 
+import {
+  generateToken,
+  generateRefreshToken,
+  hashPassword,
   comparePassword,
-  verifyRefreshToken 
+  verifyRefreshToken
 } from '../utils/auth.utils.js';
+import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
+import fs from 'fs';
 
 // @desc    Login user
 // @route   POST /api/auth/login
@@ -53,11 +55,11 @@ export const login = async (req, res, next) => {
 
     // Update last login
     user.lastLoginOn = new Date();
-    
+
     // Generate tokens
     const token = generateToken(user._id);
     const refreshToken = generateRefreshToken(user._id);
-    
+
     // Save refresh token
     user.refreshToken = refreshToken;
     user.refreshTokenExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
@@ -102,7 +104,7 @@ export const getMe = async (req, res, next) => {
       .populate('assignedSites', 'siteName siteUniqueID');
 
     const userRight = await UserRight.findOne({ user: req.user.id });
-    
+
     // Convert to object to append rights
     const userObj = user.toObject();
     userObj.rights = userRight || { siteRights: [], globalRights: [] };
@@ -257,6 +259,81 @@ export const changePassword = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Password changed successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update profile picture
+// @route   PUT /api/auth/profile-picture
+// @access  Private
+export const updateProfilePicture = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const file = req.file;
+    const isMemoryStorage = !!file.buffer;
+
+    // Delete old picture from Cloudinary if it exists
+    if (user.cloudinaryId) {
+      try {
+        await deleteFromCloudinary(user.cloudinaryId);
+      } catch (err) {
+        console.error('Failed to delete old profile picture from Cloudinary:', err);
+      }
+    }
+
+    // Upload to Cloudinary
+    const cloudinaryResult = await uploadToCloudinary(
+      isMemoryStorage ? file.buffer : file.path,
+      {
+        folder: 'ticketops/profiles',
+        resourceType: 'image',
+        mimeType: file.mimetype
+      }
+    );
+
+    if (!cloudinaryResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload image to Cloudinary: ' + (cloudinaryResult.error || 'Unknown error')
+      });
+    }
+
+    // Update user record
+    user.profilePicture = cloudinaryResult.url;
+    user.cloudinaryId = cloudinaryResult.publicId;
+    await user.save();
+
+    // Delete local file if it exists
+    if (!isMemoryStorage && file.path) {
+      try {
+        fs.unlinkSync(file.path);
+      } catch (err) {
+        console.error('Failed to delete local file:', err);
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        profilePicture: user.profilePicture
+      },
+      message: 'Profile picture updated successfully'
     });
   } catch (error) {
     next(error);

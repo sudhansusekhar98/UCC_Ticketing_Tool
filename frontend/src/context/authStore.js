@@ -20,7 +20,7 @@ const useAuthStore = create(
                     if (response.data.success) {
                         // Express.js returns: { user: { id, username, fullName, email, role }, token, refreshToken }
                         const { user, token, refreshToken } = response.data.data;
-                        
+
                         // Map 'token' to 'accessToken' for consistency
                         const accessToken = token;
 
@@ -29,13 +29,14 @@ const useAuthStore = create(
                         localStorage.setItem('refreshToken', refreshToken);
 
                         set({
-                            user: { 
-                                userId: user.id, 
-                                username: user.username, 
-                                fullName: user.fullName, 
-                                email: user.email, 
-                                email: user.email, 
+                            user: {
+                                userId: user.id,
+                                username: user.username,
+                                fullName: user.fullName,
+                                email: user.email,
+                                email: user.email,
                                 role: user.role,
+                                profilePicture: user.profilePicture,
                                 assignedSites: user.assignedSites || [],
                                 rights: user.rights || [],
                                 preferences: user.preferences || {}
@@ -74,6 +75,18 @@ const useAuthStore = create(
                 }
             },
 
+            setProfilePicture: (profilePicture) => {
+                const { user } = get();
+                if (user) {
+                    set({
+                        user: {
+                            ...user,
+                            profilePicture
+                        }
+                    });
+                }
+            },
+
             setUserPermissions: (rights) => {
                 const { user } = get();
                 if (user) {
@@ -98,6 +111,7 @@ const useAuthStore = create(
                                 user: {
                                     ...user,
                                     rights: freshUser.rights || { siteRights: [], globalRights: [] },
+                                    profilePicture: freshUser.profilePicture,
                                     assignedSites: freshUser.assignedSites || user.assignedSites || []
                                 }
                             });
@@ -171,12 +185,12 @@ const useAuthStore = create(
             hasRight: (rightName, siteId = null) => {
                 const { user } = get();
                 if (!user) return false;
-                
+
                 // Handle old format where rights was just an array
                 if (Array.isArray(user.rights)) {
                     return user.rights.includes(rightName);
                 }
-                
+
                 // New format
                 if (!user.rights) return false;
 
@@ -209,12 +223,12 @@ const useAuthStore = create(
             hasRightForAnySite: (rightName) => {
                 const { user } = get();
                 if (!user) return false;
-                
+
                 // Handle old format where rights was just an array
                 if (Array.isArray(user.rights)) {
                     return user.rights.includes(rightName);
                 }
-                
+
                 // New format
                 if (!user.rights) return false;
 
@@ -225,7 +239,7 @@ const useAuthStore = create(
                 if (get().hasRole(['Admin', 'Supervisor'])) return true;
 
                 // Check if user has the right for any site
-                const hasForAnySite = user.rights.siteRights?.some(sr => 
+                const hasForAnySite = user.rights.siteRights?.some(sr =>
                     sr.rights?.includes(rightName)
                 );
 
@@ -236,7 +250,7 @@ const useAuthStore = create(
             getSitesWithRight: (rightName) => {
                 const { user } = get();
                 if (!user) return [];
-                
+
                 // Handle old format where rights was just an array
                 if (Array.isArray(user.rights)) {
                     // Old format - if they have the right globally, return all assigned sites
@@ -245,7 +259,7 @@ const useAuthStore = create(
                     }
                     return [];
                 }
-                
+
                 // New format with siteRights and globalRights
                 if (!user.rights) return [];
 

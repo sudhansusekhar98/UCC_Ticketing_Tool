@@ -121,6 +121,13 @@ export const createRMA = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Unable to determine site for RMA. Please ensure ticket or asset has a site assigned.' });
     }
 
+    // Check for Direct RMA Generate permission
+    const isDirectRMA = (['Admin', 'Supervisor'].includes(req.user.role)) ||
+      (req.user.rights?.globalRights?.includes('DIRECT_RMA_GENERATE')) ||
+      (req.user.rights?.siteRights?.some(sr => sr.site.toString() === siteIdValue.toString() && sr.rights?.includes('DIRECT_RMA_GENERATE')));
+
+    const initialStatus = isDirectRMA ? 'Approved' : 'Requested';
+
     const rma = await RMARequest.create({
       ticketId,
       siteId: siteIdValue,
@@ -135,10 +142,13 @@ export const createRMA = async (req, res, next) => {
       requestReason,
       shippingDetails,
       requestedBy: req.user._id,
+      approvedBy: isDirectRMA ? req.user._id : undefined,
+      approvedOn: isDirectRMA ? new Date() : undefined,
+      status: initialStatus,
       timeline: [{
-        status: 'Requested',
+        status: initialStatus,
         changedBy: req.user._id,
-        remarks: requestReason
+        remarks: isDirectRMA ? 'Directly created and approved' : requestReason
       }]
     });
 
@@ -150,7 +160,9 @@ export const createRMA = async (req, res, next) => {
       ticketId: ticket._id,
       userId: req.user._id,
       activityType: 'RMA',
-      content: `🔄 **RMA/Device Replacement Request Submitted**\n\n**Reason:** ${requestReason}\n**Asset:** ${asset.assetCode || 'N/A'} (${asset.assetType || 'Device'})\n**Current S/N:** ${asset.serialNumber || 'N/A'}\n**Current IP:** ${asset.ipAddress || 'N/A'}\n\n_Awaiting approval from Admin/Supervisor_`
+      content: isDirectRMA
+        ? `🔄 **RMA/Device Replacement Created Directly**\n\n**Reason:** ${requestReason}\n**Asset:** ${asset.assetCode || 'N/A'} (${asset.assetType || 'Device'})\n**Current S/N:** ${asset.serialNumber || 'N/A'}\n\n_Status: Approved - Ready for procurement_`
+        : `🔄 **RMA/Device Replacement Request Submitted**\n\n**Reason:** ${requestReason}\n**Asset:** ${asset.assetCode || 'N/A'} (${asset.assetType || 'Device'})\n\n_Awaiting approval from Admin/Supervisor_`
     });
 
     // Send email notifications to admins and users with logistics rights

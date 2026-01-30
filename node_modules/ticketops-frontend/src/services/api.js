@@ -70,6 +70,13 @@ export const authApi = {
         api.put('/auth/change-password', { currentPassword, newPassword }),
     getProfile: () => api.get('/auth/me'),
     updatePreferences: (preferences) => api.put('/auth/preferences', { preferences }),
+    updateProfilePicture: (file) => {
+        const formData = new FormData();
+        formData.append('profilePicture', file);
+        return api.put('/auth/profile-picture', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
 };
 
 // Users API
@@ -237,6 +244,7 @@ export const reportingApi = {
     exportEmployeeStatus: (params) => api.get('/reporting/export/employees', { params, responseType: 'blob' }),
     exportAssetStatus: (params) => api.get('/reporting/export/assets', { params, responseType: 'blob' }),
     exportRMA: (params) => api.get('/reporting/export/rma', { params, responseType: 'blob' }),
+    exportSpareStock: (params) => api.get('/reporting/export/spare-stock', { params, responseType: 'blob' }),
 };
 
 // Stock API

@@ -22,7 +22,7 @@ import { format } from 'date-fns';
 import './Profile.css';
 
 export default function Profile() {
-    const { user, setUser } = useAuthStore();
+    const { user, setProfilePicture } = useAuthStore();
     const [activeSection, setActiveSection] = useState('info');
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -37,6 +37,7 @@ export default function Profile() {
         siteName: '',
         createdOn: '',
         lastLoginOn: '',
+        profilePicture: null,
     });
 
     // Password Change State
@@ -72,6 +73,7 @@ export default function Profile() {
                 siteName: data.siteId?.siteName || '',
                 createdOn: data.createdAt || data.createdOn || '',
                 lastLoginOn: data.lastLoginOn || '',
+                profilePicture: data.profilePicture || null,
             });
         } catch (error) {
             console.error('Failed to load profile', error);
@@ -140,6 +142,41 @@ export default function Profile() {
         }
     };
 
+    const handleAvatarChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please select an image file');
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Image size must be less than 5MB');
+            return;
+        }
+
+        const loadingToast = toast.loading('Uploading profile picture...');
+        try {
+            const response = await authApi.updateProfilePicture(file);
+            const { profilePicture } = response.data.data;
+
+            // Update local state
+            setProfileInfo(prev => ({
+                ...prev,
+                profilePicture
+            }));
+
+            // Update global state
+            setProfilePicture(profilePicture);
+
+            toast.success('Profile picture updated successfully', { id: loadingToast });
+        } catch (error) {
+            console.error('Upload failed', error);
+            toast.error(error.response?.data?.message || 'Failed to upload profile picture', { id: loadingToast });
+        }
+    };
+
     // Get initials for avatar
     const getInitials = (name) => {
         if (!name) return 'U';
@@ -190,10 +227,20 @@ export default function Profile() {
                 <div className="profile-card glass-card">
                     <div className="profile-header">
                         <div className="profile-avatar-large">
-                            {getInitials(profileInfo.fullName)}
-                            <button className="avatar-edit-btn" title="Change Avatar (Coming Soon)" disabled>
+                            {profileInfo.profilePicture ? (
+                                <img src={profileInfo.profilePicture} alt={profileInfo.fullName} className="avatar-img" />
+                            ) : (
+                                getInitials(profileInfo.fullName)
+                            )}
+                            <label className="avatar-edit-btn" title="Change Avatar">
                                 <Camera size={14} />
-                            </button>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleAvatarChange}
+                                    hidden
+                                />
+                            </label>
                         </div>
                         <div className="profile-header-info">
                             <h2>{profileInfo.fullName}</h2>

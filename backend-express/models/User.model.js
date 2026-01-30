@@ -76,6 +76,14 @@ const userSchema = new mongoose.Schema({
     timeFormat: { type: String, default: '24h' },
     language: { type: String, default: 'en' },
     autoRefreshInterval: { type: Number, default: 30 }
+  },
+  profilePicture: {
+    type: String,
+    default: null
+  },
+  cloudinaryId: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true, // Automatically adds createdAt and updatedAt

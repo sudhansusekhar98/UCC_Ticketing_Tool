@@ -5,8 +5,8 @@ import { toast } from 'react-hot-toast';
 import { Database, CheckCircle, AlertTriangle, RotateCcw, Info, Search, XCircle, Check } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 
-const TicketStockPanel = ({ ticketId, assetId, ticketStatus, isLocked, onUpdate }) => {
-    const { hasRole } = useAuthStore();
+const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdate }) => {
+    const { hasRole, hasRight } = useAuthStore();
     const [availability, setAvailability] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showReplaceModal, setShowReplaceModal] = useState(false);
@@ -63,7 +63,7 @@ const TicketStockPanel = ({ ticketId, assetId, ticketStatus, isLocked, onUpdate 
     if (!availability) return null;
 
     const hasStock = availability.localStock > 0 || availability.hoStock > 0;
-    const canManageReplace = hasRole(['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']);
+    const canManageReplace = hasRole(['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']) || hasRight('DIRECT_STOCK_REPLACEMENT', siteId);
 
     return (
         <div className="detail-section glass-card stock-panel p-3 mt-4">
@@ -102,64 +102,46 @@ const TicketStockPanel = ({ ticketId, assetId, ticketStatus, isLocked, onUpdate 
             )}
 
             {showReplaceModal && createPortal(
-                <div className="modal-overlay" onClick={closeModal}>
-                    <div className="modal w-full max-w-2xl rounded-[8px] shadow-lg overflow-hidden"
-                        style={{ background: '#f5f5f5' }}
-                        onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header" style={{ background: '#e0e0e0', color: '#333', padding: '16px 20px', borderBottom: '1px solid #d1d1d1' }}>
-                            <h3 className="flex items-center gap-2 font-bold" style={{ fontSize: '18px', margin: 0, whiteSpace: 'nowrap' }}>
-                                <RotateCcw size={20} className="shrink-0" />
-                                <span className="truncate">Asset Replacement</span>
+                <div className="modal-overlay animate-fade-in" onClick={closeModal}>
+                    <div className="modal glass-card animate-slide-up w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="flex items-center gap-2">
+                                <RotateCcw size={16} />
+                                Asset Replacement
                             </h3>
-                            <button className="btn btn-ghost btn-sm" onClick={closeModal} style={{ color: '#666' }}>
-                                <XCircle size={18} />
+                            <button className="btn btn-ghost btn-sm" onClick={closeModal}>
+                                <XCircle size={14} />
                             </button>
                         </div>
 
-                        <div className="modal-body p-[20px] space-y-[16px]">
-                            <div className="flex flex-col md:flex-row gap-[16px] mb-[16px]">
-                                <div className="form-group flex-1">
-                                    <label className="form-label font-semibold mb-2 block" style={{ fontSize: '14px', color: '#555', whiteSpace: 'nowrap' }}>
-                                        New IP Address (Optional)
-                                    </label>
+                        <div className="modal-body">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div className="form-group">
+                                    <label className="form-label">New IP Address (Optional)</label>
                                     <input
-                                        className="form-input w-full border border-[#ccc]"
+                                        className="form-input"
                                         placeholder="Enter new IP..."
-                                        style={{
-                                            padding: '12px',
-                                            borderRadius: '6px',
-                                            fontSize: '14px',
-                                            background: 'white'
-                                        }}
                                         value={newIp}
                                         onChange={e => setNewIp(e.target.value)}
                                     />
                                 </div>
-                                <div className="form-group flex-1">
-                                    <label className="form-label font-semibold mb-2 block" style={{ fontSize: '14px', color: '#555', whiteSpace: 'nowrap' }}>
-                                        Search Spares
-                                    </label>
+                                <div className="form-group">
+                                    <label className="form-label">Search Spares</label>
                                     <div className="relative flex items-center">
                                         <input
-                                            className="form-input w-full pr-[40px] border border-[#ccc]"
-                                            placeholder="Search by S/N, Asset Code..."
-                                            style={{
-                                                padding: '12px',
-                                                borderRadius: '6px',
-                                                fontSize: '14px',
-                                                background: 'white'
-                                            }}
+                                            className="form-input pr-10"
+                                            placeholder="S/N, Asset Code..."
                                             value={searchTerm}
                                             onChange={e => setSearchTerm(e.target.value)}
                                         />
-                                        <div className="absolute right-[12px] pointer-events-none text-[#999]">
-                                            <Search size={18} />
+                                        <div className="absolute right-3 text-muted">
+                                            <Search size={14} />
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="spare-selection-list max-h-[400px] overflow-y-auto pr-2 custom-scrollbar space-y-6">
+                            <div className="spare-selection-list max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                                 {(() => {
                                     const filterSpares = (spares) => spares?.filter(s =>
                                         s.assetCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -173,48 +155,47 @@ const TicketStockPanel = ({ ticketId, assetId, ticketStatus, isLocked, onUpdate 
 
                                     if (filteredLocal.length === 0 && filteredHO.length === 0) {
                                         return (
-                                            <div className="text-center py-12 bg-white rounded-[8px] border border-[#eee]">
-                                                <Search size={40} className="mx-auto mb-3 opacity-10" />
-                                                <p className="text-[#999]" style={{ fontSize: '14px' }}>No matching spares found.</p>
+                                            <div className="text-center py-8 bg-secondary/10 rounded-lg border border-border">
+                                                <Search size={32} className="mx-auto mb-2 opacity-10" />
+                                                <p className="text-muted text-sm">No matching spares found.</p>
                                             </div>
                                         );
                                     }
 
                                     return (
-                                        <div className="space-y-[16px]">
+                                        <div className="space-y-4">
                                             {filteredLocal.length > 0 && (
                                                 <div>
-                                                    <h4 className="font-bold mb-3 text-[#333] flex items-center gap-2" style={{ fontSize: '16px' }}>
+                                                    <h4 className="text-xs font-bold mb-3 uppercase tracking-wider text-muted flex items-center gap-2">
+                                                        <div className="w-1 h-3 bg-success-500 rounded-full"></div>
                                                         Local Site Stock
                                                     </h4>
                                                     <div className="grid gap-2">
                                                         {filteredLocal.map((spare) => (
                                                             <div
                                                                 key={spare._id}
-                                                                className={`p-3 cursor-pointer transition-all border rounded-[6px] relative ${selectedSpare?._id === spare._id ? 'bg-white border-[#28a745] shadow-sm' : 'bg-white border-[#e0e0e0]'} hover:border-[#aaa]`}
+                                                                className={`p-3 cursor-pointer transition-all border rounded-lg relative ${selectedSpare?._id === spare._id ? 'bg-primary-500/10 border-primary-500 ring-1 ring-primary-500' : 'bg-secondary/10 border-border hover:border-primary-500/50'}`}
                                                                 onClick={() => setSelectedSpare(prev => prev?._id === spare._id ? null : spare)}
                                                             >
                                                                 {selectedSpare?._id === spare._id && (
-                                                                    <div className="absolute top-2 right-2 text-[#28a745]">
-                                                                        <CheckCircle size={18} />
+                                                                    <div className="absolute top-2 right-2 text-primary-500">
+                                                                        <CheckCircle size={14} />
                                                                     </div>
                                                                 )}
-                                                                <div className="flex justify-between items-center gap-4 overflow-hidden">
+                                                                <div className="flex justify-between items-center gap-4">
                                                                     <div className="flex-1 min-w-0">
-                                                                        <div className="font-bold text-[#333] truncate" style={{ fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                        <div className="font-bold text-sm truncate">
                                                                             {spare.assetCode}
                                                                         </div>
-                                                                        <div className="text-[#666] mt-1 flex items-center gap-2" style={{ fontSize: '12px', whiteSpace: 'nowrap' }}>
-                                                                            <span className="shrink-0">S/N:</span>
-                                                                            <span className="font-semibold truncate grow">{spare.serialNumber}</span>
-                                                                            <span className="opacity-30 shrink-0">|</span>
-                                                                            <span className="shrink-0">MAC:</span>
-                                                                            <span className="font-semibold truncate grow">{spare.mac}</span>
+                                                                        <div className="text-muted mt-1 flex items-center gap-2 text-[10px]">
+                                                                            <span>S/N: <b className="text-primary-400">{spare.serialNumber}</b></span>
+                                                                            <span className="opacity-30">|</span>
+                                                                            <span>MAC: <b className="text-primary-400">{spare.mac}</b></span>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="text-right shrink-0 min-w-0 max-w-[40%]">
-                                                                        <div className="font-bold text-[#555] truncate" style={{ fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{spare.make}</div>
-                                                                        <div className="text-[#888] truncate" style={{ fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{spare.model}</div>
+                                                                    <div className="text-right shrink-0">
+                                                                        <div className="font-bold text-xs">{spare.make}</div>
+                                                                        <div className="text-[10px] text-muted">{spare.model}</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -225,33 +206,34 @@ const TicketStockPanel = ({ ticketId, assetId, ticketStatus, isLocked, onUpdate 
 
                                             {filteredHO.length > 0 && (
                                                 <div>
-                                                    <h4 className="font-bold mb-3 text-[#333] flex items-center gap-2" style={{ fontSize: '16px' }}>
+                                                    <h4 className="text-xs font-bold mb-3 uppercase tracking-wider text-muted flex items-center gap-2">
+                                                        <div className="w-1 h-3 bg-primary-500 rounded-full"></div>
                                                         Head Office Stock
                                                     </h4>
                                                     <div className="grid gap-2">
                                                         {filteredHO.map((spare) => (
                                                             <div
                                                                 key={spare._id}
-                                                                className={`p-3 cursor-pointer transition-all border rounded-[6px] relative ${selectedSpare?._id === spare._id ? 'bg-white border-[#28a745] shadow-sm' : 'bg-white border-[#e0e0e0]'} hover:border-[#aaa]`}
+                                                                className={`p-3 cursor-pointer transition-all border rounded-lg relative ${selectedSpare?._id === spare._id ? 'bg-primary-500/10 border-primary-500 ring-1 ring-primary-500' : 'bg-secondary/10 border-border hover:border-primary-500/50'}`}
                                                                 onClick={() => setSelectedSpare(prev => prev?._id === spare._id ? null : spare)}
                                                             >
                                                                 {selectedSpare?._id === spare._id && (
-                                                                    <div className="absolute top-2 right-2 text-[#28a745]">
-                                                                        <CheckCircle size={18} />
+                                                                    <div className="absolute top-2 right-2 text-primary-500">
+                                                                        <CheckCircle size={14} />
                                                                     </div>
                                                                 )}
-                                                                <div className="flex justify-between items-start">
-                                                                    <div>
-                                                                        <div className="font-bold text-[#333]" style={{ fontSize: '14px' }}>{spare.assetCode}</div>
-                                                                        <div className="text-[#666] mt-1" style={{ fontSize: '12px' }}>
-                                                                            S/N: <span className="font-semibold">{spare.serialNumber}</span>
-                                                                            <span className="mx-2 opacity-30">|</span>
-                                                                            MAC: <span className="font-semibold">{spare.mac}</span>
+                                                                <div className="flex justify-between items-center gap-4">
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="font-bold text-sm truncate">{spare.assetCode}</div>
+                                                                        <div className="text-muted mt-1 flex items-center gap-2 text-[10px]">
+                                                                            <span>S/N: <b className="text-primary-400">{spare.serialNumber}</b></span>
+                                                                            <span className="opacity-30">|</span>
+                                                                            <span>MAC: <b className="text-primary-400">{spare.mac}</b></span>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="text-right">
-                                                                        <div className="font-bold text-[#555]" style={{ fontSize: '12px' }}>{spare.make}</div>
-                                                                        <div className="text-[#888]" style={{ fontSize: '12px' }}>{spare.model}</div>
+                                                                    <div className="text-right shrink-0">
+                                                                        <div className="font-bold text-xs">{spare.make}</div>
+                                                                        <div className="text-[10px] text-muted">{spare.model}</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -263,37 +245,17 @@ const TicketStockPanel = ({ ticketId, assetId, ticketStatus, isLocked, onUpdate 
                                     );
                                 })()}
                             </div>
+                        </div>
 
-                            <div className="modal-footer p-[16px] border-t border-[#d1d1d1] flex justify-end gap-[16px]" style={{ background: '#e0e0e0' }}>
-                                <button className="btn font-bold px-6"
-                                    onClick={closeModal}
-                                    style={{
-                                        color: '#333',
-                                        background: '#ccc',
-                                        fontSize: '14px',
-                                        padding: '10px 24px',
-                                        border: 'none',
-                                        borderRadius: '4px'
-                                    }}>
-                                    Cancel
-                                </button>
-                                <button
-                                    className="btn font-bold px-6"
-                                    onClick={handleReplace}
-                                    disabled={!selectedSpare || actionLoading}
-                                    style={{
-                                        background: '#28a745',
-                                        color: 'white',
-                                        fontSize: '14px',
-                                        padding: '10px 24px',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        opacity: (!selectedSpare || actionLoading) ? 0.6 : 1
-                                    }}
-                                >
-                                    {actionLoading ? 'Processing...' : 'Confirm Replacement'}
-                                </button>
-                            </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-ghost" onClick={closeModal}>Cancel</button>
+                            <button
+                                className="btn btn-primary"
+                                onClick={handleReplace}
+                                disabled={!selectedSpare || actionLoading}
+                            >
+                                {actionLoading ? 'Processing...' : 'Confirm Replacement'}
+                            </button>
                         </div>
                     </div>
                 </div>,

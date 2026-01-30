@@ -13,6 +13,14 @@ import {
     Paperclip,
     FileText,
     RotateCcw,
+    Tag,
+    Info,
+    Activity,
+    Database,
+    Building2,
+    Calendar,
+    User,
+    Shield,
 } from 'lucide-react';
 import { ticketsApi, usersApi } from '../../services/api';
 import socketService from '../../services/socket';
@@ -414,42 +422,42 @@ export default function TicketDetail() {
 
                     {canAssign && (ticket.status === 'Open' || ticket.status === 'Assigned') && (
                         <button className="btn btn-primary" onClick={() => setShowAssignModal(true)}>
-                            <UserPlus size={18} />
+                            <UserPlus size={14} />
                             Assign
                         </button>
                     )}
 
                     {canAcknowledge && ticket.status === 'Assigned' && (
                         <button className="btn btn-success" onClick={handleAcknowledge} disabled={actionLoading}>
-                            <CheckCircle size={18} />
+                            <CheckCircle size={14} />
                             Acknowledge
                         </button>
                     )}
 
                     {canResolve && ticket.status === 'Acknowledged' && (
                         <button className="btn btn-primary" onClick={handleStart} disabled={actionLoading}>
-                            <Play size={18} />
+                            <Play size={14} />
                             Start Work
                         </button>
                     )}
 
                     {canResolve && ticket.status === 'InProgress' && (
                         <button className="btn btn-success" onClick={() => setShowResolveModal(true)}>
-                            <CheckCircle size={18} />
+                            <CheckCircle size={14} />
                             Resolve
                         </button>
                     )}
 
                     {canRejectResolution && ticket.status === 'Resolved' && (
                         <button className="btn btn-danger" onClick={() => setShowRejectModal(true)} disabled={actionLoading}>
-                            <XCircle size={18} />
+                            <XCircle size={14} />
                             Reject Resolution
                         </button>
                     )}
 
                     {canEscalate && (
                         <button className="btn btn-warning" onClick={() => setShowEscalateModal(true)}>
-                            <AlertTriangle size={18} />
+                            <AlertTriangle size={14} />
                             Escalate
                         </button>
                     )}
@@ -467,28 +475,28 @@ export default function TicketDetail() {
                             }}
                             disabled={actionLoading}
                         >
-                            <CheckCircle size={18} />
+                            <CheckCircle size={14} />
                             {canDelegateEscalation ? 'Manage Escalation' : 'Accept Escalation'}
                         </button>
                     )}
 
                     {canClose && (ticket.status === 'Resolved' || ticket.status === 'Verified') && (
                         <button className="btn btn-success" onClick={handleClose} disabled={actionLoading}>
-                            <CheckCircle size={18} />
+                            <CheckCircle size={14} />
                             Verify & Close
                         </button>
                     )}
 
                     {canAcknowledgeRejection && ticket.status === 'ResolutionRejected' && (
                         <button className="btn btn-warning" onClick={handleAcknowledgeRejection} disabled={actionLoading}>
-                            <CheckCircle size={18} />
+                            <CheckCircle size={14} />
                             Acknowledge & Resume Work
                         </button>
                     )}
 
                     {canReopen && ticket.status === 'Closed' && (
                         <button className="btn btn-warning" onClick={() => setShowReopenModal(true)}>
-                            <RotateCcw size={18} />
+                            <RotateCcw size={14} />
                             Re-open Ticket
                         </button>
                     )}
@@ -504,22 +512,34 @@ export default function TicketDetail() {
                         </div>
 
                         <div className="detail-row">
-                            <span className="detail-label">Category</span>
+                            <span className="detail-label">
+                                <Tag size={12} />
+                                Category
+                            </span>
                             <span className="detail-value">{ticket.category} {ticket.subCategory && `/ ${ticket.subCategory}`}</span>
                         </div>
 
                         <div className="detail-row">
-                            <span className="detail-label">Description</span>
+                            <span className="detail-label">
+                                <Info size={12} />
+                                Description
+                            </span>
                             <span className="detail-value">{ticket.description || '—'}</span>
                         </div>
 
                         <div className="detail-row">
-                            <span className="detail-label">Impact / Urgency</span>
+                            <span className="detail-label">
+                                <Activity size={12} />
+                                Impact / Urgency
+                            </span>
                             <span className="detail-value">{ticket.impact} / {ticket.urgency} (Score: {ticket.priorityScore})</span>
                         </div>
 
                         <div className="detail-row">
-                            <span className="detail-label">Source</span>
+                            <span className="detail-label">
+                                <Database size={12} />
+                                Source
+                            </span>
                             <span className="detail-value">{ticket.source}</span>
                         </div>
 
@@ -539,17 +559,26 @@ export default function TicketDetail() {
                             </div>
 
                             <div className="detail-row">
-                                <span className="detail-label">Asset Code</span>
+                                <span className="detail-label">
+                                    <Tag size={12} />
+                                    Asset Code
+                                </span>
                                 <span className="detail-value">{ticket.assetCode}</span>
                             </div>
 
                             <div className="detail-row">
-                                <span className="detail-label">Asset Type</span>
+                                <span className="detail-label">
+                                    <Database size={12} />
+                                    Asset Type
+                                </span>
                                 <span className="detail-value">{ticket.assetType}</span>
                             </div>
 
                             <div className="detail-row">
-                                <span className="detail-label">Site</span>
+                                <span className="detail-label">
+                                    <Building2 size={12} />
+                                    Site
+                                </span>
                                 <span className="detail-value">{ticket.siteName}</span>
                             </div>
                         </div>
@@ -559,6 +588,7 @@ export default function TicketDetail() {
                     {ticket.assetId && (
                         <TicketStockPanel
                             ticketId={ticket.ticketId}
+                            siteId={ticketSiteId}
                             assetId={ticket.assetId?._id || ticket.assetId}
                             ticketStatus={ticket.status}
                             isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
@@ -573,7 +603,7 @@ export default function TicketDetail() {
                     {ticket.assetId && (
                         <RMASection
                             ticketId={ticket.ticketId}
-                            siteId={ticket.siteId}
+                            siteId={ticketSiteId}
                             assetId={ticket.assetId?._id || ticket.assetId} // Correctly pass asset ID
                             ticketStatus={ticket.status}
                             isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
@@ -626,43 +656,107 @@ export default function TicketDetail() {
                     {/* SLA & Timeline */}
                     <div className="detail-section glass-card compact-section">
                         <div className="section-header">
-                            <h3 className="section-title">SLA & Timeline</h3>
+                            <h3 className="section-title">
+                                <Clock size={12} />
+                                SLA & Milestone Tracker
+                            </h3>
                         </div>
 
-                        <div className="detail-row">
-                            <span className="detail-label">Created</span>
-                            <span className="detail-value">{format(new Date(ticket.createdOn), 'PPpp')}</span>
+                        <div className="sla-timeline">
+                            {/* Milestone 1: Creation */}
+                            <div className="timeline-milestone active">
+                                <div className="milestone-dot">
+                                    <CheckCircle size={14} />
+                                </div>
+                                <div className="milestone-content">
+                                    <div className="milestone-label">Ticket Created</div>
+                                    <div className="milestone-time">{format(new Date(ticket.createdOn), 'PPpp')}</div>
+                                </div>
+                            </div>
+
+                            {/* Milestone 2: Acknowledged */}
+                            {ticket.acknowledgedOn && (
+                                <div className="timeline-milestone active">
+                                    <div className="milestone-dot">
+                                        <CheckCircle size={14} />
+                                    </div>
+                                    <div className="milestone-content">
+                                        <div className="milestone-label">Acknowledged</div>
+                                        <div className="milestone-time">{format(new Date(ticket.acknowledgedOn), 'PPpp')}</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Target: Response Due */}
+                            {!ticket.acknowledgedOn && (
+                                <div className={`timeline-milestone ${ticket.isSLAResponseBreached ? 'breached' : 'active'}`}>
+                                    <div className="milestone-dot">
+                                        <Clock size={14} />
+                                    </div>
+                                    <div className="milestone-content">
+                                        <div className="milestone-label">
+                                            Response Target
+                                            {ticket.isSLAResponseBreached && <span className="badge badge-danger milestone-status">Breached</span>}
+                                        </div>
+                                        <div className="milestone-time">
+                                            {ticket.slaResponseDue ? format(new Date(ticket.slaResponseDue), 'PPpp') : 'No Target Set'}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Milestone 3: Started */}
+                            {ticket.startedOn && (
+                                <div className="timeline-milestone active">
+                                    <div className="milestone-dot">
+                                        <CheckCircle size={14} />
+                                    </div>
+                                    <div className="milestone-content">
+                                        <div className="milestone-label">Work Started</div>
+                                        <div className="milestone-time">{format(new Date(ticket.startedOn), 'PPpp')}</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Milestone 4: Resolved */}
+                            {ticket.resolvedOn && (
+                                <div className="timeline-milestone active">
+                                    <div className="milestone-dot">
+                                        <CheckCircle size={14} />
+                                    </div>
+                                    <div className="milestone-content">
+                                        <div className="milestone-label">Resolved</div>
+                                        <div className="milestone-time">{format(new Date(ticket.resolvedOn), 'PPpp')}</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Target: Resolution Due */}
+                            {!ticket.resolvedOn && (
+                                <div className={`timeline-milestone ${ticket.isSLARestoreBreached ? 'breached' : (ticket.status === 'InProgress' ? 'active' : '')}`}>
+                                    <div className="milestone-dot">
+                                        <AlertTriangle size={14} />
+                                    </div>
+                                    <div className="milestone-content">
+                                        <div className="milestone-label">
+                                            Resolution Target
+                                            {ticket.isSLARestoreBreached && <span className="badge badge-danger milestone-status">Breached</span>}
+                                        </div>
+                                        <div className="milestone-time">
+                                            {ticket.slaRestoreDue ? format(new Date(ticket.slaRestoreDue), 'PPpp') : 'No Target Set'}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="detail-row">
-                            <span className="detail-label">Created By</span>
-                            <span className="detail-value">{ticket.createdByName}</span>
-                        </div>
-
-                        <div className="detail-row">
-                            <span className="detail-label">Assigned To</span>
-                            <span className="detail-value">{ticket.assignedToName || '—'}</span>
-                        </div>
-
-                        <div className="detail-row">
-                            <span className="detail-label">SLA Policy</span>
-                            <span className="detail-value">{ticket.slaPolicyId?.policyName || 'Standard Policy'}</span>
-                        </div>
-
-                        <div className="detail-row">
-                            <span className="detail-label">Response Target</span>
-                            <span className={`detail-value ${ticket.isSLAResponseBreached ? 'text-danger' : ''}`}>
-                                {ticket.slaResponseDue ? format(new Date(ticket.slaResponseDue), 'PPpp') : '—'}
-                                {ticket.isSLAResponseBreached && ' (Breached)'}
-                            </span>
-                        </div>
-
-                        <div className="detail-row">
-                            <span className="detail-label">Expected Resolution</span>
-                            <span className={`detail-value ${ticket.isSLARestoreBreached ? 'text-danger' : ''}`}>
-                                {ticket.slaRestoreDue ? format(new Date(ticket.slaRestoreDue), 'PPpp') : '—'}
-                                {ticket.isSLARestoreBreached && ' (Breached)'}
-                            </span>
+                        <div className="sla-policy-info">
+                            <div className="policy-details">
+                                <span className="policy-name">
+                                    <Shield size={12} />
+                                    Policy: {ticket.slaPolicyId?.policyName || 'Standard Policy'}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
@@ -670,7 +764,7 @@ export default function TicketDetail() {
                     <div className="detail-section glass-card compact-section">
                         <div className="section-header">
                             <h3 className="section-title">
-                                <History size={16} />
+                                <History size={14} />
                                 History
                             </h3>
                         </div>
@@ -679,7 +773,7 @@ export default function TicketDetail() {
                             {auditTrail.slice(0, 5).map((audit) => (
                                 <div key={audit.auditId} className="audit-item">
                                     <div className="audit-icon">
-                                        <FileText size={12} />
+                                        <FileText size={10} />
                                     </div>
                                     <div className="audit-content">
                                         <div className="audit-action">{audit.action}</div>
@@ -707,10 +801,13 @@ export default function TicketDetail() {
 
             {/* Assign Modal */}
             {showAssignModal && createPortal(
-                <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
-                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowAssignModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>Assign Ticket</h3>
+                            <h3 className="flex items-center gap-2">
+                                <UserPlus size={16} />
+                                Assign Ticket
+                            </h3>
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
@@ -749,10 +846,13 @@ export default function TicketDetail() {
 
             {/* Resolve Modal */}
             {showResolveModal && createPortal(
-                <div className="modal-overlay" onClick={() => setShowResolveModal(false)}>
-                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowResolveModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>Resolve Ticket</h3>
+                            <h3 className="flex items-center gap-2">
+                                <CheckCircle size={16} />
+                                Resolve Ticket
+                            </h3>
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
@@ -788,10 +888,13 @@ export default function TicketDetail() {
 
             {/* Re-open Modal */}
             {showReopenModal && createPortal(
-                <div className="modal-overlay" onClick={() => setShowReopenModal(false)}>
-                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowReopenModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>Re-open Ticket</h3>
+                            <h3 className="flex items-center gap-2">
+                                <RotateCcw size={16} />
+                                Re-open Ticket
+                            </h3>
                         </div>
                         <div className="modal-body">
                             <p className="modal-description">
@@ -821,10 +924,13 @@ export default function TicketDetail() {
 
             {/* Reject Resolution Modal */}
             {showRejectModal && createPortal(
-                <div className="modal-overlay" onClick={() => setShowRejectModal(false)}>
-                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowRejectModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>Reject Resolution</h3>
+                            <h3 className="flex items-center gap-2">
+                                <XCircle size={16} />
+                                Reject Resolution
+                            </h3>
                         </div>
                         <div className="modal-body">
                             <p className="modal-description">
@@ -855,10 +961,13 @@ export default function TicketDetail() {
 
             {/* Escalate Modal */}
             {showEscalateModal && createPortal(
-                <div className="modal-overlay" onClick={() => setShowEscalateModal(false)}>
-                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowEscalateModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>Escalate Ticket</h3>
+                            <h3 className="flex items-center gap-2">
+                                <AlertTriangle size={16} />
+                                Escalate Ticket
+                            </h3>
                         </div>
                         <div className="modal-body">
                             <p className="modal-description">
@@ -891,8 +1000,8 @@ export default function TicketDetail() {
 
             {/* Accept Escalation Modal */}
             {showAcceptEscalationModal && createPortal(
-                <div className="modal-overlay" onClick={() => setShowAcceptEscalationModal(false)}>
-                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowAcceptEscalationModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3>Manage Escalation (Level {ticket?.escalationLevel})</h3>
                         </div>

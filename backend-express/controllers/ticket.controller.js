@@ -118,8 +118,8 @@ export const getTickets = async (req, res, next) => {
     const [tickets, total] = await Promise.all([
       Ticket.find(query)
         .populate('assetId', 'assetCode assetType locationDescription siteId')
-        .populate('createdBy', 'fullName username')
-        .populate('assignedTo', 'fullName username role')
+        .populate('createdBy', 'fullName username profilePicture')
+        .populate('assignedTo', 'fullName username role profilePicture')
         .populate('slaPolicyId', 'policyName priority')
         .sort(sort)
         .skip(skip)
@@ -157,8 +157,8 @@ export const getTicketById = async (req, res, next) => {
           select: 'siteName siteUniqueID city'
         }
       })
-      .populate('createdBy', 'fullName username email')
-      .populate('assignedTo', 'fullName username email role mobileNumber')
+      .populate('createdBy', 'fullName username email profilePicture')
+      .populate('assignedTo', 'fullName username email role mobileNumber profilePicture')
       .populate('slaPolicyId');
 
     if (!ticket) {
@@ -166,6 +166,34 @@ export const getTicketById = async (req, res, next) => {
         success: false,
         message: 'Ticket not found'
       });
+    }
+
+    // Self-healing: If SLA data is missing, calculate it now
+    if (!ticket.slaPolicyId || !ticket.slaResponseDue || !ticket.slaRestoreDue) {
+      try {
+        const slaPolicy = await SLAPolicy.findOne({
+          priority: ticket.priority,
+          isActive: true
+        });
+
+        if (slaPolicy) {
+          ticket.slaPolicyId = slaPolicy._id;
+          const baseDate = ticket.createdAt || new Date();
+
+          if (!ticket.slaResponseDue) {
+            ticket.slaResponseDue = new Date(baseDate.getTime() + slaPolicy.responseTimeMinutes * 60 * 1000);
+          }
+          if (!ticket.slaRestoreDue) {
+            ticket.slaRestoreDue = new Date(baseDate.getTime() + slaPolicy.restoreTimeMinutes * 60 * 1000);
+          }
+
+          await ticket.save();
+          // Reload to ensure population
+          await ticket.populate('slaPolicyId');
+        }
+      } catch (slaError) {
+        console.error('Error auto-calculating SLA for ticket:', slaError);
+      }
     }
 
     res.json({
@@ -432,6 +460,7 @@ export const startTicket = async (req, res, next) => {
       req.params.id,
       {
         status: 'InProgress',
+        startedOn: new Date(),
         updatedAt: new Date()
       },
       { new: true }
@@ -1110,7 +1139,7 @@ export const getDashboardStats = async (req, res, next) => {
       priority: item._id,
       count: item.count
     }));
-    
+
     const ticketsByStatus = (stats.statusCounts || []).map(item => ({
       status: item._id,
       count: item.count

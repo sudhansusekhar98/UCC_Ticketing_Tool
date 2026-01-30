@@ -644,3 +644,81 @@ export const exportRMAReport = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Export Spare Stock Report to Excel
+// @route   GET /api/reporting/export/spare-stock
+// @access  Private
+export const exportSpareStockReport = async (req, res, next) => {
+  try {
+    const { siteId } = req.query;
+
+    const matchStage = {};
+
+    // If siteId is provided and not 'all', filter by site
+    if (siteId && siteId !== 'all') {
+      matchStage.siteId = new mongoose.Types.ObjectId(siteId);
+    }
+
+    // Filter for Spare assets only
+    matchStage.status = 'Spare';
+
+    // Fetch assets with related data
+    const assets = await Asset.find(matchStage)
+      .populate('siteId', 'siteName siteCode city')
+      .sort({ assetCode: 1 })
+      .lean();
+
+    // Transform data for Excel
+    const data = assets.map(asset => {
+      return {
+        'Asset Code': asset.assetCode,
+        'Asset Type': asset.assetType,
+        'Device Type': asset.deviceType || 'N/A',
+        'Status': asset.status,
+        'Make': asset.make || 'N/A',
+        'Model': asset.model || 'N/A',
+        'Serial Number': asset.serialNumber || 'N/A',
+        'IP Address': asset.ipAddress || 'N/A',
+        'MAC Address': asset.mac || 'N/A',
+        'Site': asset.siteId?.siteName || 'N/A',
+        'Site Code': asset.siteId?.siteCode || 'N/A',
+        'City': asset.siteId?.city || 'N/A',
+        'Criticality': asset.criticality ?? 2,
+        'NMS Ref ID': asset.nmsReferenceId || 'N/A',
+        'Created On': asset.createdAt ? new Date(asset.createdAt).toLocaleDateString() : 'N/A',
+        'Last Updated': asset.updatedAt ? new Date(asset.updatedAt).toLocaleDateString() : 'N/A'
+      };
+    });
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 18 },
+      { wch: 18 }, { wch: 20 }, { wch: 15 }, { wch: 20 }, { wch: 25 },
+      { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 15 }, { wch: 15 },
+      { wch: 15 }
+    ];
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Spare Stock Report');
+
+    // Generate buffer
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    const siteSuffix = siteId && siteId !== 'all' ? `_site_${siteId}` : '_all_sites';
+    const filename = `spare_stock_report${siteSuffix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    // Set headers for download
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+
+    // Send buffer
+    res.send(buffer);
+  } catch (error) {
+    console.error('Spare stock export error:', error);
+    next(error);
+  }
+};

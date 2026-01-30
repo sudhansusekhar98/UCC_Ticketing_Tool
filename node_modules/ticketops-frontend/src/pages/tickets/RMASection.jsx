@@ -8,7 +8,7 @@ import useAuthStore from '../../context/authStore';
 
 const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdate }) => {
     const navigate = useNavigate();
-    const { user, hasRole } = useAuthStore();
+    const { user, hasRole, hasRight } = useAuthStore();
     const [rma, setRma] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showRequestModal, setShowRequestModal] = useState(false);
@@ -140,8 +140,11 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </button>
                     )}
                     {!rma && !isLocked && ticketStatus === 'InProgress' && (
-                        <button className="btn btn-sm btn-outline-warning" onClick={() => setShowRequestModal(true)}>
-                            Request RMA
+                        <button
+                            className={`btn btn-sm ${hasRight('DIRECT_RMA_GENERATE', siteId) ? 'btn-success' : 'btn-outline-warning'}`}
+                            onClick={() => setShowRequestModal(true)}
+                        >
+                            {hasRight('DIRECT_RMA_GENERATE', siteId) ? 'Direct RMA Creation' : 'Request RMA'}
                         </button>
                     )}
                     {!rma && !isLocked && ticketStatus !== 'InProgress' && (
@@ -229,10 +232,13 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
 
             {/* Request Modal */}
             {showRequestModal && createPortal(
-                <div className="modal-overlay" onClick={() => setShowRequestModal(false)}>
-                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowRequestModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>Initiate RMA Request</h3>
+                            <h3 className="flex items-center gap-2">
+                                <Package size={16} />
+                                {hasRight('DIRECT_RMA_GENERATE', siteId) ? 'Direct RMA Creation' : 'Initiate RMA Request'}
+                            </h3>
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
@@ -257,7 +263,9 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                         <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowRequestModal(false)}>Cancel</button>
-                            <button className="btn btn-primary" onClick={handleRequestRMA}>Submit Request</button>
+                            <button className="btn btn-primary" onClick={handleRequestRMA}>
+                                {hasRight('DIRECT_RMA_GENERATE', siteId) ? 'Create RMA' : 'Submit Request'}
+                            </button>
                         </div>
                     </div>
                 </div>,
@@ -266,38 +274,43 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
 
             {/* Process/Admin Modal */}
             {showProcessModal && createPortal(
-                <div className="modal-overlay" onClick={() => setShowProcessModal(false)}>
-                    <div className="modal glass-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowProcessModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h3>Update RMA Logistics</h3>
+                            <h3 className="flex items-center gap-2">
+                                <Truck size={16} />
+                                Update RMA Logistics
+                            </h3>
                         </div>
 
                         <div className="modal-body">
-                            {/* Vendor Fields */}
-                            <div className="p-3 bg-secondary/20 rounded mb-4">
-                                <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Vendor & Order</h4>
+                            <div className="p-3 bg-secondary/10 rounded-lg mb-4 border border-border/30">
+                                <h4 className="text-[10px] font-bold mb-3 uppercase tracking-wider opacity-60 flex items-center gap-2">
+                                    <Package size={12} /> Vendor & Order
+                                </h4>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="form-group mb-0">
-                                        <label className="form-label text-xs">Vendor Name</label>
+                                        <label className="form-label text-[10px]">Vendor Name</label>
                                         <input className="form-input" placeholder="Vendor Name" value={vendorDetails.vendorName} onChange={e => setVendorDetails({ ...vendorDetails, vendorName: e.target.value })} />
                                     </div>
                                     <div className="form-group mb-0">
-                                        <label className="form-label text-xs">Order ID</label>
+                                        <label className="form-label text-[10px]">Order ID</label>
                                         <input className="form-input" placeholder="Order ID" value={vendorDetails.orderId} onChange={e => setVendorDetails({ ...vendorDetails, orderId: e.target.value })} />
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Shipping Fields */}
-                            <div className="p-3 bg-secondary/20 rounded">
-                                <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Shipping & Tracking</h4>
+                            <div className="p-3 bg-secondary/10 rounded-lg border border-border/30">
+                                <h4 className="text-[10px] font-bold mb-3 uppercase tracking-wider opacity-60 flex items-center gap-2">
+                                    <Truck size={12} /> Shipping & Tracking
+                                </h4>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="form-group mb-0">
-                                        <label className="form-label text-xs">Carrier</label>
+                                        <label className="form-label text-[10px]">Carrier</label>
                                         <input className="form-input" placeholder="Carrier" value={shippingDetails.carrier} onChange={e => setShippingDetails({ ...shippingDetails, carrier: e.target.value })} />
                                     </div>
                                     <div className="form-group mb-0">
-                                        <label className="form-label text-xs">Tracking Number</label>
+                                        <label className="form-label text-[10px]">Tracking Number</label>
                                         <input className="form-input" placeholder="Tracking Number" value={shippingDetails.trackingNumber} onChange={e => setShippingDetails({ ...shippingDetails, trackingNumber: e.target.value })} />
                                     </div>
                                 </div>
@@ -307,7 +320,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowProcessModal(false)}>Cancel</button>
                             <button className="btn btn-primary" onClick={() => handleUpdateStatus('Ordered')}>Mark Ordered</button>
-                            <button className="btn btn-primary" onClick={() => handleUpdateStatus('Dispatched')}>Mark Dispatched</button>
+                            <button className="btn btn-success" onClick={() => handleUpdateStatus('Dispatched')}>Mark Dispatched</button>
                         </div>
                     </div>
                 </div>,
@@ -316,8 +329,8 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
 
             {/* History Modal */}
             {showHistoryModal && createPortal(
-                <div className="modal-overlay" onClick={() => setShowHistoryModal(false)}>
-                    <div className="modal glass-card max-w-xl" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowHistoryModal(false)}>
+                    <div className="modal glass-card animate-slide-up max-w-xl" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3 className="flex items-center gap-2">
                                 <History size={20} />
@@ -325,33 +338,33 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             </h3>
                         </div>
                         <div className="modal-body">
-                            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                                 {rmaHistory.map((h) => (
-                                    <div key={h._id} className="p-3 bg-secondary/10 rounded border border-border/50 hover:border-primary/30 transition-colors">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <span className="font-bold text-sm text-primary">Ticket: {h.ticketId?.ticketNumber || 'N/A'}</span>
-                                            <span className="text-[10px] uppercase font-bold text-muted bg-secondary/30 px-2 py-1 rounded">
+                                    <div key={h._id} className="p-3 bg-secondary/10 rounded-lg border border-border/30 hover:border-primary-500/30 transition-all">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <span className="font-bold text-xs text-primary-500">Ticket: {h.ticketId?.ticketNumber || 'N/A'}</span>
+                                            <span className="text-[9px] uppercase font-bold text-muted bg-secondary/50 px-2 py-0.5 rounded-full">
                                                 {new Date(h.createdAt).toLocaleDateString()}
                                             </span>
                                         </div>
-                                        <div className="grid grid-cols-2 gap-4 text-xs">
+                                        <div className="grid grid-cols-2 gap-3 text-xs">
                                             <div>
-                                                <span className="block text-muted mb-1 uppercase tracking-tighter">Original S/N</span>
-                                                <span className="font-mono">{h.originalDetailsSnapshot?.serialNumber || 'N/A'}</span>
+                                                <span className="block text-[10px] text-muted mb-1 uppercase tracking-wider opacity-60">Original S/N</span>
+                                                <span className="font-mono text-[11px]">{h.originalDetailsSnapshot?.serialNumber || 'N/A'}</span>
                                             </div>
                                             <div>
-                                                <span className="block text-muted mb-1 uppercase tracking-tighter">New S/N</span>
-                                                <span className="font-mono text-success-500 font-bold">{h.replacementDetails?.serialNumber || 'Pending'}</span>
+                                                <span className="block text-[10px] text-muted mb-1 uppercase tracking-wider opacity-60">New S/N</span>
+                                                <span className="font-mono text-[11px] text-success-500 font-bold">{h.replacementDetails?.serialNumber || 'Pending'}</span>
                                             </div>
                                             <div className="col-span-2 pt-2 border-t border-border/20">
-                                                <span className="block text-muted mb-1 uppercase tracking-tighter">Reason</span>
-                                                <span className="italic">"{h.requestReason}"</span>
+                                                <span className="block text-[10px] text-muted mb-1 uppercase tracking-wider opacity-60">Reason</span>
+                                                <span className="italic text-xs">"{h.requestReason}"</span>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
                                 {rmaHistory.length === 0 && (
-                                    <div className="text-center py-8 text-muted italic">No history found.</div>
+                                    <div className="text-center py-8 text-muted italic text-sm">No history found.</div>
                                 )}
                             </div>
                         </div>
