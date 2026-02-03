@@ -12,7 +12,7 @@ const isServerlessPlatform = () => {
     return hostname.includes('vercel.app') ||
         hostname.includes('netlify.app') ||
         hostname.includes('amplifyapp.com') ||
-        hostname.includes('vluccc.com') ||  
+        hostname.includes('vluccc.com') || 
         hostname.includes('ticketops') ||    
         import.meta.env.VITE_DISABLE_WEBSOCKET === 'true';
 };
