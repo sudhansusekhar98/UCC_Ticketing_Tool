@@ -27,13 +27,22 @@ if (process.env.VERCEL !== '1') {
   import('socket.io').then(({ Server }) => {
     httpServer = createServer(app);
 
-    // Initialize Socket.IO
+    // Initialize Socket.IO with flexible CORS for development
     io = new Server(httpServer, {
       cors: {
-        origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+        origin: [
+          'http://localhost:5173',
+          'http://localhost:5174',
+          'http://localhost:5175',
+          'http://localhost:3000',
+          process.env.CORS_ORIGIN || 'http://localhost:5173'
+        ].filter(Boolean),
         methods: ['GET', 'POST', 'PUT', 'DELETE'],
         credentials: true
-      }
+      },
+      // Improve connection stability
+      pingTimeout: 60000,
+      pingInterval: 25000,
     });
 
     // Socket.IO connection handling

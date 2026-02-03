@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import useAuthStore from './context/authStore';
 import useThemeStore from './context/themeStore';
 import signalRService from './services/signalr';
+import useCachePreloader from './hooks/useCachePreloader';
 
 // Layout
 import Layout from './components/layout/Layout';
@@ -74,6 +75,9 @@ function PublicRoute({ children }) {
 function App() {
   const { isAuthenticated, accessToken, user } = useAuthStore();
   const { initTheme, setupSystemThemeListener, setTheme } = useThemeStore();
+
+  // Initialize cache preloader - automatically preloads static data after login
+  useCachePreloader();
 
   // Sync theme from user preferences
   useEffect(() => {

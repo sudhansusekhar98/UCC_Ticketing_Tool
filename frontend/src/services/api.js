@@ -1,4 +1,5 @@
 import axios from 'axios';
+import useCacheStore, { generateCacheKey, shouldCache } from '../context/cacheStore';
 
 // Use environment variable for API URL, fallback to localhost for development
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -10,22 +11,79 @@ const api = axios.create({
     },
 });
 
-// Request interceptor - add auth token
+// Request interceptor - add auth token and check cache
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('accessToken');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+
+        // Only cache GET requests
+        if (config.method === 'get' && !config.skipCache) {
+            const url = config.url;
+
+            if (shouldCache(url)) {
+                const cacheKey = generateCacheKey(url, config.params || {});
+                const cachedData = useCacheStore.getState().get(cacheKey);
+
+                if (cachedData) {
+                    // Return cached data by throwing a special "error" that will be caught
+                    const error = new Error('CACHE_HIT');
+                    error.cachedResponse = { data: cachedData, fromCache: true, status: 200 };
+                    error.isCacheHit = true;
+                    throw error;
+                }
+            }
+        }
+
         return config;
     },
-    (error) => Promise.reject(error)
+    (error) => {
+        // Check if this is a cache hit "error"
+        if (error.isCacheHit) {
+            return Promise.reject(error);
+        }
+        return Promise.reject(error);
+    }
 );
 
-// Response interceptor - handle token refresh
+// Response interceptor - handle token refresh and cache responses
 api.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        // Cache successful GET responses
+        if (response.config.method === 'get' && !response.config.skipCache) {
+            const url = response.config.url;
+
+            if (shouldCache(url)) {
+                const cacheKey = generateCacheKey(url, response.config.params || {});
+                useCacheStore.getState().set(cacheKey, response.data, url);
+            }
+        }
+
+        // Invalidate related caches on mutations
+        if (['post', 'put', 'patch', 'delete'].includes(response.config.method)) {
+            const url = response.config.url;
+            const cacheStore = useCacheStore.getState();
+
+            // Determine which resource type to invalidate
+            if (url.includes('/tickets')) cacheStore.invalidateResource('tickets');
+            if (url.includes('/assets')) cacheStore.invalidateResource('assets');
+            if (url.includes('/users')) cacheStore.invalidateResource('users');
+            if (url.includes('/sites')) cacheStore.invalidateResource('sites');
+            if (url.includes('/stock')) cacheStore.invalidateResource('stock');
+            if (url.includes('/rma')) cacheStore.invalidateResource('rma');
+            if (url.includes('/lookups')) cacheStore.invalidateResource('lookups');
+        }
+
+        return response;
+    },
     async (error) => {
+        // Handle cache hits
+        if (error.isCacheHit) {
+            return error.cachedResponse;
+        }
+
         const originalRequest = error.config;
 
         if (error.response?.status === 401 && !originalRequest._retry) {
@@ -45,11 +103,13 @@ api.interceptors.response.use(
                     originalRequest.headers.Authorization = `Bearer ${token}`;
                     return api(originalRequest);
                 }
-            } catch (refreshError) {
+            } catch {
                 // Refresh failed - clear tokens and redirect to login
                 localStorage.removeItem('accessToken');
                 localStorage.removeItem('refreshToken');
                 localStorage.removeItem('user');
+                // Also clear cache on logout
+                useCacheStore.getState().clearAll();
                 window.location.href = '/login';
             }
         }
@@ -59,6 +119,7 @@ api.interceptors.response.use(
 );
 
 export default api;
+
 
 // Auth API
 export const authApi = {

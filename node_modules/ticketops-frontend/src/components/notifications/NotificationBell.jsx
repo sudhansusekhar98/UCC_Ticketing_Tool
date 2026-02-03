@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, X, Check, CheckCheck, Trash2, Info, AlertTriangle, AlertCircle, Megaphone, Ticket, Settings } from 'lucide-react';
 import { notificationsApi } from '../../services/api';
 import socketService from '../../services/socket';
+import usePollingFallback from '../../hooks/usePollingFallback';
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import './NotificationBell.css';
@@ -43,12 +44,18 @@ export default function NotificationBell() {
         }
     }, []);
 
+    // Use polling fallback when WebSocket is not available (e.g., on Vercel)
+    usePollingFallback(fetchNotifications, {
+        interval: 30000, // Poll every 30 seconds
+        enabled: true,
+    });
+
     // Initial fetch and socket setup
     useEffect(() => {
         fetchNotifications();
 
-        // Connect to socket for real-time notifications
-        const socket = socketService.connect();
+        // Connect to socket for real-time notifications (will be no-op on serverless)
+        socketService.connect();
 
         const handleNewNotification = (notification) => {
             setNotifications(prev => [notification, ...prev.slice(0, 9)]);
