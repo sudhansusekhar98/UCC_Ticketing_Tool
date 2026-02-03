@@ -75,7 +75,6 @@
 
 .avatar-edit-btn:hover:not(:disabled) {
     background: var(--primary-500);
-    color: white;
 }
 
 .avatar-edit-btn:disabled {
@@ -132,7 +131,6 @@
 
 .profile-nav-btn:hover {
     background: var(--bg-tertiary);
-    color: var(--text-primary);
 }
 
 .profile-nav-btn.active {
@@ -268,7 +266,7 @@
 }
 
 .password-toggle:hover {
-    color: var(--text-primary);
+    opacity: 0.8;
 }
 
 .error-message {

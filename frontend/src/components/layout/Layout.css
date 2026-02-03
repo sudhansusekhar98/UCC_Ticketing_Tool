@@ -77,7 +77,6 @@
 
 .sidebar-toggle:hover {
     background: var(--bg-card-hover);
-    color: var(--text-primary);
 }
 
 .sidebar.closed .sidebar-toggle {
@@ -110,7 +109,6 @@
 
 .nav-item:hover {
     background: var(--bg-tertiary);
-    color: var(--text-primary);
 }
 
 .nav-item.active {
@@ -245,7 +243,6 @@
 
 .icon-btn:hover {
     background: var(--bg-card-hover);
-    color: var(--text-primary);
 }
 
 .notification-badge {
@@ -364,7 +361,6 @@
 
 .dropdown-item:hover {
     background: var(--bg-tertiary);
-    color: var(--text-primary);
 }
 
 .dropdown-item.danger {

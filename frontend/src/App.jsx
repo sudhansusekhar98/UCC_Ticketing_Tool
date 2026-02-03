@@ -38,6 +38,7 @@ import RequisitionList from './pages/stock/RequisitionList';
 import TransferList from './pages/stock/TransferList';
 import StockTransferForm from './pages/stock/StockTransferForm';
 import BulkAddStock from './pages/stock/BulkAddStock';
+import MovementLogs from './pages/stock/MovementLogs';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles, requiredRight }) {
@@ -425,6 +426,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Admin']}>
                 <StockTransferForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stock/logs"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <MovementLogs />
               </ProtectedRoute>
             }
           />

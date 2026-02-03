@@ -459,6 +459,18 @@ h6 {
   box-shadow: var(--shadow-lg), var(--shadow-glow-warning);
 }
 
+.btn-outline-danger {
+  background: transparent;
+  color: var(--danger-500);
+  border: 1px solid var(--danger-500);
+}
+
+.btn-outline-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: var(--danger-600);
+  color: var(--danger-600);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--text-secondary);
@@ -466,7 +478,6 @@ h6 {
 
 .btn-ghost:hover:not(:disabled) {
   background: var(--bg-tertiary);
-  color: var(--text-primary);
 }
 
 .btn-sm {
@@ -480,8 +491,9 @@ h6 {
 }
 
 .btn-xs {
-  padding: 4px 8px;
-  font-size: var(--text-xs);
+  padding: 4px 10px;
+  font-size: 10px;
+  height: 28px;
 }
 
 .btn-icon {
@@ -582,6 +594,12 @@ h6 {
 .badge-secondary {
   background: rgba(148, 163, 184, 0.2);
   color: var(--text-muted);
+}
+
+.badge-outline {
+  background: transparent;
+  border: 1px solid var(--border-medium);
+  color: var(--text-secondary);
 }
 
 /* Priority Badges */

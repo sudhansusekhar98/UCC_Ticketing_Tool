@@ -15,7 +15,9 @@ import {
     bulkUpload,
     exportStockTemplate,
     performStockReplacement,
-    getAssetReplacementHistory
+    getAssetReplacementHistory,
+    getStockMovementLogs,
+    getMovementStats
 } from '../controllers/stock.controller.js';
 import { protect, allowAccess } from '../middleware/auth.middleware.js';
 import { simpleUpload } from '../utils/upload.js';
@@ -36,6 +38,10 @@ router.post('/add', allowAccess({ roles: ['Admin'] }), addStock);
 router.post('/bulk-upload', allowAccess({ roles: ['Admin'] }), simpleUpload.single('file'), bulkUpload);
 router.get('/export-template', allowAccess({ roles: ['Admin'] }), exportStockTemplate);
 
+// Movement logs
+router.get('/movement-logs', getStockMovementLogs);
+router.get('/movement-stats', getMovementStats);
+
 // Requisition routes
 router.route('/requisitions')
     .get(getRequisitions)
@@ -54,3 +60,4 @@ router.put('/transfers/:id/dispatch', allowAccess({ roles: ['Admin'] }), dispatc
 router.put('/transfers/:id/receive', receiveTransfer);
 
 export default router;
+

@@ -276,7 +276,7 @@ export const getAssetsDropdown = async (req, res, next) => {
     query.status = { $ne: 'Spare' };
 
     const assets = await Asset.find(query)
-      .select('assetCode assetType deviceType locationName locationDescription siteId')
+      .select('assetCode assetType deviceType locationName locationDescription siteId criticality')
       .populate('siteId', 'siteName')
       .sort({ assetCode: 1 });
 

@@ -62,7 +62,11 @@ const ticketSchema = new mongoose.Schema({
   status: {
     type: String,
     required: true,
-    enum: ['Open', 'Assigned', 'Acknowledged', 'InProgress', 'OnHold', 'Escalated', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'],
+    enum: [
+      'Open', 'Assigned', 'Acknowledged', 'InProgress', 'OnHold',
+      'Escalated', 'Resolved', 'ResolutionRejected', 'Verified',
+      'Closed', 'Cancelled', 'Repaired', 'Replaced', 'Installed', 'SentToSite'
+    ],
     default: 'Open'
   },
   source: {
@@ -152,7 +156,23 @@ const ticketSchema = new mongoose.Schema({
     type: String,
     maxlength: 500,
     trim: true
-  }
+  },
+  // RMA Tracking
+  rmaId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'RMARequest'
+  },
+  rmaNumber: {
+    type: String
+  },
+  rmaVerified: {
+    type: Boolean,
+    default: false
+  },
+  rmaFinalized: {
+    type: Boolean,
+    default: false
+  },
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -269,7 +289,11 @@ export const TicketStatuses = {
   RESOLUTION_REJECTED: 'ResolutionRejected',
   VERIFIED: 'Verified',
   CLOSED: 'Closed',
-  CANCELLED: 'Cancelled'
+  CANCELLED: 'Cancelled',
+  REPAIRED: 'Repaired',
+  REPLACED: 'Replaced',
+  INSTALLED: 'Installed',
+  SENT_TO_SITE: 'SentToSite'
 };
 
 export const TicketPriorities = {

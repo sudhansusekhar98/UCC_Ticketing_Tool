@@ -462,8 +462,8 @@ export default function AssetsList() {
                                     <th className="col-location">Location</th>
                                     <th className="col-make">Make</th>
                                     <th className="col-model">Model</th>
-                                    <th className="col-mac">MAC</th>
-                                    <th className="col-serial">Serial No</th>
+                                    <th className="col-mac">Mac Address</th>
+                                    <th className="col-serial">SL Number</th>
                                     <th className="col-device">Device</th>
                                     <th className="col-used">Used For</th>
                                     <th className="col-user">User</th>

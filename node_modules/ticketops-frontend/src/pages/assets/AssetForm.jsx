@@ -34,7 +34,12 @@ export default function AssetForm() {
     const isRMAMode = Boolean(updateToken && timeRemaining > 0);
 
     // Fields that are allowed to be edited in RMA mode
-    const rmaEditableFields = ['ipAddress', 'serialNumber', 'mac'];
+    const rmaEditableFields = [
+        'ipAddress', 'serialNumber', 'mac',
+        'installationDate', 'warrantyEndDate',
+        'vmsReferenceId', 'nmsReferenceId',
+        'userName', 'password', 'remark'
+    ];
 
     // Helper function to check if a field is editable
     const isFieldEditable = (fieldName) => {
@@ -259,11 +264,18 @@ export default function AssetForm() {
 
             // If we have an update token, submit for approval instead of direct update
             if (updateToken) {
-                // In RMA mode, only submit the allowed fields (IP Address, Serial Number, and MAC)
+                // In RMA mode, only submit the allowed fields
                 const rmaPayload = {
                     serialNumber: formData.serialNumber,
                     ipAddress: formData.ipAddress,
                     mac: formData.mac,
+                    installationDate: formData.installationDate,
+                    warrantyEndDate: formData.warrantyEndDate,
+                    vmsReferenceId: formData.vmsReferenceId,
+                    nmsReferenceId: formData.nmsReferenceId,
+                    userName: formData.userName,
+                    password: formData.password,
+                    remark: formData.remark
                 };
 
                 await assetUpdateRequestApi.submit(updateToken, rmaPayload);
@@ -339,7 +351,7 @@ export default function AssetForm() {
                             <div>
                                 <h3 className="font-bold text-lg">RMA Installation Mode - Limited Access</h3>
                                 <p className="text-sm text-muted">
-                                    You can only update <strong>Serial Number</strong>, <strong>IP Address</strong>, and <strong>MAC Address</strong>. Submit your changes before the timer expires.
+                                    You can update <strong>Serial Number, IP, MAC, Dates, Credentials, and Remarks</strong>. Other fields are locked for data integrity.
                                 </p>
                             </div>
                         </div>
@@ -376,7 +388,7 @@ export default function AssetForm() {
                             <h3 className="form-section-title">PRIMARY DETAILS & CLASSIFICATION</h3>
                             <div className="form-grid">
                                 <div className="form-group">
-                                    <label className="form-label">MAC Address</label>
+                                    <label className="form-label">Mac Address</label>
                                     <input
                                         type="text"
                                         className="form-input"
@@ -385,17 +397,17 @@ export default function AssetForm() {
                                         placeholder="e.g., 00:1A:2B:3C:4D:5E"
                                         disabled={!isFieldEditable('mac')}
                                     />
-                                    <span className="text-xs text-muted">Unique MAC Address</span>
+                                    <span className="text-xs text-muted">Unique Mac Address</span>
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label">Serial Number *</label>
+                                    <label className="form-label">SL Number *</label>
                                     <input
                                         type="text"
                                         className="form-input"
                                         value={formData.serialNumber}
                                         onChange={(e) => handleChange('serialNumber', e.target.value)}
-                                        placeholder="Enter Serial Number"
+                                        placeholder="Enter SL Number"
                                         required
                                         disabled={!isFieldEditable('serialNumber')}
                                     />
@@ -658,13 +670,14 @@ export default function AssetForm() {
 
 
                                 <div className="form-group">
-                                    <label className="form-label">Serial Number</label>
+                                    <label className="form-label">SL Number</label>
                                     <input
                                         type="text"
                                         className="form-input"
                                         value={formData.serialNumber}
                                         onChange={(e) => handleChange('serialNumber', e.target.value)}
-                                        placeholder="Enter serial number"
+                                        placeholder="Enter SL number"
+                                        disabled={!isFieldEditable('serialNumber')}
                                     />
                                 </div>
 
@@ -692,11 +705,12 @@ export default function AssetForm() {
                                         value={formData.ipAddress}
                                         onChange={(e) => handleChange('ipAddress', e.target.value)}
                                         placeholder="e.g., 192.168.1.100"
+                                        disabled={!isFieldEditable('ipAddress')}
                                     />
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label">MAC Address</label>
+                                    <label className="form-label">Mac Address</label>
                                     <input
                                         type="text"
                                         className="form-input"

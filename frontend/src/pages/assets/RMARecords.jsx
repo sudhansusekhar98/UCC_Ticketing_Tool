@@ -32,7 +32,20 @@ const RMA_STATUS_CONFIG = {
     'Ordered': { color: 'primary', icon: Package, label: 'Ordered from Vendor' },
     'Dispatched': { color: 'primary', icon: Truck, label: 'In Transit' },
     'Received': { color: 'info', icon: Download, label: 'Received' },
-    'Installed': { color: 'success', icon: CheckCircle, label: 'Completed' }
+    'Installed': { color: 'success', icon: CheckCircle, label: 'Completed' },
+    // HO Stock Transfer statuses
+    'AwaitingStockTransfer': { color: 'warning', icon: Clock, label: 'Awaiting HO Transfer' },
+    'StockInTransit': { color: 'primary', icon: Truck, label: 'Stock In Transit' },
+    'StockReceived': { color: 'info', icon: Download, label: 'Stock Received' },
+    // Repair flow statuses
+    'InRepair': { color: 'warning', icon: RefreshCw, label: 'In Repair' },
+    'Repaired': { color: 'info', icon: CheckCircle, label: 'Repaired' },
+    'RepairedItemEnRoute': { color: 'primary', icon: Truck, label: 'Repaired Item En Route' },
+    'RepairedItemReceived': { color: 'info', icon: Download, label: 'Repaired Item Received' },
+    // Faulty item finalization
+    'TransferredToSiteStore': { color: 'success', icon: Package, label: 'Transferred to Site' },
+    'TransferredToHOStock': { color: 'success', icon: Package, label: 'Transferred to HO' },
+    'Discarded': { color: 'danger', icon: XCircle, label: 'Discarded' }
 };
 
 export default function RMARecords() {
@@ -86,7 +99,7 @@ export default function RMARecords() {
                 status: statusFilter || undefined,
                 siteId: siteFilter || undefined
             });
-            
+
             const data = response.data;
             setRmas(data.data || []);
             setOngoingRmas(data.ongoing || []);
@@ -113,9 +126,9 @@ export default function RMARecords() {
     };
 
     const filteredRmas = activeTab === 'ongoing' ? ongoingRmas : completedRmas;
-    
-    const searchedRmas = searchTerm 
-        ? filteredRmas.filter(rma => 
+
+    const searchedRmas = searchTerm
+        ? filteredRmas.filter(rma =>
             rma.ticketId?.ticketNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             rma.originalAssetId?.assetCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             rma.originalAssetId?.ipAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -140,14 +153,14 @@ export default function RMARecords() {
                 </div>
                 <div className="header-actions">
                     <div className="view-toggle">
-                        <button 
+                        <button
                             className={`view-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
                             onClick={() => setViewMode('grid')}
                             title="Grid View"
                         >
                             <LayoutGrid size={18} />
                         </button>
-                        <button 
+                        <button
                             className={`view-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
                             onClick={() => setViewMode('list')}
                             title="List View"
@@ -195,14 +208,14 @@ export default function RMARecords() {
 
             {/* Tabs */}
             <div className="rma-tabs">
-                <button 
+                <button
                     className={`rma-tab ${activeTab === 'ongoing' ? 'active' : ''}`}
                     onClick={() => setActiveTab('ongoing')}
                 >
                     <Clock size={16} />
                     Ongoing ({ongoingRmas.length})
                 </button>
-                <button 
+                <button
                     className={`rma-tab ${activeTab === 'history' ? 'active' : ''}`}
                     onClick={() => setActiveTab('history')}
                 >
@@ -239,13 +252,31 @@ export default function RMARecords() {
                         onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                     >
                         <option value="">All Statuses</option>
-                        <option value="Requested">Requested</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Ordered">Ordered</option>
-                        <option value="Dispatched">Dispatched</option>
-                        <option value="Received">Received</option>
-                        <option value="Installed">Installed</option>
-                        <option value="Rejected">Rejected</option>
+                        <optgroup label="Standard Flow">
+                            <option value="Requested">Requested</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Ordered">Ordered</option>
+                            <option value="Dispatched">Dispatched</option>
+                            <option value="Received">Received</option>
+                            <option value="Installed">Installed</option>
+                            <option value="Rejected">Rejected</option>
+                        </optgroup>
+                        <optgroup label="HO Stock Transfer">
+                            <option value="AwaitingStockTransfer">Awaiting Stock Transfer</option>
+                            <option value="StockInTransit">Stock In Transit</option>
+                            <option value="StockReceived">Stock Received</option>
+                        </optgroup>
+                        <optgroup label="Repair Flow">
+                            <option value="InRepair">In Repair</option>
+                            <option value="Repaired">Repaired</option>
+                            <option value="RepairedItemEnRoute">Repaired Item En Route</option>
+                            <option value="RepairedItemReceived">Repaired Item Received</option>
+                        </optgroup>
+                        <optgroup label="Finalization">
+                            <option value="TransferredToSiteStore">Transferred to Site Store</option>
+                            <option value="TransferredToHOStock">Transferred to HO Stock</option>
+                            <option value="Discarded">Discarded</option>
+                        </optgroup>
                     </select>
                 </div>
             </div>
@@ -269,15 +300,15 @@ export default function RMARecords() {
                                 <div className="list-col">
                                     <span className="list-label">Ticket</span>
                                     <span className="ticket-pill">{rma.ticketId?.ticketNumber || 'N/A'}</span>
-                                    <span className="list-value" style={{fontSize: '11px', color: 'var(--text-muted)'}}>
+                                    <span className="list-value" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                                         {format(new Date(rma.createdAt), 'MMM dd, yyyy')}
                                     </span>
                                 </div>
-                                
+
                                 <div className="list-col">
                                     <span className="list-label">Asset / Site</span>
                                     <span className="list-value">{rma.originalAssetId?.assetCode || 'N/A'} ({rma.originalAssetId?.assetType})</span>
-                                    <span className="list-value" style={{fontSize: '12px', color: 'var(--text-secondary)'}}>
+                                    <span className="list-value" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                                         {rma.siteId?.siteName}
                                     </span>
                                 </div>
@@ -295,7 +326,7 @@ export default function RMARecords() {
                                 </div>
 
                                 <div className="rma-list-actions">
-                                    <button 
+                                    <button
                                         className="btn btn-ghost btn-sm"
                                         onClick={(e) => { e.stopPropagation(); navigate(`/tickets/${rma.ticketId?._id}`); }}
                                     >
@@ -309,8 +340,8 @@ export default function RMARecords() {
                     /* GRID VIEW */
                     <div className="rma-cards">
                         {searchedRmas.map((rma) => (
-                            <div 
-                                key={rma._id} 
+                            <div
+                                key={rma._id}
                                 className="rma-card"
                                 onClick={() => navigate(`/tickets/${rma.ticketId?._id}`)}
                             >
@@ -325,7 +356,7 @@ export default function RMARecords() {
                                         {format(new Date(rma.createdAt), 'MMM dd, yyyy')}
                                     </div>
                                 </div>
-                                
+
                                 <div className="rma-card-body">
                                     <div className="rma-asset-info">
                                         <div className="info-header">Asset Details</div>
@@ -346,7 +377,7 @@ export default function RMARecords() {
                                             <span className="value monospace">{rma.originalDetailsSnapshot?.serialNumber || 'N/A'}</span>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="rma-site-info">
                                         <div className="info-header">Location Info</div>
                                         <div className="info-row">
@@ -363,9 +394,9 @@ export default function RMARecords() {
                                 {/* Timeline preview at bottom */}
                                 <div className="rma-timeline-preview">
                                     {rma.timeline?.slice(-5).map((step, idx) => (
-                                        <div 
-                                            key={idx} 
-                                            className={`timeline-dot ${step.status.toLowerCase()} ${idx === rma.timeline.length - 1 ? 'active' : ''}`} 
+                                        <div
+                                            key={idx}
+                                            className={`timeline-dot ${step.status.toLowerCase()} ${idx === rma.timeline.length - 1 ? 'active' : ''}`}
                                             title={`${step.status} - ${step.changedBy?.fullName || ''}`}
                                         >
                                         </div>
@@ -378,8 +409,8 @@ export default function RMARecords() {
                                         <span>{rma.requestReason || 'No reason provided'}</span>
                                     </div>
 
-                                    <Link 
-                                        to={`/tickets/${rma.ticketId?._id}`} 
+                                    <Link
+                                        to={`/tickets/${rma.ticketId?._id}`}
                                         className="rma-view-link"
                                         onClick={(e) => e.stopPropagation()}
                                     >

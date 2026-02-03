@@ -85,12 +85,21 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
                 </div>
             </div>
 
+            {/* 
             {!isLocked && ticketStatus === 'InProgress' && hasStock && canManageReplace && (
                 <div className="flex justify-end">
                     <button className="btn btn-sm btn-primary" onClick={() => setShowReplaceModal(true)}>
                         <RotateCcw size={16} className="mr-2" />
                         Replace from Stock
                     </button>
+                </div>
+            )}
+            */}
+
+            {!isLocked && ticketStatus === 'InProgress' && (
+                <div className="alert-box info flex items-center gap-2 text-sm p-3 rounded bg-primary/10 border border-primary/30 text-primary-700">
+                    <Info size={16} />
+                    <span>Please use the RMA Portal below for any device replacements or stock updates.</span>
                 </div>
             )}
 

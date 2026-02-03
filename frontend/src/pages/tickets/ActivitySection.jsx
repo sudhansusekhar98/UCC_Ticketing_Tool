@@ -33,14 +33,7 @@ const getRoleBadgeClass = (role) => {
 };
 
 const getActivityTypeIcon = (type) => {
-    switch (type) {
-        case 'StatusChange': return '🔄';
-        case 'Assignment': return '👤';
-        case 'Escalation': return '⬆️';
-        case 'Resolution': return '✅';
-        case 'Attachment': return '📎';
-        default: return '💬';
-    }
+    return null;
 };
 
 // Helper function to properly parse UTC dates from backend

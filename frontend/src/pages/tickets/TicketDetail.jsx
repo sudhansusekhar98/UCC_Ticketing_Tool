@@ -21,6 +21,9 @@ import {
     Calendar,
     User,
     Shield,
+    Package,
+    Hash,
+    Cpu,
 } from 'lucide-react';
 import { ticketsApi, usersApi } from '../../services/api';
 import socketService from '../../services/socket';
@@ -59,7 +62,7 @@ export default function TicketDetail() {
     const [escalationUsers, setEscalationUsers] = useState([]);
     const [selectedEscalationUser, setSelectedEscalationUser] = useState('');
 
-    const isLocked = ['InProgress', 'OnHold', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
+    const isLocked = ['InProgress', 'OnHold', 'Installed', 'Repaired', 'Replaced', 'SentToSite', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
     // Get the site ID from the ticket's asset
     // Get the site ID from the ticket directly or via asset
     const ticketSiteId = ticket?.siteId?._id || ticket?.siteId || ticket?.assetId?.siteId?._id || ticket?.assetId?.siteId;
@@ -78,10 +81,10 @@ export default function TicketDetail() {
     const isEscalationAccepted = !!ticket?.escalationAcceptedBy;
     const isAdmin = hasRole('Admin');
 
-    const canResolve = isEscalationAccepted
+    const canResolve = (isEscalationAccepted
         ? (isAssignedToMe || isAdmin)
-        : (isAssignedToMe || hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']));
-
+        : (isAssignedToMe || hasRole(['L1Engineer', 'L2Engineer', 'Supervisor'])))
+        && (!ticket?.rmaNumber || ticket?.rmaVerified || ticket?.rmaFinalized);
     const canClose = isEscalationAccepted
         ? (isAssignedToMe || isAdmin)
         : (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('DELETE_TICKET', ticketSiteId));
@@ -131,6 +134,8 @@ export default function TicketDetail() {
                 createdOn: ticketData.createdAt || ticketData.createdOn,
                 assetCode: ticketData.assetId?.assetCode || ticketData.assetCode,
                 assetType: ticketData.assetId?.assetType || ticketData.assetType,
+                serialNumber: ticketData.assetId?.serialNumber || ticketData.serialNumber,
+                mac: ticketData.assetId?.mac || ticketData.mac,
                 siteName: ticketData.siteId?.siteName || ticketData.assetId?.siteId?.siteName || ticketData.siteName,
                 siteId: ticketData.siteId?._id || ticketData.siteId || ticketData.assetId?.siteId?._id || ticketData.assetId?.siteId,
                 createdByName: ticketData.createdBy?.fullName || ticketData.createdByName,
@@ -371,6 +376,10 @@ export default function TicketDetail() {
             case 'Escalated': return 'badge-danger';
             case 'Resolved': return 'badge-success';
             case 'Verified': return 'badge-success';
+            case 'Installed': return 'badge-success';
+            case 'Repaired': return 'badge-success';
+            case 'Replaced': return 'badge-info';
+            case 'SentToSite': return 'badge-warning';
             case 'Closed': return 'badge-secondary';
             case 'Cancelled': return 'badge-secondary';
             case 'ResolutionRejected': return 'badge-danger';
@@ -403,6 +412,12 @@ export default function TicketDetail() {
                             {ticket.priority}
                         </span>
                         <span className={`badge ${getStatusClass(ticket.status)}`}>{ticket.status}</span>
+                        {ticket.rmaNumber && (
+                            <span className="badge badge-outline border-primary-500 text-primary-500 flex items-center gap-1">
+                                <Package size={12} />
+                                {ticket.rmaNumber}
+                            </span>
+                        )}
                         <span className={`sla-indicator ${getSLAStatusClass(ticket.slaStatus)}`}>
                             {ticket.slaStatus === 'Breached' && <AlertTriangle size={14} />}
                             {ticket.slaStatus === 'AtRisk' && <Clock size={14} />}
@@ -441,7 +456,7 @@ export default function TicketDetail() {
                         </button>
                     )}
 
-                    {canResolve && ticket.status === 'InProgress' && (
+                    {canResolve && ['InProgress', 'Installed', 'Repaired', 'Replaced'].includes(ticket.status) && (
                         <button className="btn btn-success" onClick={() => setShowResolveModal(true)}>
                             <CheckCircle size={14} />
                             Resolve
@@ -580,6 +595,22 @@ export default function TicketDetail() {
                                     Site
                                 </span>
                                 <span className="detail-value">{ticket.siteName}</span>
+                            </div>
+
+                            <div className="detail-row">
+                                <span className="detail-label">
+                                    <Hash size={12} />
+                                    SL Number
+                                </span>
+                                <span className="detail-value">{ticket.serialNumber || '—'}</span>
+                            </div>
+
+                            <div className="detail-row">
+                                <span className="detail-label">
+                                    <Cpu size={12} />
+                                    Mac Address
+                                </span>
+                                <span className="detail-value">{ticket.mac || '—'}</span>
                             </div>
                         </div>
                     )}

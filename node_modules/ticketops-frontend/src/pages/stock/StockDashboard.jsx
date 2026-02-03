@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Package, Warehouse, ArrowRightLeft, ClipboardList, Plus, Building2, MapPin, Upload, ChevronRight, Inbox
+    Package, Warehouse, ArrowRightLeft, ClipboardList, Plus, Building2, MapPin, Upload, ChevronRight, Inbox, History
 } from 'lucide-react';
 import { stockApi, sitesApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -163,6 +163,16 @@ export default function StockDashboard() {
                         <div className="tile-content">
                             <span className="tile-title">Stock Transfers</span>
                             <span className="tile-desc">Track inter-site movements</span>
+                        </div>
+                        <ChevronRight size={20} className="tile-arrow" />
+                    </Link>
+                    <Link to="/stock/logs" className="quick-action-tile">
+                        <div className="tile-icon">
+                            <History size={24} />
+                        </div>
+                        <div className="tile-content">
+                            <span className="tile-title">Movement Logs</span>
+                            <span className="tile-desc">Complete audit trail</span>
                         </div>
                         <ChevronRight size={20} className="tile-arrow" />
                     </Link>

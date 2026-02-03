@@ -314,7 +314,7 @@ export const sendRMACreationEmail = async (rmaRequest, ticket, requestedBy, noti
         <tr><th>Asset Type</th><td>${rmaRequest.asset?.assetType || 'N/A'}</td></tr>
         <tr><th>Serial Number</th><td>${rmaRequest.oldSerialNumber || 'N/A'}</td></tr>
         <tr><th>Status</th><td>${rmaRequest.status}</td></tr>
-        <tr><th>Requested By</th><td>${requestedBy?.name || 'System'}</td></tr>
+        <tr><th>Requested By</th><td>${requestedBy?.fullName || requestedBy?.name || 'System'}</td></tr>
         <tr><th>Request Date</th><td>${new Date(rmaRequest.createdAt).toLocaleString()}</td></tr>
       </table>
       
@@ -568,6 +568,119 @@ export const sendSlaBreachedEmail = async (ticket, user, admins) => {
   }
 };
 
+/**
+ * Send RMA Milestone notifications (role-based targeting)
+ * @param {Object} rma - RMA request object
+ * @param {String} milestone - Milestone type: 'Dispatched', 'Received', 'Repaired', 'StockInTransit', 'StockReceived', 'RepairedItemEnRoute', 'RepairedItemReceived'
+ * @param {Array} recipients - Users to notify
+ * @param {Object} additionalDetails - Additional context (shippingDetails, etc.)
+ */
+export const sendRMAMilestoneEmail = async (rma, milestone, recipients, additionalDetails = {}) => {
+  try {
+    const transporter = createTransporter();
+
+    if (!recipients || recipients.length === 0) {
+      console.log('No recipients for RMA milestone notification');
+      return false;
+    }
+
+    const recipientEmails = recipients.map(u => u.email).filter(Boolean);
+    if (recipientEmails.length === 0) return false;
+
+    // Define milestone-specific content
+    const milestoneConfig = {
+      'Dispatched': {
+        icon: '🚚',
+        title: 'Replacement Device Dispatched',
+        message: 'A replacement device has been dispatched and is on its way to the site.'
+      },
+      'Received': {
+        icon: '📥',
+        title: 'Replacement Device Received',
+        message: 'The replacement device has been received at the site.'
+      },
+      'Repaired': {
+        icon: '✨',
+        title: 'Item Repaired Successfully',
+        message: 'The faulty item has been repaired and is ready for deployment.'
+      },
+      'StockInTransit': {
+        icon: '🚛',
+        title: 'HO Stock In Transit',
+        message: 'Stock from Head Office is being shipped to the site for RMA replacement.'
+      },
+      'StockReceived': {
+        icon: '📦',
+        title: 'HO Stock Received & Installed',
+        message: 'Stock from Head Office has been received and the hardware has been swapped.'
+      },
+      'RepairedItemEnRoute': {
+        icon: '🚚',
+        title: 'Repaired Item En Route',
+        message: 'The repaired item is being shipped back to the site for re-installation.'
+      },
+      'RepairedItemReceived': {
+        icon: '📥',
+        title: 'Repaired Item Received',
+        message: 'The repaired item has been received and is ready for re-installation.'
+      }
+    };
+
+    const config = milestoneConfig[milestone] || {
+      icon: '🔔',
+      title: `RMA Update: ${milestone}`,
+      message: `The RMA status has been updated to: ${milestone}`
+    };
+
+    const content = `
+      <p>Hello,</p>
+      <p>${config.icon} <strong>${config.title}</strong></p>
+      <p>${config.message}</p>
+      
+      <table class="data-table">
+        <tr><th>RMA Number</th><td>${rma.rmaNumber}</td></tr>
+        <tr><th>Replacement Source</th><td>${rma.replacementSource || 'N/A'}</td></tr>
+        ${additionalDetails.siteName ? `<tr><th>Site</th><td>${additionalDetails.siteName}</td></tr>` : ''}
+        ${additionalDetails.shippingDetails?.trackingNumber ? `<tr><th>Tracking Number</th><td>${additionalDetails.shippingDetails.trackingNumber}</td></tr>` : ''}
+        ${additionalDetails.shippingDetails?.carrier ? `<tr><th>Carrier</th><td>${additionalDetails.shippingDetails.carrier}</td></tr>` : ''}
+        <tr><th>Status</th><td><strong>${milestone}</strong></td></tr>
+        <tr><th>Updated On</th><td>${new Date().toLocaleString()}</td></tr>
+      </table>
+      
+      ${additionalDetails.remarks ? `<p><strong>Remarks:</strong></p><div class="info-box">${additionalDetails.remarks}</div>` : ''}
+      
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/rma" class="btn" style="color: white !important; text-decoration: none;">View RMA Details</a>
+      </div>
+      
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
+    `;
+
+    const subject = `${config.icon} RMA ${milestone}: ${rma.rmaNumber}`;
+    await transporter.sendMail({
+      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+      to: recipientEmails.join(', '),
+      subject: subject,
+      html: emailTemplate(content, config.title),
+    });
+
+    console.log(`RMA milestone (${milestone}) email sent to ${recipientEmails.length} recipients`);
+
+    // Log for each recipient
+    for (const user of recipients) {
+      if (user.email) {
+        await logNotification(user.email, subject, content, 'RMA', rma.ticketId, 'Sent', null, user._id);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`Error sending RMA milestone (${milestone}) email:`, error);
+    await logNotification('Multiple Recipients', `RMA ${milestone}`, 'Failed', 'RMA', rma.ticketId, 'Failed', error.message);
+    return false;
+  }
+};
+
 export default {
   sendAccountCreationEmail,
   sendTicketAssignmentEmail,
@@ -576,5 +689,6 @@ export default {
   sendTicketStatusChangeEmail,
   sendPasswordResetEmail,
   sendBreachWarningEmail,
-  sendSlaBreachedEmail
+  sendSlaBreachedEmail,
+  sendRMAMilestoneEmail
 };

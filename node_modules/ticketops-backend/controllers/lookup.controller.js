@@ -1,13 +1,15 @@
 import Asset from '../models/Asset.model.js';
 import DeviceType from '../models/DeviceType.model.js';
+import SLAPolicy from '../models/SLAPolicy.model.js';
 
 // @desc    Get all lookups
 // @route   GET /api/lookups
 // @access  Private
 export const getAllLookups = async (req, res, next) => {
   try {
-    const [assetTypes] = await Promise.all([
-      Asset.distinct('assetType')
+    const [assetTypes, slaPolicies] = await Promise.all([
+      Asset.distinct('assetType'),
+      SLAPolicy.find({ isActive: true }).select('policyName priority responseTimeMinutes restoreTimeMinutes')
     ]);
 
     // Format asset types consistently
@@ -23,7 +25,8 @@ export const getAllLookups = async (req, res, next) => {
         categories: getCategories(),
         assetTypes: formattedAssetTypes,
         assetStatuses: getAssetStatuses(),
-        roles: getRoles()
+        roles: getRoles(),
+        slaPolicies: slaPolicies
       }
     });
   } catch (error) {
@@ -197,6 +200,7 @@ function getAssetStatuses() {
     { value: 'Degraded', label: 'Degraded', color: '#f39c12' },
     { value: 'Offline', label: 'Offline', color: '#e74c3c' },
     { value: 'Maintenance', label: 'Maintenance', color: '#9b59b6' },
+    { value: 'In Repair', label: 'In Repair', color: '#f1c40f' },
     { value: 'Not Installed', label: 'Not Installed', color: '#7f8c8d' }
   ];
 }

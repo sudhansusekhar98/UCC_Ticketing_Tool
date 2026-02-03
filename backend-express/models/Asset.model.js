@@ -47,8 +47,12 @@ const assetSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Operational', 'Degraded', 'Offline', 'Maintenance', 'Not Installed', 'Spare', 'InTransit', 'Damaged'],
+    enum: ['Operational', 'Degraded', 'Offline', 'Maintenance', 'In Repair', 'Not Installed', 'Spare', 'InTransit', 'Damaged', 'Reserved'],
     default: 'Operational'
+  },
+  reservedByRma: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'RMARequest'
   },
   stockLocation: {
     type: String,
@@ -153,7 +157,9 @@ export const AssetStatuses = {
   NOT_INSTALLED: 'Not Installed',
   SPARE: 'Spare',
   IN_TRANSIT: 'InTransit',
-  DAMAGED: 'Damaged'
+  DAMAGED: 'Damaged',
+  RESERVED: 'Reserved',
+  IN_REPAIR: 'In Repair'
 };
 
 export default mongoose.model('Asset', assetSchema);

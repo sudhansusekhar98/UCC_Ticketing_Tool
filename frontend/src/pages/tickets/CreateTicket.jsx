@@ -41,6 +41,8 @@ export default function TicketForm() {
     const [selectedLocationName, setSelectedLocationName] = useState('');
     const [selectedAssetType, setSelectedAssetType] = useState('');
     const [selectedDeviceType, setSelectedDeviceType] = useState('');
+    const [slaPolicies, setSlaPolicies] = useState([]);
+    const [calculatedTargets, setCalculatedTargets] = useState({ response: null, resolution: null });
 
     // File attachments (only for new tickets)
     const [attachments, setAttachments] = useState([]);
@@ -118,15 +120,20 @@ export default function TicketForm() {
 
     const loadDropdowns = async () => {
         try {
-            const [categoriesRes, sitesRes, engineersRes, usersRes] = await Promise.all([
+            const [categoriesRes, sitesRes, engineersRes, usersRes, lookupsRes] = await Promise.all([
                 lookupsApi.getCategories(),
                 sitesApi.getDropdown(),
                 usersApi.getEngineers(),
                 usersApi.getDropdown(), // Get all active users
+                lookupsApi.getAll()
             ]);
             // Handle Express response format
             const catData = categoriesRes.data.data || categoriesRes.data || [];
             setCategories(catData);
+
+            // Set SLA Policies
+            const lookupData = lookupsRes.data.data || lookupsRes.data || {};
+            setSlaPolicies(lookupData.slaPolicies || []);
 
             // Backend already filters sites based on user's assignedSites
             const siteData = sitesRes.data.data || sitesRes.data || [];
@@ -202,7 +209,8 @@ export default function TicketForm() {
 
             setAssets(assetData.map(a => ({
                 value: a._id || a.value || a.assetId,
-                label: `${a.assetCode}${a.deviceType ? ` (${a.deviceType})` : a.assetType ? ` (${a.assetType})` : ''}`
+                label: `${a.assetCode}${a.deviceType ? ` (${a.deviceType})` : a.assetType ? ` (${a.assetType})` : ''}`,
+                criticality: a.criticality || 2
             })));
         } catch (error) {
             console.error('Failed to load assets', error);
@@ -211,6 +219,32 @@ export default function TicketForm() {
 
 
 
+    // Calculate targets whenever impact, urgency or asset changes
+    useEffect(() => {
+        const calculateSLA = async () => {
+            const selectedAsset = assets.find(a => a.value === formData.assetId);
+            const criticality = selectedAsset?.criticality || 2;
+            const score = formData.impact * formData.urgency * criticality;
+            const priority = getPriorityFromScore(score);
+            const policy = slaPolicies.find(p => p.priority === priority);
+
+            if (policy) {
+                const now = new Date();
+                const responseDue = new Date(now.getTime() + policy.responseTimeMinutes * 60 * 1000);
+                const resolutionDue = new Date(now.getTime() + policy.restoreTimeMinutes * 60 * 1000);
+                setCalculatedTargets({
+                    response: responseDue,
+                    resolution: resolutionDue
+                });
+            } else {
+                setCalculatedTargets({ response: null, resolution: null });
+            }
+        };
+
+        if (slaPolicies.length > 0) {
+            calculateSLA();
+        }
+    }, [formData.impact, formData.urgency, formData.assetId, slaPolicies, assets]);
     const loadTicket = async () => {
         setLoading(true);
         try {
@@ -422,370 +456,400 @@ export default function TicketForm() {
 
             <form onSubmit={handleSubmit} className="form-card glass-card">
                 <div className='asset-form-container' style={{ margin: "1rem" }}>
-                <div className="form-grid">
-                    {/* Site Selection (mandatory) */}
-                    <div className="form-group">
-                        <label className="form-label">Site *</label>
-                        <select
-                            className="form-select"
-                            value={selectedSiteId}
-                            onChange={(e) => setSelectedSiteId(e.target.value)}
-                            required
-                        >
-                            <option value="">Select Site</option>
-                            {sites.map((site) => (
-                                <option key={site.value} value={site.value}>{site.label}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Location Name Selection (filter for assets) */}
-                    <div className="form-group">
-                        <label className="form-label">Location Name</label>
-                        <select
-                            className="form-select"
-                            value={selectedLocationName}
-                            onChange={(e) => setSelectedLocationName(e.target.value)}
-                            disabled={!selectedSiteId || locationNames.length === 0}
-                        >
-                            <option value="">
-                                {!selectedSiteId
-                                    ? 'Select Site first'
-                                    : locationNames.length === 0
-                                        ? 'No locations available'
-                                        : 'All Locations'}
-                            </option>
-                            {locationNames.map((loc) => (
-                                <option key={loc.value} value={loc.value}>{loc.label}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Asset Type Selection (filter for assets) */}
-                    <div className="form-group">
-                        <label className="form-label">Asset Type</label>
-                        <select
-                            className="form-select"
-                            value={selectedAssetType}
-                            onChange={(e) => setSelectedAssetType(e.target.value)}
-                            disabled={!selectedSiteId || assetTypes.length === 0}
-                        >
-                            <option value="">
-                                {!selectedSiteId
-                                    ? 'Select Site first'
-                                    : assetTypes.length === 0
-                                        ? 'No asset types available'
-                                        : 'All Asset Types'}
-                            </option>
-                            {assetTypes.map((type) => (
-                                <option key={type.value} value={type.value}>{type.label}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Device Type Selection (filter for assets) */}
-                    <div className="form-group">
-                        <label className="form-label">Device Type</label>
-                        <select
-                            className="form-select"
-                            value={selectedDeviceType}
-                            onChange={(e) => setSelectedDeviceType(e.target.value)}
-                            disabled={!selectedAssetType || deviceTypes.length === 0}
-                        >
-                            <option value="">
-                                {!selectedAssetType
-                                    ? 'Select Asset Type first'
-                                    : deviceTypes.length === 0
-                                        ? 'No device types available'
-                                        : 'All Device Types'}
-                            </option>
-                            {deviceTypes.map((dt) => (
-                                <option key={dt.value} value={dt.value}>{dt.label}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Asset Selection */}
-                    <div className="form-group">
-                        <label className="form-label">Asset</label>
-                        <select
-                            className="form-select"
-                            value={formData.assetId}
-                            onChange={(e) => handleChange('assetId', e.target.value)}
-                            disabled={!selectedSiteId}
-                        >
-                            <option value="">
-                                {!selectedSiteId
-                                    ? 'Select Site first'
-                                    : assets.length === 0
-                                        ? 'No assets available'
-                                        : 'Select Asset (optional)'
-                                }
-                            </option>
-                            {assets.map((asset) => (
-                                <option key={asset.value} value={asset.value}>{asset.label}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Category */}
-                    <div className="form-group">
-                        <label className="form-label">Category *</label>
-                        <select
-                            className="form-select"
-                            value={formData.category}
-                            onChange={(e) => handleChange('category', e.target.value)}
-                            required
-                        >
-                            <option value="">Select Category</option>
-                            {categories.map((cat) => (
-                                <option key={cat.value} value={cat.value}>{cat.label}</option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Sub Category */}
-                    <div className="form-group">
-                        <label className="form-label">Sub Category</label>
-                        <input
-                            type="text"
-                            className="form-input"
-                            value={formData.subCategory}
-                            onChange={(e) => handleChange('subCategory', e.target.value)}
-                            placeholder="Optional sub-category"
-                        />
-                    </div>
-
-                    {/* Title */}
-                    <div className="form-group full-width">
-                        <label className="form-label">Title *</label>
-                        <input
-                            type="text"
-                            className="form-input"
-                            value={formData.title}
-                            onChange={(e) => handleChange('title', e.target.value)}
-                            placeholder="Brief description of the issue"
-                            required
-                        />
-                    </div>
-
-                    {/* Description */}
-                    <div className="form-group full-width">
-                        <label className="form-label">Description</label>
-                        <textarea
-                            className="form-textarea"
-                            value={formData.description}
-                            onChange={(e) => handleChange('description', e.target.value)}
-                            placeholder="Detailed description of the issue..."
-                            rows={4}
-                        />
-                    </div>
-
-                    {/* Impact */}
-                    <div className="form-group">
-                        <label className="form-label">Impact (1-5)</label>
-                        <select
-                            className="form-select"
-                            value={formData.impact}
-                            onChange={(e) => handleChange('impact', e.target.value)}
-                        >
-                            <option value="1">1 - Minimal</option>
-                            <option value="2">2 - Low</option>
-                            <option value="3">3 - Moderate</option>
-                            <option value="4">4 - Significant</option>
-                            <option value="5">5 - Critical</option>
-                        </select>
-                    </div>
-
-                    {/* Urgency */}
-                    <div className="form-group">
-                        <label className="form-label">Urgency (1-5)</label>
-                        <select
-                            className="form-select"
-                            value={formData.urgency}
-                            onChange={(e) => handleChange('urgency', e.target.value)}
-                        >
-                            <option value="1">1 - Planned</option>
-                            <option value="2">2 - Low</option>
-                            <option value="3">3 - Normal</option>
-                            <option value="4">4 - High</option>
-                            <option value="5">5 - Immediate</option>
-                        </select>
-                    </div>
-
-                    {/* Assign To (only for new tickets) */}
-                    {!isEditing && (
+                    <div className="form-grid">
+                        {/* Site Selection (mandatory) */}
                         <div className="form-group">
-                            <label className="form-label">Assign To (optional)</label>
+                            <label className="form-label">Site *</label>
                             <select
                                 className="form-select"
-                                value={formData.assignedTo}
-                                onChange={(e) => handleChange('assignedTo', e.target.value)}
+                                value={selectedSiteId}
+                                onChange={(e) => setSelectedSiteId(e.target.value)}
+                                required
                             >
-                                <option value="">Unassigned</option>
-                                {user && (
-                                    <option value={user.userId}>
-                                        👤 Assign to Myself ({user.fullName})
-                                    </option>
-                                )}
-                                <optgroup label="Engineers">
-                                    {engineers
-                                        .filter(eng => eng.value !== user?.userId?.toString())
-                                        .map((eng) => (
-                                            <option key={eng.value} value={eng.value}>{eng.label}</option>
-                                        ))}
-                                </optgroup>
-                                <optgroup label="Other Employees">
-                                    {allUsers
-                                        .filter(u =>
-                                            u.value !== user?.userId?.toString() &&
-                                            !engineers.some(e => e.value === u.value)
-                                        )
-                                        .map((u) => (
-                                            <option key={u.value} value={u.value}>{u.label}</option>
-                                        ))}
-                                </optgroup>
+                                <option value="">Select Site</option>
+                                {sites.map((site) => (
+                                    <option key={site.value} value={site.value}>{site.label}</option>
+                                ))}
                             </select>
                         </div>
-                    )}
 
-                    {/* Tags */}
-                    <div className="form-group">
-                        <label className="form-label">Tags</label>
-                        <input
-                            type="text"
-                            className="form-input"
-                            value={formData.tags}
-                            onChange={(e) => handleChange('tags', e.target.value)}
-                            placeholder="Comma-separated tags"
-                        />
+                        {/* Location Name Selection (filter for assets) */}
+                        <div className="form-group">
+                            <label className="form-label">Location Name</label>
+                            <select
+                                className="form-select"
+                                value={selectedLocationName}
+                                onChange={(e) => setSelectedLocationName(e.target.value)}
+                                disabled={!selectedSiteId || locationNames.length === 0}
+                            >
+                                <option value="">
+                                    {!selectedSiteId
+                                        ? 'Select Site first'
+                                        : locationNames.length === 0
+                                            ? 'No locations available'
+                                            : 'All Locations'}
+                                </option>
+                                {locationNames.map((loc) => (
+                                    <option key={loc.value} value={loc.value}>{loc.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Asset Type Selection (filter for assets) */}
+                        <div className="form-group">
+                            <label className="form-label">Asset Type</label>
+                            <select
+                                className="form-select"
+                                value={selectedAssetType}
+                                onChange={(e) => setSelectedAssetType(e.target.value)}
+                                disabled={!selectedSiteId || assetTypes.length === 0}
+                            >
+                                <option value="">
+                                    {!selectedSiteId
+                                        ? 'Select Site first'
+                                        : assetTypes.length === 0
+                                            ? 'No asset types available'
+                                            : 'All Asset Types'}
+                                </option>
+                                {assetTypes.map((type) => (
+                                    <option key={type.value} value={type.value}>{type.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Device Type Selection (filter for assets) */}
+                        <div className="form-group">
+                            <label className="form-label">Device Type</label>
+                            <select
+                                className="form-select"
+                                value={selectedDeviceType}
+                                onChange={(e) => setSelectedDeviceType(e.target.value)}
+                                disabled={!selectedAssetType || deviceTypes.length === 0}
+                            >
+                                <option value="">
+                                    {!selectedAssetType
+                                        ? 'Select Asset Type first'
+                                        : deviceTypes.length === 0
+                                            ? 'No device types available'
+                                            : 'All Device Types'}
+                                </option>
+                                {deviceTypes.map((dt) => (
+                                    <option key={dt.value} value={dt.value}>{dt.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Asset Selection */}
+                        <div className="form-group">
+                            <label className="form-label">Asset</label>
+                            <select
+                                className="form-select"
+                                value={formData.assetId}
+                                onChange={(e) => handleChange('assetId', e.target.value)}
+                                disabled={!selectedSiteId}
+                            >
+                                <option value="">
+                                    {!selectedSiteId
+                                        ? 'Select Site first'
+                                        : assets.length === 0
+                                            ? 'No assets available'
+                                            : 'Select Asset (optional)'
+                                    }
+                                </option>
+                                {assets.map((asset) => (
+                                    <option key={asset.value} value={asset.value}>{asset.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Category */}
+                        <div className="form-group">
+                            <label className="form-label">Category *</label>
+                            <select
+                                className="form-select"
+                                value={formData.category}
+                                onChange={(e) => handleChange('category', e.target.value)}
+                                required
+                            >
+                                <option value="">Select Category</option>
+                                {categories.map((cat) => (
+                                    <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Sub Category */}
+                        <div className="form-group">
+                            <label className="form-label">Sub Category</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={formData.subCategory}
+                                onChange={(e) => handleChange('subCategory', e.target.value)}
+                                placeholder="Optional sub-category"
+                            />
+                        </div>
+
+                        {/* Title */}
+                        <div className="form-group full-width">
+                            <label className="form-label">Title *</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={formData.title}
+                                onChange={(e) => handleChange('title', e.target.value)}
+                                placeholder="Brief description of the issue"
+                                required
+                            />
+                        </div>
+
+                        {/* Description */}
+                        <div className="form-group full-width">
+                            <label className="form-label">Description</label>
+                            <textarea
+                                className="form-textarea"
+                                value={formData.description}
+                                onChange={(e) => handleChange('description', e.target.value)}
+                                placeholder="Detailed description of the issue..."
+                                rows={4}
+                            />
+                        </div>
+
+                        {/* Impact */}
+                        <div className="form-group">
+                            <label className="form-label">Impact (1-5)</label>
+                            <select
+                                className="form-select"
+                                value={formData.impact}
+                                onChange={(e) => handleChange('impact', e.target.value)}
+                            >
+                                <option value="1">1 - Minimal</option>
+                                <option value="2">2 - Low</option>
+                                <option value="3">3 - Moderate</option>
+                                <option value="4">4 - Significant</option>
+                                <option value="5">5 - Critical</option>
+                            </select>
+                        </div>
+
+                        {/* Urgency */}
+                        <div className="form-group">
+                            <label className="form-label">Urgency (1-5)</label>
+                            <select
+                                className="form-select"
+                                value={formData.urgency}
+                                onChange={(e) => handleChange('urgency', e.target.value)}
+                            >
+                                <option value="1">1 - Planned</option>
+                                <option value="2">2 - Low</option>
+                                <option value="3">3 - Normal</option>
+                                <option value="4">4 - High</option>
+                                <option value="5">5 - Immediate</option>
+                            </select>
+                        </div>
+
+                        {/* Assign To (only for new tickets) */}
+                        {!isEditing && (
+                            <div className="form-group">
+                                <label className="form-label">Assign To (optional)</label>
+                                <select
+                                    className="form-select"
+                                    value={formData.assignedTo}
+                                    onChange={(e) => handleChange('assignedTo', e.target.value)}
+                                >
+                                    <option value="">Unassigned</option>
+                                    {user && (
+                                        <option value={user.userId}>
+                                            👤 Assign to Myself ({user.fullName})
+                                        </option>
+                                    )}
+                                    <optgroup label="Engineers">
+                                        {engineers
+                                            .filter(eng => eng.value !== user?.userId?.toString())
+                                            .map((eng) => (
+                                                <option key={eng.value} value={eng.value}>{eng.label}</option>
+                                            ))}
+                                    </optgroup>
+                                    <optgroup label="Other Employees">
+                                        {allUsers
+                                            .filter(u =>
+                                                u.value !== user?.userId?.toString() &&
+                                                !engineers.some(e => e.value === u.value)
+                                            )
+                                            .map((u) => (
+                                                <option key={u.value} value={u.value}>{u.label}</option>
+                                            ))}
+                                    </optgroup>
+                                </select>
+                            </div>
+                        )}
+
+                        {/* Tags */}
+                        <div className="form-group">
+                            <label className="form-label">Tags</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={formData.tags}
+                                onChange={(e) => handleChange('tags', e.target.value)}
+                                placeholder="Comma-separated tags"
+                            />
+                        </div>
+
+                        {/* File Attachments (only for new tickets) */}
+                        {!isEditing && (
+                            <div className="form-group full-width">
+                                <label className="form-label">
+                                    <Paperclip size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                    Attachments
+                                </label>
+                                <div className="attachments-section">
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleFileSelect}
+                                        multiple
+                                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                                        style={{ display: 'none' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="btn btn-ghost"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        style={{ marginBottom: '12px' }}
+                                    >
+                                        <Paperclip size={16} />
+                                        Add Files
+                                    </button>
+                                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                                        Supported: Images, PDF, Word, Excel, Text (Max 10MB each)
+                                    </p>
+
+                                    {attachments.length > 0 && (
+                                        <div className="attachments-list" style={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '8px',
+                                            padding: '12px',
+                                            backgroundColor: 'var(--surface-alt)',
+                                            borderRadius: '8px'
+                                        }}>
+                                            {attachments.map((file, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="attachment-item"
+                                                    style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        padding: '8px 12px',
+                                                        backgroundColor: 'var(--surface)',
+                                                        borderRadius: '6px',
+                                                        border: '1px solid var(--border)'
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                                                        {getFileIcon(file)}
+                                                        <span style={{
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                            fontSize: '14px'
+                                                        }}>
+                                                            {file.name}
+                                                        </span>
+                                                        <span style={{
+                                                            fontSize: '12px',
+                                                            color: 'var(--text-muted)',
+                                                            whiteSpace: 'nowrap'
+                                                        }}>
+                                                            ({formatFileSize(file.size)})
+                                                        </span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeAttachment(index)}
+                                                        style={{
+                                                            background: 'none',
+                                                            border: 'none',
+                                                            cursor: 'pointer',
+                                                            padding: '4px',
+                                                            color: 'var(--danger)',
+                                                            display: 'flex',
+                                                            alignItems: 'center'
+                                                        }}
+                                                        title="Remove file"
+                                                    >
+                                                        <X size={16} />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    {/* File Attachments (only for new tickets) */}
-                    {!isEditing && (
-                        <div className="form-group full-width">
-                            <label className="form-label">
-                                <Paperclip size={16} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                                Attachments
-                            </label>
-                            <div className="attachments-section">
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileSelect}
-                                    multiple
-                                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                                    style={{ display: 'none' }}
-                                />
-                                <button
-                                    type="button"
-                                    className="btn btn-ghost"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    style={{ marginBottom: '12px' }}
-                                >
-                                    <Paperclip size={16} />
-                                    Add Files
-                                </button>
-                                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>
-                                    Supported: Images, PDF, Word, Excel, Text (Max 10MB each)
-                                </p>
+                    {/* Priority Preview */}
+                    <div className="priority-preview">
+                        <span className="preview-label">Calculated Priority:</span>
+                        <span className={`badge priority-${getPriorityFromScore(formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2)).toLowerCase()}`}>
+                            {getPriorityFromScore(formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2))}
+                        </span>
+                        <span className="preview-note">
+                            (Score: {formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2)} = Impact × Urgency × Asset Criticality)
+                        </span>
+                    </div>
 
-                                {attachments.length > 0 && (
-                                    <div className="attachments-list" style={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '8px',
-                                        padding: '12px',
-                                        backgroundColor: 'var(--surface-alt)',
-                                        borderRadius: '8px'
-                                    }}>
-                                        {attachments.map((file, index) => (
-                                            <div
-                                                key={index}
-                                                className="attachment-item"
-                                                style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    padding: '8px 12px',
-                                                    backgroundColor: 'var(--surface)',
-                                                    borderRadius: '6px',
-                                                    border: '1px solid var(--border)'
-                                                }}
-                                            >
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
-                                                    {getFileIcon(file)}
-                                                    <span style={{
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        whiteSpace: 'nowrap',
-                                                        fontSize: '14px'
-                                                    }}>
-                                                        {file.name}
-                                                    </span>
-                                                    <span style={{
-                                                        fontSize: '12px',
-                                                        color: 'var(--text-muted)',
-                                                        whiteSpace: 'nowrap'
-                                                    }}>
-                                                        ({formatFileSize(file.size)})
-                                                    </span>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeAttachment(index)}
-                                                    style={{
-                                                        background: 'none',
-                                                        border: 'none',
-                                                        cursor: 'pointer',
-                                                        padding: '4px',
-                                                        color: 'var(--danger)',
-                                                        display: 'flex',
-                                                        alignItems: 'center'
-                                                    }}
-                                                    title="Remove file"
-                                                >
-                                                    <X size={16} />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                    {calculatedTargets.response && (
+                        <div className="sla-preview-grid" style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                            gap: '1rem',
+                            marginTop: '1rem',
+                            padding: '1rem',
+                            backgroundColor: 'var(--surface-alt)',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border)'
+                        }}>
+                            <div className="sla-preview-item">
+                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                                    Predicted Response Target
+                                </label>
+                                <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
+                                    {calculatedTargets.response.toLocaleString()}
+                                </span>
+                            </div>
+                            <div className="sla-preview-item">
+                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                                    Predicted Resolution Target
+                                </label>
+                                <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
+                                    {calculatedTargets.resolution.toLocaleString()}
+                                </span>
                             </div>
                         </div>
                     )}
-                </div>
 
-                {/* Priority Preview */}
-                <div className="priority-preview">
-                    <span className="preview-label">Calculated Priority:</span>
-                    <span className={`badge priority-${getPriorityFromScore(formData.impact * formData.urgency * 2).toLowerCase()}`}>
-                        {getPriorityFromScore(formData.impact * formData.urgency * 2)}
-                    </span>
-                    <span className="preview-note">
-                        (Score: {formData.impact * formData.urgency * 2} = Impact × Urgency × Asset Criticality)
-                    </span>
-                </div>
-
-                <div className="form-actions">
-                    <Link to="/tickets" className="btn btn-ghost">Cancel</Link>
-                    <button type="submit" className="btn btn-primary" disabled={saving}>
-                        {saving ? (
-                            <>
-                                <Loader size={18} className="animate-spin" />
-                                {isEditing ? 'Saving...' : 'Creating...'}
-                            </>
-                        ) : (
-                            <>
-                                <Save size={18} />
-                                {isEditing ? 'Save Changes' : 'Create Ticket'}
-                            </>
-                        )}
-                    </button>
-                </div>
+                    <div className="form-actions">
+                        <Link to="/tickets" className="btn btn-ghost">Cancel</Link>
+                        <button type="submit" className="btn btn-primary" disabled={saving}>
+                            {saving ? (
+                                <>
+                                    <Loader size={18} className="animate-spin" />
+                                    {isEditing ? 'Saving...' : 'Creating...'}
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={18} />
+                                    {isEditing ? 'Save Changes' : 'Create Ticket'}
+                                </>
+                            )}
+                        </button>
+                    </div>
                 </div>
             </form>
-        </div >
+        </div>
     );
 }
 

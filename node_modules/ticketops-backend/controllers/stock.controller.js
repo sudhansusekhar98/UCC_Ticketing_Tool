@@ -7,6 +7,7 @@ import Ticket from '../models/Ticket.model.js';
 import TicketActivity from '../models/TicketActivity.model.js';
 import StockReplacement from '../models/StockReplacement.model.js';
 import RMARequest from '../models/RMARequest.model.js';
+import StockMovementLog from '../models/StockMovementLog.model.js';
 import * as xlsx from 'xlsx';
 import fs from 'fs';
 import path from 'path';
@@ -210,7 +211,7 @@ export const createRequisition = async (req, res, next) => {
 // @access  Private
 export const getRequisitions = async (req, res, next) => {
     try {
-        const { status, siteId, ticketId, page = 1, limit = 20 } = req.query;
+        const { status, siteId, ticketId, requisitionType, page = 1, limit = 20 } = req.query;
         const user = req.user;
 
         let query = {};
@@ -218,6 +219,7 @@ export const getRequisitions = async (req, res, next) => {
         if (status) query.status = status;
         if (ticketId) query.ticketId = ticketId;
         if (siteId) query.siteId = siteId;
+        if (requisitionType) query.requisitionType = requisitionType;
 
         // Non-admins see only their sites
         if (user.role !== 'Admin') {
@@ -233,19 +235,31 @@ export const getRequisitions = async (req, res, next) => {
         const [requisitions, total] = await Promise.all([
             Requisition.find(query)
                 .populate('ticketId', 'ticketNumber title')
-                .populate('siteId', 'siteName')
+                .populate('rmaId', 'rmaNumber status replacementSource')
+                .populate('siteId', 'siteName isHeadOffice')
                 .populate('sourceSiteId', 'siteName isHeadOffice')
                 .populate('requestedBy', 'fullName')
                 .populate('approvedBy', 'fullName')
+                .populate('assetId', 'assetCode assetType serialNumber')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(parseInt(limit)),
             Requisition.countDocuments(query)
         ]);
 
+        // Get counts by type for dashboard
+        const typeCounts = await Requisition.aggregate([
+            { $match: user.role === 'Admin' ? {} : query },
+            { $group: { _id: '$requisitionType', count: { $sum: 1 } } }
+        ]);
+
         res.json({
             success: true,
             data: requisitions,
+            typeCounts: typeCounts.reduce((acc, tc) => {
+                acc[tc._id || 'StockRequest'] = tc.count;
+                return acc;
+            }, {}),
             pagination: {
                 page: parseInt(page),
                 limit: parseInt(limit),
@@ -426,6 +440,16 @@ export const addStock = async (req, res, next) => {
             model,
             deviceType,
             criticality: 2 // Default criticality for spares
+        });
+
+        // Log the stock addition
+        await StockMovementLog.logMovement({
+            asset,
+            movementType: 'Added',
+            toSiteId: siteId,
+            toStatus: 'Spare',
+            performedBy: req.user._id,
+            notes: `New stock added to ${site.siteName}${site.isHeadOffice ? ' (HO)' : ''} - ${stockLocation || 'No location specified'}`
         });
 
         res.status(201).json({
@@ -929,6 +953,150 @@ export const getAssetReplacementHistory = async (req, res, next) => {
         res.json({
             success: true,
             data: combined
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get stock movement logs
+// @route   GET /api/stock/movement-logs
+// @access  Private
+export const getStockMovementLogs = async (req, res, next) => {
+    try {
+        const {
+            siteId,
+            assetId,
+            assetType,
+            movementType,
+            fromDate,
+            toDate,
+            page = 1,
+            limit = 50
+        } = req.query;
+        const user = req.user;
+
+        let query = {};
+
+        // Filter by site (either source or destination)
+        if (siteId) {
+            query.$or = [
+                { fromSiteId: new mongoose.Types.ObjectId(siteId) },
+                { toSiteId: new mongoose.Types.ObjectId(siteId) }
+            ];
+        } else if (user.role !== 'Admin') {
+            // Non-admins see only their sites
+            const userSites = (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s));
+            query.$or = [
+                { fromSiteId: { $in: userSites } },
+                { toSiteId: { $in: userSites } }
+            ];
+        }
+
+        if (assetId) {
+            query.assetId = new mongoose.Types.ObjectId(assetId);
+        }
+
+        if (assetType) {
+            query['assetSnapshot.assetType'] = assetType;
+        }
+
+        if (movementType) {
+            query.movementType = movementType;
+        }
+
+        // Date range filter
+        if (fromDate || toDate) {
+            query.createdAt = {};
+            if (fromDate) query.createdAt.$gte = new Date(fromDate);
+            if (toDate) query.createdAt.$lte = new Date(toDate);
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const [logs, total] = await Promise.all([
+            StockMovementLog.find(query)
+                .populate('assetId', 'assetCode assetType serialNumber')
+                .populate('fromSiteId', 'siteName isHeadOffice')
+                .populate('toSiteId', 'siteName isHeadOffice')
+                .populate('performedBy', 'fullName')
+                .populate('rmaId', 'rmaNumber')
+                .populate('requisitionId', 'requisitionNumber')
+                .populate('ticketId', 'ticketNumber')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            StockMovementLog.countDocuments(query)
+        ]);
+
+        // Get counts by movement type for dashboard
+        const typeCounts = await StockMovementLog.aggregate([
+            { $match: query },
+            { $group: { _id: '$movementType', count: { $sum: 1 } } }
+        ]);
+
+        res.json({
+            success: true,
+            data: logs,
+            typeCounts: typeCounts.reduce((acc, tc) => {
+                acc[tc._id] = tc.count;
+                return acc;
+            }, {}),
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get movement stats for dashboard
+// @route   GET /api/stock/movement-stats
+// @access  Private
+export const getMovementStats = async (req, res, next) => {
+    try {
+        const { siteId, days = 30 } = req.query;
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(days));
+
+        let matchQuery = { createdAt: { $gte: startDate } };
+
+        if (siteId) {
+            matchQuery.$or = [
+                { fromSiteId: new mongoose.Types.ObjectId(siteId) },
+                { toSiteId: new mongoose.Types.ObjectId(siteId) }
+            ];
+        }
+
+        const stats = await StockMovementLog.aggregate([
+            { $match: matchQuery },
+            {
+                $group: {
+                    _id: '$movementType',
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Get recent movements
+        const recentMovements = await StockMovementLog.find(matchQuery)
+            .populate('assetId', 'assetCode assetType')
+            .populate('toSiteId', 'siteName isHeadOffice')
+            .populate('fromSiteId', 'siteName isHeadOffice')
+            .populate('performedBy', 'fullName')
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        res.json({
+            success: true,
+            data: {
+                stats: stats.reduce((acc, s) => { acc[s._id] = s.count; return acc; }, {}),
+                recentMovements
+            }
         });
     } catch (error) {
         next(error);

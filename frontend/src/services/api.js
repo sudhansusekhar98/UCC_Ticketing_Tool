@@ -221,6 +221,7 @@ export const rmaApi = {
     getByTicket: (ticketId) => api.get(`/rma/ticket/${ticketId}`),
     getHistory: (assetId) => api.get(`/rma/asset/${assetId}`),
     updateStatus: (id, data) => api.put(`/rma/${id}/status`, data),
+    confirmInstallation: (id, data) => api.put(`/rma/${id}/confirm-installation`, data),
 };
 
 // Asset Update Request API
@@ -263,6 +264,9 @@ export const stockApi = {
     initiateTransfer: (data) => api.post('/stock/transfers', data),
     dispatchTransfer: (id) => api.put(`/stock/transfers/${id}/dispatch`),
     receiveTransfer: (id) => api.put(`/stock/transfers/${id}/receive`),
+    // Movement Logs
+    getMovementLogs: (params) => api.get('/stock/movement-logs', { params }),
+    getMovementStats: (params) => api.get('/stock/movement-stats', { params }),
     // Bulk
     bulkUpload: (formData) => api.post('/stock/bulk-upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -271,3 +275,4 @@ export const stockApi = {
     replaceAsset: (data) => api.post('/stock/replace', data),
     getReplacementHistory: (assetId) => api.get(`/stock/asset/${assetId}/history`),
 };
+
