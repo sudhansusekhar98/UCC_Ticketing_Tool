@@ -37,12 +37,7 @@ const notificationTypes = [
     { value: 'system', label: 'System', icon: Settings, color: '#8b5cf6' },
 ];
 
-const getTypeIcon = (type) => {
-    const typeInfo = notificationTypes.find(t => t.value === type);
-    if (!typeInfo) return <Info size={16} />;
-    const IconComponent = typeInfo.icon;
-    return <IconComponent size={16} style={{ color: typeInfo.color }} />;
-};
+
 
 export default function NotificationsManagement() {
     const [notifications, setNotifications] = useState([]);
@@ -314,84 +309,96 @@ export default function NotificationsManagement() {
                                     <div className="col-status">Status</div>
                                     <div className="col-actions">Actions</div>
                                 </div>
-                                {filteredNotifications.map(notification => (
-                                    <div key={notification._id} className="table-row">
-                                        <div className="col-type" data-label="Type">
-                                            <div className="type-badge">
-                                                {getTypeIcon(notification.type)}
-                                                <span>{notification.type}</span>
+                                {filteredNotifications.map(notification => {
+                                    const typeInfo = notificationTypes.find(t => t.value === notification.type) || notificationTypes[0];
+                                    const TypeIcon = typeInfo.icon;
+
+                                    return (
+                                        <div key={notification._id} className="table-row">
+                                            <div className="col-type" data-label="Type">
+                                                <div
+                                                    className="type-badge"
+                                                    style={{
+                                                        color: typeInfo.color,
+                                                        backgroundColor: `${typeInfo.color}15`,
+                                                        borderColor: `${typeInfo.color}30`
+                                                    }}
+                                                >
+                                                    <TypeIcon size={14} />
+                                                    <span>{notification.type}</span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="col-title" data-label="Content">
-                                            <div className="notification-title">{notification.title}</div>
-                                            <div className="notification-message">
-                                                {expandedIds.has(notification._id)
-                                                    ? notification.message
-                                                    : (notification.message?.length > 100
-                                                        ? `${notification.message.substring(0, 100)}...`
-                                                        : notification.message)}
-                                                {notification.message?.length > 100 && (
-                                                    <button
-                                                        className="read-more-btn"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            toggleExpand(notification._id);
-                                                        }}
-                                                    >
-                                                        {expandedIds.has(notification._id) ? 'Show Less' : 'Read More'}
-                                                    </button>
+                                            <div className="col-title" data-label="Content">
+                                                <div className="notification-title">{notification.title}</div>
+                                                <div className="notification-message">
+                                                    {expandedIds.has(notification._id)
+                                                        ? notification.message
+                                                        : (notification.message?.length > 100
+                                                            ? `${notification.message.substring(0, 100)}...`
+                                                            : notification.message)}
+                                                    {notification.message?.length > 100 && (
+                                                        <button
+                                                            className="read-more-btn"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleExpand(notification._id);
+                                                            }}
+                                                        >
+                                                            {expandedIds.has(notification._id) ? 'Show Less' : 'Read More'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                {notification.link && (
+                                                    <div className="notification-link">
+                                                        🔗 {notification.link}
+                                                    </div>
                                                 )}
                                             </div>
-                                            {notification.link && (
-                                                <div className="notification-link">
-                                                    🔗 {notification.link}
+                                            <div className="col-target" data-label="Target">
+                                                {notification.isBroadcast ? (
+                                                    <span className="target-badge broadcast">
+                                                        <Users size={14} />
+                                                        All Users
+                                                    </span>
+                                                ) : (
+                                                    <span className="target-badge specific">
+                                                        <User size={14} />
+                                                        Specific User
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="col-date" data-label="Date">
+                                                {format(new Date(notification.createdAt), 'MMM dd, yyyy')}
+                                                <div className="date-time">
+                                                    {format(new Date(notification.createdAt), 'HH:mm')}
                                                 </div>
-                                            )}
-                                        </div>
-                                        <div className="col-target" data-label="Target">
-                                            {notification.isBroadcast ? (
-                                                <span className="target-badge broadcast">
-                                                    <Users size={14} />
-                                                    All Users
-                                                </span>
-                                            ) : (
-                                                <span className="target-badge specific">
-                                                    <User size={14} />
-                                                    Specific User
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="col-date" data-label="Date">
-                                            {format(new Date(notification.createdAt), 'MMM dd, yyyy')}
-                                            <div className="date-time">
-                                                {format(new Date(notification.createdAt), 'HH:mm')}
+                                            </div>
+                                            <div className="col-status" data-label="Status">
+                                                {notification.expiresAt && new Date(notification.expiresAt) < new Date() ? (
+                                                    <span className="status-badge expired">Expired</span>
+                                                ) : (
+                                                    <span className="status-badge active">Active</span>
+                                                )}
+                                            </div>
+                                            <div className="col-actions">
+                                                <button
+                                                    className="action-btn edit"
+                                                    onClick={() => handleOpenModal(notification)}
+                                                    title="Edit"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                <button
+                                                    className="action-btn delete"
+                                                    onClick={() => handleDelete(notification._id)}
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         </div>
-                                        <div className="col-status" data-label="Status">
-                                            {notification.expiresAt && new Date(notification.expiresAt) < new Date() ? (
-                                                <span className="status-badge expired">Expired</span>
-                                            ) : (
-                                                <span className="status-badge active">Active</span>
-                                            )}
-                                        </div>
-                                        <div className="col-actions">
-                                            <button
-                                                className="action-btn edit"
-                                                onClick={() => handleOpenModal(notification)}
-                                                title="Edit"
-                                            >
-                                                <Edit2 size={16} />
-                                            </button>
-                                            <button
-                                                className="action-btn delete"
-                                                onClick={() => handleDelete(notification._id)}
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -414,20 +421,46 @@ export default function NotificationsManagement() {
                         <form onSubmit={handleSubmit}>
                             <div className="modal-body space-y-4">
                                 <div className="form-group">
-                                    <label className="form-label">Notification Type</label>
-                                    <div className="type-selector grid grid-cols-4 md:grid-cols-7 gap-2">
-                                        {notificationTypes.map(type => (
-                                            <button
-                                                key={type.value}
-                                                type="button"
-                                                className={`type-option p-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${formData.type === type.value ? 'bg-primary/10 border-primary' : 'border-border hover:bg-secondary/10'}`}
-                                                onClick={() => setFormData(prev => ({ ...prev, type: type.value }))}
-                                                style={{ '--type-color': type.color }}
-                                            >
-                                                <type.icon size={18} />
-                                                <span className="text-[10px] font-bold uppercase">{type.label}</span>
-                                            </button>
-                                        ))}
+                                    <label className="form-label" id="type-selector-label">Notification Type</label>
+                                    <div
+                                        className="type-selector"
+                                        role="radiogroup"
+                                        aria-labelledby="type-selector-label"
+                                    >
+                                        {notificationTypes.map((type, index) => {
+                                            const isActive = formData.type === type.value;
+                                            const TypeIcon = type.icon;
+                                            return (
+                                                <button
+                                                    key={type.value}
+                                                    type="button"
+                                                    role="radio"
+                                                    aria-checked={isActive}
+                                                    tabIndex={isActive ? 0 : -1}
+                                                    className={`type-option ${isActive ? 'active' : ''}`}
+                                                    onClick={() => setFormData(prev => ({ ...prev, type: type.value }))}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                                                            e.preventDefault();
+                                                            const nextIndex = (index + 1) % notificationTypes.length;
+                                                            setFormData(prev => ({ ...prev, type: notificationTypes[nextIndex].value }));
+                                                        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                                                            e.preventDefault();
+                                                            const prevIndex = (index - 1 + notificationTypes.length) % notificationTypes.length;
+                                                            setFormData(prev => ({ ...prev, type: notificationTypes[prevIndex].value }));
+                                                        }
+                                                    }}
+                                                    style={{
+                                                        '--type-color': type.color,
+                                                        '--type-color-bg': `${type.color}15`,
+                                                        '--type-color-border': `${type.color}50`
+                                                    }}
+                                                >
+                                                    <TypeIcon size={20} />
+                                                    <span className="type-label">{type.label}</span>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -478,22 +511,22 @@ export default function NotificationsManagement() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="form-group">
                                         <label className="form-label">Target Audience</label>
-                                        <div className="toggle-group flex bg-secondary/20 p-1 rounded-lg">
+                                        <div className="audience-toggle">
                                             <button
                                                 type="button"
-                                                className={`flex-1 py-1.5 px-3 rounded-md text-sm flex items-center justify-center gap-2 transition-all ${formData.isBroadcast ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-secondary/30'}`}
+                                                className={`audience-option ${formData.isBroadcast ? 'active' : ''}`}
                                                 onClick={() => setFormData(prev => ({ ...prev, isBroadcast: true }))}
                                             >
-                                                <Users size={14} />
-                                                All Users
+                                                <Users size={18} />
+                                                <span>All Users</span>
                                             </button>
                                             <button
                                                 type="button"
-                                                className={`flex-1 py-1.5 px-3 rounded-md text-sm flex items-center justify-center gap-2 transition-all ${!formData.isBroadcast ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-secondary/30'}`}
+                                                className={`audience-option ${!formData.isBroadcast ? 'active' : ''}`}
                                                 onClick={() => setFormData(prev => ({ ...prev, isBroadcast: false }))}
                                             >
-                                                <User size={14} />
-                                                Specific
+                                                <User size={18} />
+                                                <span>Specific</span>
                                             </button>
                                         </div>
                                     </div>
