@@ -33,10 +33,10 @@ router.get('/availability/:ticketId', getStockAvailability);
 router.get('/asset/:assetId/history', getAssetReplacementHistory);
 router.post('/replace', performStockReplacement);
 
-// Stock management (Admin only)
-router.post('/add', allowAccess({ roles: ['Admin'] }), addStock);
-router.post('/bulk-upload', allowAccess({ roles: ['Admin'] }), simpleUpload.single('file'), bulkUpload);
-router.get('/export-template', allowAccess({ roles: ['Admin'] }), exportStockTemplate);
+// Stock management (Admin OR users with MANAGE_SITE_STOCK right)
+router.post('/add', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), addStock);
+router.post('/bulk-upload', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), simpleUpload.single('file'), bulkUpload);
+router.get('/export-template', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), exportStockTemplate);
 
 // Movement logs
 router.get('/movement-logs', getStockMovementLogs);

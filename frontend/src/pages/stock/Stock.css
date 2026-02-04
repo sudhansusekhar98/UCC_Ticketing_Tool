@@ -3216,3 +3216,214 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ==========================================
+   BULK STOCK IMPORT PAGE STYLES
+   ========================================== */
+
+/* Upload Dropzone */
+.upload-dropzone-compact {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100px;
+    padding: 1.5rem;
+    border: 2px dashed var(--border-medium);
+    border-radius: var(--radius-lg);
+    background: var(--bg-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: 1rem;
+}
+
+.upload-dropzone-compact:hover {
+    border-color: var(--primary-400);
+    background: rgba(99, 102, 241, 0.03);
+}
+
+.dropzone-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+}
+
+.dropzone-placeholder svg {
+    opacity: 0.6;
+}
+
+/* File Selected State */
+.file-selected {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background: rgba(16, 185, 129, 0.08);
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.file-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.file-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+
+.file-size {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
+.btn-icon-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon-remove:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error-500);
+}
+
+/* Upload Actions */
+.upload-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Template Download Section */
+.template-download {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    background: var(--bg-primary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    margin-bottom: 1rem;
+}
+
+.template-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-right: 0.5rem;
+}
+
+.template-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.template-btn:hover {
+    background: var(--bg-secondary);
+    border-color: var(--primary-200);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.template-btn span {
+    flex: 1;
+}
+
+/* Instructions Box */
+.instructions-box {
+    background: rgba(245, 158, 11, 0.06);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    margin-top: 0.5rem;
+}
+
+.instructions-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+
+.instructions-box ul {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.instructions-box li {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.75;
+}
+
+/* Form Section Padding Fix */
+.add-stock-page .form-card .form-section {
+    padding: 1.25rem;
+}
+
+/* Back Link Style */
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: transparent;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.back-link:hover {
+    background: var(--bg-secondary);
+    border-color: var(--primary-200);
+    color: var(--primary-600);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .template-download {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .template-label {
+        margin-bottom: 0.5rem;
+    }
+
+    .template-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

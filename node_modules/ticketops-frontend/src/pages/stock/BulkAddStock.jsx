@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-    Upload, ArrowLeft, FileSpreadsheet, FileText, Download, AlertCircle, Package, X
+    Upload, ArrowLeft, FileSpreadsheet, AlertCircle, Package, X
 } from 'lucide-react';
 import { stockApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -150,22 +150,16 @@ export default function BulkAddStock() {
                                         >
                                             {loading ? 'Processing...' : 'Upload & Import Stock'}
                                         </button>
+                                        <button
+                                            type="button"
+                                            className="btn btn-secondary btn-ghost"
+                                            onClick={() => handleDownloadTemplate('xlsx')}
+                                        >
+                                            <FileSpreadsheet size={16} />
+                                            Download Template
+                                        </button>
                                     </div>
                                 </form>
-                            </div>
-
-                            <div className="template-download">
-                                <span className="template-label">Download Templates:</span>
-                                <button className="template-btn" onClick={() => handleDownloadTemplate('xlsx')}>
-                                    <FileSpreadsheet size={18} className="text-success" />
-                                    <span>Excel Template (.xlsx)</span>
-                                    <Download size={14} />
-                                </button>
-                                <button className="template-btn" onClick={() => handleDownloadTemplate('csv')}>
-                                    <FileText size={18} className="text-primary" />
-                                    <span>CSV Template (.csv)</span>
-                                    <Download size={14} />
-                                </button>
                             </div>
 
                             <div className="instructions-box">

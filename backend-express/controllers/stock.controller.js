@@ -12,6 +12,18 @@ import * as xlsx from 'xlsx';
 import fs from 'fs';
 import path from 'path';
 
+// Helper: Check if user has a specific right for a site
+const hasRightForSite = (user, rightName, siteId) => {
+    if (['Admin', 'Supervisor'].includes(user.role)) return true;
+    if (user.rights?.globalRights?.includes(rightName)) return true;
+    if (!siteId) return false;
+    return user.rights?.siteRights?.some(sr => {
+        const srSiteId = (sr.site?._id || sr.site)?.toString();
+        return srSiteId === siteId.toString() && sr.rights?.includes(rightName);
+    }) || false;
+};
+
+
 // @desc    Get inventory summary (stock counts by asset type)
 // @route   GET /api/stock/inventory
 // @access  Private
@@ -412,14 +424,31 @@ export const rejectRequisition = async (req, res, next) => {
 
 // @desc    Add new stock (create spare assets)
 // @route   POST /api/stock/add
-// @access  Private (Admin)
+// @access  Private (Admin or users with MANAGE_SITE_STOCK right for the site)
 export const addStock = async (req, res, next) => {
     try {
         const { siteId, assetType, stockLocation, make, model, deviceType, assetCode, serialNumber } = req.body;
+        const user = req.user;
 
         const site = await Site.findById(siteId);
         if (!site) {
             return res.status(404).json({ success: false, message: 'Site not found' });
+        }
+
+        // Permission check: Non-admin/supervisor users must have MANAGE_SITE_STOCK right for this specific site
+        const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
+        if (!isAdminOrSupervisor) {
+            const hasGlobalRight = user.rights?.globalRights?.includes('MANAGE_SITE_STOCK');
+            const hasSiteRight = user.rights?.siteRights?.some(sr => {
+                const srSiteId = (sr.site?._id || sr.site)?.toString();
+                return srSiteId === siteId.toString() && sr.rights?.includes('MANAGE_SITE_STOCK');
+            });
+            if (!hasGlobalRight && !hasSiteRight) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You do not have permission to add stock to this site'
+                });
+            }
         }
 
         // Check if MAC Address already exists

@@ -5,7 +5,10 @@ import {
 } from 'lucide-react';
 import { stockApi, sitesApi } from '../../services/api';
 import toast from 'react-hot-toast';
+import useAuthStore from '../../context/authStore';
+import { PERMISSIONS } from '../../constants/permissions';
 import './Stock.css';
+
 
 export default function StockDashboard() {
     const [inventory, setInventory] = useState([]);
@@ -13,9 +16,37 @@ export default function StockDashboard() {
     const [pendingTransfers, setPendingTransfers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [sites, setSites] = useState([]);
+    const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+
+    // Permission checks - get user from store to react to changes
+    const { hasRightForAnySite, hasRole, refreshUserRights, user } = useAuthStore();
+    const isAdminOrSupervisor = hasRole(['Admin', 'Supervisor']);
+    const canManageStock = isAdminOrSupervisor || hasRightForAnySite(PERMISSIONS.MANAGE_SITE_STOCK);
+
+    // Debug log for troubleshooting
+    useEffect(() => {
+        if (permissionsLoaded) {
+            console.log('Stock Permission Check:', {
+                isAdminOrSupervisor,
+                canManageStock,
+                userRole: user?.role,
+                globalRights: user?.rights?.globalRights,
+                siteRights: user?.rights?.siteRights?.map(sr => ({
+                    siteId: sr.site?._id || sr.site,
+                    rights: sr.rights
+                }))
+            });
+        }
+    }, [permissionsLoaded, user]);
 
     useEffect(() => {
-        fetchData();
+        const loadPermissionsAndData = async () => {
+            // Refresh user rights on page load to get latest permissions
+            await refreshUserRights();
+            setPermissionsLoaded(true);
+            fetchData();
+        };
+        loadPermissionsAndData();
     }, []);
 
     const fetchData = async () => {
@@ -81,14 +112,18 @@ export default function StockDashboard() {
                         </div>
                     </div>
                     <div className="header-actions">
-                        <Link to="/stock/bulk" className="btn btn-secondary btn-ghost">
-                            <Upload size={16} />
-                            Bulk Import
-                        </Link>
-                        <Link to="/stock/add" className="btn btn-primary btn-prominent">
-                            <Plus size={18} />
-                            Add New Stock
-                        </Link>
+                        {permissionsLoaded && canManageStock && (
+                            <>
+                                <Link to="/stock/bulk" className="btn btn-secondary btn-ghost">
+                                    <Upload size={16} />
+                                    Bulk Import
+                                </Link>
+                                <Link to="/stock/add" className="btn btn-primary btn-prominent">
+                                    <Plus size={18} />
+                                    Add New Stock
+                                </Link>
+                            </>
+                        )}
                     </div>
                 </header>
 

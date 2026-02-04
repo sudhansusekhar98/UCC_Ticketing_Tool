@@ -19,6 +19,7 @@ import {
     Package,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
+import { PERMISSIONS } from '../../constants/permissions';
 import NotificationBell from '../notifications/NotificationBell';
 import TOpsLogo from '../../assets/TicketOps.png';
 import './Layout.css';
@@ -29,7 +30,7 @@ const menuItems = [
     { path: '/reports', icon: BarChart3, label: 'Reports', roles: ['Admin', 'Supervisor', 'Dispatcher'] },
     { path: '/assets', icon: Monitor, label: 'Assets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer', 'L1Engineer', 'L2Engineer'] },
     { path: '/sites', icon: MapPin, label: 'Sites', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer'] },
-    { path: '/stock', icon: Package, label: 'Stock', roles: ['Admin', 'Supervisor'] },
+    { path: '/stock', icon: Package, label: 'Stock', roles: ['Admin', 'Supervisor'], rights: [PERMISSIONS.MANAGE_SITE_STOCK] },
     { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },
     { path: '/user-rights', icon: Shield, label: 'User Rights', roles: ['Admin'] },
     { path: '/notifications/manage', icon: Bell, label: 'Notifications', roles: ['Admin'] },
@@ -42,7 +43,7 @@ export default function Layout({ children }) {
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const location = useLocation();
     const navigate = useNavigate();
-    const { user, logout } = useAuthStore();
+    const { user, logout, hasRightForAnySite } = useAuthStore();
     const userMenuRef = useRef(null);
 
     // Close user menu when clicking outside
@@ -67,9 +68,16 @@ export default function Layout({ children }) {
         navigate('/login');
     };
 
-    const filteredMenuItems = menuItems.filter(item =>
-        item.roles.includes(user?.role)
-    );
+    // Filter menu items based on role OR rights
+    const filteredMenuItems = menuItems.filter(item => {
+        // Check if user has a matching role
+        const hasRole = item.roles.includes(user?.role);
+
+        // Check if user has any of the matching rights
+        const hasRight = item.rights?.some(right => hasRightForAnySite(right)) || false;
+
+        return hasRole || hasRight;
+    });
 
     return (
         <div className="layout">

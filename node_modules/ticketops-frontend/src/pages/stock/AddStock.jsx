@@ -5,6 +5,8 @@ import {
 } from 'lucide-react';
 import { stockApi, sitesApi, lookupsApi } from '../../services/api';
 import toast from 'react-hot-toast';
+import useAuthStore from '../../context/authStore';
+import { PERMISSIONS } from '../../constants/permissions';
 import './Stock.css';
 
 export default function AddStock() {
@@ -14,6 +16,10 @@ export default function AddStock() {
     const [assetTypes, setAssetTypes] = useState([]);
     const [deviceTypes, setDeviceTypes] = useState([]);
     const [models, setModels] = useState([]);
+
+    // Permission checks
+    const { hasRole, hasRight, getSitesWithRight, refreshUserRights } = useAuthStore();
+    const isAdminOrSupervisor = hasRole(['Admin', 'Supervisor']);
 
     const [formData, setFormData] = useState({
         siteId: '',
@@ -51,18 +57,35 @@ export default function AddStock() {
 
     const fetchInitialData = async () => {
         try {
+            // Refresh user rights first to get latest permissions
+            await refreshUserRights();
+
             const [sitesRes, typesRes] = await Promise.all([
                 sitesApi.getAll({ limit: 100 }),
                 lookupsApi.getAssetTypes()
             ]);
 
-            const siteData = sitesRes.data.data || sitesRes.data || [];
+            let siteData = sitesRes.data.data || sitesRes.data || [];
+
+            // Filter sites based on user permissions (only sites where user has MANAGE_SITE_STOCK right)
+            // Re-check isAdminOrSupervisor after refresh
+            const currentIsAdmin = hasRole(['Admin', 'Supervisor']);
+            if (!currentIsAdmin) {
+                const allowedSiteIds = getSitesWithRight(PERMISSIONS.MANAGE_SITE_STOCK);
+                siteData = siteData.filter(site =>
+                    allowedSiteIds.includes((site._id || site.id)?.toString())
+                );
+            }
+
             setSites(siteData);
 
-            // Default to Head Office if available
+            // Default to Head Office if available and user has access
             const hoSite = siteData.find(s => s.isHeadOffice);
             if (hoSite) {
                 setFormData(prev => ({ ...prev, siteId: hoSite._id }));
+            } else if (siteData.length > 0) {
+                // Default to first available site
+                setFormData(prev => ({ ...prev, siteId: siteData[0]._id }));
             }
 
             setAssetTypes(typesRes.data.data || typesRes.data || []);

@@ -68,6 +68,9 @@ export const login = async (req, res, next) => {
     // Remove password from output
     user.passwordHash = undefined;
 
+    // Get user rights
+    const userRight = await UserRight.findOne({ user: user._id });
+
     res.json({
       success: true,
       data: {
@@ -79,10 +82,12 @@ export const login = async (req, res, next) => {
           role: user.role,
           designation: user.designation,
           mobileNumber: user.mobileNumber,
-          mobileNumber: user.mobileNumber,
           siteId: user.siteId,
           assignedSites: user.assignedSites || [],
-          rights: (await UserRight.findOne({ user: user._id })) || { siteRights: [], globalRights: [] },
+          rights: {
+            siteRights: userRight?.siteRights || [],
+            globalRights: userRight?.globalRights || []
+          },
           preferences: user.preferences
         },
         token,
@@ -107,7 +112,12 @@ export const getMe = async (req, res, next) => {
 
     // Convert to object to append rights
     const userObj = user.toObject();
-    userObj.rights = userRight || { siteRights: [], globalRights: [] };
+
+    // Extract only siteRights and globalRights (not the full Mongoose document)
+    userObj.rights = {
+      siteRights: userRight?.siteRights || [],
+      globalRights: userRight?.globalRights || []
+    };
 
     res.json({
       success: true,
