@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import { stockApi, sitesApi, lookupsApi } from '../../services/api';
 import toast from 'react-hot-toast';
-import './Stock.css';
+import './StockCommon.css';
+import './InventoryList.css';
 
 export default function InventoryList() {
     const navigate = useNavigate();

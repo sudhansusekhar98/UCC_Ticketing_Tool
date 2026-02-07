@@ -7,7 +7,8 @@ import { stockApi, sitesApi, lookupsApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../context/authStore';
 import { PERMISSIONS } from '../../constants/permissions';
-import './Stock.css';
+import './StockCommon.css';
+import './AddStock.css';
 
 export default function AddStock() {
     const navigate = useNavigate();

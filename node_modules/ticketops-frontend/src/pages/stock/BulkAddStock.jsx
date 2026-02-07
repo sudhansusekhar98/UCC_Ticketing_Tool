@@ -5,7 +5,9 @@ import {
 } from 'lucide-react';
 import { stockApi } from '../../services/api';
 import toast from 'react-hot-toast';
-import './Stock.css';
+import './StockCommon.css';
+import './AddStock.css';
+import './BulkAddStock.css';
 
 export default function BulkAddStock() {
     const navigate = useNavigate();

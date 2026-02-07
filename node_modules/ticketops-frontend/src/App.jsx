@@ -5,6 +5,7 @@ import useAuthStore from './context/authStore';
 import useThemeStore from './context/themeStore';
 import signalRService from './services/signalr';
 import useCachePreloader from './hooks/useCachePreloader';
+import { PERMISSIONS } from './constants/permissions';
 
 // Layout
 import Layout from './components/layout/Layout';
@@ -50,10 +51,12 @@ function ProtectedRoute({ children, allowedRoles, requiredRight }) {
   }
 
   if (allowedRoles || requiredRight) {
-    const roleMatch = !allowedRoles || hasRole(allowedRoles);
-    const permissionMatch = !requiredRight || hasRightForAnySite(requiredRight);
+    const hasRequiredRole = allowedRoles ? hasRole(allowedRoles) : false;
+    const hasRequiredRight = requiredRight ? hasRightForAnySite(requiredRight) : false;
 
-    if (!roleMatch && !permissionMatch) {
+    // If both are provided, OR logic is usually intended (either role or right)
+    // If only one is provided, that one must be true
+    if (!hasRequiredRole && !hasRequiredRight) {
       return <Navigate to="/dashboard" replace />;
     }
   }
@@ -193,7 +196,7 @@ function App() {
             element={
               <ProtectedRoute
                 allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
-                requiredRight="CREATE_TICKET"
+                requiredRight={PERMISSIONS.CREATE_TICKET}
               >
                 <TicketForm />
               </ProtectedRoute>
@@ -380,7 +383,10 @@ function App() {
           <Route
             path="/stock"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+              <ProtectedRoute
+                allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
+                requiredRight={PERMISSIONS.MANAGE_SITE_STOCK}
+              >
                 <StockDashboard />
               </ProtectedRoute>
             }
@@ -388,7 +394,10 @@ function App() {
           <Route
             path="/stock/add"
             element={
-              <ProtectedRoute allowedRoles={['Admin']}>
+              <ProtectedRoute
+                allowedRoles={['Admin', 'Supervisor']}
+                requiredRight={PERMISSIONS.MANAGE_SITE_STOCK}
+              >
                 <AddStock />
               </ProtectedRoute>
             }
@@ -396,7 +405,10 @@ function App() {
           <Route
             path="/stock/bulk"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+              <ProtectedRoute
+                allowedRoles={['Admin', 'Supervisor']}
+                requiredRight={PERMISSIONS.MANAGE_SITE_STOCK}
+              >
                 <BulkAddStock />
               </ProtectedRoute>
             }
@@ -404,7 +416,10 @@ function App() {
           <Route
             path="/stock/inventory"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+              <ProtectedRoute
+                allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
+                requiredRight={PERMISSIONS.MANAGE_SITE_STOCK}
+              >
                 <InventoryList />
               </ProtectedRoute>
             }
@@ -412,7 +427,10 @@ function App() {
           <Route
             path="/stock/requisitions"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+              <ProtectedRoute
+                allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
+                requiredRight={PERMISSIONS.MANAGE_SITE_STOCK}
+              >
                 <RequisitionList />
               </ProtectedRoute>
             }
@@ -420,7 +438,10 @@ function App() {
           <Route
             path="/stock/transfers"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+              <ProtectedRoute
+                allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
+                requiredRight={PERMISSIONS.MANAGE_SITE_STOCK}
+              >
                 <TransferList />
               </ProtectedRoute>
             }
@@ -428,7 +449,10 @@ function App() {
           <Route
             path="/stock/transfers/new"
             element={
-              <ProtectedRoute allowedRoles={['Admin']}>
+              <ProtectedRoute
+                allowedRoles={['Admin', 'Supervisor']}
+                requiredRight={PERMISSIONS.MANAGE_SITE_STOCK}
+              >
                 <StockTransferForm />
               </ProtectedRoute>
             }
@@ -436,7 +460,10 @@ function App() {
           <Route
             path="/stock/logs"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+              <ProtectedRoute
+                allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
+                requiredRight={PERMISSIONS.MANAGE_SITE_STOCK}
+              >
                 <MovementLogs />
               </ProtectedRoute>
             }

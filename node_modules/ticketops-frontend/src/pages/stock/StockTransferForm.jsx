@@ -5,7 +5,9 @@ import {
 } from 'lucide-react';
 import { stockApi, sitesApi } from '../../services/api';
 import toast from 'react-hot-toast';
-import './Stock.css';
+import './StockCommon.css';
+import './AddStock.css';
+import './StockTransfers.css';
 
 export default function StockTransferForm() {
     const navigate = useNavigate();

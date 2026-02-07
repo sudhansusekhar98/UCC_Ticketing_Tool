@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { stockApi } from '../../services/api';
 import toast from 'react-hot-toast';
-import './Stock.css';
+import './StockCommon.css';
+import './RequisitionList.css';
 
 // Requisition type configurations
 const REQUISITION_TYPES = {
