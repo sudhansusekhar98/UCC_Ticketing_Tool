@@ -8,7 +8,7 @@ import TicketActivity from '../models/TicketActivity.model.js';
 import StockReplacement from '../models/StockReplacement.model.js';
 import RMARequest from '../models/RMARequest.model.js';
 import StockMovementLog from '../models/StockMovementLog.model.js';
-import * as xlsx from 'xlsx';
+import XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
 
@@ -677,17 +677,31 @@ export const bulkUpload = async (req, res, next) => {
         const filePath = req.file.path;
         let workbook;
 
-        if (req.file.buffer) {
-            // Memory storage (Vercel)
-            workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-        } else {
-            // Disk storage
-            workbook = xlsx.readFile(filePath);
+        try {
+            if (req.file.buffer) {
+                // Memory storage (Vercel)
+                workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+            } else {
+                // Disk storage - use readFileSync for better reliability on Windows
+                const absolutePath = path.resolve(filePath);
+                if (!fs.existsSync(absolutePath)) {
+                    throw new Error(`Upload failed: File not found at ${absolutePath}`);
+                }
+                const fileBuffer = fs.readFileSync(absolutePath);
+                workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+            }
+        } catch (readError) {
+            console.error('Excel Read Error:', readError);
+            return res.status(400).json({
+                success: false,
+                message: 'Failed to read the uploaded file. Ensure it is a valid Excel or CSV file.',
+                error: readError.message
+            });
         }
 
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const data = xlsx.utils.sheet_to_json(sheet);
+        const data = XLSX.utils.sheet_to_json(sheet);
 
         if (data.length === 0) {
             return res.status(400).json({ success: false, message: 'The uploaded file is empty' });
@@ -708,45 +722,69 @@ export const bulkUpload = async (req, res, next) => {
         const batchSize = 50;
         const assetsToCreate = [];
 
+        const normalizeKey = key => key ? key.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+        const toString = (val) => (val === null || val === undefined || val === '') ? undefined : String(val).trim();
+
         for (let i = 0; i < data.length; i++) {
-            const row = data[i];
+            const rawRow = data[i];
             const rowNum = i + 2; // +1 for 0-index, +1 for header row
 
+            let row = {};
             try {
-                const {
-                    'MAC Address': macAddress,
-                    'Asset Type': assetType,
-                    'Site Name': siteName,
-                    'Serial Number': serialNumber,
-                    'Make': make,
-                    'Model': model,
-                    'Device Type': deviceType,
-                    'Stock Location': stockLocation
-                } = row;
+                // Normalize keys for this row
+                Object.keys(rawRow).forEach(key => {
+                    row[normalizeKey(key)] = rawRow[key];
+                });
+
+                // Extract values using normalized keys
+                const macAddress = toString(row['macaddress']) || toString(row['mac']);
+                const assetType = toString(row['assettype']) || toString(row['devicetype']);
+                const siteName = toString(row['sitename']) || toString(row['site']);
+                const serialNumber = toString(row['serialnumber']) || toString(row['serialno']);
+                const make = toString(row['make']) || toString(row['brand']);
+                const model = toString(row['model']);
+                const deviceType = toString(row['devicetype']) || toString(row['modeltype']);
+                const stockLocation = toString(row['stocklocation']) || toString(row['location']);
 
                 // Validation
                 if (!macAddress || !assetType || !siteName) {
-                    throw new Error('Mandatory fields missing (MAC Address, Asset Type, or Site Name)');
+                    throw new Error(`Mandatory fields missing for row ${rowNum} (Need MAC, Asset Type, and Site)`);
                 }
 
-                const targetSiteId = siteMap.get(siteName.toLowerCase());
+                const targetSiteId = siteName ? siteMap.get(siteName.toLowerCase()) : null;
                 if (!targetSiteId) {
-                    throw new Error(`Site "${siteName}" not found or inactive`);
+                    throw new Error(`Site "${siteName || 'Unknown'}" not found or inactive`);
                 }
 
-                // Check for duplicate MAC Address in database
-                const existingAsset = await Asset.findOne({ assetCode: macAddress });
-                if (existingAsset) {
-                    throw new Error(`MAC Address "${macAddress}" already exists`);
+                // Check for uniqueness if MAC is not "NA"
+                const isMacNA = !macAddress || macAddress.toUpperCase() === 'NA' || macAddress.toUpperCase() === 'N/A';
+                if (!isMacNA) {
+                    // Check database for MAC
+                    const existingMAC = await Asset.findOne({ assetCode: macAddress });
+                    if (existingMAC) {
+                        throw new Error(`MAC Address "${macAddress}" already exists in the database`);
+                    }
+                    // Check current batch for MAC
+                    if (assetsToCreate.find(a => a.assetCode === macAddress)) {
+                        throw new Error(`Duplicate MAC Address "${macAddress}" found in the upload file`);
+                    }
                 }
 
-                // Check for duplicate in current batch
-                const duplicateInBatch = assetsToCreate.find(a => a.assetCode === macAddress);
-                if (duplicateInBatch) {
-                    throw new Error(`Duplicate MAC Address "${macAddress}" found in file`);
+                // Check for uniqueness if Serial Number is not "NA"
+                const isSerialNA = !serialNumber || serialNumber.toUpperCase() === 'NA' || serialNumber.toUpperCase() === 'N/A';
+                if (!isSerialNA) {
+                    // Check database for Serial Number
+                    const existingSerial = await Asset.findOne({ serialNumber: serialNumber });
+                    if (existingSerial) {
+                        throw new Error(`Serial Number "${serialNumber}" already exists in the database`);
+                    }
+                    // Check current batch for Serial Number
+                    if (assetsToCreate.find(a => a.serialNumber === serialNumber)) {
+                        throw new Error(`Duplicate Serial Number "${serialNumber}" found in the upload file`);
+                    }
                 }
 
-                assetsToCreate.push({
+                const newAsset = {
                     assetCode: macAddress,
                     mac: macAddress,
                     assetType,
@@ -758,8 +796,9 @@ export const bulkUpload = async (req, res, next) => {
                     stockLocation: stockLocation || '',
                     status: 'Spare',
                     criticality: 2
-                });
+                };
 
+                assetsToCreate.push(newAsset);
                 results.successCount++;
 
                 // Process in batches
@@ -771,7 +810,7 @@ export const bulkUpload = async (req, res, next) => {
                 results.failCount++;
                 results.errors.push({
                     row: rowNum,
-                    assetCode: row['MAC Address'] || 'Unknown',
+                    assetCode: row['macaddress'] || row['mac'] || 'Unknown',
                     message: error.message
                 });
             }
@@ -833,17 +872,17 @@ export const exportStockTemplate = async (req, res, next) => {
             }
         ];
 
-        const ws = xlsx.utils.json_to_sheet(sampleData, { header: headers });
-        const wb = xlsx.utils.book_new();
-        xlsx.utils.book_append_sheet(wb, ws, 'Inventory Template');
+        const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Inventory Template');
 
         if (format === 'csv') {
-            const csv = xlsx.utils.sheet_to_csv(ws);
+            const csv = XLSX.utils.sheet_to_csv(ws);
             res.setHeader('Content-Type', 'text/csv');
             res.setHeader('Content-Disposition', 'attachment; filename=stock_import_template.csv');
             return res.status(200).send(csv);
         } else {
-            const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+            const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', 'attachment; filename=stock_import_template.xlsx');
             return res.status(200).send(buffer);

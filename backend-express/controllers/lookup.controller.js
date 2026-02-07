@@ -112,7 +112,9 @@ export const getAssetStatusesEndpoint = async (req, res, next) => {
       'Degraded': '#f39c12',
       'Offline': '#e74c3c',
       'Maintenance': '#9b59b6',
-      'Not Installed': '#7f8c8d'
+      'Not Installed': '#7f8c8d',
+      'Online': '#2ecc71',
+      'Passive Device': '#95a5a6'
     };
 
     const formattedStatuses = statuses.length > 0
@@ -201,7 +203,9 @@ function getAssetStatuses() {
     { value: 'Offline', label: 'Offline', color: '#e74c3c' },
     { value: 'Maintenance', label: 'Maintenance', color: '#9b59b6' },
     { value: 'In Repair', label: 'In Repair', color: '#f1c40f' },
-    { value: 'Not Installed', label: 'Not Installed', color: '#7f8c8d' }
+    { value: 'Not Installed', label: 'Not Installed', color: '#7f8c8d' },
+    { value: 'Online', label: 'Online', color: '#2ecc71' },
+    { value: 'Passive Device', label: 'Passive Device', color: '#95a5a6' }
   ];
 }
 

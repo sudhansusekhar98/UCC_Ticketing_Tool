@@ -1,12 +1,18 @@
 import Asset from '../models/Asset.model.js';
 import Site from '../models/Site.model.js';
+import mongoose from 'mongoose';
 import XLSX from 'xlsx';
 import fs from 'fs';
+import path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // Helper to build asset query based on filters and user permissions
 const buildAssetQuery = (req) => {
   const {
-    siteId, assetType, status, criticality, isActive, locationName,
+    siteId, assetType, deviceType, status, criticality, isActive, locationName,
     search
   } = req.query;
 
@@ -33,6 +39,7 @@ const buildAssetQuery = (req) => {
 
   if (locationName) query.locationName = locationName;
   if (assetType) query.assetType = assetType;
+  if (deviceType) query.deviceType = deviceType;
 
   // By default, exclude Spare assets from general asset lists
   if (status) {
@@ -78,18 +85,61 @@ export const getAssets = async (req, res, next) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const [assets, total] = await Promise.all([
+    // Build a separate query for status counts that ignores the status filter
+    // but respects all other filters (site, location, asset type, etc.)
+    const countQuery = { ...query };
+    // Remove the status filter so we can count all statuses
+    delete countQuery.status;
+    // Always exclude 'Spare' from operational counts
+    countQuery.status = { $nin: ['Spare', 'Not Installed', 'InTransit', 'Damaged', 'Reserved', 'In Repair'] };
+
+    // IMPORTANT: MongoDB Aggregation does NOT auto-convert strings to ObjectIds.
+    // We must manually convert siteId if it exists in countQuery.
+    if (countQuery.siteId) {
+      if (typeof countQuery.siteId === 'string' && mongoose.Types.ObjectId.isValid(countQuery.siteId)) {
+        countQuery.siteId = new mongoose.Types.ObjectId(countQuery.siteId);
+      } else if (countQuery.siteId.$in && Array.isArray(countQuery.siteId.$in)) {
+        countQuery.siteId.$in = countQuery.siteId.$in.map(id =>
+          (typeof id === 'string' && mongoose.Types.ObjectId.isValid(id)) ? new mongoose.Types.ObjectId(id) : id
+        );
+      }
+    }
+
+    const [assets, total, counts] = await Promise.all([
       Asset.find(query)
         .populate('siteId', 'siteName siteUniqueID')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
-      Asset.countDocuments(query)
+      Asset.countDocuments(query),
+      Asset.aggregate([
+        { $match: countQuery },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ])
     ]);
+
+    // Format counts - map database status values to our three categories
+    const statusCounts = { online: 0, offline: 0, passive: 0 };
+    counts.forEach(c => {
+      const status = (c._id || '').toLowerCase();
+      // Online category: Online, Operational
+      if (status === 'online' || status === 'operational') {
+        statusCounts.online += c.count;
+      }
+      // Offline category: Offline, Down, Degraded
+      else if (status === 'offline' || status === 'down' || status === 'degraded') {
+        statusCounts.offline += c.count;
+      }
+      // Passive category: Passive Device, Maintenance
+      else if (status === 'passive device' || status === 'passive' || status === 'maintenance') {
+        statusCounts.passive += c.count;
+      }
+    });
 
     res.json({
       success: true,
       data: assets,
+      statusCounts,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -419,11 +469,24 @@ export const bulkImportAssets = async (req, res, next) => {
     let workbook;
     const isMemoryStorage = !!req.file.buffer;
 
-    if (isMemoryStorage) {
-      workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
-    } else {
-      const fileBuffer = fs.readFileSync(req.file.path);
-      workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    try {
+      if (isMemoryStorage) {
+        workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      } else {
+        const absolutePath = path.resolve(req.file.path);
+        if (!fs.existsSync(absolutePath)) {
+          throw new Error(`Upload failed: File not found at ${absolutePath}`);
+        }
+        const fileBuffer = fs.readFileSync(absolutePath);
+        workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+      }
+    } catch (readError) {
+      console.error('Asset Import Read Error:', readError);
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to read the uploaded file. Ensure it is a valid Excel or CSV file.',
+        error: readError.message
+      });
     }
 
     const sheetName = workbook.SheetNames[0];
@@ -634,6 +697,335 @@ export const downloadTemplate = async (req, res, next) => {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Template');
     const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     res.setHeader('Content-Disposition', 'attachment; filename="asset_template.xlsx"');
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Check assets status using PowerShell ping
+// @route   POST /api/assets/check-status
+// @access  Private (Admin, Supervisor)
+// @desc    Get assets for local ping check (returns list to be pinged by user's system)
+// @route   POST /api/assets/check-status
+// @access  Private
+// @desc    Check assets status via PowerShell ping (Server-side)
+// @route   POST /api/assets/check-status
+// @access  Private
+export const checkAssetsStatus = async (req, res, next) => {
+  try {
+    const { query, empty, error } = buildAssetQuery(req);
+    if (error) return res.status(403).json({ success: false, message: error });
+
+    if (empty) {
+      return res.json({
+        success: true,
+        message: 'No assets found with selected filters.',
+        data: { total: 0, online: 0, offline: 0, passive: 0 }
+      });
+    }
+
+    const assets = await Asset.find(query);
+    const io = req.app.get('io');
+    const userRoom = `user_${req.user._id.toString()}`;
+
+    if (assets.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No assets found matching filters.',
+        data: { total: 0, online: 0, offline: 0, passive: 0 }
+      });
+    }
+
+    // Launch visible PowerShell window for local feedback if on Windows
+    if (process.platform === 'win32') {
+      try {
+        const pingCommands = assets.map(a => {
+          const ip = (a.ipAddress || '').trim().toUpperCase();
+          if (!ip || ip === 'NA') return `Write-Host "[-] ${a.assetCode.padEnd(15)} | Passive Device" -ForegroundColor Gray`;
+          return `Write-Host "[...] Pinging ${a.assetCode.padEnd(15)} (${a.ipAddress.padEnd(15)})... " -NoNewline; if (Test-Connection -ComputerName ${a.ipAddress} -Count 1 -Quiet) { Write-Host "ONLINE" -ForegroundColor Green } else { Write-Host "OFFLINE" -ForegroundColor Red }`;
+        }).join('\n');
+
+        const scriptContent = `
+$Host.UI.RawUI.WindowTitle = "TicketOps Asset Ping - ${assets.length} Devices"
+Clear-Host
+Write-Host "===============================================" -ForegroundColor Cyan
+Write-Host "   TICKETOPS LIVE ASSET CONNECTIVITY CHECK     " -ForegroundColor Cyan
+Write-Host "===============================================" -ForegroundColor Cyan
+Write-Host "Started at: $(Get-Date)"
+Write-Host ""
+${pingCommands}
+Write-Host ""
+Write-Host "===============================================" -ForegroundColor Cyan
+Write-Host "Check Complete. Results synced to Dashboard.   " -ForegroundColor Yellow
+Write-Host "Press any key to close this window..."
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+`;
+        const scriptPath = path.join(process.cwd(), 'temp_ping_check.ps1');
+        fs.writeFileSync(scriptPath, scriptContent.trim());
+        exec(`start "TicketOps Ping" powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`);
+      } catch (err) {
+        console.error('Failed to launch PS window:', err);
+      }
+    }
+
+    // Results object for tracking
+    const results = {
+      total: assets.length,
+      online: 0,
+      offline: 0,
+      passive: 0,
+      processed: 0
+    };
+
+    console.log(`[Socket] Sending 'asset:ping:start' to ${userRoom} for ${assets.length} assets`);
+
+    // Emit start event
+    if (io) {
+      io.to(userRoom).emit('asset:ping:start', { total: assets.length });
+    }
+
+    // Process pings in background
+    // We do NOT await the entire loop here to avoid timing out the HTTP request
+    // The Socket.IO events will notify the frontend of progress
+    (async () => {
+      const BATCH_SIZE = 5;
+      for (let i = 0; i < assets.length; i += BATCH_SIZE) {
+        const batch = assets.slice(i, i + BATCH_SIZE);
+
+        await Promise.all(batch.map(async (asset) => {
+          let currentStatus = 'Offline';
+          const ip = (asset.ipAddress || '').trim().toUpperCase();
+
+          if (!ip || ip === 'NA') {
+            currentStatus = 'Passive Device';
+            results.passive++;
+          } else {
+            try {
+              const command = `powershell.exe -Command "Test-Connection -ComputerName ${asset.ipAddress} -Count 1 -Quiet"`;
+              const { stdout } = await execAsync(command, { timeout: 4000 });
+              if (stdout.trim() === 'True') {
+                currentStatus = 'Online';
+                results.online++;
+              } else {
+                currentStatus = 'Offline';
+                results.offline++;
+              }
+            } catch (err) {
+              currentStatus = 'Offline';
+              results.offline++;
+            }
+          }
+
+          asset.status = currentStatus;
+          asset.updatedAt = new Date();
+          await asset.save();
+          results.processed++;
+
+          if (io) {
+            io.to(userRoom).emit('asset:ping:progress', {
+              assetCode: asset.assetCode,
+              ipAddress: asset.ipAddress,
+              status: currentStatus,
+              processed: results.processed,
+              total: results.total,
+              stats: {
+                online: results.online,
+                offline: results.offline,
+                passive: results.passive
+              }
+            });
+          }
+        }));
+      }
+
+      console.log(`[Socket] Sending 'asset:ping:complete' to ${userRoom}`);
+      if (io) {
+        io.to(userRoom).emit('asset:ping:complete', results);
+      }
+    })();
+
+    res.json({
+      success: true,
+      message: 'Status check initiated in background.',
+      data: { total: assets.length }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Bulk update asset statuses from local ping agent
+// @route   POST /api/assets/bulk-status-update
+// @access  Private
+export const updateBulkStatus = async (req, res, next) => {
+  try {
+    const { results } = req.body; // Array of { id, status }
+    const io = req.app.get('io');
+    const userRoom = `user_${req.user._id}`;
+
+    if (!results || !Array.isArray(results)) {
+      return res.status(400).json({ success: false, message: 'Invalid results format' });
+    }
+
+    const stats = { total: results.length, online: 0, offline: 0, passive: 0, processed: 0 };
+
+    for (const item of results) {
+      const asset = await Asset.findById(item.id);
+      if (asset) {
+        let currentStatus = 'Offline';
+
+        if (!asset.ipAddress || asset.ipAddress.trim() === '') {
+          currentStatus = 'Passive Device';
+          stats.passive++;
+        } else {
+          try {
+            const ipRegex = /^[0-9.]+$/;
+            if (!ipRegex.test(asset.ipAddress)) {
+              currentStatus = 'Offline';
+              stats.offline++;
+            } else {
+              // Perform the physical ping on the machine where this backend is running
+              const command = `powershell.exe -Command "Test-Connection -ComputerName ${asset.ipAddress} -Count 1 -Quiet"`;
+              const { stdout } = await execAsync(command, { timeout: 4000 });
+
+              if (stdout.trim() === 'True') {
+                currentStatus = 'Online';
+                stats.online++;
+              } else {
+                currentStatus = 'Offline';
+                stats.offline++;
+              }
+            }
+          } catch (err) {
+            currentStatus = 'Offline';
+            stats.offline++;
+          }
+        }
+
+        asset.status = currentStatus;
+        asset.updatedAt = new Date();
+        await asset.save();
+        stats.processed++;
+
+        // Send real-time feedback back to the UI room
+        if (io) {
+          io.to(userRoom).emit('asset:ping:progress', {
+            assetCode: asset.assetCode,
+            ipAddress: asset.ipAddress,
+            status: asset.status,
+            processed: stats.processed,
+            total: stats.total,
+            stats: {
+              online: stats.online,
+              offline: stats.offline,
+              passive: stats.passive
+            }
+          });
+        }
+      }
+    }
+
+    if (io) {
+      io.to(userRoom).emit('asset:ping:complete', stats);
+    }
+
+    res.json({ success: true, message: 'Statuses updated successfully', data: stats });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Export status report for filtered assets with IP
+// @route   GET /api/assets/export-status
+// @access  Private
+// @desc    Get sites that have assets (for dynamic filtering)
+// @route   GET /api/assets/sites-with-assets
+// @access  Private
+export const getSitesWithAssets = async (req, res, next) => {
+  try {
+    const query = { status: { $ne: 'Spare' } };
+
+    // Non-admins can only see assets from their assigned sites
+    if (req.user.role !== 'Admin') {
+      if (!req.user.assignedSites || req.user.assignedSites.length === 0) {
+        return res.json({ success: true, data: [] });
+      }
+      query.siteId = { $in: req.user.assignedSites };
+    }
+
+    // Aggregate to get unique sites that have assets with locations
+    const sitesWithAssets = await Asset.aggregate([
+      { $match: query },
+      { $match: { locationName: { $exists: true, $ne: '', $ne: null } } },
+      {
+        $group: {
+          _id: '$siteId'
+        }
+      },
+      {
+        $lookup: {
+          from: 'sites',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'site'
+        }
+      },
+      { $unwind: '$site' },
+      {
+        $project: {
+          value: '$site._id',
+          label: '$site.siteName'
+        }
+      },
+      { $sort: { label: 1 } }
+    ]);
+
+    res.json({
+      success: true,
+      data: sitesWithAssets
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Export status report for filtered assets with IP
+// @route   GET /api/assets/export-status
+// @access  Private
+export const exportStatusReport = async (req, res, next) => {
+  try {
+    const { query, empty, error } = buildAssetQuery(req);
+    if (error) return res.status(403).json({ success: false, message: error });
+    if (empty) return res.status(400).json({ success: false, message: 'No assets found' });
+
+    // Filter only those that have an IP address
+    query.ipAddress = { $exists: true, $ne: '' };
+
+    const assets = await Asset.find(query).populate('siteId', 'siteName siteUniqueID').sort({ assetCode: 1 });
+
+    if (assets.length === 0) {
+      return res.status(400).json({ success: false, message: 'No assets with IP addresses found for selected filters' });
+    }
+
+    const exportData = assets.map(asset => ({
+      'Asset Code': asset.assetCode || '',
+      'Asset Type': asset.assetType || '',
+      'Device Type': asset.deviceType || '',
+      'IP Address': asset.ipAddress || '',
+      'Current Status': asset.status || '',
+      'Site Name': asset.siteId?.siteName || '',
+      'Location': asset.locationName || '',
+      'Last Checked': asset.updatedAt ? new Date(asset.updatedAt).toLocaleString() : 'Never'
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Asset Status Report');
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Disposition', 'attachment; filename="asset_status_report.xlsx"');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(buffer);
   } catch (error) {

@@ -12,8 +12,8 @@ const isServerlessPlatform = () => {
     return hostname.includes('vercel.app') ||
         hostname.includes('netlify.app') ||
         hostname.includes('amplifyapp.com') ||
-        hostname.includes('vluccc.com') || 
-        hostname.includes('ticketops') ||    
+        hostname.includes('vluccc.com') ||
+        hostname.includes('ticketops') ||
         import.meta.env.VITE_DISABLE_WEBSOCKET === 'true';
 };
 
@@ -129,21 +129,22 @@ class SocketService {
 
     // Join a specific ticket room for targeted updates
     joinTicketRoom(ticketId) {
-        if (this.socket && this.isConnected) {
+        if (this.socket) {
             this.socket.emit('join:ticket', ticketId);
         }
     }
 
     // Leave a ticket room
     leaveTicketRoom(ticketId) {
-        if (this.socket && this.isConnected) {
+        if (this.socket) {
             this.socket.emit('leave:ticket', ticketId);
         }
     }
 
     // Join user room for user-specific notifications
     joinUserRoom(userId) {
-        if (this.socket && this.isConnected) {
+        if (this.socket) {
+            console.log('[Socket] Joining user room:', userId);
             this.socket.emit('join', userId);
         }
     }

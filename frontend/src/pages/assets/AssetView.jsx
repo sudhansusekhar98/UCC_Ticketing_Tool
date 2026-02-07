@@ -101,7 +101,9 @@ export default function AssetView() {
             'Operational': 'badge-success',
             'Degraded': 'badge-warning',
             'Offline': 'badge-danger',
-            'Maintenance': 'badge-info'
+            'Maintenance': 'badge-info',
+            'Online': 'badge-success',
+            'Passive Device': 'badge-secondary'
         };
         return statusMap[status] || 'badge-secondary';
     };

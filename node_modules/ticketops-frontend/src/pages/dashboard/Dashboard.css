@@ -635,8 +635,7 @@
 }
 
 /* Position count in top right corner for these cards */
-.engineers-card .stat-value,
-.assets-card .stat-value {
+.engineers-card .stat-value {
     position: absolute;
     top: var(--space-3);
     left: 50%;
@@ -647,27 +646,48 @@
     line-height: 1;
     z-index: 1;
     pointer-events: none;
-    /* Allow clicks to pass through */
 }
 
-.engineers-card .stat-label,
-.assets-card .stat-label {
-    position: absolute;
-    top: calc(var(--space-3) + 2.2rem);
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    font-size: 10px;
-    z-index: 1;
-    pointer-events: none;
-    /* Allow clicks to pass through */
+/* Assets card specific: Mini total in header */
+.stat-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
 }
 
-/* Ensure the stat-link remains clickable */
-.engineers-card .stat-link,
-.assets-card .stat-link {
-    z-index: 2;
-    position: relative;
+.stat-total-mini {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1;
+}
+
+.stat-total-mini .stat-value {
+    font-size: 1.0rem !important;
+    /* Slightly smaller */
+    font-weight: 700 !important;
+    margin: 0 !important;
+    text-align: left !important;
+    background: none !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    padding: 0 !important;
+    position: static !important;
+    transform: none !important;
+    line-height: 1 !important;
+}
+
+.stat-total-mini .stat-label {
+    font-size: 8px !important;
+    /* Even smaller label */
+    color: var(--text-muted) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    margin: 0 !important;
+    text-align: left !important;
+    position: static !important;
+    transform: none !important;
+    opacity: 0.7 !important;
+    white-space: nowrap !important;
 }
 
 .engineers-list,
@@ -681,6 +701,41 @@
     flex-direction: column;
     gap: var(--space-1);
     width: 100%;
+}
+
+/* Asset Status Counts - Header Version */
+.assets-card .asset-status-counts-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: flex-end;
+    margin-right: var(--space-2);
+}
+
+.assets-card .asset-status-counts-header .status-count-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 2px 8px;
+    height: 24px;
+    /* Fixed height for consistency */
+    min-width: 45px;
+    /* Fixed minimum width */
+    border-radius: var(--radius-full);
+    transition: all 0.2s ease;
+}
+
+.assets-card .asset-status-counts-header .status-count-item .count-value {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.assets-card .asset-status-counts-header .status-count-item svg {
+    width: 12px;
+    height: 12px;
 }
 
 /* Asset Item - Single Row Layout */
@@ -1715,4 +1770,121 @@
 .asset-status-badge.not-installed {
     background: rgba(127, 140, 141, 0.1);
     color: #7f8c8d;
+}
+
+/* Asset Status Counts - Dashboard Card */
+.asset-status-counts {
+    display: flex;
+    justify-content: space-around;
+    gap: var(--space-2);
+    padding: var(--space-3) 0;
+    margin-top: var(--space-2);
+    border-top: 1px solid var(--border-light);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.status-count-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+    cursor: default;
+    min-width: 60px;
+}
+
+.status-count-item:hover {
+    background: var(--bg-tertiary);
+    transform: translateY(-2px);
+}
+
+.status-count-item svg {
+    opacity: 0.8;
+}
+
+.status-count-item .count-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.status-count-item .count-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+/* Status-specific colors */
+.status-count-item.online svg,
+.status-count-item.online .count-value {
+    color: var(--success-500);
+}
+
+.status-count-item.offline svg,
+.status-count-item.offline .count-value {
+    color: var(--danger-500);
+}
+
+.status-count-item.passive svg,
+.status-count-item.passive .count-value {
+    color: var(--text-muted);
+}
+
+/* Asset Status Counts - Header Version (inline in stat-header) */
+.assets-card .asset-status-counts-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    /* Tighter gap */
+    flex: 1;
+    justify-content: center;
+    /* Center them between the total count and the link */
+    margin: 0 var(--space-2);
+}
+
+/* Base generic style if needed anywhere else */
+.asset-status-counts-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    flex: 1;
+    justify-content: center;
+}
+
+.asset-status-counts-header .status-count-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background: var(--bg-tertiary);
+    transition: all 0.2s ease;
+    cursor: default;
+}
+
+.asset-status-counts-header .status-count-item:hover {
+    transform: scale(1.05);
+}
+
+.asset-status-counts-header .status-count-item .count-value {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.asset-status-counts-header .status-count-item.online {
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.asset-status-counts-header .status-count-item.offline {
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.asset-status-counts-header .status-count-item.passive {
+    background: rgba(100, 116, 139, 0.12);
 }

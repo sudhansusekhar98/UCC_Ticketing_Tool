@@ -4,7 +4,6 @@ const assetSchema = new mongoose.Schema({
   assetCode: {
     type: String,
     required: [true, 'Asset code is required'],
-    unique: true,
     maxlength: 50,
     trim: true
   },
@@ -47,7 +46,7 @@ const assetSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Operational', 'Degraded', 'Offline', 'Maintenance', 'In Repair', 'Not Installed', 'Spare', 'InTransit', 'Damaged', 'Reserved'],
+    enum: ['Operational', 'Degraded', 'Offline', 'Maintenance', 'In Repair', 'Not Installed', 'Spare', 'InTransit', 'Damaged', 'Reserved', 'Online', 'Passive Device'],
     default: 'Operational'
   },
   reservedByRma: {
@@ -159,7 +158,9 @@ export const AssetStatuses = {
   IN_TRANSIT: 'InTransit',
   DAMAGED: 'Damaged',
   RESERVED: 'Reserved',
-  IN_REPAIR: 'In Repair'
+  IN_REPAIR: 'In Repair',
+  ONLINE: 'Online',
+  PASSIVE_DEVICE: 'Passive Device'
 };
 
 export default mongoose.model('Asset', assetSchema);

@@ -180,6 +180,42 @@
     background: var(--accent-cyan);
 }
 
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.status-badge.operational {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.status-badge.offline {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.status-badge.passive {
+    background: rgba(100, 116, 139, 0.1);
+    color: #64748b;
+}
+
+.status-badge.degraded {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.status-badge.maintenance {
+    background: rgba(6, 182, 212, 0.1);
+    color: #06b6d4;
+}
+
 /* Loading & Empty States */
 .loading-state,
 .empty-state {
@@ -359,13 +395,18 @@
 }
 
 .assets-table .col-ip {
-    width: 8%;
+    width: 7%;
     min-width: 80px;
 }
 
+.assets-table .col-status {
+    width: 6%;
+    min-width: 70px;
+}
+
 .assets-table .col-location {
-    width: 10%;
-    min-width: 100px;
+    width: 9%;
+    min-width: 90px;
 }
 
 .assets-table .col-make {

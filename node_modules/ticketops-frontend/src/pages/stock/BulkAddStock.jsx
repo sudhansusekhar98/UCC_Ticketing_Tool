@@ -64,7 +64,9 @@ export default function BulkAddStock() {
             }
         } catch (error) {
             console.error('Upload failed:', error);
-            toast.error(error.response?.data?.message || 'Failed to upload and process file');
+            const backendError = error.response?.data?.error;
+            const message = error.response?.data?.message || 'Failed to upload and process file';
+            toast.error(backendError ? `${message}: ${backendError}` : message);
         } finally {
             setLoading(false);
         }

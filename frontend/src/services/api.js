@@ -171,11 +171,12 @@ export const assetsApi = {
     create: (data) => api.post('/assets', data),
     update: (id, data) => api.put(`/assets/${id}`, data),
     delete: (id) => api.delete(`/assets/${id}`),
-    updateStatus: (id, status) => api.patch(`/assets/${id}/status`, null, { params: { status } }),
+    updateStatus: (id, status) => api.patch(`/assets/${id}/status`, {}, { params: { status } }),
     getDropdown: (siteId, assetType) => api.get('/assets/dropdown', { params: { siteId, assetType } }),
     getLocationNames: (siteId) => api.get('/assets/locations', { params: { siteId } }),
     getAssetTypesForSite: (siteId, locationName) => api.get('/assets/asset-types', { params: { siteId, locationName } }),
     getDeviceTypesForSite: (siteId, locationName, assetType) => api.get('/assets/device-types', { params: { siteId, locationName, assetType } }),
+    getSitesWithAssets: () => api.get('/assets/sites-with-assets'),
     // Bulk operations
     downloadTemplate: () => api.get('/assets/template', { responseType: 'blob' }),
     exportAssets: (params) => api.get('/assets/export', { params, responseType: 'blob' }),
@@ -185,7 +186,10 @@ export const assetsApi = {
         return api.post('/assets/import', formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
-    }
+    },
+    checkStatus: (params) => api.post('/assets/check-status', {}, { params }),
+    bulkStatusUpdate: (results) => api.post('/assets/bulk-status-update', { results }),
+    exportStatusReport: (params) => api.get('/assets/export-status', { params, responseType: 'blob' }),
 };
 
 // Tickets API

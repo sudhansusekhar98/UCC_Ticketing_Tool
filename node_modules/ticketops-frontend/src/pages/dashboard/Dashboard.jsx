@@ -157,6 +157,7 @@ export default function Dashboard() {
     const [stats, setStats] = useState(null);
     const [engineers, setEngineers] = useState([]);
     const [assets, setAssets] = useState([]);
+    const [assetStatusCounts, setAssetStatusCounts] = useState({ online: 0, offline: 0, passive: 0 });
     const [selectedSite, setSelectedSite] = useState('');
     const [sites, setSites] = useState([]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -233,6 +234,7 @@ export default function Dashboard() {
             if (selectedSite) params.siteId = selectedSite;
             const response = await assetsApi.getAll(params);
             let assetData = response.data.data || response.data.items || response.data || [];
+            const counts = response.data.statusCounts || { online: 0, offline: 0, passive: 0 };
             assetData = assetData.map(a => ({
                 ...a,
                 assetId: a._id || a.assetId,
@@ -241,6 +243,7 @@ export default function Dashboard() {
                 status: a.status === 'Operational' ? 'Online' : (a.status === 'Not Installed' ? 'Not Installed' : 'Offline')
             }));
             setAssets(assetData);
+            setAssetStatusCounts(counts);
         } catch (error) {
             console.error('Failed to fetch assets:', error);
         }
@@ -521,17 +524,35 @@ export default function Dashboard() {
             <div className="dashboard-stats-grid secondary-stats animate-enter delay-200">
                 <div className="stat-card assets-card">
                     <div className="stat-header">
-                        <div className="stat-icon-wrapper" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
-                            <Monitor size={20} />
+                        <div className="stat-header-left">
+                            <div className="stat-icon-wrapper" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+                                <Monitor size={20} />
+                            </div>
+                            <div className="stat-total-mini">
+                                <span className="stat-value">{stats?.totalAssets || 0}</span>
+                                <span className="stat-label">Total Assets</span>
+                            </div>
+                        </div>
+
+                        {/* Asset Status Counts - in header */}
+                        <div className="asset-status-counts-header">
+                            <div className="status-count-item online">
+                                <Wifi size={12} />
+                                <span className="count-value">{assetStatusCounts.online}</span>
+                            </div>
+                            <div className="status-count-item offline">
+                                <WifiOff size={12} />
+                                <span className="count-value">{assetStatusCounts.offline}</span>
+                            </div>
+                            <div className="status-count-item passive">
+                                <Activity size={12} />
+                                <span className="count-value">{assetStatusCounts.passive}</span>
+                            </div>
                         </div>
                         <Link to="/assets" className="stat-link">
                             Manage Assets <ArrowUpRight size={14} />
                         </Link>
                     </div>
-                    <div className="stat-value" style={{ fontSize: '2.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)' }}>
-                        {stats?.totalAssets || 0}
-                    </div>
-                    <div className="stat-label">Total Assets Monitored</div>
 
                     {assets.length > 0 ? (
                         <div className="assets-list">
