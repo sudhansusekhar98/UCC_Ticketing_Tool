@@ -1217,3 +1217,114 @@
     transform: translateY(0);
   }
 }
+
+/* Small Mobile (≤480px) */
+@media (max-width: 480px) {
+  .tickets-page {
+    padding: var(--space-1);
+  }
+
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-form-page {
+    padding: var(--space-2);
+  }
+
+  .ticket-form-page .form-card {
+    padding: var(--space-3);
+  }
+
+  .form-actions {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* RMA timeline compact on small phones */
+  .rma-timeline-tracker {
+    padding: var(--space-2);
+  }
+
+  .rma-timeline-steps {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .rma-step {
+    min-width: 50px;
+  }
+
+  .rma-step-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .rma-step-label {
+    font-size: 7px;
+  }
+
+  .rma-timeline-line {
+    display: none;
+  }
+
+  /* Detail sections */
+  .detail-section {
+    padding: var(--space-2);
+  }
+
+  .detail-label {
+    width: auto;
+    font-size: 10px;
+  }
+
+  .detail-value {
+    font-size: 11px;
+  }
+
+  /* RMA actions go full-width */
+  .rma-actions-wrapper {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .rma-actions-wrapper .btn {
+    width: 100%;
+    min-width: auto;
+  }
+
+  /* Tech tags wrap */
+  .tech-details-flex {
+    gap: var(--space-1);
+  }
+
+  .tech-tag {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  /* RMA info group single column */
+  .rma-info-group {
+    grid-template-columns: 1fr;
+  }
+
+  .rma-detail-item .detail-value {
+    font-size: 11px;
+    padding: var(--space-1) var(--space-2);
+    min-height: 34px;
+  }
+
+  /* Escalation modal compact */
+  .escalation-options {
+    gap: var(--space-3);
+  }
+
+  .option-section {
+    padding: var(--space-3);
+  }
+}

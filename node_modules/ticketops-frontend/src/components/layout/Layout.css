@@ -19,6 +19,7 @@
     height: 100vh;
     z-index: 50;
     box-shadow: var(--shadow-sm);
+    overflow: hidden;
 }
 
 
@@ -428,7 +429,7 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(4px);
-    z-index: 45;
+    z-index: 9998;
     animation: fadeIn 0.2s ease-out;
     display: none;
 }
@@ -446,32 +447,71 @@
     .sidebar {
         transform: translateX(-100%);
         width: 260px !important;
-        /* Force width on mobile */
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 9999;
     }
 
     .sidebar.open {
         transform: translateX(0);
+        box-shadow: 4px 0 25px rgba(0, 0, 0, 0.3);
     }
 
     .sidebar.closed {
         width: 260px;
-        /* Keep standard width when hidden */
+    }
+
+    .sidebar.open .nav-item span,
+    .sidebar.open .logo-text {
+        display: inline;
     }
 
     .main-wrapper {
         margin-left: 0 !important;
     }
 
+    .header {
+        height: 60px;
+        padding: 0 var(--space-3);
+        z-index: 40;
+    }
+
     .search-box {
         width: 100%;
         max-width: 300px;
+    }
+
+    .user-menu-btn {
+        padding: var(--space-1) var(--space-2);
+    }
+
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+    .user-dropdown {
+        z-index: 41;
+    }
+
+    .sidebar-header {
+        height: 60px;
+        padding: 0 var(--space-3);
+    }
+
+    .logo-icon {
+        width: auto;
+    }
+
+    .logo-icon img {
+        width: 50px;
+        height: auto;
     }
 }
 
 @media (max-width: 768px) {
     .header {
-        padding: var(--space-3) var(--space-4);
+        padding: 0 var(--space-3);
+        height: 56px;
     }
 
     .search-box {
@@ -482,7 +522,57 @@
         display: none;
     }
 
+    .user-menu-btn svg:last-child {
+        display: none;
+    }
+
     .main-content {
         padding: var(--space-2);
+    }
+
+    .header-right {
+        gap: var(--space-2);
+    }
+
+    .icon-btn {
+        padding: 6px;
+    }
+
+    .user-dropdown {
+        right: -10px;
+        width: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        height: 48px;
+        padding: 0 var(--space-2);
+    }
+
+    .main-content {
+        padding: var(--space-1);
+    }
+
+    .mobile-sidebar-toggle {
+        padding: var(--space-1);
+    }
+
+    .icon-btn {
+        padding: 4px;
+    }
+
+    .notification-badge {
+        min-width: 14px;
+        height: 14px;
+        font-size: 8px;
+        top: -2px;
+        right: -2px;
+    }
+
+    .user-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 11px;
     }
 }

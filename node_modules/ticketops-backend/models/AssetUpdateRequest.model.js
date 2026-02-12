@@ -65,8 +65,7 @@ const assetUpdateRequestSchema = new mongoose.Schema({
   // Temporary access
   accessToken: {
     type: String,
-    required: true,
-    unique: true
+    required: true
   },
   accessExpiresAt: {
     type: Date,
@@ -81,12 +80,12 @@ const assetUpdateRequestSchema = new mongoose.Schema({
 assetUpdateRequestSchema.index({ ticketId: 1 });
 assetUpdateRequestSchema.index({ assetId: 1 });
 assetUpdateRequestSchema.index({ rmaId: 1 });
-assetUpdateRequestSchema.index({ accessToken: 1 });
+assetUpdateRequestSchema.index({ accessToken: 1 }, { unique: true });
 assetUpdateRequestSchema.index({ status: 1 });
 assetUpdateRequestSchema.index({ accessExpiresAt: 1 });
 
 // Method to check if access is still valid
-assetUpdateRequestSchema.methods.isAccessValid = function() {
+assetUpdateRequestSchema.methods.isAccessValid = function () {
   return this.status === 'Pending' && this.accessExpiresAt > new Date() && !this.submittedAt;
 };
 

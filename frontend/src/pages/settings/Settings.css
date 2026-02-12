@@ -1,7 +1,7 @@
 /* Settings Page Styles */
 
 .settings-page {
-    padding: var(--space-4);
+    padding: var(--space-1);
     height: calc(100vh - 64px);
     display: flex;
     flex-direction: column;

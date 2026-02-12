@@ -3,7 +3,6 @@ import mongoose from 'mongoose';
 const rmaRequestSchema = new mongoose.Schema({
   rmaNumber: {
     type: String,
-    unique: true,
     maxlength: 20
   },
   ticketId: {

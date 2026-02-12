@@ -1,0 +1,517 @@
+/* ============================================
+   GLOBAL RESPONSIVE DESIGN SYSTEM
+   Breakpoints:
+   - Desktop: > 1280px (default)
+   - Laptop:  1024px - 1280px
+   - Tablet:  768px - 1024px
+   - Mobile:  < 768px
+   - Small:   < 480px
+   ============================================ */
+
+/* ---- LAPTOP (≤1280px) ---- */
+@media (max-width: 1280px) {
+
+    /* Reduce global spacing */
+    .main-content {
+        padding: var(--space-2);
+    }
+
+    /* Tables - start hiding non-essential columns */
+    .data-table th,
+    .data-table td {
+        padding: var(--space-2);
+        font-size: var(--text-xs);
+    }
+
+    /* Form grids become 2-col */
+    .form-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    .form-group.full-width {
+        grid-column: span 2;
+    }
+
+    /* Stats grids */
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+}
+
+/* ---- TABLET (≤1024px) ---- */
+@media (max-width: 1024px) {
+
+    /* Page headers stack */
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-3);
+    }
+
+    .page-header .header-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    /* Filter bars stack */
+    .filter-bar {
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .filters-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+
+    /* Glass cards reduce padding */
+    .glass-card {
+        padding: var(--space-3);
+    }
+
+    /* Detail grids become 2-col or stack */
+    .detail-grid {
+        grid-template-columns: 1fr !important;
+        height: auto !important;
+    }
+
+    /* Asset view grid stacks */
+    .asset-view-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Asset info grid 2-col */
+    .asset-info-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Table containers scroll horizontally */
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-wrapper .data-table {
+        min-width: 700px;
+    }
+
+    /* Modal adjustments */
+    .modal-content {
+        max-width: 95vw !important;
+        max-height: 85vh !important;
+        margin: var(--space-3);
+    }
+
+    /* Modal overlay centering */
+    .modal-overlay {
+        padding: var(--space-3);
+    }
+
+    /* Page containers allow scrolling */
+    .page-container {
+        max-height: none !important;
+        min-height: auto;
+        overflow: visible;
+    }
+
+    /* Search filter rows */
+    .search-filter-row {
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    .search-filter-row .search-box {
+        flex: 1;
+        min-width: 200px;
+    }
+}
+
+/* ---- MOBILE (≤768px) ---- */
+@media (max-width: 768px) {
+
+    /* Root-level: reduce base spacing */
+    .main-content {
+        padding: var(--space-2);
+    }
+
+    /* Page headers reduced */
+    .page-header {
+        margin-bottom: var(--space-2);
+    }
+
+    .page-title {
+        font-size: var(--text-lg);
+    }
+
+    .page-subtitle {
+        font-size: var(--text-xs);
+    }
+
+    /* Header actions full-width */
+    .header-actions {
+        width: 100%;
+    }
+
+    .header-actions .btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    /* Filter grids 2-col on mobile */
+    .filters-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: var(--space-2) !important;
+    }
+
+    .filter-actions {
+        flex-direction: column;
+    }
+
+    .filter-actions .btn {
+        width: 100%;
+    }
+
+    /* Search boxes full-width */
+    .search-box,
+    .search-box.large {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Tables minimal padding */
+    .data-table th,
+    .data-table td {
+        padding: var(--space-1) var(--space-2);
+        font-size: 11px;
+    }
+
+    .table-wrapper .data-table {
+        min-width: 600px;
+    }
+
+    /* Glass cards compact */
+    .glass-card {
+        padding: var(--space-3);
+        border-radius: var(--radius-md);
+    }
+
+    /* Forms stack to single column */
+    .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .form-group.full-width {
+        grid-column: span 1;
+    }
+
+    /* Stats grid 2-col */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-3);
+    }
+
+    /* Asset info single col */
+    .asset-info-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Detail sections compact */
+    .detail-section {
+        padding: var(--space-2);
+        margin-bottom: var(--space-2);
+    }
+
+    /* Detail rows stack */
+    .detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-1);
+    }
+
+    .detail-label {
+        width: auto !important;
+    }
+
+    /* Modal full screen on mobile */
+    .modal-content {
+        max-width: 100vw !important;
+        max-height: 100vh !important;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+        margin: 0;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+    }
+
+    .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    /* Buttons adjust */
+    .btn {
+        padding: var(--space-2) var(--space-3);
+        font-size: var(--text-xs);
+    }
+
+    .btn-lg {
+        padding: var(--space-2) var(--space-4);
+    }
+
+    /* Badge adjustments */
+    .badge,
+    .status-badge,
+    .priority-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+
+    /* Tabs compact */
+    .tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+    }
+
+    .tab-btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+        font-size: var(--text-xs);
+        padding: var(--space-2) var(--space-3);
+    }
+
+    /* Ticket detail section */
+    .ticket-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-2);
+    }
+
+    .ticket-header-info {
+        width: 100%;
+    }
+
+    .ticket-actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    .ticket-actions .btn {
+        flex: 1;
+        min-width: 100px;
+    }
+
+    /* Ticket form */
+    .ticket-form-page .form-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .ticket-form-page .form-group.full-width {
+        grid-column: span 1;
+    }
+
+    /* SLA timeline compact */
+    .sla-timeline {
+        gap: var(--space-2);
+    }
+
+    .timeline-milestone {
+        gap: var(--space-2);
+    }
+
+    /* Site view */
+    .site-view-page .view-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .site-view-page .detail-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Notification management grid */
+    .notification-grid-header,
+    .notification-grid-row {
+        grid-template-columns: 1fr !important;
+        gap: var(--space-2);
+    }
+
+    /* Hide non-essential table columns */
+    .data-table .col-hide-mobile {
+        display: none !important;
+    }
+
+    /* Settings items */
+    .settings-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Report filters */
+    .report-filters {
+        flex-direction: column;
+    }
+}
+
+/* ---- SMALL MOBILE (≤480px) ---- */
+@media (max-width: 480px) {
+    .main-content {
+        padding: var(--space-1);
+    }
+
+    .page-title {
+        font-size: var(--text-base);
+    }
+
+    /* Filter grid single column */
+    .filters-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Stats single column */
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Glass card minimal */
+    .glass-card {
+        padding: var(--space-2);
+        border-radius: var(--radius-sm);
+    }
+
+    /* Buttons compact */
+    .btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    /* Forms minimal spacing */
+    .form-group {
+        margin-bottom: var(--space-2);
+    }
+
+    .form-label {
+        font-size: 10px;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+        padding: 6px 10px;
+        font-size: var(--text-xs);
+        height: 36px;
+    }
+
+    /* Table even tighter */
+    .data-table th,
+    .data-table td {
+        padding: 4px 6px;
+        font-size: 10px;
+    }
+
+    .table-wrapper .data-table {
+        min-width: 500px;
+    }
+
+    /* Avatars smaller */
+    .user-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 10px;
+    }
+
+    /* Modal header compact */
+    .modal-header {
+        padding: var(--space-3);
+    }
+
+    .modal-body {
+        padding: var(--space-3);
+    }
+
+    /* Tabs scroll */
+    .tabs {
+        gap: var(--space-1);
+    }
+
+    .tab-btn {
+        padding: var(--space-1) var(--space-2);
+        font-size: 10px;
+    }
+
+    /* Back links smaller */
+    .back-link {
+        font-size: var(--text-xs);
+        margin-bottom: var(--space-2);
+    }
+
+    /* Role badges compact */
+    .role-badge {
+        padding: 2px 6px;
+        font-size: 9px;
+    }
+}
+
+/* ============================================
+   TOUCH DEVICE ENHANCEMENTS
+   ============================================ */
+@media (hover: none) and (pointer: coarse) {
+
+    /* Increase touch targets */
+    .btn,
+    .nav-item,
+    .dropdown-item,
+    .tab-btn {
+        min-height: 44px;
+    }
+
+    /* Remove hover effects that don't work on touch */
+    .data-table tr:hover {
+        background: none;
+    }
+
+    .stat-card:hover {
+        transform: none;
+    }
+
+    .action-card:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Larger checkboxes and inputs for touch */
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+
+    .sidebar,
+    .header,
+    .mobile-sidebar-toggle,
+    .sidebar-backdrop,
+    .btn,
+    .header-actions,
+    .filter-bar {
+        display: none !important;
+    }
+
+    .main-wrapper {
+        margin-left: 0 !important;
+    }
+
+    .main-content {
+        padding: 0;
+    }
+
+    .glass-card {
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+}

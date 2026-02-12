@@ -533,27 +533,81 @@
     margin: var(--space-3) 0;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+    .asset-view-page {
+        padding: var(--space-2);
+    }
+
+    .asset-info-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .info-card {
+        padding: var(--space-3);
+    }
+
+    .section-title {
+        font-size: 0.85rem;
+    }
+
     .device-diff {
         grid-template-columns: 1fr;
     }
 
     .modal-overlay {
-        padding: 16px;
+        padding: var(--space-2);
     }
 
     .modal,
     .modal-content {
-        border-radius: 12px;
-        max-height: 95vh;
+        max-height: 90vh;
+        border-radius: var(--radius-lg);
+    }
+}
+
+@media (max-width: 480px) {
+    .asset-view-page {
+        padding: var(--space-1);
+    }
+
+    .device-diff {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-overlay {
+        padding: 0;
+    }
+
+    .modal,
+    .modal-content {
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        max-height: 100vh;
     }
 
     .modal-header,
     .modal-body,
     .modal-footer {
-        padding: 16px;
+        padding: 12px;
+    }
+
+    .info-card {
+        padding: var(--space-2);
+        border-radius: var(--radius-md);
+    }
+
+    .asset-info-item {
+        padding: var(--space-1);
+    }
+
+    .asset-info-label {
+        font-size: 0.6rem;
+    }
+
+    .asset-info-value {
+        font-size: 0.8rem;
     }
 }
+
 
 .diff-box {
     padding: var(--space-3);

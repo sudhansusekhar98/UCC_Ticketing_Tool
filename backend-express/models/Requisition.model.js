@@ -4,7 +4,6 @@ const requisitionSchema = new mongoose.Schema({
     // Auto-generated requisition number
     requisitionNumber: {
         type: String,
-        unique: true,
         maxlength: 20
     },
     ticketId: {

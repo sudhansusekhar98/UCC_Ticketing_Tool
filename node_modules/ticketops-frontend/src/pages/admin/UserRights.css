@@ -1,5 +1,6 @@
 .user-rights-page {
-  height: calc(100vh - 120px); /* Adjust based on navbar/header */
+  height: calc(100vh - 120px);
+  /* Adjust based on navbar/header */
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -11,7 +12,8 @@
   display: flex;
   gap: 1.5rem;
   flex: 1;
-  min-height: 0; /* Important for scroll */
+  min-height: 0;
+  /* Important for scroll */
 }
 
 /* User List Section */
@@ -307,6 +309,7 @@
   background: rgba(59, 130, 246, 0.1);
   color: #60a5fa;
 }
+
 .user-rights-header {
   margin-bottom: 1rem !important;
   padding-bottom: 0 !important;
@@ -345,93 +348,230 @@
 
 /* Site Selection Modern */
 .site-selection-wrapper {
-    margin-top: 1.5rem;
-    margin-bottom: 2rem;
-    padding: 1.5rem;
-    background: var(--bg-secondary);
-    border-radius: var(--radius-2xl);
-    border: 1px solid var(--border-light);
-    box-shadow: var(--shadow-md);
-    position: relative;
+  margin-top: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-md);
+  position: relative;
 }
 
 .site-selection-header {
-    margin-bottom: 1rem;
+  margin-bottom: 1rem;
 }
 
 .section-label {
-    display: block;
-    font-weight: 800;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    color: var(--primary-500);
-    margin-bottom: 0.2rem;
+  display: block;
+  font-weight: 800;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--primary-500);
+  margin-bottom: 0.2rem;
 }
 
 .section-hint {
-    font-size: 0.8rem;
-    color: var(--text-muted);
+  font-size: 0.8rem;
+  color: var(--text-muted);
 }
 
 .site-tabs-modern {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .site-btn-modern {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.7rem 1.4rem;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-xl);
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.7rem 1.4rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .site-btn-modern:hover {
-    border-color: var(--primary-400);
-    color: var(--primary-500);
-    background: var(--bg-secondary);
-    transform: translateY(-2px);
+  border-color: var(--primary-400);
+  color: var(--primary-500);
+  background: var(--bg-secondary);
+  transform: translateY(-2px);
 }
 
 .site-btn-modern.active {
-    background: var(--gradient-primary);
-    border-color: transparent;
-    color: white;
-    box-shadow: 0 4px 12px rgba(var(--primary-500-rgb), 0.3);
+  background: var(--gradient-primary);
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 4px 12px rgba(var(--primary-500-rgb), 0.3);
 }
 
 .site-btn-modern .status-icon {
-    opacity: 0.4;
-    transition: all 0.2s;
+  opacity: 0.4;
+  transition: all 0.2s;
 }
 
 .site-btn-modern.active .status-icon {
-    opacity: 1;
+  opacity: 1;
 }
 
 .site-divider {
-    width: 1px;
-    height: 24px;
-    background: var(--border-light);
-    margin: 0 0.5rem;
+  width: 1px;
+  height: 24px;
+  background: var(--border-light);
+  margin: 0 0.5rem;
 }
 
 [data-theme="dark"] .site-btn-modern:hover {
-    background: rgba(59, 130, 246, 0.1);
+  background: rgba(59, 130, 246, 0.1);
 }
 
 .editor-actions {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .user-rights-page {
+    height: auto;
+    min-height: calc(100vh - 120px);
+    overflow: visible;
+  }
+
+  .rights-container {
+    flex-direction: column;
+  }
+
+  .users-list-section {
+    width: 100%;
+    max-height: 300px;
+  }
+
+  .permissions-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .site-tabs-modern {
+    gap: 0.5rem;
+  }
+
+  .site-btn-modern {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .user-rights-page {
+    padding: 0 var(--space-2);
+  }
+
+  .user-rights-header h1 {
+    font-size: 1.4rem;
+  }
+
+  .user-rights-header p {
+    font-size: 0.85rem;
+  }
+
+  .editor-header {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .editor-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .editor-scroll {
+    padding: 0 1rem 1rem 1rem;
+  }
+
+  .permissions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .permission-card {
+    padding: 1rem;
+  }
+
+  .permission-info .label {
+    font-size: 0.85rem;
+  }
+
+  .site-selection-wrapper {
+    padding: 1rem;
+  }
+
+  .site-tabs-modern {
+    gap: 0.4rem;
+  }
+
+  .site-btn-modern {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+    border-radius: var(--radius-md);
+  }
+
+  .site-divider {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-rights-page {
+    padding: 0 var(--space-1);
+  }
+
+  .users-list-section {
+    max-height: 200px;
+  }
+
+  .user-item {
+    padding: 0.75rem;
+  }
+
+  .user-avatar-small {
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+  }
+
+  .user-info .name {
+    font-size: 0.85rem;
+  }
+
+  .user-info .meta {
+    font-size: 0.75rem;
+  }
+
+  .user-details-premium {
+    gap: 0.5rem;
+  }
+
+  .user-avatar-premium {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .user-meta-compact h2 {
+    font-size: 0.95rem;
+  }
+
+  .save-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
 }
