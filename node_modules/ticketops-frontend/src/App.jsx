@@ -19,6 +19,7 @@ import TicketDetail from './pages/tickets/TicketDetail';
 import TicketForm from './pages/tickets/CreateTicket';
 import SitesList from './pages/sites/SitesList';
 import SiteForm from './pages/sites/SiteForm';
+import SiteView from './pages/sites/SiteView';
 import AssetsList from './pages/assets/AssetsList';
 import AssetForm from './pages/assets/AssetForm';
 import AssetView from './pages/assets/AssetView';
@@ -233,6 +234,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
                 <SiteForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/sites/:id"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer']}>
+                <SiteView />
               </ProtectedRoute>
             }
           />

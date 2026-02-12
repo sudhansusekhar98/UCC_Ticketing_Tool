@@ -37,11 +37,12 @@ export default function UsersList() {
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchValue, setDebouncedSearchValue] = useState('');
     const [roleFilter, setRoleFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
     const [roles, setRoles] = useState([]);
     const [page, setPage] = useState(1);
-    const pageSize = 15;
+    const pageSize = 50;
     const { hasRole, user: currentUser } = useAuthStore();
 
     const canCreate = hasRole(['Admin']);
@@ -52,9 +53,19 @@ export default function UsersList() {
         loadRoles();
     }, []);
 
+    // Handle search debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchValue(searchTerm);
+            setPage(1);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
     useEffect(() => {
         fetchUsers();
-    }, [page, roleFilter, statusFilter]);
+    }, [page, roleFilter, statusFilter, debouncedSearchValue]);
 
     const loadRoles = async () => {
         try {
@@ -72,20 +83,21 @@ export default function UsersList() {
             const response = await usersApi.getAll({
                 page,
                 limit: pageSize,
+                search: debouncedSearchValue || undefined,
                 role: roleFilter || undefined,
                 isActive: statusFilter === '' ? undefined : statusFilter === 'true',
             });
             // Handle Express response format
             const userData = response.data.data || response.data.items || response.data || [];
             const total = response.data.pagination?.total || response.data.totalCount || userData.length;
-            
+
             // Map to expected format
             const mappedUsers = userData.map(u => ({
                 ...u,
                 userId: u._id || u.userId,
                 siteName: u.siteId?.siteName || u.siteName
             }));
-            
+
             setUsers(mappedUsers);
             setTotalCount(total);
         } catch (error) {
@@ -111,11 +123,8 @@ export default function UsersList() {
         }
     };
 
-    const filteredUsers = users.filter(user =>
-        user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.username.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // No client-side filtering needed as we use server-side search
+    const displayedUsers = users;
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -179,7 +188,7 @@ export default function UsersList() {
                     <div className="loading-state">
                         <div className="spinner"></div>
                     </div>
-                ) : filteredUsers.length === 0 ? (
+                ) : displayedUsers.length === 0 ? (
                     <div className="empty-state">
                         <Users size={48} />
                         <p>No users found</p>
@@ -189,6 +198,7 @@ export default function UsersList() {
                         <table className="data-table compact">
                             <thead>
                                 <tr>
+                                    <th>Sl No.</th>
                                     <th>User</th>
                                     <th>Username</th>
                                     <th>Role</th>
@@ -200,8 +210,9 @@ export default function UsersList() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredUsers.map((user) => (
+                                {displayedUsers.map((user, index) => (
                                     <tr key={user.userId}>
+                                        <td>{(page - 1) * pageSize + index + 1}</td>
                                         <td>
                                             <div className="user-cell">
                                                 <div className="user-avatar">
@@ -236,8 +247,8 @@ export default function UsersList() {
                                             <div className="sites-cell" title={user.assignedSites?.map(s => s.siteName).join(', ')}>
                                                 {user.assignedSites?.length > 0 ? (
                                                     <span className="cell-primary">
-                                                        {user.assignedSites.length === 1 
-                                                            ? user.assignedSites[0].siteName 
+                                                        {user.assignedSites.length === 1
+                                                            ? user.assignedSites[0].siteName
                                                             : `${user.assignedSites.length} Sites`}
                                                     </span>
                                                 ) : (

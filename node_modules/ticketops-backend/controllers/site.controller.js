@@ -37,7 +37,7 @@ export const getSites = async (req, res, next) => {
 
     const [sites, total] = await Promise.all([
       Site.find(query)
-        .sort({ createdAt: -1 })
+        .sort({ isHeadOffice: -1, createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
       Site.countDocuments(query)
@@ -192,8 +192,8 @@ export const getSitesDropdown = async (req, res, next) => {
     }
 
     const sites = await Site.find(query)
-      .select('siteName siteUniqueID')
-      .sort({ siteName: 1 });
+      .select('siteName siteUniqueID isHeadOffice')
+      .sort({ isHeadOffice: -1, siteName: 1 });
 
     res.json({
       success: true,

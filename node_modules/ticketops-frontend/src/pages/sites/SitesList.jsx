@@ -9,6 +9,7 @@ import {
     MapPin,
     Edit,
     Trash2,
+    Eye,
     ExternalLink,
     Warehouse,
 } from 'lucide-react';
@@ -22,10 +23,11 @@ export default function SitesList() {
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearchValue, setDebouncedSearchValue] = useState('');
     const [cityFilter, setCityFilter] = useState('');
     const [cities, setCities] = useState([]);
     const [page, setPage] = useState(1);
-    const pageSize = 15;
+    const pageSize = 50;
     const navigate = useNavigate();
     const { hasRole } = useAuthStore();
 
@@ -37,9 +39,19 @@ export default function SitesList() {
         loadCities();
     }, []);
 
+    // Handle search debounce
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearchValue(searchTerm);
+            setPage(1);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
     useEffect(() => {
         fetchSites();
-    }, [page, cityFilter]);
+    }, [page, cityFilter, debouncedSearchValue]);
 
     const loadCities = async () => {
         try {
@@ -57,6 +69,7 @@ export default function SitesList() {
             const response = await sitesApi.getAll({
                 page,
                 limit: pageSize,
+                search: debouncedSearchValue || undefined,
                 city: cityFilter || undefined,
                 isActive: true,
             });
@@ -96,10 +109,8 @@ export default function SitesList() {
         }
     };
 
-    const filteredSites = sites.filter(site =>
-        site.siteName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        site.city.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // No client-side filtering needed
+    const displayedSites = sites;
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -154,7 +165,7 @@ export default function SitesList() {
                     <div className="loading-state">
                         <div className="spinner"></div>
                     </div>
-                ) : filteredSites.length === 0 ? (
+                ) : displayedSites.length === 0 ? (
                     <div className="empty-state">
                         <MapPin size={48} />
                         <p>No sites found</p>
@@ -175,7 +186,7 @@ export default function SitesList() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredSites.map((site) => (
+                                {displayedSites.map((site) => (
                                     <tr key={site.siteId}>
                                         <td>
                                             <div className="cell-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -214,6 +225,9 @@ export default function SitesList() {
                                         </td>
                                         <td className="actions-col">
                                             <div className="action-buttons">
+                                                <Link to={`/sites/${site.siteId}`} className="btn btn-icon btn-ghost" title="View Details">
+                                                    <Eye size={16} />
+                                                </Link>
                                                 {canEdit && (
                                                     <Link to={`/sites/${site.siteId}/edit`} className="btn btn-icon btn-ghost" title="Edit">
                                                         <Edit size={16} />

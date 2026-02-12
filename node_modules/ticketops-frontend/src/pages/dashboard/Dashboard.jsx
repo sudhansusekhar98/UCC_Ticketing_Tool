@@ -410,7 +410,6 @@ export default function Dashboard() {
                     </div>
                 </Link> */}
 
-
                 <Link to="/tickets?slaBreached=true" className="stat-card danger animate-enter delay-300">
                     <div className="stat-card-bg-blob"></div>
                     <div className="stat-header">
@@ -579,8 +578,14 @@ export default function Dashboard() {
 
                 <div className="stat-card engineers-card">
                     <div className="stat-header">
-                        <div className="stat-icon-wrapper" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
-                            <Users size={20} />
+                        <div className="stat-header-left">
+                            <div className="stat-icon-wrapper" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+                                <Users size={20} />
+                            </div>
+                            <div className="stat-total-mini">
+                                <span className="stat-value">{engineers.length || stats?.availableEngineers || 0}</span>
+                                <span className="stat-label">Active Engineers</span>
+                            </div>
                         </div>
                         {canSeeUsers && (
                             <Link to="/users" className="stat-link">
@@ -588,10 +593,6 @@ export default function Dashboard() {
                             </Link>
                         )}
                     </div>
-                    <div className="stat-value" style={{ fontSize: '2.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)' }}>
-                        {engineers.length || stats?.availableEngineers || 0}
-                    </div>
-                    <div className="stat-label">Active Engineers</div>
 
                     {engineers.length > 0 ? (
                         <div className="engineers-list">
@@ -615,8 +616,14 @@ export default function Dashboard() {
 
                 <div className="stat-card sites-card">
                     <div className="stat-header">
-                        <div className="stat-icon-wrapper" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
-                            <Building2 size={20} />
+                        <div className="stat-header-left">
+                            <div className="stat-icon-wrapper" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+                                <Building2 size={20} />
+                            </div>
+                            <div className="stat-total-mini">
+                                <span className="stat-value">{sites.length || 0}</span>
+                                <span className="stat-label">Active Sites</span>
+                            </div>
                         </div>
                         {isAdmin && (
                             <Link to="/sites" className="stat-link">
@@ -624,10 +631,6 @@ export default function Dashboard() {
                             </Link>
                         )}
                     </div>
-                    <div className="stat-value" style={{ fontSize: '2.5rem', background: 'none', WebkitTextFillColor: 'var(--text-primary)' }}>
-                        {sites.length || 0}
-                    </div>
-                    <div className="stat-label">Active Sites</div>
 
                     {sites.length > 0 ? (
                         <div className="sites-list">
