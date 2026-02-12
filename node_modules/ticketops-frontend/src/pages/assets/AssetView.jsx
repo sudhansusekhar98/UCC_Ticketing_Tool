@@ -139,11 +139,6 @@ export default function AssetView() {
 
     return (
         <div className="page-container form-view asset-view-page">
-            <Link to="/assets" className="back-link">
-                <ArrowLeft size={18} />
-                Back to Assets
-            </Link>
-
             <div className="page-header">
                 <div>
                     <h1 className="page-title">{asset.assetCode}</h1>
@@ -175,6 +170,10 @@ export default function AssetView() {
                             Edit Asset
                         </Link>
                     )}
+                    <Link to="/assets" className="btn btn-secondary">
+                        <ArrowLeft size={18} />
+                        Back to Assets
+                    </Link>
                 </div>
             </div>
 

@@ -556,7 +556,12 @@ export default function Dashboard() {
                     {assets.length > 0 ? (
                         <div className="assets-list">
                             {assets.slice(0, 5).map((asset, index) => (
-                                <div key={asset.assetId} className="asset-item" style={{ animationDelay: `${index * 50}ms` }}>
+                                <Link
+                                    key={asset.assetId}
+                                    to={`/assets/${asset.assetId}`}
+                                    className="asset-item"
+                                    style={{ animationDelay: `${index * 50}ms`, textDecoration: 'none' }}
+                                >
                                     <div className={`asset-status-icon ${asset.status === 'Online' ? 'online' : (asset.status === 'Not Installed' ? 'not-installed' : 'offline')}`}>
                                         {asset.status === 'Online' ? <Wifi size={12} /> : (asset.status === 'Not Installed' ? <Package size={12} /> : <WifiOff size={12} />)}
                                     </div>
@@ -565,7 +570,7 @@ export default function Dashboard() {
                                         <span className="asset-type">{asset.assetTypeName || asset.assetType}</span>
                                     </div>
                                     <span className={`asset-status-badge ${asset.status.replace(/\s+/g, '-').toLowerCase()}`}>{asset.status}</span>
-                                </div>
+                                </Link>
                             ))}
                             {(stats?.totalAssets || assets.length) > 5 && (
                                 <Link to="/assets" className="view-more-link">+{(stats?.totalAssets || assets.length) - 5} more assets</Link>
@@ -597,7 +602,12 @@ export default function Dashboard() {
                     {engineers.length > 0 ? (
                         <div className="engineers-list">
                             {engineers.slice(0, 5).map((engineer, index) => (
-                                <div key={engineer.value} className="engineer-item" style={{ animationDelay: `${index * 50}ms` }}>
+                                <Link
+                                    key={engineer.value}
+                                    to="/users"
+                                    className="engineer-item"
+                                    style={{ animationDelay: `${index * 50}ms`, textDecoration: 'none' }}
+                                >
                                     <div className="engineer-avatar">
                                         <User size={14} />
                                     </div>
@@ -606,7 +616,7 @@ export default function Dashboard() {
                                         <span className="engineer-role">Field Engineer</span>
                                     </div>
                                     <div className="engineer-status online"></div>
-                                </div>
+                                </Link>
                             ))}
                         </div>
                     ) : (
@@ -635,7 +645,12 @@ export default function Dashboard() {
                     {sites.length > 0 ? (
                         <div className="sites-list">
                             {sites.slice(0, 5).map((site, index) => (
-                                <div key={site._id} className="site-item" style={{ animationDelay: `${index * 50}ms` }}>
+                                <Link
+                                    key={site._id}
+                                    to={`/sites/${site._id}`}
+                                    className="site-item"
+                                    style={{ animationDelay: `${index * 50}ms`, textDecoration: 'none' }}
+                                >
                                     <div className="site-icon">
                                         <MapPin size={14} />
                                     </div>
@@ -644,7 +659,7 @@ export default function Dashboard() {
                                         <span className="site-city">{site.city || site.siteUniqueID}</span>
                                     </div>
                                     <span className="site-status-badge active">Active</span>
-                                </div>
+                                </Link>
                             ))}
                             {sites.length > 5 && (
                                 <Link to="/sites" className="view-more-link">+{sites.length - 5} more sites</Link>

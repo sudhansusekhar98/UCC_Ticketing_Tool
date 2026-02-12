@@ -748,6 +748,7 @@
     border: 1px solid transparent;
     border-radius: var(--radius-md);
     transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .asset-item:hover {
@@ -815,6 +816,7 @@
     border: 1px solid transparent;
     border-radius: var(--radius-md);
     transition: all 0.2s ease;
+    cursor: pointer;
 }
 
 .engineer-item:hover {
@@ -880,6 +882,7 @@
     border: 1px solid transparent;
     border-radius: var(--radius-md);
     transition: all 0.2s ease;
+    cursor: pointer;
     animation: fadeInUp 0.3s ease-out forwards;
     opacity: 0;
 }
