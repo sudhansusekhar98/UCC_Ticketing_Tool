@@ -92,13 +92,8 @@ export default function SiteView() {
         <div className="page-container form-view site-view-page animate-fade-in">
             <div className="page-header">
                 <div>
-                    <div className="flex items-center gap-3">
-                        <Link to="/sites" className="btn btn-icon btn-ghost" title="Back">
-                            <ArrowLeft size={20} />
-                        </Link>
-                        <h1 className="page-title">{site.siteName}</h1>
-                    </div>
-                    <p className="page-subtitle" style={{ marginLeft: '40px' }}>
+                    <h1 className="page-title">{site.siteName}</h1>
+                    <p className="page-subtitle">
                         {site.city} {site.zone ? `| ${site.zone}` : ''} {site.ward ? `| ${site.ward}` : ''}
                     </p>
                 </div>
@@ -109,6 +104,10 @@ export default function SiteView() {
                             Edit Site
                         </Link>
                     )}
+                    <Link to="/sites" className="btn btn-secondary">
+                        <ArrowLeft size={18} />
+                        Back to Sites
+                    </Link>
                 </div>
             </div>
 

@@ -121,7 +121,7 @@ export default function StockTransferForm() {
                     </div>
 
                     <div className="header-actions">
-                        <Link to="/stock/transfers" className="back-link" style={{ margin: 0 }}>
+                        <Link to="/stock/transfers" className="btn btn-secondary">
                             <ArrowLeft size={18} />
                             Back to Transfers
                         </Link>

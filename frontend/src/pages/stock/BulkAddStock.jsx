@@ -91,7 +91,7 @@ export default function BulkAddStock() {
                             <Package size={14} />
                             Single Add
                         </Link>
-                        <Link to="/stock" className="back-link" style={{ margin: 0 }}>
+                        <Link to="/stock" className="btn btn-secondary">
                             <ArrowLeft size={18} />
                             Back to Stock
                         </Link>

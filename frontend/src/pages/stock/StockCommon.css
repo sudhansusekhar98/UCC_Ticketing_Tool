@@ -340,26 +340,7 @@
     box-shadow: none;
 }
 
-.back-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.625rem 1rem;
-    background: transparent;
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    font-weight: 500;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
 
-.back-link:hover {
-    background: var(--bg-secondary);
-    border-color: var(--primary-200);
-    color: var(--primary-600);
-}
 
 /* Modals */
 .modal-overlay {

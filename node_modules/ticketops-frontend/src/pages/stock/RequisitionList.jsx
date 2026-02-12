@@ -126,7 +126,7 @@ export default function RequisitionList() {
                             <RefreshCw size={16} className={loading ? 'spinning' : ''} />
                             Refresh
                         </button>
-                        <Link to="/stock" className="back-link" style={{ margin: 0 }}>
+                        <Link to="/stock" className="btn btn-secondary">
                             <ArrowLeft size={18} />
                             Back to Dashboard
                         </Link>

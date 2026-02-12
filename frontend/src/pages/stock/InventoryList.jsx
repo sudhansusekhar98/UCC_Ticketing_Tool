@@ -125,7 +125,7 @@ export default function InventoryList() {
                     </div>
 
                     <div className="header-actions">
-                        <Link to="/stock" className="back-link" style={{ margin: 0 }}>
+                        <Link to="/stock" className="btn btn-secondary">
                             <ArrowLeft size={18} />
                             Back to Dashboard
                         </Link>

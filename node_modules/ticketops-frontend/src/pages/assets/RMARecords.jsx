@@ -140,10 +140,6 @@ export default function RMARecords() {
         <div className="rma-records-page animate-fade-in">
             <div className="page-header">
                 <div className="header-left">
-                    <Link to="/assets" className="back-link">
-                        <ArrowLeft size={18} />
-                        Back to Assets
-                    </Link>
                     <div>
                         <h1 className="page-title">RMA Records &nbsp;</h1>
                         <p className="page-subtitle">
@@ -172,6 +168,10 @@ export default function RMARecords() {
                         <RefreshCw size={18} />
                         Refresh
                     </button>
+                    <Link to="/assets" className="btn btn-secondary">
+                        <ArrowLeft size={18} />
+                        Back to Assets
+                    </Link>
                 </div>
             </div>
 
