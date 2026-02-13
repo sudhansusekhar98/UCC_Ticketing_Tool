@@ -681,6 +681,78 @@ export const sendRMAMilestoneEmail = async (rma, milestone, recipients, addition
   }
 };
 
+/**
+ * Send general broadcast email to all users or specific user
+ */
+export const sendGeneralNotificationEmail = async (recipients, notification) => {
+  try {
+    const transporter = createTransporter();
+
+    // Convert single recipient to array
+    const recipientList = Array.isArray(recipients) ? recipients : [recipients];
+    const recipientEmails = recipientList.map(u => u.email).filter(Boolean);
+
+    if (recipientEmails.length === 0) {
+      console.log('No recipient emails found for general notification');
+      return false;
+    }
+
+    const content = `
+      <p>Hello,</p>
+      <p>A new ${notification.type || 'notification'} has been posted on TicketOps.</p>
+      
+      <div class="info-box">
+        <h3 style="margin-top: 0; color: #667eea;">${notification.title}</h3>
+        <p style="white-space: pre-wrap;">${notification.message}</p>
+      </div>
+      
+      ${notification.link ? `
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}${notification.link}" class="btn" style="color: white !important; text-decoration: none;">View on System</a>
+      </div>
+      ` : ''}
+      
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
+    `;
+
+    const subject = `Notification: ${notification.title}`;
+
+    // If many recipients, we might want to send individually or use BCC to avoid exposing emails
+    // For now, let's send to all in one go or loop if it's manageable
+    if (recipientEmails.length > 50) {
+      // Batching would be better, but let's stick to simple for now or split
+      // Nodemailer handles arrays in 'to', but BCC is safer for privacy
+      await transporter.sendMail({
+        from: `"TicketOps" <${process.env.SMTP_USER}>`,
+        bcc: recipientEmails.join(', '),
+        subject: subject,
+        html: emailTemplate(content, 'New Notification'),
+      });
+    } else {
+      await transporter.sendMail({
+        from: `"TicketOps" <${process.env.SMTP_USER}>`,
+        to: recipientEmails.join(', '),
+        subject: subject,
+        html: emailTemplate(content, 'New Notification'),
+      });
+    }
+
+    console.log(`General notification email sent to ${recipientEmails.length} recipients`);
+
+    // Log for each recipient
+    for (const user of recipientList) {
+      if (user.email) {
+        await logNotification(user.email, subject, content, 'General', null, 'Sent', null, user._id);
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error sending general notification email:', error);
+    return false;
+  }
+};
+
 export default {
   sendAccountCreationEmail,
   sendTicketAssignmentEmail,
@@ -690,5 +762,6 @@ export default {
   sendPasswordResetEmail,
   sendBreachWarningEmail,
   sendSlaBreachedEmail,
-  sendRMAMilestoneEmail
+  sendRMAMilestoneEmail,
+  sendGeneralNotificationEmail
 };

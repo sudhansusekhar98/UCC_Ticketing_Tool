@@ -8,6 +8,7 @@ import {
   verifyRefreshToken
 } from '../utils/auth.utils.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
+import { createAuditLog, logAuthFailure } from '../middleware/audit.middleware.js';
 import fs from 'fs';
 
 // @desc    Login user
@@ -29,6 +30,7 @@ export const login = async (req, res, next) => {
     const user = await User.findOne({ username }).select('+passwordHash');
 
     if (!user) {
+      await logAuthFailure(req, username, 'User not found');
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -47,6 +49,7 @@ export const login = async (req, res, next) => {
     const isPasswordMatch = await comparePassword(password, user.passwordHash);
 
     if (!isPasswordMatch) {
+      await logAuthFailure(req, username, 'Invalid password');
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials'
@@ -70,6 +73,16 @@ export const login = async (req, res, next) => {
 
     // Get user rights
     const userRight = await UserRight.findOne({ user: user._id });
+
+    // Audit log successful login
+    await createAuditLog({
+      user: { _id: user._id, role: user.role, fullName: user.fullName },
+      action: 'AUTH_LOGIN',
+      resourceType: 'System',
+      details: `User ${user.username} logged in`,
+      req,
+      success: true
+    });
 
     res.json({
       success: true,
@@ -128,7 +141,7 @@ export const getMe = async (req, res, next) => {
   }
 };
 
-// @desc    Refresh access token
+// @desc    Refresh access token (with token rotation)
 // @route   POST /api/auth/refresh
 // @access  Public
 export const refreshToken = async (req, res, next) => {
@@ -169,10 +182,27 @@ export const refreshToken = async (req, res, next) => {
     // Generate new access token
     const newToken = generateToken(user._id);
 
+    // Refresh token rotation: generate a new refresh token
+    const newRefreshToken = generateRefreshToken(user._id);
+    user.refreshToken = newRefreshToken;
+    user.refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    await user.save();
+
+    // Audit log
+    await createAuditLog({
+      user: { _id: user._id, role: user.role, fullName: user.fullName },
+      action: 'AUTH_REFRESH_TOKEN',
+      resourceType: 'System',
+      details: 'Access token refreshed with token rotation',
+      req,
+      success: true
+    });
+
     res.json({
       success: true,
       data: {
-        token: newToken
+        token: newToken,
+        refreshToken: newRefreshToken
       }
     });
   } catch (error) {
@@ -189,6 +219,16 @@ export const logout = async (req, res, next) => {
     await User.findByIdAndUpdate(req.user.id, {
       refreshToken: null,
       refreshTokenExpiry: null
+    });
+
+    // Audit log
+    await createAuditLog({
+      user: req.user,
+      action: 'AUTH_LOGOUT',
+      resourceType: 'System',
+      details: `User logged out`,
+      req,
+      success: true
     });
 
     res.json({
@@ -265,6 +305,16 @@ export const changePassword = async (req, res, next) => {
     // Hash new password
     user.passwordHash = await hashPassword(newPassword);
     await user.save();
+
+    // Audit log
+    await createAuditLog({
+      user: req.user,
+      action: 'AUTH_PASSWORD_CHANGE',
+      resourceType: 'System',
+      details: `Password changed for user ${req.user.username}`,
+      req,
+      success: true
+    });
 
     res.json({
       success: true,

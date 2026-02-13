@@ -16,10 +16,12 @@ import {
   checkAssetsStatus,
   updateBulkStatus,
   exportStatusReport,
-  getSitesWithAssets
+  getSitesWithAssets,
+  getAssetCredentials
 } from '../controllers/asset.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 import { simpleUpload } from '../utils/upload.js';
+import { sensitiveLimiter } from '../middleware/rateLimiter.middleware.js';
 
 const router = express.Router();
 
@@ -51,6 +53,9 @@ router.route('/:id')
   .get(getAssetById)
   .put(authorize('Admin', 'Dispatcher'), updateAsset)
   .delete(authorize('Admin'), deleteAsset);
+
+// Secure credentials endpoint - Admin/Supervisor only with rate limiting
+router.get('/:id/credentials', sensitiveLimiter, authorize('Admin', 'Supervisor'), getAssetCredentials);
 
 router.patch('/:id/status', updateAssetStatus);
 

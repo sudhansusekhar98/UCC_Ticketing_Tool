@@ -119,7 +119,26 @@ if (process.env.VERCEL !== '1') {
   }).catch(err => console.error('MongoDB connection failed for cron jobs:', err));
 }
 // Middleware
-app.use(helmet()); // Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'wss:', 'ws:'],
+    }
+  },
+  crossOriginEmbedderPolicy: false, // Allow loading cross-origin resources
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  noSniff: true,
+  xssFilter: true
+})); // Enhanced security headers
 
 // CORS Configuration - supports multiple origins
 const allowedOrigins = [
@@ -154,8 +173,8 @@ app.use(compression()); // Compress responses
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev')); // Logging (only in development)
 }
-app.use(express.json()); // Parse JSON bodies
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(express.json({ limit: '10mb' })); // Parse JSON bodies with size limit
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-encoded bodies
 
 // Make io accessible to routes (only if it exists)
 if (io) {
@@ -221,11 +240,14 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  // Never log sensitive fields
+  const safeMessage = err.message?.replace(/password|secret|key|token/gi, '[REDACTED]') || 'Internal Server Error';
+  console.error('Error:', safeMessage);
 
   res.status(err.statusCode || 500).json({
     success: false,
-    message: err.message || 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? safeMessage : 'Internal Server Error',
+    // Never expose stack traces in production
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });

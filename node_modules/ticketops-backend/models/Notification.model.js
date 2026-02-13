@@ -35,6 +35,10 @@ const notificationSchema = new mongoose.Schema({
     type: Boolean,
     default: false // If true, shows to all users
   },
+  targetRoles: [{
+    type: String,
+    enum: ['Dispatcher', 'L1Engineer', 'L2Engineer', 'Supervisor', 'Admin', 'ClientViewer']
+  }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

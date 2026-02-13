@@ -1,6 +1,8 @@
 import Notification from '../models/Notification.model.js';
 import User from '../models/User.model.js';
 import { logNotification } from '../utils/notificationLogger.js';
+import emailUtils from '../utils/email.utils.js';
+const { sendGeneralNotificationEmail } = emailUtils;
 
 // @desc    Get notifications for current user
 // @route   GET /api/notifications
@@ -28,7 +30,8 @@ export const getNotifications = async (req, res, next) => {
         {
           $or: [
             { userId: userId },
-            { isBroadcast: true }
+            { isBroadcast: true },
+            { targetRoles: req.user.role }
           ]
         },
         {
@@ -88,7 +91,8 @@ export const getUnreadCount = async (req, res, next) => {
         {
           $or: [
             { userId: userId },
-            { isBroadcast: true }
+            { isBroadcast: true },
+            { targetRoles: req.user.role }
           ]
         },
         {
@@ -169,15 +173,16 @@ export const markAllAsRead = async (req, res, next) => {
 // @access  Private (Admin)
 export const createNotification = async (req, res, next) => {
   try {
-    const { title, message, type, link, userId, isBroadcast, expiresAt } = req.body;
+    const { title, message, type, link, userId, isBroadcast, targetRoles, expiresAt } = req.body;
 
     const notification = await Notification.create({
       title,
       message,
       type: type || 'info',
       link,
-      userId: isBroadcast ? null : userId,
+      userId: (isBroadcast || (targetRoles && targetRoles.length > 0)) ? null : userId,
       isBroadcast: isBroadcast || false,
+      targetRoles: isBroadcast ? [] : (targetRoles || []),
       createdBy: req.user._id,
       expiresAt
     });
@@ -215,6 +220,36 @@ export const createNotification = async (req, res, next) => {
       );
     } catch (err) {
       console.error('Failed to log system notification:', err);
+    }
+
+    // Send email if requested
+    if (req.body.sendEmail) {
+      try {
+        let recipients = [];
+        if (isBroadcast) {
+          // Fetch all users with email
+          recipients = await User.find({
+            email: { $exists: true, $ne: '' }
+          }).select('email fullName');
+        } else if (targetRoles && targetRoles.length > 0) {
+          // Fetch users with matching roles
+          recipients = await User.find({
+            role: { $in: targetRoles },
+            email: { $exists: true, $ne: '' }
+          }).select('email fullName');
+        } else if (userId) {
+          const targetUser = await User.findById(userId).select('email fullName');
+          if (targetUser && targetUser.email) {
+            recipients = [targetUser];
+          }
+        }
+
+        if (recipients.length > 0) {
+          await sendGeneralNotificationEmail(recipients, notification);
+        }
+      } catch (emailErr) {
+        console.error('Failed to send notification emails:', emailErr);
+      }
     }
 
 
@@ -374,14 +409,17 @@ export const getNotificationById = async (req, res, next) => {
       });
     }
 
-    // Only allow user to view their own notifications or broadcast notifications
-    if (notification.userId && notification.userId.toString() !== req.user._id.toString() && !notification.isBroadcast) {
+    // Only allow user to view their own notifications or broadcast/role-based notifications
+    const isOwner = notification.userId && notification.userId.toString() === req.user._id.toString();
+    const isTargetedByRole = notification.targetRoles && notification.targetRoles.includes(req.user.role);
+
+    if (!isOwner && !notification.isBroadcast && !isTargetedByRole) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to view this notification'
       });
     }
-    
+
     res.json({
       success: true,
       data: notification

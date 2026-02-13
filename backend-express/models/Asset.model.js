@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { encrypt, decrypt, isEncrypted, SENSITIVE_ASSET_FIELDS } from '../utils/encryption.utils.js';
 
 const assetSchema = new mongoose.Schema({
   assetCode: {
@@ -107,8 +108,8 @@ const assetSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    maxlength: 255
-    // Note: This is device/asset password, not user credentials - acceptable for all users to see
+    maxlength: 1024 // Increased to accommodate encrypted ciphertext
+    // Note: Device/asset password - encrypted at rest
   },
   remark: {
     type: String,
@@ -124,6 +125,81 @@ const assetSchema = new mongoose.Schema({
   toJSON: { virtuals: true },
   toObject: { virtuals: true }
 });
+
+// ============================================================================
+// Mongoose Middleware: Encrypt sensitive fields before save
+// ============================================================================
+assetSchema.pre('save', function (next) {
+  try {
+    for (const field of SENSITIVE_ASSET_FIELDS) {
+      if (this.isModified(field) && this[field] && !isEncrypted(this[field])) {
+        this[field] = encrypt(this[field]);
+      }
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Encrypt on findOneAndUpdate / updateOne
+assetSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next) {
+  try {
+    const update = this.getUpdate();
+    if (!update) return next();
+
+    // Handle $set operator
+    const target = update.$set || update;
+    for (const field of SENSITIVE_ASSET_FIELDS) {
+      if (target[field] && !isEncrypted(target[field])) {
+        target[field] = encrypt(target[field]);
+      }
+    }
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================================================
+// Static method: Decrypt sensitive fields on a document
+// Only call this when the requesting user is authorized.
+// ============================================================================
+assetSchema.statics.decryptSensitiveFields = function (doc) {
+  if (!doc) return doc;
+
+  const obj = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
+  for (const field of SENSITIVE_ASSET_FIELDS) {
+    if (obj[field] && isEncrypted(obj[field])) {
+      try {
+        obj[field] = decrypt(obj[field]);
+      } catch (err) {
+        console.error(`[DECRYPT_ERROR] Failed to decrypt ${field}:`, err.message);
+        obj[field] = '[ENCRYPTED]';
+      }
+    }
+  }
+  return obj;
+};
+
+// ============================================================================
+// Static method: Mask sensitive fields for non-privileged users
+// ============================================================================
+assetSchema.statics.maskSensitiveFields = function (doc) {
+  if (!doc) return doc;
+
+  const obj = typeof doc.toObject === 'function' ? doc.toObject() : { ...doc };
+  for (const field of SENSITIVE_ASSET_FIELDS) {
+    if (obj[field]) {
+      if (field === 'password') {
+        obj[field] = '••••••••';
+      } else {
+        obj[field] = '●●●●●●';
+      }
+    }
+  }
+  return obj;
+};
 
 // Indexes (assetCode index is already created via unique: true)
 assetSchema.index({ assetType: 1 });

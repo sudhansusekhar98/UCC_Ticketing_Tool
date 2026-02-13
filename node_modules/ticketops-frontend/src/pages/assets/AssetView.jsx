@@ -291,7 +291,7 @@ export default function AssetView() {
                     </div>
 
                     {/* Credentials / Others */}
-                    {(asset.userName || asset.remark) && (
+                    {(asset.userName || asset.password || asset.remark) && (
                         <div className="info-card">
                             <h2 className="section-title">
                                 <Server size={20} />
@@ -303,6 +303,41 @@ export default function AssetView() {
                                     <div className="asset-info-item">
                                         <label className="asset-info-label">Device Username</label>
                                         <p className="asset-info-value font-mono">{asset.userName}</p>
+                                    </div>
+                                )}
+
+                                {asset.password && (
+                                    <div className="asset-info-item">
+                                        <label className="asset-info-label">Device Password</label>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <p className="asset-info-value font-mono" style={{ margin: 0 }}>
+                                                {asset._showPassword ? asset.password : '••••••••'}
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => setAsset(prev => ({ ...prev, _showPassword: !prev._showPassword }))}
+                                                style={{
+                                                    background: 'none',
+                                                    border: '1px solid var(--border-color)',
+                                                    borderRadius: 'var(--radius-sm)',
+                                                    padding: '2px 8px',
+                                                    fontSize: '11px',
+                                                    color: 'var(--text-secondary)',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseOver={(e) => {
+                                                    e.currentTarget.style.borderColor = 'var(--primary-400)';
+                                                    e.currentTarget.style.color = 'var(--primary-500)';
+                                                }}
+                                                onMouseOut={(e) => {
+                                                    e.currentTarget.style.borderColor = 'var(--border-color)';
+                                                    e.currentTarget.style.color = 'var(--text-secondary)';
+                                                }}
+                                            >
+                                                {asset._showPassword ? 'Hide' : 'Show'}
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
 

@@ -340,6 +340,11 @@
     color: #06b6d4;
 }
 
+.target-badge.roles {
+    background: rgba(139, 92, 246, 0.1);
+    color: var(--accent-purple);
+}
+
 /* Date */
 .col-date {
     font-size: var(--text-sm);
@@ -362,13 +367,13 @@
 }
 
 .status-badge.active {
-    background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success-500);
 }
 
 .status-badge.expired {
-    background: rgba(107, 114, 128, 0.15);
-    color: #6b7280;
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-muted);
 }
 
 /* Action Buttons */
@@ -683,6 +688,42 @@
     font-weight: 600;
 }
 
+/* Role Selector */
+.role-selector {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2);
+    background: var(--bg-tertiary);
+    padding: var(--space-4);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-light);
+}
+
+.role-checkbox {
+    display: flex !important;
+    align-items: center !important;
+    gap: var(--space-2) !important;
+    cursor: pointer;
+    font-size: var(--text-xs) !important;
+    color: var(--text-secondary) !important;
+    margin-bottom: 0 !important;
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+}
+
+.role-checkbox:hover {
+    background: var(--bg-primary);
+    color: var(--text-primary) !important;
+}
+
+.role-checkbox input[type="checkbox"] {
+    width: 14px !important;
+    height: 14px !important;
+    cursor: pointer;
+    accent-color: var(--primary-500);
+}
+
 /* Toggle Group (legacy) */
 .toggle-group {
     display: flex;
@@ -721,6 +762,79 @@
     padding-top: var(--space-4);
     border-top: 1px solid var(--border-light);
     margin-top: var(--space-4);
+}
+
+/* Email Notification Toggle */
+.email-notification-toggle {
+    margin-top: var(--space-2);
+    padding: var(--space-4);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    transition: all var(--transition-fast);
+}
+
+.email-notification-toggle:hover {
+    border-color: var(--primary-400);
+    background: var(--bg-secondary);
+}
+
+.email-notification-toggle.active {
+    border-color: var(--primary-500);
+    background: rgba(59, 130, 246, 0.05);
+}
+
+.email-toggle-icon {
+    width: 42px;
+    height: 42px;
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary-500);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+}
+
+.email-notification-toggle.active .email-toggle-icon {
+    background: var(--primary-500);
+    color: white;
+}
+
+.email-toggle-main {
+    flex: 1;
+}
+
+.email-toggle-header {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    gap: var(--space-3);
+    user-select: none;
+}
+
+.email-toggle-header input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
+    cursor: pointer;
+    accent-color: var(--primary-500);
+    margin: 0;
+}
+
+.email-toggle-title {
+    font-weight: 600;
+    font-size: var(--text-sm);
+    color: var(--text-primary);
+}
+
+.email-toggle-description {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: 2px;
 }
 
 /* Buttons */
@@ -915,5 +1029,16 @@
 
     .modal-body {
         padding: var(--space-4);
+    }
+
+    .email-notification-toggle {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-3);
+    }
+
+    .email-toggle-icon {
+        width: 36px;
+        height: 36px;
     }
 }

@@ -6,8 +6,28 @@ import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { decrypt, isEncrypted, SENSITIVE_ASSET_FIELDS } from '../utils/encryption.utils.js';
+import { createAuditLog } from '../middleware/audit.middleware.js';
 
 const execAsync = promisify(exec);
+
+// Roles used for audit logging on credential-specific endpoints
+const PRIVILEGED_ROLES = ['Admin', 'Supervisor'];
+
+/**
+ * Process asset for API response — always decrypt sensitive fields.
+ * Data remains encrypted at rest in MongoDB; decrypted only for display.
+ */
+const processAssetForResponse = (asset) => {
+  if (!asset) return asset;
+
+  const obj = typeof asset.toObject === 'function' ? asset.toObject() : { ...asset };
+  return Asset.decryptSensitiveFields(obj);
+};
+
+const processAssetsForResponse = (assets) => {
+  return assets.map(a => processAssetForResponse(a));
+};
 
 // Helper to build asset query based on filters and user permissions
 const buildAssetQuery = (req) => {
@@ -52,11 +72,15 @@ const buildAssetQuery = (req) => {
   if (isActive !== undefined) query.isActive = isActive === 'true';
 
   if (search) {
+    // Only search on non-sensitive fields to avoid matching against encrypted ciphertext
     query.$or = [
       { assetCode: { $regex: search, $options: 'i' } },
-      { serialNumber: { $regex: search, $options: 'i' } },
-      { mac: { $regex: search, $options: 'i' } },
-      { locationDescription: { $regex: search, $options: 'i' } }
+      { locationDescription: { $regex: search, $options: 'i' } },
+      { locationName: { $regex: search, $options: 'i' } },
+      { make: { $regex: search, $options: 'i' } },
+      { model: { $regex: search, $options: 'i' } },
+      { assetType: { $regex: search, $options: 'i' } },
+      { deviceType: { $regex: search, $options: 'i' } }
     ];
   }
 
@@ -138,7 +162,7 @@ export const getAssets = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: assets,
+      data: processAssetsForResponse(assets),
       statusCounts,
       pagination: {
         page: parseInt(page),
@@ -169,7 +193,54 @@ export const getAssetById = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: asset
+      data: processAssetForResponse(asset)
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get decrypted credentials for a specific asset (Admin/Supervisor only)
+// @route   GET /api/assets/:id/credentials
+// @access  Private (Admin, Supervisor)
+export const getAssetCredentials = async (req, res, next) => {
+  try {
+    const asset = await Asset.findById(req.params.id)
+      .select('assetCode ipAddress mac serialNumber userName password siteId');
+
+    if (!asset) {
+      return res.status(404).json({
+        success: false,
+        message: 'Asset not found'
+      });
+    }
+
+    // Decrypt sensitive fields
+    const decryptedAsset = Asset.decryptSensitiveFields(asset);
+
+    // Audit log this access
+    await createAuditLog({
+      user: req.user,
+      action: 'VIEW_CREDENTIALS',
+      resourceType: 'Asset',
+      resourceId: asset._id,
+      details: `Viewed credentials for asset ${asset.assetCode}`,
+      fieldsAccessed: ['ipAddress', 'mac', 'serialNumber', 'userName', 'password'],
+      req,
+      success: true
+    });
+
+    res.json({
+      success: true,
+      data: {
+        _id: decryptedAsset._id,
+        assetCode: decryptedAsset.assetCode,
+        ipAddress: decryptedAsset.ipAddress,
+        mac: decryptedAsset.mac,
+        serialNumber: decryptedAsset.serialNumber,
+        userName: decryptedAsset.userName,
+        password: decryptedAsset.password
+      }
     });
   } catch (error) {
     next(error);
@@ -626,31 +697,47 @@ export const exportAssets = async (req, res, next) => {
 
     const assets = await Asset.find(query).populate('siteId', 'siteName siteUniqueID').lean();
 
-    const exportData = assets.map(asset => ({
-      'Asset Code': asset.assetCode || '',
-      'Asset Type': asset.assetType || '',
-      'Device Type': asset.deviceType || '',
-      'Make': asset.make || '',
-      'Model': asset.model || '',
-      'Serial Number': asset.serialNumber || '',
-      'IP Address': asset.ipAddress || '',
-      'MAC': asset.mac || '',
-      'Site ID': asset.siteId?.siteUniqueID || '',
-      'Site Name': asset.siteId?.siteName || '',
-      'Location Name': asset.locationName || '',
-      'Location Description': asset.locationDescription || '',
-      'Used For': asset.usedFor || '',
-      'Criticality': asset.criticality || 2,
-      'Status': asset.status || '',
-      'VMS Ref ID': asset.vmsReferenceId || '',
-      'NMS Ref ID': asset.nmsReferenceId || '',
-      'Username': asset.userName || '',
-      'Password': asset.password || '',
-      'Installation Date': asset.installationDate ? new Date(asset.installationDate).toLocaleDateString() : '',
-      'Warranty End Date': asset.warrantyEndDate ? new Date(asset.warrantyEndDate).toLocaleDateString() : '',
-      'Remark': asset.remark || '',
-      'Is Active': asset.isActive ? 'Yes' : 'No'
-    }));
+    // Audit log export of sensitive data
+    await createAuditLog({
+      user: req.user,
+      action: 'EXPORT_SENSITIVE',
+      resourceType: 'Asset',
+      details: `Exported ${assets.length} assets with sensitive data`,
+      fieldsAccessed: SENSITIVE_ASSET_FIELDS,
+      req,
+      success: true
+    });
+
+    const exportData = assets.map(asset => {
+      // Always decrypt for export display
+      const processedAsset = Asset.decryptSensitiveFields(asset);
+
+      return {
+        'Asset Code': processedAsset.assetCode || '',
+        'Asset Type': processedAsset.assetType || '',
+        'Device Type': processedAsset.deviceType || '',
+        'Make': processedAsset.make || '',
+        'Model': processedAsset.model || '',
+        'Serial Number': processedAsset.serialNumber || '',
+        'IP Address': processedAsset.ipAddress || '',
+        'MAC': processedAsset.mac || '',
+        'Site ID': asset.siteId?.siteUniqueID || '',
+        'Site Name': asset.siteId?.siteName || '',
+        'Location Name': processedAsset.locationName || '',
+        'Location Description': processedAsset.locationDescription || '',
+        'Used For': processedAsset.usedFor || '',
+        'Criticality': processedAsset.criticality || 2,
+        'Status': processedAsset.status || '',
+        'VMS Ref ID': processedAsset.vmsReferenceId || '',
+        'NMS Ref ID': processedAsset.nmsReferenceId || '',
+        'Username': processedAsset.userName || '',
+        'Password': processedAsset.password || '',
+        'Installation Date': asset.installationDate ? new Date(asset.installationDate).toLocaleDateString() : '',
+        'Warranty End Date': asset.warrantyEndDate ? new Date(asset.warrantyEndDate).toLocaleDateString() : '',
+        'Remark': processedAsset.remark || '',
+        'Is Active': asset.isActive ? 'Yes' : 'No'
+      };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
@@ -742,9 +829,11 @@ export const checkAssetsStatus = async (req, res, next) => {
     if (process.platform === 'win32') {
       try {
         const pingCommands = assets.map(a => {
-          const ip = (a.ipAddress || '').trim().toUpperCase();
+          // Decrypt IP for actual ping operation
+          const rawIp = a.ipAddress ? (isEncrypted(a.ipAddress) ? decrypt(a.ipAddress) : a.ipAddress) : '';
+          const ip = rawIp.trim().toUpperCase();
           if (!ip || ip === 'NA') return `Write-Host "[-] ${a.assetCode.padEnd(15)} | Passive Device" -ForegroundColor Gray`;
-          return `Write-Host "[...] Pinging ${a.assetCode.padEnd(15)} (${a.ipAddress.padEnd(15)})... " -NoNewline; if (Test-Connection -ComputerName ${a.ipAddress} -Count 1 -Quiet) { Write-Host "ONLINE" -ForegroundColor Green } else { Write-Host "OFFLINE" -ForegroundColor Red }`;
+          return `Write-Host "[...] Pinging ${a.assetCode.padEnd(15)} (${rawIp.trim().padEnd(15)})... " -NoNewline; if (Test-Connection -ComputerName ${rawIp.trim()} -Count 1 -Quiet) { Write-Host "ONLINE" -ForegroundColor Green } else { Write-Host "OFFLINE" -ForegroundColor Red }`;
         }).join('\n');
 
         const scriptContent = `
@@ -796,14 +885,16 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 
         await Promise.all(batch.map(async (asset) => {
           let currentStatus = 'Offline';
-          const ip = (asset.ipAddress || '').trim().toUpperCase();
+          // Decrypt IP for ping operation
+          const rawIp = asset.ipAddress ? (isEncrypted(asset.ipAddress) ? decrypt(asset.ipAddress) : asset.ipAddress) : '';
+          const ip = rawIp.trim().toUpperCase();
 
           if (!ip || ip === 'NA') {
             currentStatus = 'Passive Device';
             results.passive++;
           } else {
             try {
-              const command = `powershell.exe -Command "Test-Connection -ComputerName ${asset.ipAddress} -Count 1 -Quiet"`;
+              const command = `powershell.exe -Command "Test-Connection -ComputerName ${rawIp.trim()} -Count 1 -Quiet"`;
               const { stdout } = await execAsync(command, { timeout: 4000 });
               if (stdout.trim() === 'True') {
                 currentStatus = 'Online';
@@ -826,7 +917,8 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
           if (io) {
             io.to(userRoom).emit('asset:ping:progress', {
               assetCode: asset.assetCode,
-              ipAddress: asset.ipAddress,
+              // Don't send decrypted IP over socket - mask it
+              ipAddress: rawIp ? `${rawIp.split('.')[0]}.***.***` : 'N/A',
               status: currentStatus,
               processed: results.processed,
               total: results.total,
@@ -1009,16 +1101,24 @@ export const exportStatusReport = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'No assets with IP addresses found for selected filters' });
     }
 
-    const exportData = assets.map(asset => ({
-      'Asset Code': asset.assetCode || '',
-      'Asset Type': asset.assetType || '',
-      'Device Type': asset.deviceType || '',
-      'IP Address': asset.ipAddress || '',
-      'Current Status': asset.status || '',
-      'Site Name': asset.siteId?.siteName || '',
-      'Location': asset.locationName || '',
-      'Last Checked': asset.updatedAt ? new Date(asset.updatedAt).toLocaleString() : 'Never'
-    }));
+    const exportData = assets.map(asset => {
+      // Always decrypt for display
+      let displayIp = asset.ipAddress || '';
+      if (isEncrypted(displayIp)) {
+        displayIp = decrypt(displayIp);
+      }
+
+      return {
+        'Asset Code': asset.assetCode || '',
+        'Asset Type': asset.assetType || '',
+        'Device Type': asset.deviceType || '',
+        'IP Address': displayIp,
+        'Current Status': asset.status || '',
+        'Site Name': asset.siteId?.siteName || '',
+        'Location': asset.locationName || '',
+        'Last Checked': asset.updatedAt ? new Date(asset.updatedAt).toLocaleString() : 'Never'
+      };
+    });
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();

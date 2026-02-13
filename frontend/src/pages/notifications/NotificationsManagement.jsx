@@ -20,6 +20,8 @@ import {
     Settings,
     Calendar,
     Loader,
+    Mail,
+    Shield,
 } from 'lucide-react';
 import { notificationsApi, usersApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -59,7 +61,9 @@ export default function NotificationsManagement() {
         link: '',
         isBroadcast: true,
         userId: '',
+        targetRoles: [],
         expiresAt: '',
+        sendEmail: false,
     });
 
     useEffect(() => {
@@ -101,7 +105,9 @@ export default function NotificationsManagement() {
                 link: notification.link || '',
                 isBroadcast: notification.isBroadcast || false,
                 userId: notification.userId || '',
+                targetRoles: notification.targetRoles || [],
                 expiresAt: notification.expiresAt ? format(new Date(notification.expiresAt), "yyyy-MM-dd'T'HH:mm") : '',
+                sendEmail: false, // Default to false for edits
             });
         } else {
             setEditingNotification(null);
@@ -112,7 +118,9 @@ export default function NotificationsManagement() {
                 link: '',
                 isBroadcast: true,
                 userId: '',
+                targetRoles: [],
                 expiresAt: '',
+                sendEmail: false,
             });
         }
         setShowModal(true);
@@ -128,7 +136,9 @@ export default function NotificationsManagement() {
             link: '',
             isBroadcast: true,
             userId: '',
+            targetRoles: [],
             expiresAt: '',
+            sendEmail: false,
         });
     };
 
@@ -165,7 +175,8 @@ export default function NotificationsManagement() {
             const payload = {
                 ...formData,
                 expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : null,
-                userId: formData.isBroadcast ? null : formData.userId,
+                userId: (formData.isBroadcast || formData.targetRoles.length > 0) ? null : formData.userId,
+                targetRoles: formData.isBroadcast ? [] : formData.targetRoles,
             };
 
             if (editingNotification) {
@@ -360,6 +371,11 @@ export default function NotificationsManagement() {
                                                         <Users size={14} />
                                                         All Users
                                                     </span>
+                                                ) : notification.targetRoles?.length > 0 ? (
+                                                    <span className="target-badge roles">
+                                                        <Shield size={14} />
+                                                        {notification.targetRoles.length} Roles
+                                                    </span>
                                                 ) : (
                                                     <span className="target-badge specific">
                                                         <User size={14} />
@@ -408,7 +424,7 @@ export default function NotificationsManagement() {
             {/* Create/Edit Modal */}
             {showModal && createPortal(
                 <div className="modal-overlay" onClick={handleCloseModal}>
-                    <div className="modal glass-card w-full max-w-2xl" onClick={e => e.stopPropagation()}>
+                    <div className="modal" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
                             <h2>
                                 {editingNotification ? 'Edit Notification' : 'Create Notification'}
@@ -419,7 +435,7 @@ export default function NotificationsManagement() {
                         </div>
 
                         <form onSubmit={handleSubmit}>
-                            <div className="modal-body space-y-4">
+                            <div className="modal-body">
                                 <div className="form-group">
                                     <label className="form-label" id="type-selector-label">Notification Type</label>
                                     <div
@@ -505,57 +521,88 @@ export default function NotificationsManagement() {
                                         onChange={handleInputChange}
                                         placeholder="/tickets/123 or https://example.com"
                                     />
-                                    <small className="text-xs text-muted block mt-1">Users will be redirected when clicking the notification</small>
+                                    <small>Users will be redirected when clicking the notification</small>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="form-row">
                                     <div className="form-group">
                                         <label className="form-label">Target Audience</label>
                                         <div className="audience-toggle">
                                             <button
                                                 type="button"
                                                 className={`audience-option ${formData.isBroadcast ? 'active' : ''}`}
-                                                onClick={() => setFormData(prev => ({ ...prev, isBroadcast: true }))}
+                                                onClick={() => setFormData(prev => ({ ...prev, isBroadcast: true, targetRoles: [], userId: '' }))}
                                             >
                                                 <Users size={18} />
                                                 <span>All Users</span>
                                             </button>
                                             <button
                                                 type="button"
-                                                className={`audience-option ${!formData.isBroadcast ? 'active' : ''}`}
-                                                onClick={() => setFormData(prev => ({ ...prev, isBroadcast: false }))}
+                                                className={`audience-option ${!formData.isBroadcast && formData.targetRoles.length > 0 ? 'active' : ''}`}
+                                                onClick={() => setFormData(prev => ({ ...prev, isBroadcast: false, targetRoles: prev.targetRoles.length > 0 ? prev.targetRoles : ['L1Engineer'], userId: '' }))}
+                                            >
+                                                <Shield size={18} />
+                                                <span>Roles</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`audience-option ${!formData.isBroadcast && formData.targetRoles.length === 0 ? 'active' : ''}`}
+                                                onClick={() => setFormData(prev => ({ ...prev, isBroadcast: false, targetRoles: [], userId: prev.userId || '' }))}
                                             >
                                                 <User size={18} />
                                                 <span>Specific</span>
                                             </button>
                                         </div>
                                     </div>
-
-                                    {!formData.isBroadcast && (
-                                        <div className="form-group">
-                                            <label className="form-label" htmlFor="userId">Select User</label>
-                                            <select
-                                                id="userId"
-                                                name="userId"
-                                                className="form-select"
-                                                value={formData.userId}
-                                                onChange={handleInputChange}
-                                                required={!formData.isBroadcast}
-                                            >
-                                                <option value="">Select a user...</option>
-                                                {users.map(user => (
-                                                    <option key={user._id} value={user._id}>
-                                                        {user.fullName} ({user.role})
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                    )}
                                 </div>
+
+                                {!formData.isBroadcast && formData.targetRoles.length > 0 && (
+                                    <div className="form-group">
+                                        <label className="form-label">Select Roles</label>
+                                        <div className="role-selector">
+                                            {['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'].map(role => (
+                                                <label key={role} className="role-checkbox">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.targetRoles.includes(role)}
+                                                        onChange={(e) => {
+                                                            const roles = e.target.checked
+                                                                ? [...formData.targetRoles, role]
+                                                                : formData.targetRoles.filter(r => r !== role);
+                                                            setFormData(prev => ({ ...prev, targetRoles: roles }));
+                                                        }}
+                                                    />
+                                                    <span>{role}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {!formData.isBroadcast && formData.targetRoles.length === 0 && (
+                                    <div className="form-group">
+                                        <label className="form-label" htmlFor="userId">Select User</label>
+                                        <select
+                                            id="userId"
+                                            name="userId"
+                                            className="form-select"
+                                            value={formData.userId}
+                                            onChange={handleInputChange}
+                                            required={!formData.isBroadcast && formData.targetRoles.length === 0}
+                                        >
+                                            <option value="">Select a user...</option>
+                                            {users.map(user => (
+                                                <option key={user._id} value={user._id}>
+                                                    {user.fullName} ({user.role})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
 
                                 <div className="form-group">
                                     <label className="form-label" htmlFor="expiresAt">
-                                        <Calendar size={14} className="inline mr-1" />
+                                        <Calendar size={14} />
                                         Expiry Date (Optional)
                                     </label>
                                     <input
@@ -566,7 +613,32 @@ export default function NotificationsManagement() {
                                         value={formData.expiresAt}
                                         onChange={handleInputChange}
                                     />
-                                    <small className="text-xs text-muted block mt-1">Notification will be automatically hidden after this date</small>
+                                    <small>Notification will be automatically hidden after this date</small>
+                                </div>
+
+                                <div className={`email-notification-toggle ${formData.sendEmail ? 'active' : ''}`}>
+                                    <div className="email-toggle-icon">
+                                        <Mail size={20} />
+                                    </div>
+                                    <div className="email-toggle-main">
+                                        <label className="email-toggle-header">
+                                            <input
+                                                type="checkbox"
+                                                name="sendEmail"
+                                                checked={formData.sendEmail}
+                                                onChange={handleInputChange}
+                                            />
+                                            <span className="email-toggle-title">Send via Email</span>
+                                        </label>
+                                        <div className="email-toggle-description">
+                                            {formData.isBroadcast
+                                                ? 'All system users will receive an email copy.'
+                                                : formData.targetRoles.length > 0
+                                                    ? `All users with ${formData.targetRoles.length} selected role(s) will receive an email copy.`
+                                                    : 'Selected user will receive an email copy.'
+                                            }
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

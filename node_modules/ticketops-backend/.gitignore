@@ -2,10 +2,17 @@
 node_modules/
 package-lock.json
 
-# Environment variables
+# Environment variables (NEVER commit these)
 .env
 .env.local
 .env.production
+.env.staging
+.env.*.local
+*.key
+*.pem
+
+# Temp scripts (e.g., ping check)
+temp_*.ps1
 
 # Logs
 logs/

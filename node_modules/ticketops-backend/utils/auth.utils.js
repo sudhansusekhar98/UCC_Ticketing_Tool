@@ -2,16 +2,19 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 // Generate JWT Token
+// Short-lived access tokens (1h production, 7d dev for convenience)
 export const generateToken = (id) => {
+  const defaultExpiry = process.env.NODE_ENV === 'production' ? '1h' : '7d';
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '7d'
+    expiresIn: process.env.JWT_EXPIRE || defaultExpiry
   });
 };
 
 // Generate Refresh Token
+// Longer-lived but rotated on each use
 export const generateRefreshToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRE || '30d'
+    expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d'
   });
 };
 
