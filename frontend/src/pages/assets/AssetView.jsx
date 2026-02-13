@@ -233,11 +233,11 @@ export default function AssetView() {
                         </div>
                     </div>
 
-                    {/* Network Information */}
+                    {/* Network & Device Information */}
                     <div className="info-card">
                         <h2 className="section-title">
                             <Network size={20} />
-                            Network Information
+                            Network & Device Information
                         </h2>
 
                         <div className="asset-info-grid">
@@ -249,6 +249,16 @@ export default function AssetView() {
                             <div className="asset-info-item">
                                 <label className="asset-info-label">Mac Address</label>
                                 <p className="asset-info-value font-mono">{asset.mac || '—'}</p>
+                            </div>
+
+                            <div className="asset-info-item">
+                                <label className="asset-info-label">Device Username</label>
+                                <p className="asset-info-value font-mono">{asset.userName || '—'}</p>
+                            </div>
+
+                            <div className="asset-info-item">
+                                <label className="asset-info-label">Device Password</label>
+                                <p className="asset-info-value font-mono">{asset.password || '—'}</p>
                             </div>
 
                             <div className="asset-info-item">
@@ -290,8 +300,8 @@ export default function AssetView() {
                         </div>
                     </div>
 
-                    {/* Credentials / Others */}
-                    {(asset.userName || asset.password || asset.remark) && (
+                    {/* Additional Details */}
+                    {asset.remark && (
                         <div className="info-card">
                             <h2 className="section-title">
                                 <Server size={20} />
@@ -299,54 +309,10 @@ export default function AssetView() {
                             </h2>
 
                             <div className="asset-info-grid">
-                                {asset.userName && (
-                                    <div className="asset-info-item">
-                                        <label className="asset-info-label">Device Username</label>
-                                        <p className="asset-info-value font-mono">{asset.userName}</p>
-                                    </div>
-                                )}
-
-                                {asset.password && (
-                                    <div className="asset-info-item">
-                                        <label className="asset-info-label">Device Password</label>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <p className="asset-info-value font-mono" style={{ margin: 0 }}>
-                                                {asset._showPassword ? asset.password : '••••••••'}
-                                            </p>
-                                            <button
-                                                type="button"
-                                                onClick={() => setAsset(prev => ({ ...prev, _showPassword: !prev._showPassword }))}
-                                                style={{
-                                                    background: 'none',
-                                                    border: '1px solid var(--border-color)',
-                                                    borderRadius: 'var(--radius-sm)',
-                                                    padding: '2px 8px',
-                                                    fontSize: '11px',
-                                                    color: 'var(--text-secondary)',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s'
-                                                }}
-                                                onMouseOver={(e) => {
-                                                    e.currentTarget.style.borderColor = 'var(--primary-400)';
-                                                    e.currentTarget.style.color = 'var(--primary-500)';
-                                                }}
-                                                onMouseOut={(e) => {
-                                                    e.currentTarget.style.borderColor = 'var(--border-color)';
-                                                    e.currentTarget.style.color = 'var(--text-secondary)';
-                                                }}
-                                            >
-                                                {asset._showPassword ? 'Hide' : 'Show'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {asset.remark && (
-                                    <div className="asset-info-item">
-                                        <label className="asset-info-label">Remarks</label>
-                                        <p className="asset-info-value">{asset.remark}</p>
-                                    </div>
-                                )}
+                                <div className="asset-info-item">
+                                    <label className="asset-info-label">Remarks</label>
+                                    <p className="asset-info-value">{asset.remark}</p>
+                                </div>
                             </div>
                         </div>
                     )}
