@@ -549,14 +549,11 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  /* Tiny gap */
-  padding: 0 8px;
-  /* Extra narrow padding */
-  height: 36px;
-  /* Slightly shorter */
+  padding: 0 10px;
+  height: 34px;
   background: var(--bg-card);
   border: 1px solid var(--border-light);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-full);
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -671,12 +668,48 @@
   /* Push actions to the right */
 }
 
-/* Custom compact buttons for this header */
+/* Custom compact buttons for this header - pill-shaped, outlined style */
 .assets-page .header-actions .btn {
-  padding: 0 var(--space-3);
-  height: 36px;
-  font-size: var(--text-sm);
-  gap: 6px;
+  padding: 0 14px;
+  height: 34px;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 5px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.assets-page .header-actions .btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+/* Outlined secondary buttons in the assets toolbar */
+.assets-page .header-actions .btn-secondary {
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.assets-page .header-actions .btn-secondary:hover:not(:disabled) {
+  background: var(--bg-card-hover);
+  border-color: var(--primary-400);
+  color: var(--primary-500);
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.15);
+}
+
+/* Primary & Warning buttons keep gradient but match height */
+.assets-page .header-actions .btn-primary,
+.assets-page .header-actions .btn-warning {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.assets-page .header-actions .btn-primary:hover:not(:disabled),
+.assets-page .header-actions .btn-warning:hover:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 

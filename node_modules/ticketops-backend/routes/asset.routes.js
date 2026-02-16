@@ -17,7 +17,9 @@ import {
   updateBulkStatus,
   exportStatusReport,
   getSitesWithAssets,
-  getAssetCredentials
+  getAssetCredentials,
+  getPingProgress,
+  clearPingProgress
 } from '../controllers/asset.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 import { simpleUpload } from '../utils/upload.js';
@@ -41,6 +43,8 @@ router.get('/template', downloadTemplate);
 router.get('/export', exportAssets);
 router.get('/export-status', exportStatusReport);
 router.post('/check-status', authorize('Admin', 'Supervisor'), checkAssetsStatus);
+router.get('/ping-progress', authorize('Admin', 'Supervisor'), getPingProgress);
+router.delete('/ping-progress', authorize('Admin', 'Supervisor'), clearPingProgress);
 router.post('/bulk-status-update', authorize('Admin', 'Supervisor'), updateBulkStatus);
 router.post('/import', authorize('Admin'), upload.single('file'), bulkImportAssets);
 

@@ -17,7 +17,11 @@ import {
     ExternalLink,
     AlertCircle,
     LayoutGrid,
-    List
+    List,
+    Send,
+    Building,
+    MapPin,
+    Settings
 } from 'lucide-react';
 import { rmaApi, sitesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
@@ -29,20 +33,30 @@ const RMA_STATUS_CONFIG = {
     'Requested': { color: 'warning', icon: Clock, label: 'Awaiting Approval' },
     'Approved': { color: 'info', icon: CheckCircle, label: 'Approved' },
     'Rejected': { color: 'danger', icon: XCircle, label: 'Rejected' },
+    // New simplified workflow
+    'SentToServiceCenter': { color: 'primary', icon: Send, label: 'Sent to Service Center' },
+    'SentToHO': { color: 'warning', icon: Building, label: 'Sent to HO' },
+    'ReceivedAtHO': { color: 'info', icon: Package, label: 'Received at HO' },
+    'SentForRepairFromHO': { color: 'primary', icon: Send, label: 'Sent to SC from HO' },
+    'ItemRepairedAtHO': { color: 'info', icon: CheckCircle, label: 'Repaired (at HO)' },
+    'ReturnShippedToSite': { color: 'primary', icon: Truck, label: 'Shipped to Site' },
+    'ReceivedAtSite': { color: 'info', icon: MapPin, label: 'Received at Site' },
+    'Installed': { color: 'success', icon: Settings, label: 'Installed' },
+    // Replacement workflow
+    'ReplacementRequisitionRaised': { color: 'info', icon: Package, label: 'Requisition Raised' },
+    'ReplacementDispatched': { color: 'primary', icon: Truck, label: 'Replacement Dispatched' },
+    'ReplacementReceivedAtSite': { color: 'info', icon: MapPin, label: 'Replacement Received' },
+    // Legacy statuses (backward compat)
     'Ordered': { color: 'primary', icon: Package, label: 'Ordered from Vendor' },
     'Dispatched': { color: 'primary', icon: Truck, label: 'In Transit' },
     'Received': { color: 'info', icon: Download, label: 'Received' },
-    'Installed': { color: 'success', icon: CheckCircle, label: 'Completed' },
-    // HO Stock Transfer statuses
     'AwaitingStockTransfer': { color: 'warning', icon: Clock, label: 'Awaiting HO Transfer' },
     'StockInTransit': { color: 'primary', icon: Truck, label: 'Stock In Transit' },
     'StockReceived': { color: 'info', icon: Download, label: 'Stock Received' },
-    // Repair flow statuses
     'InRepair': { color: 'warning', icon: RefreshCw, label: 'In Repair' },
     'Repaired': { color: 'info', icon: CheckCircle, label: 'Repaired' },
     'RepairedItemEnRoute': { color: 'primary', icon: Truck, label: 'Repaired Item En Route' },
     'RepairedItemReceived': { color: 'info', icon: Download, label: 'Repaired Item Received' },
-    // Faulty item finalization
     'TransferredToSiteStore': { color: 'success', icon: Package, label: 'Transferred to Site' },
     'TransferredToHOStock': { color: 'success', icon: Package, label: 'Transferred to HO' },
     'Discarded': { color: 'danger', icon: XCircle, label: 'Discarded' }
@@ -252,30 +266,28 @@ export default function RMARecords() {
                         onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                     >
                         <option value="">All Statuses</option>
-                        <optgroup label="Standard Flow">
+                        <optgroup label="Workflow">
                             <option value="Requested">Requested</option>
                             <option value="Approved">Approved</option>
+                            <option value="SentToServiceCenter">Sent to Service Center</option>
+                            <option value="SentToHO">Sent to HO</option>
+                            <option value="ReceivedAtHO">Received at HO</option>
+                            <option value="SentForRepairFromHO">Sent to SC from HO</option>
+                            <option value="ItemRepairedAtHO">Repaired (at HO)</option>
+                            <option value="ReturnShippedToSite">Shipped to Site</option>
+                            <option value="ReceivedAtSite">Received at Site</option>
+                            <option value="Installed">Installed</option>
+                            <option value="ReplacementRequisitionRaised">Requisition Raised</option>
+                            <option value="ReplacementDispatched">Replacement Dispatched</option>
+                            <option value="ReplacementReceivedAtSite">Replacement Received</option>
+                            <option value="Rejected">Rejected</option>
+                        </optgroup>
+                        <optgroup label="Legacy">
                             <option value="Ordered">Ordered</option>
                             <option value="Dispatched">Dispatched</option>
                             <option value="Received">Received</option>
-                            <option value="Installed">Installed</option>
-                            <option value="Rejected">Rejected</option>
-                        </optgroup>
-                        <optgroup label="HO Stock Transfer">
-                            <option value="AwaitingStockTransfer">Awaiting Stock Transfer</option>
-                            <option value="StockInTransit">Stock In Transit</option>
-                            <option value="StockReceived">Stock Received</option>
-                        </optgroup>
-                        <optgroup label="Repair Flow">
                             <option value="InRepair">In Repair</option>
                             <option value="Repaired">Repaired</option>
-                            <option value="RepairedItemEnRoute">Repaired Item En Route</option>
-                            <option value="RepairedItemReceived">Repaired Item Received</option>
-                        </optgroup>
-                        <optgroup label="Finalization">
-                            <option value="TransferredToSiteStore">Transferred to Site Store</option>
-                            <option value="TransferredToHOStock">Transferred to HO Stock</option>
-                            <option value="Discarded">Discarded</option>
                         </optgroup>
                     </select>
                 </div>

@@ -1,5 +1,6 @@
 import Notification from '../models/Notification.model.js';
 import User from '../models/User.model.js';
+import DailyWorkLog from '../models/DailyWorkLog.model.js';
 import { logNotification } from '../utils/notificationLogger.js';
 import emailUtils from '../utils/email.utils.js';
 const { sendGeneralNotificationEmail } = emailUtils;
@@ -258,6 +259,13 @@ export const createNotification = async (req, res, next) => {
       data: notification,
       message: 'Notification created successfully'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'NotificationCreated',
+      description: `Created notification: "${title}"${isBroadcast ? ' (Broadcast)' : ''}`,
+      metadata: { title, isBroadcast: isBroadcast || false, type: type || 'info' }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }

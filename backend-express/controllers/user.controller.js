@@ -1,5 +1,6 @@
 import User from '../models/User.model.js';
 import UserRight from '../models/UserRight.model.js';
+import DailyWorkLog from '../models/DailyWorkLog.model.js';
 import { hashPassword } from '../utils/auth.utils.js';
 import { sendAccountCreationEmail, sendPasswordResetEmail } from '../utils/email.utils.js';
 
@@ -122,6 +123,13 @@ export const createUser = async (req, res, next) => {
       data: userResponse,
       message: 'User created successfully. Welcome email has been sent.'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'UserCreated',
+      description: `Created user ${user.fullName} (${user.role})`,
+      metadata: { userName: user.fullName, userRole: user.role, userId: user._id }
+    }).catch(() => { });
   } catch (error) {
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
@@ -164,6 +172,13 @@ export const updateUser = async (req, res, next) => {
       data: user,
       message: 'User updated successfully'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'UserUpdated',
+      description: `Updated user ${user.fullName}`,
+      metadata: { userName: user.fullName, userId: user._id }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -187,6 +202,13 @@ export const deleteUser = async (req, res, next) => {
       success: true,
       message: 'User deleted successfully'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'UserDeleted',
+      description: `Deleted user ${user.fullName}`,
+      metadata: { userName: user.fullName, userId: user._id }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }

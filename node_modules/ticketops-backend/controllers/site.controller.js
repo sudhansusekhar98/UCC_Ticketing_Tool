@@ -1,4 +1,5 @@
 import Site from '../models/Site.model.js';
+import DailyWorkLog from '../models/DailyWorkLog.model.js';
 
 // @desc    Get all sites
 // @route   GET /api/sites
@@ -104,6 +105,13 @@ export const createSite = async (req, res, next) => {
       data: site,
       message: 'Site created successfully'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'SiteCreated',
+      description: `Created site ${site.siteName} (${site.siteUniqueID})`,
+      metadata: { siteName: site.siteName, siteId: site._id }
+    }).catch(() => { });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({
@@ -149,6 +157,13 @@ export const updateSite = async (req, res, next) => {
       data: site,
       message: 'Site updated successfully'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'SiteUpdated',
+      description: `Updated site ${site.siteName}`,
+      metadata: { siteName: site.siteName, siteId: site._id }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -172,6 +187,13 @@ export const deleteSite = async (req, res, next) => {
       success: true,
       message: 'Site deleted successfully'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'SiteDeleted',
+      description: `Deleted site ${site.siteName} (${site.siteUniqueID})`,
+      metadata: { siteName: site.siteName, siteId: site._id }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }

@@ -42,6 +42,7 @@ import TransferList from './pages/stock/TransferList';
 import StockTransferForm from './pages/stock/StockTransferForm';
 import BulkAddStock from './pages/stock/BulkAddStock';
 import MovementLogs from './pages/stock/MovementLogs';
+import WorkLog from './pages/worklog/WorkLog';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles, requiredRight }) {
@@ -338,6 +339,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/worklog"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer']}>
+                <WorkLog />
               </ProtectedRoute>
             }
           />

@@ -16,17 +16,17 @@ const assetSchema = new mongoose.Schema({
   },
   serialNumber: {
     type: String,
-    maxlength: 100,
+    maxlength: 512, // Increased to accommodate encrypted ciphertext
     trim: true
   },
   mac: {
     type: String,
-    maxlength: 50,
+    maxlength: 512, // Increased to accommodate encrypted ciphertext
     trim: true
   },
   ipAddress: {
     type: String,
-    maxlength: 50,
+    maxlength: 512, // Increased to accommodate encrypted ciphertext
     trim: true
   },
   siteId: {
@@ -103,7 +103,7 @@ const assetSchema = new mongoose.Schema({
   },
   userName: {
     type: String,
-    maxlength: 100,
+    maxlength: 512, // Increased to accommodate encrypted ciphertext
     trim: true
   },
   password: {

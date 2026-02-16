@@ -17,6 +17,7 @@ import {
     BarChart3,
     HelpCircle,
     Package,
+    ClipboardList,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import { PERMISSIONS } from '../../constants/permissions';
@@ -30,6 +31,7 @@ const menuItems = [
     { path: '/reports', icon: BarChart3, label: 'Reports', roles: ['Admin', 'Supervisor', 'Dispatcher'] },
     { path: '/assets', icon: Monitor, label: 'Assets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer', 'L1Engineer', 'L2Engineer'] },
     { path: '/sites', icon: MapPin, label: 'Sites', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer'] },
+    { path: '/worklog', icon: ClipboardList, label: 'Work Log', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer'] },
     { path: '/stock', icon: Package, label: 'Stock', roles: ['Admin', 'Supervisor', 'Dispatcher'], rights: [PERMISSIONS.MANAGE_SITE_STOCK, PERMISSIONS.DIRECT_STOCK_REPLACEMENT] },
     { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },
     { path: '/user-rights', icon: Shield, label: 'User Rights', roles: ['Admin'] },

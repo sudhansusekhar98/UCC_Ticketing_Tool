@@ -9,6 +9,7 @@ import {
 } from '../utils/auth.utils.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
 import { createAuditLog, logAuthFailure } from '../middleware/audit.middleware.js';
+import DailyWorkLog from '../models/DailyWorkLog.model.js';
 import fs from 'fs';
 
 // @desc    Login user
@@ -56,8 +57,9 @@ export const login = async (req, res, next) => {
       });
     }
 
-    // Update last login
+    // Update last login and lastActivityAt
     user.lastLoginOn = new Date();
+    user.lastActivityAt = new Date();
 
     // Generate tokens
     const token = generateToken(user._id);
@@ -83,6 +85,12 @@ export const login = async (req, res, next) => {
       req,
       success: true
     });
+
+    // Fire-and-forget: log Login activity to daily work log
+    DailyWorkLog.logActivity(user._id, {
+      category: 'Login',
+      description: `User ${user.fullName} logged in`
+    }).catch(() => { });
 
     res.json({
       success: true,

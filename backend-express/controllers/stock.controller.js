@@ -8,6 +8,7 @@ import TicketActivity from '../models/TicketActivity.model.js';
 import StockReplacement from '../models/StockReplacement.model.js';
 import RMARequest from '../models/RMARequest.model.js';
 import StockMovementLog from '../models/StockMovementLog.model.js';
+import DailyWorkLog from '../models/DailyWorkLog.model.js';
 import XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
@@ -213,6 +214,15 @@ export const createRequisition = async (req, res, next) => {
             data: requisition,
             message: 'Requisition created successfully'
         });
+
+        // Fire-and-forget: log activity
+        DailyWorkLog.logActivity(user._id, {
+            category: 'RequisitionCreated',
+            description: `Created requisition for ${quantity} ${assetType}`,
+            refModel: 'Requisition',
+            refId: requisition._id,
+            metadata: { quantity, assetType, ticketId }
+        }).catch(() => { });
     } catch (error) {
         next(error);
     }
@@ -486,6 +496,15 @@ export const addStock = async (req, res, next) => {
             data: asset,
             message: `Spare ${assetType} (${asset.mac}) added to stock`
         });
+
+        // Fire-and-forget: log activity
+        DailyWorkLog.logActivity(user._id, {
+            category: 'StockAdded',
+            description: `Added ${assetType} (${asset.assetCode}) to stock at ${site.siteName}`,
+            refModel: 'Asset',
+            refId: asset._id,
+            metadata: { assetCode: asset.assetCode, siteId: site._id }
+        }).catch(() => { });
     } catch (error) {
         next(error);
     }
@@ -584,6 +603,15 @@ export const initiateTransfer = async (req, res, next) => {
             data: transfer,
             message: 'Transfer initiated'
         });
+
+        // Fire-and-forget: log activity
+        DailyWorkLog.logActivity(user._id, {
+            category: 'StockTransferred',
+            description: `Initiated stock transfer from source site to destination`,
+            refModel: 'StockTransfer',
+            refId: transfer._id,
+            metadata: { sourceSiteId, destinationSiteId, assetCount: assetIds.length }
+        }).catch(() => { });
     } catch (error) {
         next(error);
     }

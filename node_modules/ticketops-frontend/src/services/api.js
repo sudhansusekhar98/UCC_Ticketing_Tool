@@ -188,6 +188,8 @@ export const assetsApi = {
         });
     },
     checkStatus: (params) => api.post('/assets/check-status', {}, { params }),
+    getPingProgress: () => api.get('/assets/ping-progress', { skipCache: true }),
+    clearPingProgress: () => api.delete('/assets/ping-progress'),
     bulkStatusUpdate: (results) => api.post('/assets/bulk-status-update', { results }),
     exportStatusReport: (params) => api.get('/assets/export-status', { params, responseType: 'blob' }),
 };
@@ -300,6 +302,19 @@ export const assetUpdateRequestApi = {
     reject: (id, reason) => api.post(`/asset-update-requests/${id}/reject`, { reason }),
 };
 
+// Work Log API
+export const worklogApi = {
+    getMyToday: () => api.get('/worklogs/my/today'),
+    getMyLogs: (params) => api.get('/worklogs/my', { params }),
+    getUserLogs: (userId, params) => api.get(`/worklogs/user/${userId}`, { params }),
+    getTeamLogs: (params) => api.get('/worklogs/team', { params }),
+    updateSummary: (summary) => api.put('/worklogs/summary', { summary }),
+    addManualEntry: (formData) => api.post('/worklogs/manual', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+    deleteManualEntry: (id) => api.delete(`/worklogs/manual/${id}`),
+};
+
 // Reporting API
 export const reportingApi = {
     getTicketStats: (params) => api.get('/reporting/tickets', { params }),
@@ -311,6 +326,7 @@ export const reportingApi = {
     exportAssetStatus: (params) => api.get('/reporting/export/assets', { params, responseType: 'blob' }),
     exportRMA: (params) => api.get('/reporting/export/rma', { params, responseType: 'blob' }),
     exportSpareStock: (params) => api.get('/reporting/export/spare-stock', { params, responseType: 'blob' }),
+    exportWorkActivity: (params) => api.get('/reporting/export/work-activity', { params, responseType: 'blob' }),
 };
 
 // Stock API

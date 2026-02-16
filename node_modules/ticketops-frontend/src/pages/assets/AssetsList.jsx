@@ -99,10 +99,10 @@ export default function AssetsList() {
         return () => clearTimeout(timer);
     }, [searchTerm]);
 
-    // Socket.IO Listeners for Ping Progress
+    // Socket.IO Listeners for Ping Progress (only when sockets are available)
     useEffect(() => {
         const socket = socketService.connect();
-        if (!socket) return;
+        if (!socket) return; // sockets disabled - HTTP polling will be used instead
 
         const joinRoom = () => {
             const { user } = useAuthStore.getState();
@@ -153,6 +153,71 @@ export default function AssetsList() {
             socketService.off('asset:ping:complete');
         };
     }, []);
+
+    // HTTP Polling fallback for ping progress (when WebSockets are unavailable)
+    const pingPollRef = useRef(null);
+
+    useEffect(() => {
+        // Only poll when checkingStatus is true AND sockets are disabled
+        if (!checkingStatus || socketService.isSocketEnabled()) {
+            if (pingPollRef.current) {
+                clearInterval(pingPollRef.current);
+                pingPollRef.current = null;
+            }
+            return;
+        }
+
+        // Start polling
+        const poll = async () => {
+            try {
+                const response = await assetsApi.getPingProgress();
+                const data = response.data?.data;
+                if (!data || data.status === 'idle') return;
+
+                // Update stats
+                if (data.stats) {
+                    setPingStats({
+                        total: data.stats.total,
+                        processed: data.stats.processed,
+                        online: data.stats.online,
+                        offline: data.stats.offline,
+                        passive: data.stats.passive
+                    });
+                }
+
+                // Update log
+                if (data.log && data.log.length > 0) {
+                    setPingProgress(data.log.slice(0, 50));
+                }
+
+                // Check if check is complete
+                if (data.status === 'complete') {
+                    setCheckingStatus(false);
+                    fetchAssets();
+                    toast.success(`Ping check completed: ${data.stats.online} Online, ${data.stats.offline} Offline`);
+                    // Clean up on server
+                    assetsApi.clearPingProgress().catch(() => { });
+                    if (pingPollRef.current) {
+                        clearInterval(pingPollRef.current);
+                        pingPollRef.current = null;
+                    }
+                }
+            } catch (err) {
+                console.error('[PingPoll] Error polling progress:', err);
+            }
+        };
+
+        // Poll immediately, then every 2 seconds
+        poll();
+        pingPollRef.current = setInterval(poll, 2000);
+
+        return () => {
+            if (pingPollRef.current) {
+                clearInterval(pingPollRef.current);
+                pingPollRef.current = null;
+            }
+        };
+    }, [checkingStatus]);
 
     // Fetch assets when filters or page change
     useEffect(() => {

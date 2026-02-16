@@ -63,50 +63,66 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
     if (!availability) return null;
 
     const hasStock = availability.localStock > 0 || availability.hoStock > 0;
-    const canManageReplace = hasRole(['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']) || hasRight('DIRECT_STOCK_REPLACEMENT', siteId);
 
     return (
-        <div className="detail-section glass-card stock-panel p-3 mt-4">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="section-title flex items-center gap-2">
-                    <Database size={18} />
-                    Stock Availability ({availability.assetType || 'N/A'})
+        <div
+            className="shadow-[0_2px_12px_rgba(0,0,0,0.08)] border p-4 mt-4 animate-fade-in"
+            style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRadius: '12px', border: '1px solid #f1f5f9' }}
+        >
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-3">
+                <Database size={19} className="text-gray-400" />
+                <h3 className="text-[17px] font-semibold m-0" style={{ color: '#1e293b' }}>
+                    Stock Availability <span style={{ color: '#94a3b8', fontWeight: 'normal', fontSize: '13px', marginLeft: '4px' }}>({availability.assetType || 'N/A'})</span>
                 </h3>
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className={`p-3 rounded border ${availability.localStock > 0 ? 'bg-success/10 border-success/30' : 'bg-secondary/10 border-border'}`}>
-                    <div className="text-xs text-muted font-bold mb-1">LOCAL SITE STOCK</div>
-                    <div className="text-2xl font-bold">{availability.localStock}</div>
+            {/* Subtle Divider */}
+            <div style={{ borderTop: '1px solid #f1f5f9', marginBottom: '4px' }}></div>
+
+            {/* Stock Rows */}
+            <div className="flex flex-col">
+                <div className="flex justify-between items-center py-2.5 border-b" style={{ borderColor: '#f8fafc' }}>
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>Local Site Stock</span>
+                    </div>
+                    <span className="text-[20px] font-bold" style={{ color: availability.localStock > 0 ? '#059669' : '#cbd5e1' }}>
+                        {availability.localStock}
+                    </span>
                 </div>
-                <div className={`p-3 rounded border ${availability.hoStock > 0 ? 'bg-primary/10 border-primary/30' : 'bg-secondary/10 border-border'}`}>
-                    <div className="text-xs text-muted font-bold mb-1">HEAD OFFICE STOCK</div>
-                    <div className="text-2xl font-bold">{availability.hoStock}</div>
+
+                <div className="flex justify-between items-center py-2.5">
+                    <div className="flex items-center gap-2.5">
+                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                        <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>Head Office Stock</span>
+                    </div>
+                    <span className="text-[20px] font-bold" style={{ color: availability.hoStock > 0 ? '#2563eb' : '#cbd5e1' }}>
+                        {availability.hoStock}
+                    </span>
                 </div>
             </div>
 
-            {/* 
-            {!isLocked && ticketStatus === 'InProgress' && hasStock && canManageReplace && (
-                <div className="flex justify-end">
-                    <button className="btn btn-sm btn-primary" onClick={() => setShowReplaceModal(true)}>
-                        <RotateCcw size={16} className="mr-2" />
-                        Replace from Stock
-                    </button>
-                </div>
-            )}
-            */}
-
+            {/* Contextual Alerts */}
             {!isLocked && ticketStatus === 'InProgress' && (
-                <div className="alert-box info flex items-center gap-2 text-sm p-3 rounded bg-primary/10 border border-primary/30 text-primary-700">
-                    <Info size={16} />
-                    <span>Please use the RMA Portal below for any device replacements or stock updates.</span>
-                </div>
-            )}
-
-            {!hasStock && !isLocked && ticketStatus === 'InProgress' && (
-                <div className="alert-box warning flex items-center gap-2 text-sm p-3 rounded bg-warning/10 border border-warning/30 text-warning-700">
-                    <AlertTriangle size={16} />
-                    <span>No spare stock available. Please initiate RMA replacement.</span>
+                <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: '#f1f5f9' }}>
+                    {!hasStock ? (
+                        <div
+                            className="flex items-center gap-2 text-xs font-medium p-2.5 border"
+                            style={{ backgroundColor: '#fef2f2', color: '#b91c1c', borderColor: '#fee2e2', borderRadius: '8px' }}
+                        >
+                            <AlertTriangle size={14} />
+                            <span>No stock available. Please initiate replacement through RMA.</span>
+                        </div>
+                    ) : (
+                        <div
+                            className="flex items-center gap-2 text-[11px] leading-relaxed p-2.5 border"
+                            style={{ backgroundColor: '#f0f9ff', color: '#0369a1', borderColor: '#e0f2fe', borderRadius: '8px' }}
+                        >
+                            <Info size={14} className="shrink-0" />
+                            <span>Replacements can be managed through the RMA workflow below.</span>
+                        </div>
+                    )}
                 </div>
             )}
 

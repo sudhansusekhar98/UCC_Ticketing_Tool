@@ -5,6 +5,7 @@ import Asset from '../models/Asset.model.js';
 import TicketActivity from '../models/TicketActivity.model.js';
 import SLAPolicy from '../models/SLAPolicy.model.js';
 import { sendTicketAssignmentEmail, sendTicketEscalationEmail } from '../utils/email.utils.js';
+import DailyWorkLog from '../models/DailyWorkLog.model.js';
 
 // @desc    Get all tickets
 // @route   GET /api/tickets
@@ -196,9 +197,22 @@ export const getTicketById = async (req, res, next) => {
       }
     }
 
+    // Decrypt sensitive asset fields if authorized
+    let ticketObj = ticket.toObject();
+    if (ticketObj.assetId) {
+      if (['Admin', 'Supervisor'].includes(req.user.role)) {
+        ticketObj.assetId = Asset.decryptSensitiveFields(ticket.assetId);
+      } else if (req.user.role === 'Engineer' && ticketObj.assignedTo?._id?.toString() === req.user._id.toString()) {
+        // Assigned engineers can also see the full details
+        ticketObj.assetId = Asset.decryptSensitiveFields(ticket.assetId);
+      } else {
+        ticketObj.assetId = Asset.maskSensitiveFields(ticket.assetId);
+      }
+    }
+
     res.json({
       success: true,
-      data: ticket
+      data: ticketObj
     });
   } catch (error) {
     next(error);
@@ -262,11 +276,29 @@ export const createTicket = async (req, res, next) => {
       await sendTicketAssignmentEmail(populatedTicket, populatedTicket.assignedTo, req.user);
     }
 
+    const finalTicket = populatedTicket.toObject();
+    if (finalTicket.assetId) {
+      if (['Admin', 'Supervisor'].includes(req.user.role)) {
+        finalTicket.assetId = Asset.decryptSensitiveFields(populatedTicket.assetId);
+      } else {
+        finalTicket.assetId = Asset.maskSensitiveFields(populatedTicket.assetId);
+      }
+    }
+
     res.status(201).json({
       success: true,
-      data: populatedTicket,
+      data: finalTicket,
       message: 'Ticket created successfully'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'TicketCreated',
+      description: `Created ticket ${ticket.ticketNumber}`,
+      refModel: 'Ticket',
+      refId: ticket._id,
+      metadata: { ticketNumber: ticket.ticketNumber }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -335,11 +367,33 @@ export const updateTicket = async (req, res, next) => {
       }
     }
 
+    const finalTicket = ticket.toObject();
+    if (finalTicket.assetId) {
+      if (['Admin', 'Supervisor'].includes(req.user.role)) {
+        finalTicket.assetId = Asset.decryptSensitiveFields(ticket.assetId);
+      } else if (req.user.role === 'Engineer' && finalTicket.assignedTo?._id?.toString() === req.user._id.toString()) {
+        finalTicket.assetId = Asset.decryptSensitiveFields(ticket.assetId);
+      } else {
+        finalTicket.assetId = Asset.maskSensitiveFields(ticket.assetId);
+      }
+    }
+
     res.json({
       success: true,
-      data: ticket,
+      data: finalTicket,
       message: 'Ticket updated successfully'
     });
+
+    // Fire-and-forget: auto-track
+    if (changedFields.length > 0) {
+      DailyWorkLog.logActivity(req.user._id, {
+        category: 'TicketUpdated',
+        description: `Updated ticket ${ticket.ticketNumber}: ${changedFields.join(', ')}`,
+        refModel: 'Ticket',
+        refId: ticket._id,
+        metadata: { ticketNumber: ticket.ticketNumber, changes: changedFields }
+      }).catch(() => { });
+    }
   } catch (error) {
     next(error);
   }
@@ -402,6 +456,15 @@ export const assignTicket = async (req, res, next) => {
       data: ticket,
       message: 'Ticket assigned successfully. Email notification has been sent.'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'TicketAssigned',
+      description: `Assigned ticket ${ticket.ticketNumber} to ${ticket.assignedTo.fullName}`,
+      refModel: 'Ticket',
+      refId: ticket._id,
+      metadata: { ticketNumber: ticket.ticketNumber, assignedTo: ticket.assignedTo.fullName }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -446,6 +509,15 @@ export const acknowledgeTicket = async (req, res, next) => {
       data: ticket,
       message: 'Ticket acknowledged'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'TicketAcknowledged',
+      description: `Acknowledged ticket ${ticket.ticketNumber}`,
+      refModel: 'Ticket',
+      refId: ticket._id,
+      metadata: { ticketNumber: ticket.ticketNumber }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -490,6 +562,15 @@ export const startTicket = async (req, res, next) => {
       data: ticket,
       message: 'Work started'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'TicketStarted',
+      description: `Started work on ticket ${ticket.ticketNumber}`,
+      refModel: 'Ticket',
+      refId: ticket._id,
+      metadata: { ticketNumber: ticket.ticketNumber }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -538,6 +619,15 @@ export const resolveTicket = async (req, res, next) => {
       data: ticket,
       message: 'Ticket resolved'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'TicketResolved',
+      description: `Resolved ticket ${ticket.ticketNumber}`,
+      refModel: 'Ticket',
+      refId: ticket._id,
+      metadata: { ticketNumber: ticket.ticketNumber }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -583,6 +673,15 @@ export const verifyTicket = async (req, res, next) => {
       data: ticket,
       message: 'Ticket verified'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'TicketVerified',
+      description: `Verified resolution for ticket ${ticket.ticketNumber}`,
+      refModel: 'Ticket',
+      refId: ticket._id,
+      metadata: { ticketNumber: ticket.ticketNumber }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -629,6 +728,15 @@ export const closeTicket = async (req, res, next) => {
       data: ticket,
       message: 'Ticket closed'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'TicketClosed',
+      description: `Closed ticket ${ticket.ticketNumber}`,
+      refModel: 'Ticket',
+      refId: ticket._id,
+      metadata: { ticketNumber: ticket.ticketNumber }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -678,6 +786,15 @@ export const reopenTicket = async (req, res, next) => {
       data: ticket,
       message: 'Ticket reopened'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'TicketReopened',
+      description: `Reopened ticket ${ticket.ticketNumber}. Reason: ${reason || 'Not specified'}`,
+      refModel: 'Ticket',
+      refId: ticket._id,
+      metadata: { ticketNumber: ticket.ticketNumber, reason }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -912,6 +1029,15 @@ export const escalateTicket = async (req, res, next) => {
       data: ticket,
       message: `Ticket escalated to Level ${nextLevel} successfully. Email notifications have been sent.`
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'TicketEscalated',
+      description: `Escalated ticket ${ticket.ticketNumber} to Level ${nextLevel}`,
+      refModel: 'Ticket',
+      refId: ticket._id,
+      metadata: { ticketNumber: ticket.ticketNumber, level: nextLevel }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }

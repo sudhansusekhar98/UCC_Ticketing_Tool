@@ -2,6 +2,7 @@ import Ticket from '../models/Ticket.model.js';
 import Asset from '../models/Asset.model.js';
 import User from '../models/User.model.js';
 import RMARequest from '../models/RMARequest.model.js';
+import DailyWorkLog from '../models/DailyWorkLog.model.js';
 import mongoose from 'mongoose';
 import * as XLSX from 'xlsx';
 
@@ -719,6 +720,114 @@ export const exportSpareStockReport = async (req, res, next) => {
     res.send(buffer);
   } catch (error) {
     console.error('Spare stock export error:', error);
+    next(error);
+  }
+};
+
+// @desc    Export Work Activity Report to Excel
+// @route   GET /api/reporting/export/work-activity
+// @access  Private (Admin, Supervisor)
+export const exportWorkActivityReport = async (req, res, next) => {
+  try {
+    const { startDate, endDate, siteId, userId } = req.query;
+
+    const query = {};
+
+    // Date range filter
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
+    }
+
+    // User filter
+    if (userId && userId !== 'all') {
+      query.userId = new mongoose.Types.ObjectId(userId);
+    }
+
+    // Fetch work logs with populated user data
+    const logs = await DailyWorkLog.find(query)
+      .populate('userId', 'fullName role')
+      .populate('activities.ticketRef', 'ticketNumber')
+      .populate('activities.siteId', 'siteName')
+      .sort({ date: -1, userId: 1 })
+      .lean();
+
+    // Flatten activities for Excel rows
+    const reportData = [];
+
+    logs.forEach(log => {
+      const user = log.userId || { fullName: 'Unknown', role: 'N/A' };
+      const dateStr = new Date(log.date).toLocaleDateString();
+
+      // If no activities but has a summary, we could add a row for that, 
+      // but usually we want to list the activities.
+      if (log.activities.length === 0 && log.dailySummary) {
+        reportData.push({
+          'Date': dateStr,
+          'User': user.fullName,
+          'Role': user.role,
+          'Type': 'Summary',
+          'Category': 'Daily Summary',
+          'Description': log.dailySummary,
+          'Duration': '',
+          'Reference': '',
+          'Timestamp': ''
+        });
+      }
+
+      log.activities.forEach(activity => {
+        // Site filter (post-process if not indexed at top level)
+        if (siteId && siteId !== 'all' && activity.siteId?._id?.toString() !== siteId) {
+          return;
+        }
+
+        let reference = '';
+        if (activity.ticketRef) reference = activity.ticketRef.ticketNumber || '';
+        if (activity.refModel === 'Asset') reference = activity.metadata?.assetCode || '';
+        if (activity.refModel === 'RMARequest') reference = activity.metadata?.rmaNumber || '';
+
+        reportData.push({
+          'Date': dateStr,
+          'User': user.fullName,
+          'Role': user.role,
+          'Type': activity.type === 'auto' ? 'Automated' : 'Manual',
+          'Category': activity.category,
+          'Description': activity.description,
+          'Duration': activity.duration ? `${activity.duration} mins` : '',
+          'Reference': reference,
+          'Timestamp': activity.timestamp ? new Date(activity.timestamp).toLocaleTimeString() : '',
+          'Daily Summary': log.dailySummary || ''
+        });
+      });
+    });
+
+    if (reportData.length === 0) {
+      // Create a dummy row so Excel isn't empty
+      reportData.push({ 'Message': 'No activity found for the selected criteria' });
+    }
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(reportData);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 12 }, { wch: 20 }, { wch: 15 }, { wch: 12 }, { wch: 18 },
+      { wch: 50 }, { wch: 12 }, { wch: 15 }, { wch: 12 }, { wch: 50 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Work Activity Report');
+
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    const filename = `work_activity_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    console.error('Work activity export error:', error);
     next(error);
   }
 };

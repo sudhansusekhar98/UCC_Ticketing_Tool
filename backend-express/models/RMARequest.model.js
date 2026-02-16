@@ -35,12 +35,14 @@ const rmaRequestSchema = new mongoose.Schema({
     mac: String,
     model: String,
     make: String,
-    // Add other fields that might change
   },
+  // ---- NEW SIMPLIFIED WORKFLOW ----
+  // Two options: 'RepairOnly' or 'RepairAndReplace'
+  // Legacy values ('Market', 'SiteStock', 'HOStock', 'Repair') are still accepted for backward compat
   replacementSource: {
     type: String,
-    enum: ['Market', 'SiteStock', 'HOStock', 'Repair'],
-    default: 'Market'
+    enum: ['Market', 'SiteStock', 'HOStock', 'Repair', 'RepairOnly', 'RepairAndReplace'],
+    default: 'RepairOnly'
   },
   reservedAssetId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -56,15 +58,62 @@ const rmaRequestSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // ---- Replacement Stock Workflow (Admin/Escalation scope) ----
+  // Admin selects the actual stock source when replacement is needed
+  replacementStockSource: {
+    type: String,
+    enum: ['HOStock', 'SiteStock', 'Market', null],
+    default: null
+  },
+  // Source site for the replacement stock (if SiteStock from another site)
+  replacementSourceSiteId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Site'
+  },
+  // Link to requisition raised by Admin for replacement
+  replacementRequisitionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Requisition'
+  },
+  // Logistics for replacement dispatch to site
+  logisticsReplacementToSite: {
+    carrier: String,
+    trackingNumber: String,
+    courierName: String,
+    dispatchDate: Date,
+    receivedDate: Date,
+    remarks: String
+  },
+  // Admin who arranged the replacement
+  replacementArrangedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  replacementArrangedOn: Date,
   status: {
     type: String,
     enum: [
-      'Requested', 'Approved', 'Ordered', 'Dispatched', 'Received',
-      'Installed', 'Rejected', 'InRepair', 'Repaired',
+      // Core lifecycle
+      'Requested', 'Approved', 'Rejected',
+      // Repair path - item sent from site
+      'SentToServiceCenter',   // L1 sends directly to service center
+      'SentToHO',              // L1 sends item to HO first
+      'ReceivedAtHO',          // Admin acknowledges receipt at HO
+      'SentForRepairFromHO',   // Admin sends item from HO to service center
+      // Repair completed
+      'ItemRepairedAtHO',      // Repaired item received back at HO (Admin confirms Yes)
+      'ReturnShippedToSite',   // Admin ships repaired/replacement item back to site
+      'ReceivedAtSite',        // User/L1 marks received at site
+      'Installed',             // User marks as installed with updated details
+      // Replacement stock workflow (Admin/Escalation scope)
+      'ReplacementRequisitionRaised',  // Admin raises requisition for stock transfer
+      'ReplacementDispatched',         // Replacement stock dispatched to site
+      'ReplacementReceivedAtSite',     // L1/ticket owner confirms replacement received
+      // Legacy statuses (kept for backward compatibility)
+      'Ordered', 'Dispatched', 'Received',
+      'InRepair', 'Repaired',
       'TransferredToSiteStore', 'TransferredToHOStock', 'Discarded',
-      // New statuses for HO Stock transfer workflow
       'AwaitingStockTransfer', 'StockInTransit', 'StockReceived',
-      // New statuses for Repair-only flow
       'RepairedItemEnRoute', 'RepairedItemReceived'
     ],
     default: 'Requested'
@@ -111,6 +160,55 @@ const rmaRequestSchema = new mongoose.Schema({
   },
   repairDispatchDate: Date,
   repairReceivedDate: Date,
+  // ---- NEW: Logistics tracking for the new workflow ----
+  // Where the L1 sends the item: 'DirectToServiceCenter' or 'ToHO'
+  itemSendRoute: {
+    type: String,
+    enum: ['DirectToServiceCenter', 'ToHO', null],
+    default: null
+  },
+  // Logistics details for each shipping leg
+  logisticsToHO: {
+    carrier: String,
+    trackingNumber: String,
+    courierName: String,
+    dispatchDate: Date,
+    receivedDate: Date,
+    remarks: String
+  },
+  logisticsToServiceCenter: {
+    carrier: String,
+    trackingNumber: String,
+    courierName: String,
+    dispatchDate: Date,
+    serviceCenterTicketRef: String,  // Reference ticket from service center (out of scope)
+    remarks: String
+  },
+  logisticsReturnToSite: {
+    carrier: String,
+    trackingNumber: String,
+    courierName: String,
+    dispatchDate: Date,
+    receivedDate: Date,
+    remarks: String
+  },
+  // Admin confirmation at HO
+  receivedAtHOBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  receivedAtHODate: Date,
+  // Repaired item receipt confirmation
+  repairedItemReceivedAtHO: {
+    type: Boolean,
+    default: false
+  },
+  repairedItemReceivedAtHOBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  repairedItemReceivedAtHODate: Date,
+  // ---- END NEW FIELDS ----
   installationStatus: {
     type: String,
     enum: ['Pending', 'Installed & Working', 'Installed but Not Working', 'Not Installed'],

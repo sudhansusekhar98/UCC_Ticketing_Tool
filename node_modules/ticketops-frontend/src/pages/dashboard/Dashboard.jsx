@@ -364,7 +364,7 @@ export default function Dashboard() {
 
             {/* Stats Cards */}
             <div className="dashboard-stats-grid">
-                <Link to="/tickets?status=Open" className="stat-card primary animate-enter delay-100">
+                <Link to="/tickets" className="stat-card primary animate-enter delay-100">
                     <div className="stat-card-bg-blob"></div>
                     <div className="stat-header">
                         <div className="stat-icon-wrapper">

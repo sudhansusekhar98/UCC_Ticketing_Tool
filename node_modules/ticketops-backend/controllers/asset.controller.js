@@ -6,10 +6,53 @@ import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import net from 'net';
 import { decrypt, isEncrypted, SENSITIVE_ASSET_FIELDS } from '../utils/encryption.utils.js';
 import { createAuditLog } from '../middleware/audit.middleware.js';
+import DailyWorkLog from '../models/DailyWorkLog.model.js';
 
 const execAsync = promisify(exec);
+
+// In-memory store for ping progress (keyed by userId)
+// This allows HTTP polling as a fallback when WebSockets aren't available
+const pingProgressStore = new Map();
+
+/**
+ * Cross-platform ping check. Uses PowerShell Test-Connection on Windows,
+ * falls back to TCP connect probe on other platforms (e.g., Vercel/Linux).
+ */
+async function crossPlatformPing(ipAddress, timeoutMs = 3000) {
+  // Try PowerShell on Windows first
+  if (process.platform === 'win32') {
+    try {
+      const command = `powershell.exe -Command "Test-Connection -ComputerName ${ipAddress} -Count 1 -Quiet"`;
+      const { stdout } = await execAsync(command, { timeout: timeoutMs + 1000 });
+      return stdout.trim() === 'True';
+    } catch {
+      return false;
+    }
+  }
+
+  // Fallback: TCP connect probe on common ports (80, 443, 554, 8080)
+  // This works on Linux/serverless environments
+  const ports = [80, 443, 554, 8080];
+  for (const port of ports) {
+    try {
+      const result = await new Promise((resolve) => {
+        const socket = new net.Socket();
+        socket.setTimeout(timeoutMs);
+        socket.once('connect', () => { socket.destroy(); resolve(true); });
+        socket.once('timeout', () => { socket.destroy(); resolve(false); });
+        socket.once('error', () => { socket.destroy(); resolve(false); });
+        socket.connect(port, ipAddress);
+      });
+      if (result) return true;
+    } catch {
+      // try next port
+    }
+  }
+  return false;
+}
 
 // Roles used for audit logging on credential-specific endpoints
 const PRIVILEGED_ROLES = ['Admin', 'Supervisor'];
@@ -262,6 +305,15 @@ export const createAsset = async (req, res, next) => {
       data: populatedAsset,
       message: 'Asset created successfully'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'AssetCreated',
+      description: `Created asset ${asset.assetCode || asset._id}`,
+      refModel: 'Asset',
+      refId: asset._id,
+      metadata: { assetCode: asset.assetCode }
+    }).catch(() => { });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({
@@ -303,6 +355,15 @@ export const updateAsset = async (req, res, next) => {
       data: asset,
       message: 'Asset updated successfully'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'AssetUpdated',
+      description: `Updated asset ${asset.assetCode || asset._id}`,
+      refModel: 'Asset',
+      refId: asset._id,
+      metadata: { assetCode: asset.assetCode }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -331,6 +392,15 @@ export const deleteAsset = async (req, res, next) => {
       success: true,
       message: 'Asset deleted successfully'
     });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'AssetDeleted',
+      description: `Deleted asset ${asset.assetCode || asset._id}`,
+      refModel: 'Asset',
+      refId: asset._id,
+      metadata: { assetCode: asset.assetCode }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }
@@ -682,6 +752,13 @@ export const bulkImportAssets = async (req, res, next) => {
       message: `Processed ${result.total} records.`,
       data: result
     });
+
+    // Fire-and-forget: auto-track bulk import
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'AssetImported',
+      description: `Bulk imported ${result.total} assets (${result.created} created, ${result.updated} updated, ${result.failed} failed)`,
+      metadata: { total: result.total, created: result.created, updated: result.updated, failed: result.failed }
+    }).catch(() => { });
   } catch (error) {
     if (req.file?.path && fs.existsSync(req.file.path)) try { fs.unlinkSync(req.file.path); } catch (e) { }
     next(error);
@@ -791,15 +868,9 @@ export const downloadTemplate = async (req, res, next) => {
   }
 };
 
-// @desc    Check assets status using PowerShell ping
+// @desc    Check assets status using cross-platform ping
 // @route   POST /api/assets/check-status
 // @access  Private (Admin, Supervisor)
-// @desc    Get assets for local ping check (returns list to be pinged by user's system)
-// @route   POST /api/assets/check-status
-// @access  Private
-// @desc    Check assets status via PowerShell ping (Server-side)
-// @route   POST /api/assets/check-status
-// @access  Private
 export const checkAssetsStatus = async (req, res, next) => {
   try {
     const { query, empty, error } = buildAssetQuery(req);
@@ -815,7 +886,8 @@ export const checkAssetsStatus = async (req, res, next) => {
 
     const assets = await Asset.find(query);
     const io = req.app.get('io');
-    const userRoom = `user_${req.user._id.toString()}`;
+    const userId = req.user._id.toString();
+    const userRoom = `user_${userId}`;
 
     if (assets.length === 0) {
       return res.json({
@@ -829,7 +901,6 @@ export const checkAssetsStatus = async (req, res, next) => {
     if (process.platform === 'win32') {
       try {
         const pingCommands = assets.map(a => {
-          // Decrypt IP for actual ping operation
           const rawIp = a.ipAddress ? (isEncrypted(a.ipAddress) ? decrypt(a.ipAddress) : a.ipAddress) : '';
           const ip = rawIp.trim().toUpperCase();
           if (!ip || ip === 'NA') return `Write-Host "[-] ${a.assetCode.padEnd(15)} | Passive Device" -ForegroundColor Gray`;
@@ -859,33 +930,32 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
       }
     }
 
-    // Results object for tracking
-    const results = {
-      total: assets.length,
-      online: 0,
-      offline: 0,
-      passive: 0,
-      processed: 0
+    // Initialize progress store for this user (for HTTP polling fallback)
+    const progressData = {
+      status: 'running',
+      stats: { total: assets.length, online: 0, offline: 0, passive: 0, processed: 0 },
+      log: [],
+      lastUpdated: Date.now()
     };
+    pingProgressStore.set(userId, progressData);
 
-    console.log(`[Socket] Sending 'asset:ping:start' to ${userRoom} for ${assets.length} assets`);
+    console.log(`[Ping] Starting check for ${assets.length} assets (user: ${userId})`);
 
-    // Emit start event
+    // Emit start event via Socket.IO if available
     if (io) {
       io.to(userRoom).emit('asset:ping:start', { total: assets.length });
     }
 
-    // Process pings in background
-    // We do NOT await the entire loop here to avoid timing out the HTTP request
-    // The Socket.IO events will notify the frontend of progress
+    // Process pings in background - do NOT await to avoid HTTP timeout
     (async () => {
       const BATCH_SIZE = 5;
+      const results = progressData.stats;
+
       for (let i = 0; i < assets.length; i += BATCH_SIZE) {
         const batch = assets.slice(i, i + BATCH_SIZE);
 
         await Promise.all(batch.map(async (asset) => {
           let currentStatus = 'Offline';
-          // Decrypt IP for ping operation
           const rawIp = asset.ipAddress ? (isEncrypted(asset.ipAddress) ? decrypt(asset.ipAddress) : asset.ipAddress) : '';
           const ip = rawIp.trim().toUpperCase();
 
@@ -894,9 +964,8 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             results.passive++;
           } else {
             try {
-              const command = `powershell.exe -Command "Test-Connection -ComputerName ${rawIp.trim()} -Count 1 -Quiet"`;
-              const { stdout } = await execAsync(command, { timeout: 4000 });
-              if (stdout.trim() === 'True') {
+              const isOnline = await crossPlatformPing(rawIp.trim(), 3000);
+              if (isOnline) {
                 currentStatus = 'Online';
                 results.online++;
               } else {
@@ -909,33 +978,53 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
             }
           }
 
-          asset.status = currentStatus;
-          asset.updatedAt = new Date();
-          await asset.save();
+          // Use updateOne instead of save() to avoid full document re-validation
+          // (save() would re-validate encrypted fields against maxlength)
+          try {
+            await Asset.updateOne(
+              { _id: asset._id },
+              { $set: { status: currentStatus, updatedAt: new Date() } }
+            );
+          } catch (saveErr) {
+            console.error(`[Ping] Failed to update asset ${asset.assetCode}:`, saveErr.message);
+          }
           results.processed++;
 
+          const progressEntry = {
+            assetCode: asset.assetCode,
+            ipAddress: rawIp ? `${rawIp.split('.')[0]}.***.***` : 'N/A',
+            status: currentStatus,
+            processed: results.processed,
+            total: results.total,
+            stats: { online: results.online, offline: results.offline, passive: results.passive }
+          };
+
+          // Update in-memory store for HTTP polling
+          progressData.log.unshift(progressEntry);
+          if (progressData.log.length > 50) progressData.log.length = 50;
+          progressData.lastUpdated = Date.now();
+
+          // Also emit via Socket.IO if available
           if (io) {
-            io.to(userRoom).emit('asset:ping:progress', {
-              assetCode: asset.assetCode,
-              // Don't send decrypted IP over socket - mask it
-              ipAddress: rawIp ? `${rawIp.split('.')[0]}.***.***` : 'N/A',
-              status: currentStatus,
-              processed: results.processed,
-              total: results.total,
-              stats: {
-                online: results.online,
-                offline: results.offline,
-                passive: results.passive
-              }
-            });
+            io.to(userRoom).emit('asset:ping:progress', progressEntry);
           }
         }));
       }
 
-      console.log(`[Socket] Sending 'asset:ping:complete' to ${userRoom}`);
+      // Mark as complete
+      progressData.status = 'complete';
+      progressData.lastUpdated = Date.now();
+
+      console.log(`[Ping] Complete for user ${userId}: ${results.online} Online, ${results.offline} Offline, ${results.passive} Passive`);
+
       if (io) {
         io.to(userRoom).emit('asset:ping:complete', results);
       }
+
+      // Clean up progress store after 5 minutes
+      setTimeout(() => {
+        pingProgressStore.delete(userId);
+      }, 5 * 60 * 1000);
     })();
 
     res.json({
@@ -946,6 +1035,46 @@ $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
   } catch (error) {
     next(error);
   }
+};
+
+// @desc    Get ping progress for HTTP polling (fallback when WebSockets unavailable)
+// @route   GET /api/assets/ping-progress
+// @access  Private (Admin, Supervisor)
+export const getPingProgress = async (req, res) => {
+  const userId = req.user._id.toString();
+  const progress = pingProgressStore.get(userId);
+
+  if (!progress) {
+    return res.json({
+      success: true,
+      data: { status: 'idle', stats: null, log: [] }
+    });
+  }
+
+  // Only send new log entries since the client's last poll
+  const since = parseInt(req.query.since) || 0;
+  const newEntries = since > 0
+    ? progress.log.filter((_, idx) => idx < progress.log.length) // all entries (log is already capped at 50)
+    : progress.log;
+
+  res.json({
+    success: true,
+    data: {
+      status: progress.status,
+      stats: progress.stats,
+      log: newEntries,
+      lastUpdated: progress.lastUpdated
+    }
+  });
+};
+
+// @desc    Clear ping progress after client acknowledges completion
+// @route   DELETE /api/assets/ping-progress
+// @access  Private
+export const clearPingProgress = async (req, res) => {
+  const userId = req.user._id.toString();
+  pingProgressStore.delete(userId);
+  res.json({ success: true });
 };
 
 // @desc    Bulk update asset statuses from local ping agent

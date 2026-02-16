@@ -58,6 +58,9 @@ const userSchema = new mongoose.Schema({
   lastLoginOn: {
     type: Date
   },
+  lastActivityAt: {
+    type: Date
+  },
   refreshToken: {
     type: String,
     select: false
@@ -94,6 +97,20 @@ const userSchema = new mongoose.Schema({
 // Indexes for better query performance (email and username already have unique indexes)
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
+
+// Virtual: user is online if lastActivityAt is within 15 minutes
+userSchema.virtual('isOnline').get(function () {
+  if (!this.lastActivityAt) return false;
+  return (Date.now() - this.lastActivityAt.getTime()) < 15 * 60 * 1000;
+});
+
+// Virtual: user is active today if lastActivityAt is today
+userSchema.virtual('isActiveToday').get(function () {
+  if (!this.lastActivityAt) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return this.lastActivityAt >= today;
+});
 
 // Virtual for assigned tickets
 userSchema.virtual('assignedTickets', {

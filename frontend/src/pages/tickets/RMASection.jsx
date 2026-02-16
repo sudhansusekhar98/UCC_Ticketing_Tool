@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { rmaApi, assetUpdateRequestApi, stockApi, sitesApi } from '../../services/api';
+import { rmaApi } from '../../services/api';
 import { toast } from 'react-hot-toast';
-import { Package, Truck, CheckCircle, AlertTriangle, Clock, Server, FileText, History, Hash, Info, Settings, RefreshCw, Trash2, MessageSquare, Cpu } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, Server, FileText, History, Hash, Info, Settings, RefreshCw, MessageSquare, Cpu, MapPin, Building, Send, ShoppingBag, ArrowDownToLine } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 
 const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdate }) => {
@@ -14,57 +13,48 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const [showRequestModal, setShowRequestModal] = useState(false);
     const [showProcessModal, setShowProcessModal] = useState(false);
     const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [showSendItemModal, setShowSendItemModal] = useState(false);
+    const [showLogisticsModal, setShowLogisticsModal] = useState(false);
 
     // Form States
     const [requestReason, setRequestReason] = useState('');
-    const [shippingDetails, setShippingDetails] = useState({ address: '', trackingNumber: '', carrier: '' });
-    const [vendorDetails, setVendorDetails] = useState({ vendorName: '', orderId: '', cost: '' });
     const [actionRemark, setActionRemark] = useState('');
-    const [isSiteStockUsed, setIsSiteStockUsed] = useState(false);
-    const [faultyItemAction, setFaultyItemAction] = useState('Repair');
-    const [deliveredItemDestination, setDeliveredItemDestination] = useState('SiteInstalled');
-    const [repairedItemDestination, setRepairedItemDestination] = useState('BackToSite');
+    const [replacementSource, setReplacementSource] = useState('RepairOnly');
 
-    const [showConfirmModal, setShowConfirmModal] = useState(false);
-    const [installationStatus, setInstallationStatus] = useState('Installed & Working');
-    const [confirmRemark, setConfirmRemark] = useState('');
+    // Logistics states
+    const [itemSendRoute, setItemSendRoute] = useState('ToHO');
+    const [logisticsCarrier, setLogisticsCarrier] = useState('');
+    const [logisticsTracking, setLogisticsTracking] = useState('');
+    const [logisticsCourier, setLogisticsCourier] = useState('');
+    const [logisticsRemarks, setLogisticsRemarks] = useState('');
+    const [serviceCenterTicketRef, setServiceCenterTicketRef] = useState('');
+
+    // Installation states
+    const [showInstallModal, setShowInstallModal] = useState(false);
+    const [installIpAddress, setInstallIpAddress] = useState('');
+    const [installUserName, setInstallUserName] = useState('');
+    const [installPassword, setInstallPassword] = useState('');
+    const [installRemarks, setInstallRemarks] = useState('');
 
     const [rmaHistory, setRmaHistory] = useState([]);
-    const [replacementSource, setReplacementSource] = useState('Market');
-    const [availableStock, setAvailableStock] = useState({ localSpares: [], hoSpares: [] });
-    const [selectedReservedAssetId, setSelectedReservedAssetId] = useState('');
-    const [newIpAddress, setNewIpAddress] = useState('');
-    const [newUserName, setNewUserName] = useState('');
-    const [newPassword, setNewPassword] = useState('');
+    const [shippingDetails, setShippingDetails] = useState({ address: '', trackingNumber: '', carrier: '' });
 
-    const [repairedItemDestinationSiteId, setRepairedItemDestinationSiteId] = useState('');
-    const [sites, setSites] = useState([]);
+    // Target status for the process/logistics modal
+    const [targetStatus, setTargetStatus] = useState('');
 
-    // Update Asset Modal states (Step 4)
-    const [showUpdateModal, setShowUpdateModal] = useState(false);
-    const [updateFields, setUpdateFields] = useState({
-        serialNumber: '',
-        mac: '',
-        ipAddress: '',
-        userName: '',
-        password: ''
-    });
-    const [updateToken, setUpdateToken] = useState(null);
+    // Replacement workflow states (Admin only)
+    const [showReplacementModal, setShowReplacementModal] = useState(false);
+    const [showReplacementDispatchModal, setShowReplacementDispatchModal] = useState(false);
+    const [replacementStockSource, setReplacementStockSource] = useState('HOStock');
+    const [replacementSourceSiteId, setReplacementSourceSiteId] = useState('');
+    const [replLogisticsCarrier, setReplLogisticsCarrier] = useState('');
+    const [replLogisticsTracking, setReplLogisticsTracking] = useState('');
+    const [replLogisticsRemarks, setReplLogisticsRemarks] = useState('');
 
     useEffect(() => {
         if (ticketId) loadRMA();
         if (assetId) loadHistory();
-        loadSites();
     }, [ticketId, assetId]);
-
-    const loadSites = async () => {
-        try {
-            const res = await sitesApi.getDropdown();
-            setSites(res.data.data || res.data || []);
-        } catch (error) {
-            console.error('Failed to load sites', error);
-        }
-    };
 
     const loadHistory = async () => {
         try {
@@ -80,12 +70,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
         setLoading(true);
         try {
             const res = await rmaApi.getByTicket(ticketId);
-            const rmaData = res.data.data;
-            setRma(rmaData);
-            if (rmaData) {
-                setDeliveredItemDestination(rmaData.deliveredItemDestination || 'SiteInstalled');
-                setRepairedItemDestination(rmaData.repairedItemDestination || 'BackToSite');
-            }
+            setRma(res.data.data);
         } catch (error) {
             setRma(null);
         } finally {
@@ -93,39 +78,20 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
         }
     };
 
-    useEffect(() => {
-        if (showRequestModal && ticketId) {
-            loadStockAvailability();
-        }
-    }, [showRequestModal, ticketId]);
-
-    const loadStockAvailability = async () => {
-        try {
-            const res = await stockApi.getAvailability(ticketId);
-            setAvailableStock(res.data.data || { localSpares: [], hoSpares: [] });
-        } catch (error) {
-            console.error('Failed to load stock availability', error);
-            setAvailableStock({ localSpares: [], hoSpares: [] });
-        }
-    };
+    // ==========================================
+    // HANDLERS
+    // ==========================================
 
     const handleRequestRMA = async () => {
         if (!requestReason.trim()) return toast.error('Reason is required');
-
-        // Validate that asset is selected for stock-based replacements
-        if ((replacementSource === 'HOStock' || replacementSource === 'SiteStock') && !selectedReservedAssetId) {
-            return toast.error(`Please select a device from ${replacementSource === 'HOStock' ? 'HO' : 'Site'} Stock`);
-        }
 
         try {
             await rmaApi.create({
                 ticketId,
                 requestReason,
-                shippingDetails: shippingDetails.address ? shippingDetails : undefined,
-                isSiteStockUsed: replacementSource === 'SiteStock',
-                faultyItemAction: (replacementSource === 'SiteStock' || replacementSource === 'HOStock') ? faultyItemAction : 'None',
                 replacementSource,
-                reservedAssetId: (replacementSource === 'HOStock' || replacementSource === 'SiteStock') ? selectedReservedAssetId : undefined
+                faultyItemAction: 'Repair',
+                shippingDetails: shippingDetails.address ? shippingDetails : undefined,
             });
             toast.success('RMA Requested');
             setShowRequestModal(false);
@@ -136,26 +102,15 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
         }
     };
 
-    const handleUpdateStatus = async (status) => {
+    const handleUpdateStatus = async (status, extraData = {}) => {
         try {
-            const data = { status, remarks: actionRemark };
-            if (status === 'Ordered') data.vendorDetails = vendorDetails;
-            if (status === 'Dispatched') data.shippingDetails = shippingDetails;
-            if (status === 'Received') data.deliveredItemDestination = deliveredItemDestination;
-            if (status === 'Repaired') {
-                data.repairedItemDestination = repairedItemDestination;
-                if (repairedItemDestination === 'OtherSite') {
-                    data.repairedItemDestinationSiteId = repairedItemDestinationSiteId;
-                }
-            }
-
-            if (status === 'TransferredToOtherSite') {
-                data.repairedItemDestinationSiteId = repairedItemDestinationSiteId;
-            }
-
+            const data = { status, remarks: actionRemark, ...extraData };
             await rmaApi.updateStatus(rma._id, data);
             toast.success(`RMA status updated to ${status}`);
             setShowProcessModal(false);
+            setShowSendItemModal(false);
+            setShowLogisticsModal(false);
+            setActionRemark('');
             loadRMA();
             if (onUpdate) onUpdate();
         } catch (error) {
@@ -163,60 +118,72 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
         }
     };
 
-    const handleInitiateAssetUpdate = async () => {
-        try {
-            const response = await assetUpdateRequestApi.initiate({
-                rmaId: rma._id,
-                ticketId: ticketId,
-                assetId: assetId
+    // Send item to HO or Service Center
+    const handleSendItem = async () => {
+        const logisticsData = {
+            carrier: logisticsCarrier,
+            trackingNumber: logisticsTracking,
+            courierName: logisticsCourier,
+            remarks: logisticsRemarks
+        };
+
+        if (itemSendRoute === 'DirectToServiceCenter') {
+            await handleUpdateStatus('SentToServiceCenter', {
+                itemSendRoute: 'DirectToServiceCenter',
+                logisticsToServiceCenter: logisticsData,
+                shippingDetails: { carrier: logisticsCarrier, trackingNumber: logisticsTracking }
             });
-
-            const { accessToken } = response.data.data;
-            setUpdateToken(accessToken);
-
-            // Pre-fill with current rma replacement details or asset details
-            setUpdateFields({
-                serialNumber: rma.replacementDetails?.serialNumber || '',
-                mac: rma.replacementDetails?.mac || '',
-                ipAddress: rma.replacementDetails?.ipAddress || '',
-                userName: rma.replacementDetails?.userName || '',
-                password: ''
+        } else {
+            await handleUpdateStatus('SentToHO', {
+                itemSendRoute: 'ToHO',
+                logisticsToHO: logisticsData,
+                shippingDetails: { carrier: logisticsCarrier, trackingNumber: logisticsTracking }
             });
-
-            toast.success('Access granted! Opening update form...');
-            setShowUpdateModal(true);
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to initiate asset update');
         }
+        setShowSendItemModal(false);
     };
 
-    const handleSubmitAssetUpdate = async () => {
-        if (!updateToken) return;
-        setLoading(true);
-        try {
-            await assetUpdateRequestApi.submit(updateToken, updateFields);
-            toast.success('Asset updates submitted for approval!');
-            setShowUpdateModal(false);
-            setUpdateToken(null);
-            loadRMA(); // Refresh state
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to submit updates');
-        } finally {
-            setLoading(false);
-        }
+    // Admin: Ship item from HO to service center
+    const handleSendForRepairFromHO = async () => {
+        await handleUpdateStatus('SentForRepairFromHO', {
+            logisticsToServiceCenter: {
+                carrier: logisticsCarrier,
+                trackingNumber: logisticsTracking,
+                courierName: logisticsCourier,
+                remarks: logisticsRemarks,
+                serviceCenterTicketRef
+            },
+            serviceCenterTicketRef
+        });
+        setShowLogisticsModal(false);
     };
 
-    const handleConfirmInstallation = async () => {
+    // Admin: Ship repaired item back to site
+    const handleShipReturnToSite = async () => {
+        await handleUpdateStatus('ReturnShippedToSite', {
+            logisticsReturnToSite: {
+                carrier: logisticsCarrier,
+                trackingNumber: logisticsTracking,
+                courierName: logisticsCourier,
+                remarks: logisticsRemarks
+            },
+            shippingDetails: { carrier: logisticsCarrier, trackingNumber: logisticsTracking }
+        });
+        setShowLogisticsModal(false);
+    };
+
+    // Install device
+    const handleInstallDevice = async () => {
         try {
             await rmaApi.confirmInstallation(rma._id, {
-                status: installationStatus,
-                remarks: confirmRemark,
-                newIpAddress: newIpAddress,
-                newUserName: newUserName,
-                newPassword: newPassword
+                status: 'Installed & Working',
+                remarks: installRemarks,
+                newIpAddress: installIpAddress,
+                newUserName: installUserName,
+                newPassword: installPassword
             });
-            toast.success('Installation status confirmed');
-            setShowConfirmModal(false);
+            toast.success('Device installed successfully');
+            setShowInstallModal(false);
             loadRMA();
             if (onUpdate) onUpdate();
         } catch (error) {
@@ -224,33 +191,146 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
         }
     };
 
-    // Helper to open installation modal with pre-filled credentials
-    const openInstallationModal = () => {
-        // Pre-fill with existing asset/RMA data
-        setNewIpAddress(rma?.originalDetailsSnapshot?.ipAddress || '');
-        setNewUserName(rma?.originalDetailsSnapshot?.userName || '');
-        setNewPassword(''); // Don't pre-fill password for security
-        setInstallationStatus('Installed & Working');
-        setConfirmRemark('');
-        setShowConfirmModal(true);
+    // Open install modal with pre-filled data
+    const openInstallModal = () => {
+        setInstallIpAddress(rma?.originalDetailsSnapshot?.ipAddress || '');
+        setInstallUserName(rma?.originalDetailsSnapshot?.userName || '');
+        setInstallPassword('');
+        setInstallRemarks('');
+        setShowInstallModal(true);
+    };
+
+    // Reset logistics form
+    const resetLogisticsForm = () => {
+        setLogisticsCarrier('');
+        setLogisticsTracking('');
+        setLogisticsCourier('');
+        setLogisticsRemarks('');
+        setServiceCenterTicketRef('');
+    };
+
+    const handleRaiseReplacementRequisition = async () => {
+        try {
+            const data = {
+                status: 'ReplacementRequisitionRaised',
+                replacementStockSource,
+                replacementSourceSiteId: replacementStockSource === 'SiteStock' ? replacementSourceSiteId : undefined,
+                remarks: actionRemark || `Replacement requisition raised — Source: ${replacementStockSource}`
+            };
+            await rmaApi.updateStatus(rma._id, data);
+            toast.success('Replacement requisition raised');
+            setShowReplacementModal(false);
+            setActionRemark('');
+            loadRMA();
+            if (onUpdate) onUpdate();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to raise requisition');
+        }
+    };
+
+    const handleDispatchReplacement = async () => {
+        try {
+            const data = {
+                status: 'ReplacementDispatched',
+                logisticsReplacementToSite: {
+                    carrier: replLogisticsCarrier,
+                    trackingNumber: replLogisticsTracking,
+                    remarks: replLogisticsRemarks
+                },
+                remarks: actionRemark || 'Replacement dispatched to site'
+            };
+            await rmaApi.updateStatus(rma._id, data);
+            toast.success('Replacement dispatched');
+            setShowReplacementDispatchModal(false);
+            setReplLogisticsCarrier('');
+            setReplLogisticsTracking('');
+            setReplLogisticsRemarks('');
+            setActionRemark('');
+            loadRMA();
+            if (onUpdate) onUpdate();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to dispatch replacement');
+        }
     };
 
     if (loading) return <div className="p-4 text-center">Loading RMA details...</div>;
 
     const canManageRMA = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
     const canInstall = hasRole(['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']);
+    const isL1 = hasRole(['L1Engineer', 'L2Engineer']);
 
-    // Render Timeline Step
-    const renderStep = (status, icon, label, date, active) => (
-        <div className={`rma-step ${active ? 'active' : ''}`}>
-            <div className="rma-step-icon">
-                {icon}
-            </div>
-            <span className="rma-step-label">{label}</span>
-            {date && <span className="rma-step-date">{new Date(date).toLocaleDateString()}</span>}
+    // ==========================================
+    // STATUS FLOW HELPER
+    // ==========================================
+    const getStatusFlow = () => {
+        if (!rma) return [];
+
+        const isViaHO = rma.itemSendRoute === 'ToHO';
+        const isDirectSC = rma.itemSendRoute === 'DirectToServiceCenter';
+
+        // Base flow
+        const steps = [
+            { key: 'Requested', label: 'Requested', icon: <FileText size={14} />, active: true, date: rma.createdAt },
+            { key: 'Approved', label: 'Approved', icon: <CheckCircle size={14} />, active: rma.status !== 'Requested' && rma.status !== 'Rejected', date: rma.approvedOn },
+        ];
+
+        if (rma.status === 'Rejected') {
+            steps.push({ key: 'Rejected', label: 'Rejected', icon: <AlertTriangle size={14} />, active: true, date: null });
+            return steps;
+        }
+
+        // After approval - item sent
+        if (isDirectSC) {
+            steps.push({ key: 'SentToServiceCenter', label: 'Sent to SC', icon: <Send size={14} />, active: ['SentToServiceCenter', 'ItemRepairedAtHO', 'ReturnShippedToSite', 'ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.repairDispatchDate });
+        } else if (isViaHO) {
+            steps.push(
+                { key: 'SentToHO', label: 'Sent to HO', icon: <Building size={14} />, active: ['SentToHO', 'ReceivedAtHO', 'SentForRepairFromHO', 'ItemRepairedAtHO', 'ReturnShippedToSite', 'ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsToHO?.dispatchDate },
+                { key: 'ReceivedAtHO', label: 'Received at HO', icon: <Package size={14} />, active: ['ReceivedAtHO', 'SentForRepairFromHO', 'ItemRepairedAtHO', 'ReturnShippedToSite', 'ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.receivedAtHODate },
+                { key: 'SentForRepairFromHO', label: 'Sent to SC', icon: <Send size={14} />, active: ['SentForRepairFromHO', 'ItemRepairedAtHO', 'ReturnShippedToSite', 'ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsToServiceCenter?.dispatchDate },
+            );
+        } else {
+            // Not yet decided route - show generic "Send Item" step
+            if (['Approved'].includes(rma.status)) {
+                steps.push({ key: 'send', label: 'Send Item', icon: <Send size={14} />, active: false, date: null });
+            }
+        }
+
+        // Return from repair (only shown if RepairOnly or the repair leg of RepairAndReplace)
+        const afterRepairStatuses = ['ItemRepairedAtHO', 'ReturnShippedToSite', 'ReceivedAtSite', 'Installed'];
+        steps.push(
+            { key: 'ItemRepairedAtHO', label: 'Repaired (at HO)', icon: <CheckCircle size={14} />, active: afterRepairStatuses.includes(rma.status), date: rma.repairedItemReceivedAtHODate },
+            { key: 'ReturnShippedToSite', label: 'Shipped to Site', icon: <Truck size={14} />, active: ['ReturnShippedToSite', 'ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsReturnToSite?.dispatchDate },
+            { key: 'ReceivedAtSite', label: 'Received', icon: <MapPin size={14} />, active: ['ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsReturnToSite?.receivedDate },
+        );
+
+        // Replacement track (only for RepairAndReplace)
+        if (rma.replacementSource === 'RepairAndReplace') {
+            const replStatuses = ['ReplacementRequisitionRaised', 'ReplacementDispatched', 'ReplacementReceivedAtSite', 'Installed'];
+            steps.push(
+                { key: 'ReplacementRequisitionRaised', label: 'Requisition', icon: <ShoppingBag size={14} />, active: replStatuses.includes(rma.status), date: rma.replacementArrangedOn },
+                { key: 'ReplacementDispatched', label: 'Repl. Dispatched', icon: <Truck size={14} />, active: ['ReplacementDispatched', 'ReplacementReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsReplacementToSite?.dispatchDate },
+                { key: 'ReplacementReceivedAtSite', label: 'Repl. Received', icon: <ArrowDownToLine size={14} />, active: ['ReplacementReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsReplacementToSite?.receivedDate },
+            );
+        }
+
+        steps.push(
+            { key: 'Installed', label: 'Installed', icon: <Settings size={14} />, active: rma.status === 'Installed', date: rma.installedOn },
+        );
+
+        return steps;
+    };
+
+    const renderStep = (step) => (
+        <div key={step.key} className={`rma-step ${step.active ? 'active' : ''}`}>
+            <div className="rma-step-icon">{step.icon}</div>
+            <span className="rma-step-label">{step.label}</span>
+            {step.date && <span className="rma-step-date">{new Date(step.date).toLocaleDateString()}</span>}
         </div>
     );
 
+    // ==========================================
+    // RENDER
+    // ==========================================
     return (
         <div className="detail-section glass-card rma-section p-3">
             <div className="flex justify-between items-center mb-4">
@@ -292,46 +372,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                     <div className="rma-timeline-tracker">
                         <div className="rma-timeline-line"></div>
                         <div className="rma-timeline-steps">
-                            {renderStep('Requested', <FileText size={14} />, 'Requested', rma.createdAt, true)}
-                            {renderStep('Approved', <CheckCircle size={14} />, 'Approved', rma.approvedOn, rma.status !== 'Requested' && rma.status !== 'Rejected')}
-
-                            {/* Market Procurement Flow */}
-                            {rma.replacementSource === 'Market' && (
-                                <>
-                                    {renderStep('Logistics', <Package size={14} />, 'Logistics', null, ['Ordered', 'Dispatched', 'Received', 'Installed', 'TransferredToSiteStore', 'TransferredToHOStock'].includes(rma.status))}
-                                    {renderStep('Received', <Truck size={14} />, 'Received', null, ['Received', 'Installed', 'TransferredToSiteStore', 'TransferredToHOStock'].includes(rma.status))}
-                                </>
-                            )}
-
-                            {/* HO Stock Transfer Flow */}
-                            {rma.replacementSource === 'HOStock' && (
-                                <>
-                                    {renderStep('Transfer', <Truck size={14} />, 'Dispatched', null, ['AwaitingStockTransfer', 'StockInTransit', 'StockReceived', 'InRepair', 'Repaired', 'Installed', 'TransferredToSiteStore', 'TransferredToHOStock'].includes(rma.status))}
-                                    {renderStep('StockReceived', <Package size={14} />, 'Received', null, ['StockReceived', 'InRepair', 'Repaired', 'Installed', 'TransferredToSiteStore', 'TransferredToHOStock'].includes(rma.status))}
-                                    {renderStep('Installed', <CheckCircle size={14} />, 'Installed', rma.installedOn, (rma.isInstallationConfirmed && rma.installationStatus === 'Installed & Working') || ['Repaired', 'TransferredToSiteStore', 'TransferredToHOStock'].includes(rma.status))}
-                                </>
-                            )}
-
-                            {/* Repair-only Flow */}
-                            {rma.replacementSource === 'Repair' && (
-                                <>
-                                    {renderStep('InRepair', <AlertTriangle size={14} />, 'In Repair', rma.repairDispatchDate, ['InRepair', 'Repaired', 'RepairedItemEnRoute', 'RepairedItemReceived'].includes(rma.status))}
-                                    {renderStep('Repaired', <CheckCircle size={14} />, 'Repaired', rma.repairReceivedDate, ['Repaired', 'RepairedItemEnRoute', 'RepairedItemReceived'].includes(rma.status))}
-                                    {renderStep('Returned', <Truck size={14} />, 'Returned', null, ['RepairedItemEnRoute', 'RepairedItemReceived'].includes(rma.status))}
-                                </>
-                            )}
-
-                            {/* Faulty Item Repair (for Site/HO Stock flows) */}
-                            {(rma.replacementSource === 'SiteStock' || rma.replacementSource === 'HOStock') && rma.faultyItemAction === 'Repair' && (
-                                <>
-                                    {!['Repaired', 'TransferredToSiteStore', 'TransferredToHOStock'].includes(rma.status) &&
-                                        renderStep('InRepair', <AlertTriangle size={14} />, 'In Repair', null, rma.status === 'InRepair')}
-                                    {['Repaired', 'TransferredToSiteStore', 'TransferredToHOStock'].includes(rma.status) &&
-                                        renderStep('Repaired', <CheckCircle size={14} />, 'Repaired', null, true)}
-                                </>
-                            )}
-
-                            {renderStep('Finished', <CheckCircle size={14} />, 'Finished', rma.installedOn || rma.updatedAt, ['Installed', 'TransferredToSiteStore', 'TransferredToHOStock', 'Discarded', 'RepairedItemReceived'].includes(rma.status))}
+                            {getStatusFlow().map(step => renderStep(step))}
                         </div>
                     </div>
 
@@ -348,42 +389,20 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             <div className="rma-detail-item">
                                 <span className="detail-label"><Info size={12} /> Current Status</span>
                                 <div className="detail-value">
-                                    <span className={`badge badge-${['Installed', 'TransferredToSiteStore', 'TransferredToHOStock'].includes(rma.status) ? 'success' : 'warning'}`}>{rma.status}</span>
+                                    <span className={`badge badge-${['Installed', 'ReceivedAtSite'].includes(rma.status) ? 'success' : rma.status === 'Rejected' ? 'danger' : 'warning'}`}>
+                                        {rma.status.replace(/([A-Z])/g, ' $1').trim()}
+                                    </span>
                                 </div>
                             </div>
-                            {rma.isInstallationConfirmed && (
-                                <div className="rma-detail-item">
-                                    <span className="detail-label"><Settings size={12} /> Installation</span>
-                                    <div className="detail-value">
-                                        <span className={`badge badge-${rma.installationStatus === 'Installed & Working' ? 'success' : rma.installationStatus === 'Not Installed' ? 'warning' : 'danger'}`}>
-                                            {rma.installationStatus}
-                                        </span>
-                                    </div>
+                            <div className="rma-detail-item">
+                                <span className="detail-label"><RefreshCw size={12} /> Type</span>
+                                <div className="detail-value text-xs font-bold uppercase">
+                                    {rma.replacementSource === 'RepairOnly' || rma.replacementSource === 'Repair' ? '🔧 Repair Only' : '🔄 Repair & Replace'}
                                 </div>
-                            )}
+                            </div>
                         </div>
 
-                        {/* Group 2: Logic & Logistics */}
-                        {(rma.replacementSource || (rma.faultyItemAction && rma.faultyItemAction !== 'None')) && (
-                            <div className="rma-info-group">
-                                {rma.replacementSource && (
-                                    <div className="rma-detail-item">
-                                        <span className="detail-label"><RefreshCw size={12} /> Replacement Source</span>
-                                        <div className="detail-value text-xs font-bold uppercase">
-                                            {rma.replacementSource}
-                                        </div>
-                                    </div>
-                                )}
-                                {rma.faultyItemAction && rma.faultyItemAction !== 'None' && (
-                                    <div className="rma-detail-item">
-                                        <span className="detail-label"><Trash2 size={12} /> Faulty Item Fate</span>
-                                        <div className="detail-value text-xs font-bold uppercase">{rma.faultyItemAction}</div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Group 3: Request Context */}
+                        {/* Group 2: Request Context */}
                         <div className="rma-info-group">
                             <div className="rma-detail-item full-width">
                                 <span className="detail-label"><MessageSquare size={12} /> Request Reason</span>
@@ -391,7 +410,38 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             </div>
                         </div>
 
-                        {/* Group 4: Replacement Specifications */}
+                        {/* Group 3: Logistics Info (if available) */}
+                        {(rma.logisticsToHO?.trackingNumber || rma.logisticsToServiceCenter?.trackingNumber || rma.logisticsReturnToSite?.trackingNumber) && (
+                            <div className="rma-info-group">
+                                <div className="rma-detail-item full-width">
+                                    <span className="detail-label"><Truck size={12} /> Logistics</span>
+                                    <div className="tech-details-flex mt-2">
+                                        {rma.logisticsToHO?.trackingNumber && (
+                                            <div className="tech-tag">
+                                                <span>To HO:</span> <span>{rma.logisticsToHO.trackingNumber}</span>
+                                            </div>
+                                        )}
+                                        {rma.logisticsToServiceCenter?.trackingNumber && (
+                                            <div className="tech-tag">
+                                                <span>To SC:</span> <span>{rma.logisticsToServiceCenter.trackingNumber}</span>
+                                            </div>
+                                        )}
+                                        {rma.logisticsReturnToSite?.trackingNumber && (
+                                            <div className="tech-tag">
+                                                <span>Return:</span> <span>{rma.logisticsReturnToSite.trackingNumber}</span>
+                                            </div>
+                                        )}
+                                        {rma.logisticsToServiceCenter?.serviceCenterTicketRef && (
+                                            <div className="tech-tag">
+                                                <span>SC Ref:</span> <span>{rma.logisticsToServiceCenter.serviceCenterTicketRef}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Group 4: Replacement Specs (if installed) */}
                         {rma.replacementDetails?.serialNumber && (
                             <div className="rma-info-group">
                                 <div className="rma-detail-item full-width">
@@ -410,163 +460,275 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                                 <span>MAC:</span> <span>{rma.replacementDetails.mac}</span>
                                             </div>
                                         )}
-                                        {rma.replacementDetails.userName && (
-                                            <div className="tech-tag">
-                                                <span>USER:</span> <span>{rma.replacementDetails.userName}</span>
-                                            </div>
-                                        )}
-                                        {rma.replacementDetails.password && (
-                                            <div className="tech-tag">
-                                                <span>PASS:</span> <span>••••••••</span>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             </div>
                         )}
                     </div>
 
-                    {/* Alert: Stock Received - Awaiting Installation */}
-                    {rma && rma.status === 'StockReceived' && !rma.isInstallationConfirmed && (
+                    {/* ========================================
+                        CONTEXTUAL ACTION ALERTS
+                       ======================================== */}
+
+                    {/* STEP 2: After Approval - L1 needs to send item */}
+                    {rma.status === 'Approved' && (isL1 || canManageRMA) && (
                         <div className="rma-finalization-alert status-received animate-fade-in">
                             <div className="rma-alert-info">
-                                <Package size={20} className="text-primary-500" />
+                                <Send size={20} className="text-primary-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Replacement Device Received at Site</p>
+                                    <p className="alert-title">RMA Approved — Send Item for Repair</p>
                                     <p className="alert-desc">
-                                        The replacement device from HO Stock has arrived. Please install the device and update the connectivity credentials to complete this step.
+                                        Send the faulty item either <strong>directly to the service center</strong> or <strong>to the Head Office (HO)</strong>. Update logistics details (carrier, tracking number).
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rma-alert-actions">
+                                <button
+                                    className="btn btn-sm btn-primary shadow-sm flex items-center gap-1"
+                                    onClick={() => { resetLogisticsForm(); setShowSendItemModal(true); }}
+                                >
+                                    <Send size={14} /> Send Item
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 3a: Item at HO - Admin acknowledges */}
+                    {rma.status === 'SentToHO' && canManageRMA && (
+                        <div className="rma-finalization-alert status-received animate-fade-in">
+                            <div className="rma-alert-info">
+                                <Building size={20} className="text-warning-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">Item in Transit to HO</p>
+                                    <p className="alert-desc">
+                                        The faulty item has been dispatched to HO. Acknowledge receipt once it arrives.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rma-alert-actions">
+                                <button
+                                    className="btn btn-sm btn-success shadow-sm flex items-center gap-1"
+                                    onClick={() => handleUpdateStatus('ReceivedAtHO')}
+                                >
+                                    <CheckCircle size={14} /> Acknowledge Receipt at HO
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 3b: At HO - Admin sends to Service Center */}
+                    {rma.status === 'ReceivedAtHO' && canManageRMA && (
+                        <div className="rma-finalization-alert status-in-repair animate-fade-in">
+                            <div className="rma-alert-info">
+                                <RefreshCw size={20} className="text-warning-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">Item at HO — Send to Service Center</p>
+                                    <p className="alert-desc">
+                                        Item is at HO. Forward it to the service center for repair. Optionally add / reference a service center ticket.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rma-alert-actions">
+                                <button
+                                    className="btn btn-sm btn-primary shadow-sm flex items-center gap-1"
+                                    onClick={() => { resetLogisticsForm(); setTargetStatus('SentForRepairFromHO'); setShowLogisticsModal(true); }}
+                                >
+                                    <Send size={14} /> Send to Service Center
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 4: Repair done - Admin confirms receipt back at HO */}
+                    {(rma.status === 'SentToServiceCenter' || rma.status === 'SentForRepairFromHO') && canManageRMA && (
+                        <div className="rma-finalization-alert status-in-repair animate-fade-in">
+                            <div className="rma-alert-info">
+                                <RefreshCw size={20} className="text-warning-500 animate-spin" style={{ animationDuration: '3s' }} />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">Item at Service Center</p>
+                                    <p className="alert-desc">
+                                        The item is currently at the service center for repair. Once you receive the repaired item back at HO, confirm below.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rma-alert-actions">
+                                <button
+                                    className="btn btn-sm btn-success shadow-sm flex items-center gap-1"
+                                    onClick={() => handleUpdateStatus('ItemRepairedAtHO')}
+                                >
+                                    <CheckCircle size={14} /> Yes — Repaired Item Received at HO
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 5: Admin ships repaired item back to site */}
+                    {rma.status === 'ItemRepairedAtHO' && canManageRMA && (
+                        <div className="rma-finalization-alert status-repaired animate-fade-in">
+                            <div className="rma-alert-info">
+                                <CheckCircle size={20} className="text-success-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">Repaired Item Ready — Ship to Site</p>
+                                    <p className="alert-desc">
+                                        The repaired item has been received at HO. Ship it back to the site for installation.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rma-alert-actions">
+                                <button
+                                    className="btn btn-sm btn-primary shadow-sm flex items-center gap-1"
+                                    onClick={() => { resetLogisticsForm(); setTargetStatus('ReturnShippedToSite'); setShowLogisticsModal(true); }}
+                                >
+                                    <Truck size={14} /> Ship to Site
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 6a: Item shipped - awaiting receipt at site */}
+                    {rma.status === 'ReturnShippedToSite' && (isL1 || canManageRMA) && (
+                        <div className="rma-finalization-alert status-received animate-fade-in">
+                            <div className="rma-alert-info">
+                                <Truck size={20} className="text-primary-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">Item Shipped to Site</p>
+                                    <p className="alert-desc">
+                                        The repaired item is on its way to your site. Mark as received once it arrives.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rma-alert-actions">
+                                <button
+                                    className="btn btn-sm btn-success shadow-sm flex items-center gap-1"
+                                    onClick={() => handleUpdateStatus('ReceivedAtSite')}
+                                >
+                                    <MapPin size={14} /> Mark Received at Site
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 6b: Received at site - install device */}
+                    {(rma.status === 'ReceivedAtSite' || rma.status === 'ReplacementReceivedAtSite') && (canInstall) && (
+                        <div className="rma-finalization-alert status-received animate-fade-in">
+                            <div className="rma-alert-info">
+                                <Server size={20} className="text-success-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">Item Received — Install Device</p>
+                                    <p className="alert-desc">
+                                        {rma.status === 'ReplacementReceivedAtSite'
+                                            ? 'The replacement item has arrived at the site. Install the device and update its current details (IP, credentials).'
+                                            : 'The repaired item has arrived at the site. Install the device and update its current details (IP, credentials).'}
                                     </p>
                                 </div>
                             </div>
                             <div className="rma-alert-actions">
                                 <button
                                     className="btn btn-sm btn-success shadow-sm flex items-center gap-1 animate-pulse"
-                                    onClick={openInstallationModal}
+                                    onClick={openInstallModal}
                                 >
-                                    <Server size={14} /> Install & Update Credentials
+                                    <Settings size={14} /> Install & Update Details
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {/* Action Buttons */}
-                    {rma && rma.isInstallationConfirmed && !rma.isFaultyItemFinalized && (
-                        <div className={`rma-finalization-alert ${rma.status === 'Repaired' ? 'status-repaired' : rma.status === 'InRepair' ? 'status-in-repair' : ''}`}>
+                    {/* ========================================
+                        REPLACEMENT WORKFLOW ALERTS (Admin/Escalation only)
+                       ======================================== */}
+
+                    {/* REPLACEMENT STEP 1: After approval of RepairAndReplace — Admin raises requisition */}
+                    {rma.status === 'Approved' && rma.replacementSource === 'RepairAndReplace' && canManageRMA && (
+                        <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--info-500)' }}>
                             <div className="rma-alert-info">
-                                {rma.status === 'InRepair' ? (
-                                    <RefreshCw size={20} className="text-warning-500 animate-spin" style={{ animationDuration: '3s' }} />
-                                ) : rma.status === 'Repaired' ? (
-                                    <CheckCircle size={20} className="text-success-500" />
-                                ) : (
-                                    <AlertTriangle size={20} />
-                                )}
+                                <ShoppingBag size={20} className="text-info-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">
-                                        {rma.status === 'InRepair' ? 'Item Currently In Repair' :
-                                            rma.status === 'Repaired' ? 'Repaired Item Ready for Transfer' :
-                                                'Faulty Item Finalization Required'}
-                                    </p>
+                                    <p className="alert-title">Replacement Required — Raise Requisition</p>
                                     <p className="alert-desc">
-                                        {rma.status === 'InRepair'
-                                            ? 'The faulty device is at the service center. Mark as repaired once received back.'
-                                            : rma.status === 'Repaired'
-                                                ? 'The device has been successfully repaired. Please specify its next destination.'
-                                                : 'Please record the fate of the removed faulty hardware to finalize this RMA.'}
+                                        This RMA requires a replacement device. Raise a stock transfer requisition from HO or another site's stock.
                                     </p>
                                 </div>
                             </div>
                             <div className="rma-alert-actions">
-                                {rma.status === 'InRepair' ? (
-                                    <button className="btn btn-xs btn-success shadow-sm" onClick={() => handleUpdateStatus('Repaired')}>
-                                        <CheckCircle size={12} /> Mark as Repaired
-                                    </button>
-                                ) : (
-                                    <>
-                                        <button className="btn btn-xs btn-primary shadow-sm" onClick={() => handleUpdateStatus('TransferredToSiteStore')}>Move to Site Store</button>
-                                        <button className="btn btn-xs btn-success" onClick={() => handleUpdateStatus('TransferredToHOStock')}>Ship to HO Stock</button>
-                                        <button className="btn btn-xs btn-outline-primary" onClick={() => { setRepairedItemDestination('OtherSite'); setShowProcessModal(true); }}>Transfer elsewhere</button>
-                                    </>
-                                )}
-                                <button className="btn btn-xs btn-outline-danger" onClick={() => handleUpdateStatus('Discarded')}>Mark as Discarded</button>
+                                <button
+                                    className="btn btn-sm btn-info shadow-sm flex items-center gap-1"
+                                    onClick={() => setShowReplacementModal(true)}
+                                >
+                                    <ShoppingBag size={14} /> Raise Requisition
+                                </button>
                             </div>
                         </div>
                     )}
 
+                    {/* REPLACEMENT STEP 2: Requisition raised — Admin dispatches replacement */}
+                    {rma.status === 'ReplacementRequisitionRaised' && canManageRMA && (
+                        <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--primary-500)' }}>
+                            <div className="rma-alert-info">
+                                <Truck size={20} className="text-primary-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">Requisition Raised — Dispatch Replacement</p>
+                                    <p className="alert-desc">
+                                        Stock requisition has been raised{rma.replacementStockSource ? ` (from ${rma.replacementStockSource === 'HOStock' ? 'HO Stock' : rma.replacementStockSource === 'SiteStock' ? 'Site Stock' : 'Market'})` : ''}. Dispatch the replacement item to the site.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rma-alert-actions">
+                                <button
+                                    className="btn btn-sm btn-primary shadow-sm flex items-center gap-1"
+                                    onClick={() => setShowReplacementDispatchModal(true)}
+                                >
+                                    <Truck size={14} /> Dispatch Replacement
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* REPLACEMENT STEP 3: Dispatched — L1/ticket owner confirms receipt */}
+                    {rma.status === 'ReplacementDispatched' && (isL1 || canManageRMA) && (
+                        <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--success-500)' }}>
+                            <div className="rma-alert-info">
+                                <ArrowDownToLine size={20} className="text-success-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">Replacement Dispatched — Confirm Receipt</p>
+                                    <p className="alert-desc">
+                                        The replacement item is on its way. Confirm receipt once it arrives at the site.
+                                        {rma.logisticsReplacementToSite?.trackingNumber && ` (Tracking: ${rma.logisticsReplacementToSite.trackingNumber})`}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rma-alert-actions">
+                                <button
+                                    className="btn btn-sm btn-success shadow-sm flex items-center gap-1"
+                                    onClick={() => handleUpdateStatus('ReplacementReceivedAtSite')}
+                                >
+                                    <MapPin size={14} /> Confirm Received
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* COMPLETED */}
+                    {rma.status === 'Installed' && (
+                        <div className="rma-finalization-alert status-repaired animate-fade-in">
+                            <div className="rma-alert-info">
+                                <CheckCircle size={20} className="text-success-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">RMA Completed</p>
+                                    <p className="alert-desc">
+                                        The device has been successfully repaired, returned, and installed. This RMA is finalized.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Admin quick approve/reject */}
                     <div className="rma-actions-wrapper">
                         {canManageRMA && rma.status === 'Requested' && (
                             <>
                                 <button className="btn btn-sm btn-danger px-3" onClick={() => handleUpdateStatus('Rejected')}>Reject</button>
                                 <button className="btn btn-sm btn-success px-3" onClick={() => handleUpdateStatus('Approved')}>Approve</button>
                             </>
-                        )}
-
-                        {canManageRMA && ['Approved', 'Ordered', 'Dispatched', 'Received', 'InRepair', 'Repaired', 'Installed', 'AwaitingStockTransfer', 'StockInTransit', 'RepairedItemEnRoute'].includes(rma.status) && (
-                            <button className="btn btn-sm btn-primary flex items-center gap-1" onClick={() => { setActionRemark('Logistics/Status Update'); setShowProcessModal(true); }}>
-                                <Truck size={14} /> Update Logistics / Status
-                            </button>
-                        )}
-
-                        {/* HO Stock Transfer Flow */}
-                        {canManageRMA && rma.status === 'AwaitingStockTransfer' && (
-                            <button className="btn btn-sm btn-primary flex items-center gap-1" onClick={() => handleUpdateStatus('StockInTransit')}>
-                                <Truck size={14} /> Mark Stock Dispatched
-                            </button>
-                        )}
-
-                        {canManageRMA && rma.status === 'StockInTransit' && (
-                            <button className="btn btn-sm btn-success flex items-center gap-1" onClick={() => handleUpdateStatus('StockReceived')}>
-                                <CheckCircle size={14} /> Confirm Stock Received at Site
-                            </button>
-                        )}
-
-                        {/* HO Stock Flow: After Stock Received, Install the device with credentials */}
-                        {canInstall && rma.status === 'StockReceived' && !rma.isInstallationConfirmed && (
-                            <button className="btn btn-sm btn-success flex items-center gap-1 animate-pulse" onClick={openInstallationModal}>
-                                <Server size={14} /> Install & Update Credentials
-                            </button>
-                        )}
-
-                        {/* Repair-only Flow */}
-                        {canManageRMA && rma.status === 'InRepair' && (
-                            <button className="btn btn-sm btn-success flex items-center gap-1" onClick={() => handleUpdateStatus('Repaired')}>
-                                <CheckCircle size={14} /> Mark as Repaired
-                            </button>
-                        )}
-
-                        {canManageRMA && rma.status === 'Repaired' && rma.replacementSource === 'Repair' && (
-                            <button className="btn btn-sm btn-primary flex items-center gap-1" onClick={() => handleUpdateStatus('RepairedItemEnRoute')}>
-                                <Truck size={14} /> Ship Repaired Item
-                            </button>
-                        )}
-
-                        {canManageRMA && rma.status === 'RepairedItemEnRoute' && (
-                            <button className="btn btn-sm btn-success flex items-center gap-1" onClick={() => handleUpdateStatus('RepairedItemReceived')}>
-                                <CheckCircle size={14} /> Confirm Repaired Item Received
-                            </button>
-                        )}
-
-                        {canManageRMA && (rma.status === 'Approved' || (rma.isSiteStockUsed && !['InRepair', 'Repaired', 'Discarded', 'TransferredToSiteStore', 'TransferredToHOStock'].includes(rma.status))) && (
-                            <button className="btn btn-sm btn-outline-warning flex items-center gap-1" onClick={() => handleUpdateStatus('InRepair')}>
-                                <AlertTriangle size={14} /> Send for Repair
-                            </button>
-                        )}
-
-                        {canManageRMA && (rma.status === 'Approved' || (rma.isSiteStockUsed && !['Discarded', 'TransferredToSiteStore', 'TransferredToHOStock'].includes(rma.status))) && (
-                            <button className="btn btn-sm btn-outline-danger flex items-center gap-1" onClick={() => handleUpdateStatus('Discarded')}>
-                                <FileText size={14} /> Mark Discarded
-                            </button>
-                        )}
-
-                        {canInstall && (['Dispatched', 'Received', 'Ordered'].includes(rma.status) || (rma.isSiteStockUsed && rma.status === 'Approved')) && (
-                            <button className="btn btn-sm btn-success flex items-center gap-1" onClick={handleInitiateAssetUpdate}>
-                                <Server size={14} /> Update Asset Details
-                            </button>
-                        )}
-
-                        {canInstall && (rma.status === 'Received' || rma.status === 'Repaired' || rma.status === 'Installed' || rma.status === 'RepairedItemReceived') && !rma.isInstallationConfirmed && (
-                            <button className="btn btn-sm btn-primary flex items-center gap-1" onClick={openInstallationModal}>
-                                <CheckCircle size={14} /> Confirm Installation
-                            </button>
                         )}
                     </div>
                 </div>
@@ -575,6 +737,10 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                     <p>No active RMA request for this ticket.</p>
                 </div>
             )}
+
+            {/* ========================================
+                MODALS
+               ======================================== */}
 
             {/* Request Modal */}
             {showRequestModal && createPortal(
@@ -588,121 +754,63 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
-                                <label className="form-label">Reason for Replacement *</label>
+                                <label className="form-label">Reason for RMA *</label>
                                 <textarea
                                     className="form-textarea"
                                     rows={3}
                                     value={requestReason}
                                     onChange={e => setRequestReason(e.target.value)}
-                                    placeholder="Describe why this device needs replacement..."
+                                    placeholder="Describe why this device needs repair/replacement..."
                                 />
                             </div>
                             <div className="form-group mb-4 flex flex-col gap-3">
-                                <label className="form-label text-[10px] uppercase font-bold opacity-70">Replacement Source *</label>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <label className="form-label text-[10px] uppercase font-bold opacity-70">RMA Type *</label>
+                                <div className="grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
-                                        className={`btn btn-xs ${replacementSource === 'Market' ? 'btn-primary' : 'btn-outline'}`}
-                                        onClick={() => setReplacementSource('Market')}
+                                        className={`btn btn-sm ${replacementSource === 'RepairOnly' ? 'btn-warning' : 'btn-outline'}`}
+                                        onClick={() => setReplacementSource('RepairOnly')}
                                     >
-                                        Procure (Market)
+                                        🔧 Repair Only
                                     </button>
                                     <button
                                         type="button"
-                                        className={`btn btn-xs ${replacementSource === 'SiteStock' ? 'btn-primary' : 'btn-outline'}`}
-                                        onClick={() => setReplacementSource('SiteStock')}
+                                        className={`btn btn-sm ${replacementSource === 'RepairAndReplace' ? 'btn-primary' : 'btn-outline'}`}
+                                        onClick={() => setReplacementSource('RepairAndReplace')}
                                     >
-                                        From Site Stock
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`btn btn-xs ${replacementSource === 'HOStock' ? 'btn-primary' : 'btn-outline'}`}
-                                        onClick={() => setReplacementSource('HOStock')}
-                                    >
-                                        From HO Stock
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`btn btn-xs ${replacementSource === 'Repair' ? 'btn-warning' : 'btn-outline'}`}
-                                        onClick={() => setReplacementSource('Repair')}
-                                        title="Send faulty item for repair without replacement (item returns after repair)"
-                                    >
-                                        Repair Only
+                                        🔄 Repair & Site Replacement
                                     </button>
                                 </div>
 
-                                {replacementSource === 'HOStock' && (
-                                    <div className="animate-fade-in p-3 bg-primary/5 rounded-lg border border-primary/20">
-                                        <label className="form-label text-[10px] uppercase font-bold text-primary-600 mb-1 block">Choose Device from HO Stock</label>
-                                        <select
-                                            className="form-input text-xs"
-                                            value={selectedReservedAssetId}
-                                            onChange={e => setSelectedReservedAssetId(e.target.value)}
-                                        >
-                                            <option value="">-- Select a Device --</option>
-                                            {availableStock.hoSpares?.map(asset => (
-                                                <option key={asset._id} value={asset._id}>
-                                                    {asset.serialNumber} ({asset.make} {asset.model})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {availableStock.hoSpares?.length === 0 && (
-                                            <p className="text-[10px] text-danger italic mt-1">No items available in HO Stock for this asset type.</p>
-                                        )}
-                                    </div>
-                                )}
-
-                                {replacementSource === 'SiteStock' && (
-                                    <div className="animate-fade-in p-3 bg-success/5 rounded-lg border border-success/20">
-                                        <label className="form-label text-[10px] uppercase font-bold text-success-600 mb-1 block">Choose Device from Site Stock</label>
-                                        <select
-                                            className="form-input text-xs"
-                                            value={selectedReservedAssetId}
-                                            onChange={e => setSelectedReservedAssetId(e.target.value)}
-                                        >
-                                            <option value="">-- Select a Device --</option>
-                                            {availableStock.localSpares?.map(asset => (
-                                                <option key={asset._id} value={asset._id}>
-                                                    {asset.serialNumber} ({asset.make} {asset.model})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {availableStock.localSpares?.length === 0 && (
-                                            <p className="text-[10px] text-danger italic mt-1">No items available in Site Stock for this asset type.</p>
-                                        )}
-                                    </div>
-                                )}
-
-                                {replacementSource === 'Repair' && (
+                                {replacementSource === 'RepairOnly' && (
                                     <div className="animate-fade-in p-3 bg-warning/10 rounded-lg border border-warning/30">
                                         <div className="flex items-start gap-2">
-                                            <span className="text-xl"></span>
+                                            <span className="text-xl">🔧</span>
                                             <div>
-                                                <p className="text-sm font-bold text-warning-700">Repair Only Mode</p>
+                                                <p className="text-sm font-bold text-warning-700">Repair Only</p>
                                                 <p className="text-[10px] text-warning-600 mt-1">
-                                                    The faulty device will be sent to the service center for repair.
-                                                    <strong> No replacement</strong> will be issued. Once repaired,
+                                                    The faulty device will be sent for repair. Once repaired,
                                                     the same device will be returned to this site for re-installation.
-                                                </p>
-                                                <p className="text-[10px] text-muted italic mt-2">
-                                                    Use this when: No stock is available, or the device can be repaired quickly.
+                                                    <strong> No replacement device</strong> will be sent.
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
                                 )}
 
-                                {(replacementSource === 'SiteStock' || replacementSource === 'HOStock') && (
-                                    <div className="animate-fade-in p-3 bg-warning/5 rounded-lg border border-warning/20">
-                                        <label className="form-label text-[10px] uppercase font-bold text-warning-600 mb-1 block">Fate of faulty item</label>
-                                        <select
-                                            className="form-input text-xs"
-                                            value={faultyItemAction}
-                                            onChange={e => setFaultyItemAction(e.target.value)}
-                                        >
-                                            <option value="Repair">Send for Repair</option>
-                                            <option value="Discard">Discard (Completely faulty)</option>
-                                        </select>
+                                {replacementSource === 'RepairAndReplace' && (
+                                    <div className="animate-fade-in p-3 bg-primary/5 rounded-lg border border-primary/20">
+                                        <div className="flex items-start gap-2">
+                                            <span className="text-xl">🔄</span>
+                                            <div>
+                                                <p className="text-sm font-bold text-primary-700">Send for Repair & Site Replacement</p>
+                                                <p className="text-[10px] text-primary-600 mt-1">
+                                                    The faulty device will be sent for repair <strong>and</strong> a replacement device
+                                                    will be arranged from HO / another site by the Admin.
+                                                    <strong> L1 does not choose the stock source.</strong>
+                                                </p>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -713,7 +821,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                     className="form-input text-xs"
                                     value={shippingDetails.address}
                                     onChange={e => setShippingDetails({ ...shippingDetails, address: e.target.value })}
-                                    placeholder="Where should the replacement be sent?"
+                                    placeholder="Where should the item be sent?"
                                 />
                             </div>
                         </div>
@@ -728,256 +836,339 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                 document.body
             )}
 
-            {/* Process/Admin Modal */}
-            {showProcessModal && createPortal(
-                <div className="modal-overlay animate-fade-in" onClick={() => setShowProcessModal(false)}>
+            {/* Send Item Modal (Step 2 - L1 sends item) */}
+            {showSendItemModal && createPortal(
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowSendItemModal(false)}>
                     <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3 className="flex items-center gap-2">
-                                <Truck size={16} />
-                                Update RMA Logistics
+                                <Send size={16} />
+                                Send Item for Repair
                             </h3>
                         </div>
-
                         <div className="modal-body">
-                            <div className="p-3 bg-secondary/10 rounded-lg mb-4 border border-border/30">
-                                <h4 className="text-[10px] font-bold mb-3 uppercase tracking-wider opacity-60 flex items-center gap-2">
-                                    <Package size={12} /> Vendor & Order
-                                </h4>
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="form-group mb-0">
-                                        <label className="form-label text-[10px]">Vendor Name</label>
-                                        <input className="form-input" placeholder="Vendor Name" value={vendorDetails.vendorName} onChange={e => setVendorDetails({ ...vendorDetails, vendorName: e.target.value })} />
-                                    </div>
-                                    <div className="form-group mb-0">
-                                        <label className="form-label text-[10px]">Order ID</label>
-                                        <input className="form-input" placeholder="Order ID" value={vendorDetails.orderId} onChange={e => setVendorDetails({ ...vendorDetails, orderId: e.target.value })} />
-                                    </div>
+                            <div className="form-group mb-4">
+                                <label className="form-label text-[10px] uppercase font-bold opacity-70">Where are you sending the item?</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        className={`btn btn-sm ${itemSendRoute === 'DirectToServiceCenter' ? 'btn-primary' : 'btn-outline'}`}
+                                        onClick={() => setItemSendRoute('DirectToServiceCenter')}
+                                    >
+                                        📦 Direct to Service Center
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn btn-sm ${itemSendRoute === 'ToHO' ? 'btn-warning' : 'btn-outline'}`}
+                                        onClick={() => setItemSendRoute('ToHO')}
+                                    >
+                                        🏢 Send to Head Office
+                                    </button>
                                 </div>
+
+                                {itemSendRoute === 'DirectToServiceCenter' && (
+                                    <div className="animate-fade-in p-3 bg-primary/5 rounded-lg border border-primary/20 mt-3">
+                                        <p className="text-[10px] text-primary-600">
+                                            The item will be sent directly to the service center. Raise a ticket from the service center end, or mention the existing reference.
+                                        </p>
+                                    </div>
+                                )}
+                                {itemSendRoute === 'ToHO' && (
+                                    <div className="animate-fade-in p-3 bg-warning/10 rounded-lg border border-warning/30 mt-3">
+                                        <p className="text-[10px] text-warning-600">
+                                            The item will be sent to the Head Office. Admin will acknowledge receipt and then forward it to the service center.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="p-3 bg-secondary/10 rounded-lg border border-border/30">
                                 <h4 className="text-[10px] font-bold mb-3 uppercase tracking-wider opacity-60 flex items-center gap-2">
-                                    <Truck size={12} /> Shipping & Tracking
+                                    <Truck size={12} /> Logistics Details
                                 </h4>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="form-group mb-0">
-                                        <label className="form-label text-[10px]">Carrier</label>
-                                        <input className="form-input" placeholder="Carrier" value={shippingDetails.carrier} onChange={e => setShippingDetails({ ...shippingDetails, carrier: e.target.value })} />
+                                        <label className="form-label text-[10px]">Carrier / Courier</label>
+                                        <input className="form-input" placeholder="e.g., BlueDart, FedEx" value={logisticsCarrier} onChange={e => setLogisticsCarrier(e.target.value)} />
                                     </div>
                                     <div className="form-group mb-0">
                                         <label className="form-label text-[10px]">Tracking Number</label>
-                                        <input className="form-input" placeholder="Tracking Number" value={shippingDetails.trackingNumber} onChange={e => setShippingDetails({ ...shippingDetails, trackingNumber: e.target.value })} />
+                                        <input className="form-input" placeholder="AWB / Tracking #" value={logisticsTracking} onChange={e => setLogisticsTracking(e.target.value)} />
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* Destination Selectors */}
-                            {(rma.status === 'Dispatched' || rma.status === 'Ordered') && (
-                                <div className="p-3 bg-success/5 rounded-lg border border-success/20 mt-3">
-                                    <label className="form-label text-[10px] uppercase font-bold text-success-700 mb-2 block">Item Destination upon receipt</label>
-                                    <select
-                                        className="form-input text-xs"
-                                        value={deliveredItemDestination}
-                                        onChange={e => setDeliveredItemDestination(e.target.value)}
-                                    >
-                                        <option value="SiteInstalled">Install at Site (Standard)</option>
-                                        <option value="SiteStore">Move to Site Store (Spare)</option>
-                                        <option value="HOStock">Transfer to HO Stock</option>
-                                    </select>
+                                <div className="form-group mt-3 mb-0">
+                                    <label className="form-label text-[10px]">Remarks</label>
+                                    <textarea className="form-input text-xs" rows={2} value={logisticsRemarks} onChange={e => setLogisticsRemarks(e.target.value)} placeholder="Any additional notes..." />
                                 </div>
-                            )}
-
-                            {rma.status === 'InRepair' && (
-                                <div className="p-3 bg-warning/5 rounded-lg border border-warning/20 mt-3">
-                                    <label className="form-label text-[10px] uppercase font-bold text-warning-700 mb-2 block">Destination after repair</label>
-                                    <select
-                                        className="form-input text-xs"
-                                        value={repairedItemDestination}
-                                        onChange={e => setRepairedItemDestination(e.target.value)}
-                                    >
-                                        <option value="BackToSite">Send back to Site (for Installation)</option>
-                                        <option value="SiteStore">Move to Site Store (as Spare)</option>
-                                        <option value="HOStock">Transfer to HO Stock</option>
-                                        <option value="OtherSite"> Transfer to another Site</option>
-                                    </select>
-                                </div>
-                            )}
-
-                            {(repairedItemDestination === 'OtherSite' || (rma.isInstallationConfirmed && !rma.isFaultyItemFinalized)) && (
-                                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20 mt-3 animate-fade-in">
-                                    <label className="form-label text-[10px] uppercase font-bold text-primary-700 mb-2 block">Select Target Site</label>
-                                    <select
-                                        className="form-input text-xs"
-                                        value={repairedItemDestinationSiteId}
-                                        onChange={e => setRepairedItemDestinationSiteId(e.target.value)}
-                                    >
-                                        <option value="">-- Choose Site --</option>
-                                        {sites.map(s => (
-                                            <option key={s._id} value={s._id}>{s.siteName}</option>
-                                        ))}
-                                    </select>
-                                    {repairedItemDestination === 'OtherSite' && (
-                                        <p className="text-[10px] text-muted italic mt-1 font-medium">Selecting "Transfer to another Site" will update the asset's ownership record.</p>
-                                    )}
-                                </div>
-                            )}
-
-                            {rma.isInstallationConfirmed && !rma.isFaultyItemFinalized && repairedItemDestinationSiteId && (
-                                <div className="mt-4">
-                                    <button
-                                        className="btn btn-sm btn-primary w-full"
-                                        onClick={() => handleUpdateStatus('TransferredToOtherSite')}
-                                    >
-                                        Complete Transfer to Selected Site
-                                    </button>
-                                </div>
-                            )}
-
-                            <div className="form-group mt-3">
-                                <label className="form-label text-[10px] uppercase font-bold opacity-60">Status Remarks</label>
-                                <textarea
-                                    className="form-input text-xs"
-                                    rows={2}
-                                    value={actionRemark}
-                                    onChange={e => setActionRemark(e.target.value)}
-                                    placeholder="Add any notes about this update..."
-                                />
                             </div>
                         </div>
-
-                        <div className="modal-footer flex flex-wrap gap-2">
-                            <button className="btn btn-ghost" onClick={() => setShowProcessModal(false)}>Cancel</button>
-
-                            {/* Standard Market procurement flow */}
-                            {rma.status === 'Approved' && rma.replacementSource === 'Market' && <button className="btn btn-primary" onClick={() => handleUpdateStatus('Ordered')}>Mark Ordered</button>}
-                            {(rma.status === 'Ordered' || (rma.status === 'Approved' && rma.replacementSource === 'Market')) && <button className="btn btn-success" onClick={() => handleUpdateStatus('Dispatched')}>Mark Dispatched</button>}
-                            {rma.status === 'Dispatched' && <button className="btn btn-success" onClick={() => handleUpdateStatus('Received')}>Mark Received</button>}
-
-                            {/* HO Stock Transfer flow */}
-                            {rma.status === 'AwaitingStockTransfer' && <button className="btn btn-primary" onClick={() => handleUpdateStatus('StockInTransit')}>Mark Stock Dispatched</button>}
-                            {rma.status === 'StockInTransit' && <button className="btn btn-success" onClick={() => handleUpdateStatus('StockReceived')}>Confirm Stock Received</button>}
-
-                            {/* Repair flow */}
-                            {rma.status === 'InRepair' && <button className="btn btn-success" onClick={() => handleUpdateStatus('Repaired')}>Mark Repaired</button>}
-
-                            {/* Repair-only flow shipping */}
-                            {rma.status === 'Repaired' && rma.replacementSource === 'Repair' && (
-                                <button className="btn btn-primary" onClick={() => handleUpdateStatus('RepairedItemEnRoute')}>Ship Repaired Item</button>
-                            )}
-                            {rma.status === 'RepairedItemEnRoute' && (
-                                <button className="btn btn-success" onClick={() => handleUpdateStatus('RepairedItemReceived')}>Confirm Received</button>
-                            )}
-
-                            {(rma.status === 'Received' || rma.status === 'Repaired' || rma.status === 'RepairedItemReceived') && (
-                                <>
-                                    <button className="btn btn-primary" onClick={() => handleUpdateStatus('TransferredToSiteStore')}>Transfer to Site Store</button>
-                                    <button className="btn btn-success" onClick={() => handleUpdateStatus('TransferredToHOStock')}>Transfer to HO Stock</button>
-                                </>
-                            )}
+                        <div className="modal-footer">
+                            <button className="btn btn-ghost" onClick={() => setShowSendItemModal(false)}>Cancel</button>
+                            <button className="btn btn-primary" onClick={handleSendItem}>
+                                <Send size={14} /> {itemSendRoute === 'DirectToServiceCenter' ? 'Send to Service Center' : 'Send to HO'}
+                            </button>
                         </div>
                     </div>
                 </div>,
                 document.body
             )}
 
-            {/* Confirm Modal */}
-            {showConfirmModal && createPortal(
-                <div className="modal-overlay animate-fade-in" onClick={() => setShowConfirmModal(false)}>
+            {/* Logistics Modal (generic - for admin shipping steps) */}
+            {showLogisticsModal && createPortal(
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowLogisticsModal(false)}>
                     <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
                         <div className="modal-header">
                             <h3 className="flex items-center gap-2">
-                                <CheckCircle size={16} />
-                                Confirm Device Installation
+                                <Truck size={16} />
+                                {targetStatus === 'SentForRepairFromHO' ? 'Send to Service Center' : 'Ship to Site'}
                             </h3>
                         </div>
                         <div className="modal-body">
-                            {/* Info banner for HO Stock flow */}
-                            {rma?.replacementSource === 'HOStock' && rma?.status === 'StockReceived' && (
-                                <div className="p-3 bg-primary/10 rounded-lg border border-primary/30 mb-4 animate-fade-in">
-                                    <div className="flex items-start gap-2">
-                                        <Server size={18} className="text-primary-500 mt-0.5" />
-                                        <div>
-                                            <p className="text-xs font-bold text-primary-600">Hardware Swap & Installation</p>
-                                            <p className="text-[10px] text-muted mt-1">
-                                                The replacement device from HO Stock will be installed. The faulty device will be
-                                                {rma?.faultyItemAction === 'Repair' ? ' sent for repair.' : ' marked for maintenance.'}
-                                            </p>
-                                        </div>
+                            <div className="p-3 bg-secondary/10 rounded-lg border border-border/30">
+                                <h4 className="text-[10px] font-bold mb-3 uppercase tracking-wider opacity-60 flex items-center gap-2">
+                                    <Truck size={12} /> Shipping Details
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="form-group mb-0">
+                                        <label className="form-label text-[10px]">Carrier / Courier</label>
+                                        <input className="form-input" placeholder="e.g., BlueDart, FedEx" value={logisticsCarrier} onChange={e => setLogisticsCarrier(e.target.value)} />
+                                    </div>
+                                    <div className="form-group mb-0">
+                                        <label className="form-label text-[10px]">Tracking Number</label>
+                                        <input className="form-input" placeholder="AWB / Tracking #" value={logisticsTracking} onChange={e => setLogisticsTracking(e.target.value)} />
                                     </div>
                                 </div>
-                            )}
+                                {targetStatus === 'SentForRepairFromHO' && (
+                                    <div className="form-group mt-3 mb-0">
+                                        <label className="form-label text-[10px]">Service Center Ticket Reference (if any)</label>
+                                        <input className="form-input" placeholder="Ticket # from service center" value={serviceCenterTicketRef} onChange={e => setServiceCenterTicketRef(e.target.value)} />
+                                    </div>
+                                )}
+                                <div className="form-group mt-3 mb-0">
+                                    <label className="form-label text-[10px]">Remarks</label>
+                                    <textarea className="form-input text-xs" rows={2} value={logisticsRemarks} onChange={e => setLogisticsRemarks(e.target.value)} placeholder="Any additional notes..." />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-ghost" onClick={() => setShowLogisticsModal(false)}>Cancel</button>
+                            <button className="btn btn-primary" onClick={targetStatus === 'SentForRepairFromHO' ? handleSendForRepairFromHO : handleShipReturnToSite}>
+                                <Send size={14} /> {targetStatus === 'SentForRepairFromHO' ? 'Send for Repair' : 'Ship to Site'}
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
 
-                            <div className="form-group">
-                                <label className="form-label">Installation Status</label>
-                                <select
-                                    className="form-input"
-                                    value={installationStatus}
-                                    onChange={e => setInstallationStatus(e.target.value)}
-                                >
-                                    <option value="Installed & Working">Installed & Working</option>
-                                    <option value="Installed but Not Working">Installed but Not Working</option>
-                                    <option value="Not Installed">Not Installed yet</option>
-                                </select>
+            {/* Install Device Modal */}
+            {showInstallModal && createPortal(
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowInstallModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="flex items-center gap-2">
+                                <Settings size={16} />
+                                Install Device & Update Details
+                            </h3>
+                        </div>
+                        <div className="modal-body">
+                            <div className="p-3 bg-success/5 rounded-lg border border-success/20 mb-4 animate-fade-in">
+                                <p className="text-xs font-bold text-success-700 mb-1">Device Installation</p>
+                                <p className="text-[10px] text-muted">
+                                    Update the current details of the device after installation. These will be saved with the asset record.
+                                </p>
                             </div>
 
-                            {/* Show credentials section for HO Stock (always) or when Installed & Working */}
-                            {(installationStatus === 'Installed & Working' || rma?.replacementSource === 'HOStock') && installationStatus !== 'Not Installed' && (
-                                <div className="form-group animate-fade-in space-y-3 p-3 bg-success/5 rounded-lg border border-success/20">
-                                    <p className="text-[10px] uppercase font-bold text-success-700 mb-2 flex items-center gap-1">
-                                        <Settings size={12} /> Device Configuration (Pre-filled - Update if needed)
-                                    </p>
-                                    <div>
-                                        <label className="form-label">IP Address</label>
-                                        <input
-                                            className="form-input font-mono"
-                                            type="text"
-                                            placeholder="e.g., 192.168.1.100"
-                                            value={newIpAddress}
-                                            onChange={e => setNewIpAddress(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="form-group mb-0">
-                                            <label className="form-label">Device Username</label>
-                                            <input
-                                                className="form-input"
-                                                type="text"
-                                                placeholder="Enter username"
-                                                value={newUserName}
-                                                onChange={e => setNewUserName(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="form-group mb-0">
-                                            <label className="form-label">Device Password</label>
-                                            <input
-                                                className="form-input"
-                                                type="password"
-                                                placeholder="Enter new password (leave blank to keep existing)"
-                                                value={newPassword}
-                                                onChange={e => setNewPassword(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-                                    <p className="text-[10px] text-muted italic">These credentials will be saved with the asset. Leave password blank to keep the existing one.</p>
-                                </div>
-                            )}
-
                             <div className="form-group">
+                                <label className="form-label">IP Address</label>
+                                <input
+                                    className="form-input font-mono"
+                                    type="text"
+                                    placeholder="e.g., 192.168.1.100"
+                                    value={installIpAddress}
+                                    onChange={e => setInstallIpAddress(e.target.value)}
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="form-group mb-0">
+                                    <label className="form-label">Device Username</label>
+                                    <input
+                                        className="form-input"
+                                        type="text"
+                                        placeholder="Enter username"
+                                        value={installUserName}
+                                        onChange={e => setInstallUserName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-group mb-0">
+                                    <label className="form-label">Device Password</label>
+                                    <input
+                                        className="form-input"
+                                        type="password"
+                                        placeholder="Enter new password"
+                                        value={installPassword}
+                                        onChange={e => setInstallPassword(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+                            <div className="form-group mt-3">
                                 <label className="form-label">Remarks</label>
                                 <textarea
                                     className="form-textarea"
                                     rows={2}
-                                    value={confirmRemark}
-                                    onChange={e => setConfirmRemark(e.target.value)}
+                                    value={installRemarks}
+                                    onChange={e => setInstallRemarks(e.target.value)}
                                     placeholder="Add any notes about the installation..."
+                                />
+                            </div>
+                            <p className="text-[10px] text-muted italic mt-2">
+                                Leave password blank to keep the existing one. Credentials are stored securely.
+                            </p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-ghost" onClick={() => setShowInstallModal(false)}>Cancel</button>
+                            <button className="btn btn-success" onClick={handleInstallDevice}>
+                                <Settings size={14} /> Complete Installation
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Replacement Requisition Modal (Admin only) */}
+            {showReplacementModal && createPortal(
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowReplacementModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="flex items-center gap-2">
+                                <ShoppingBag size={16} />
+                                Raise Replacement Requisition
+                            </h3>
+                        </div>
+                        <div className="modal-body">
+                            <div className="p-3 bg-info/5 rounded-lg border border-info/20 mb-4 animate-fade-in">
+                                <p className="text-xs font-bold text-info-700 mb-1">Stock Transfer Requisition</p>
+                                <p className="text-[10px] text-muted">
+                                    Select the source of the replacement stock. A requisition and stock transfer will be created automatically.
+                                </p>
+                            </div>
+
+                            <div className="form-group mb-4">
+                                <label className="form-label text-[10px] uppercase font-bold opacity-70">Replacement Source *</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        className={`btn btn-sm ${replacementStockSource === 'HOStock' ? 'btn-primary' : 'btn-outline'}`}
+                                        onClick={() => setReplacementStockSource('HOStock')}
+                                    >
+                                        🏢 HO Stock
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn btn-sm ${replacementStockSource === 'SiteStock' ? 'btn-warning' : 'btn-outline'}`}
+                                        onClick={() => setReplacementStockSource('SiteStock')}
+                                    >
+                                        📦 Site Stock
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn btn-sm ${replacementStockSource === 'Market' ? 'btn-info' : 'btn-outline'}`}
+                                        onClick={() => setReplacementStockSource('Market')}
+                                    >
+                                        🛒 Market
+                                    </button>
+                                </div>
+
+                                {replacementStockSource === 'HOStock' && (
+                                    <div className="animate-fade-in p-3 bg-primary/5 rounded-lg border border-primary/20 mt-3">
+                                        <p className="text-[10px] text-primary-600">
+                                            Replacement will be sourced from Head Office stock. A stock transfer requisition will be created for HO → Site.
+                                        </p>
+                                    </div>
+                                )}
+                                {replacementStockSource === 'SiteStock' && (
+                                    <div className="animate-fade-in p-3 bg-warning/10 rounded-lg border border-warning/30 mt-3">
+                                        <p className="text-[10px] text-warning-600 mb-2">
+                                            Replacement will be sourced from another site's stock. A site-to-site stock transfer will be created.
+                                        </p>
+                                        <div className="form-group mb-0">
+                                            <label className="form-label text-[10px]">Source Site ID</label>
+                                            <input
+                                                className="form-input text-xs"
+                                                placeholder="Enter source site ID..."
+                                                value={replacementSourceSiteId}
+                                                onChange={e => setReplacementSourceSiteId(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                {replacementStockSource === 'Market' && (
+                                    <div className="animate-fade-in p-3 bg-info/5 rounded-lg border border-info/20 mt-3">
+                                        <p className="text-[10px] text-info-600">
+                                            Replacement will be purchased from the market. Proceed with dispatch once the item is procured.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="form-group">
+                                <label className="form-label text-[10px] uppercase font-bold opacity-70">Remarks</label>
+                                <textarea
+                                    className="form-textarea text-xs"
+                                    rows={2}
+                                    value={actionRemark}
+                                    onChange={e => setActionRemark(e.target.value)}
+                                    placeholder="Any additional notes about the requisition..."
                                 />
                             </div>
                         </div>
                         <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setShowConfirmModal(false)}>Cancel</button>
-                            <button className="btn btn-primary" onClick={handleConfirmInstallation}>
-                                {rma?.replacementSource === 'HOStock' && rma?.status === 'StockReceived' ? '🔧 Complete Installation' : 'Confirm Status'}
+                            <button className="btn btn-ghost" onClick={() => setShowReplacementModal(false)}>Cancel</button>
+                            <button className="btn btn-primary" onClick={handleRaiseReplacementRequisition}>
+                                <ShoppingBag size={14} /> Raise Requisition
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Replacement Dispatch Modal (Admin only) */}
+            {showReplacementDispatchModal && createPortal(
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowReplacementDispatchModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="flex items-center gap-2">
+                                <Truck size={16} />
+                                Dispatch Replacement to Site
+                            </h3>
+                        </div>
+                        <div className="modal-body">
+                            <div className="p-3 bg-secondary/10 rounded-lg border border-border/30">
+                                <h4 className="text-[10px] font-bold mb-3 uppercase tracking-wider opacity-60 flex items-center gap-2">
+                                    <Truck size={12} /> Shipping Details
+                                </h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="form-group mb-0">
+                                        <label className="form-label text-[10px]">Carrier / Courier</label>
+                                        <input className="form-input" placeholder="e.g., BlueDart, FedEx" value={replLogisticsCarrier} onChange={e => setReplLogisticsCarrier(e.target.value)} />
+                                    </div>
+                                    <div className="form-group mb-0">
+                                        <label className="form-label text-[10px]">Tracking Number</label>
+                                        <input className="form-input" placeholder="AWB / Tracking #" value={replLogisticsTracking} onChange={e => setReplLogisticsTracking(e.target.value)} />
+                                    </div>
+                                </div>
+                                <div className="form-group mt-3 mb-0">
+                                    <label className="form-label text-[10px]">Remarks</label>
+                                    <textarea className="form-input text-xs" rows={2} value={replLogisticsRemarks} onChange={e => setReplLogisticsRemarks(e.target.value)} placeholder="Any notes about the shipment..." />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-ghost" onClick={() => setShowReplacementDispatchModal(false)}>Cancel</button>
+                            <button className="btn btn-primary" onClick={handleDispatchReplacement}>
+                                <Truck size={14} /> Dispatch
                             </button>
                         </div>
                     </div>
@@ -1031,87 +1222,6 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                         <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowHistoryModal(false)}>Close</button>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
-            {/* Update Asset Modal (Step 4) */}
-            {showUpdateModal && createPortal(
-                <div className="modal-overlay animate-fade-in" onClick={() => setShowUpdateModal(false)}>
-                    <div className="modal glass-card animate-slide-up w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="flex items-center gap-2 text-warning-500">
-                                <Server size={18} />
-                                Update Replacement Device Details
-                            </h3>
-                        </div>
-                        <div className="modal-body space-y-4">
-                            <p className="text-xs text-muted mb-4">Provide the physical configuration of the installed unit. Changes require admin approval.</p>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="form-group">
-                                    <label className="form-label">Serial Number</label>
-                                    <input
-                                        className="form-input font-mono text-xs"
-                                        placeholder="Device Serial #"
-                                        value={updateFields.serialNumber}
-                                        onChange={e => setUpdateFields(prev => ({ ...prev, serialNumber: e.target.value }))}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">MAC Address</label>
-                                    <input
-                                        className="form-input font-mono text-xs"
-                                        placeholder="00:00:00:00:00:00"
-                                        value={updateFields.mac}
-                                        onChange={e => setUpdateFields(prev => ({ ...prev, mac: e.target.value }))}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="form-group">
-                                <label className="form-label">IP Address</label>
-                                <input
-                                    className="form-input font-mono text-xs"
-                                    placeholder="192.168.1.10"
-                                    value={updateFields.ipAddress}
-                                    onChange={e => setUpdateFields(prev => ({ ...prev, ipAddress: e.target.value }))}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3">
-                                <div className="form-group">
-                                    <label className="form-label">Device Username</label>
-                                    <input
-                                        className="form-input text-xs"
-                                        placeholder="Admin/User"
-                                        value={updateFields.userName}
-                                        onChange={e => setUpdateFields(prev => ({ ...prev, userName: e.target.value }))}
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label className="form-label">Device Password</label>
-                                    <input
-                                        type="password"
-                                        className="form-input text-xs"
-                                        placeholder="••••••••"
-                                        value={updateFields.password}
-                                        onChange={e => setUpdateFields(prev => ({ ...prev, password: e.target.value }))}
-                                        autoComplete="new-password"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="p-3 bg-warning/5 border border-warning/10 rounded-lg text-[10px] text-warning-700 italic">
-                                Note: These credentials will be stored securely with the asset record upon approval.
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setShowUpdateModal(false)}>Cancel</button>
-                            <button className="btn btn-warning" onClick={handleSubmitAssetUpdate} disabled={loading}>
-                                {loading ? 'Submitting...' : 'Submit for Approval'}
-                            </button>
                         </div>
                     </div>
                 </div>,
