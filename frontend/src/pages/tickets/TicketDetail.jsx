@@ -74,23 +74,28 @@ export default function TicketDetail() {
     const [selectedEscalationUser, setSelectedEscalationUser] = useState('');
 
     const isLocked = ['InProgress', 'OnHold', 'Installed', 'Repaired', 'Replaced', 'SentToSite', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
-    // Get the site ID from the ticket's asset
     // Get the site ID from the ticket directly or via asset
     const ticketSiteId = ticket?.siteId?._id || ticket?.siteId || ticket?.assetId?.siteId?._id || ticket?.assetId?.siteId;
     const canEdit = (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId)) && !isLocked;
-    const canAssign = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId);
-    // Compare using string IDs for MongoDB
+
+    // Compare using string IDs for MongoDB — must be declared BEFORE canAssign
     const assignedToId = typeof ticket?.assignedTo === 'object' ? ticket?.assignedTo?._id : ticket?.assignedTo;
     const isAssignedToMe = assignedToId && assignedToId === user?.userId;
-    // Any user assigned to the ticket can acknowledge, or users with engineer/supervisor roles
-    const canAcknowledge = isAssignedToMe || (hasRole(['L1Engineer', 'L2Engineer', 'Supervisor']) && assignedToId === user?.userId);
+    const isAdmin = hasRole('Admin');
+
+    // Only Admin/Supervisor/Dispatcher can assign tickets via the Assign button
+    const canAssign = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
+    // The current assignee (e.g. L1 engineer) can reassign their own ticket
+    const canReassign = isAssignedToMe && !hasRole(['Admin', 'Supervisor', 'Dispatcher']);
+
+    // Any user assigned to the ticket can acknowledge
+    const canAcknowledge = isAssignedToMe;
     const canRejectResolution = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId);
     const canAcknowledgeRejection = isAssignedToMe;
     const canReopen = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId) || hasRight('CREATE_TICKET', ticketSiteId);
 
     // Escalation-specific logic: If escalation is accepted, only the escalation user (current assignee) and Admin can resolve/close
     const isEscalationAccepted = !!ticket?.escalationAcceptedBy;
-    const isAdmin = hasRole('Admin');
 
     const canResolve = (isEscalationAccepted
         ? (isAssignedToMe || isAdmin)
@@ -451,10 +456,19 @@ export default function TicketDetail() {
                         </Link>
                     )}
 
+                    {/* Admin/Supervisor/Dispatcher: Assign any ticket */}
                     {canAssign && (ticket.status === 'Open' || ticket.status === 'Assigned') && (
                         <button className="btn btn-primary" onClick={() => setShowAssignModal(true)}>
                             <UserPlus size={14} />
                             Assign
+                        </button>
+                    )}
+
+                    {/* Current assignee (non-admin): Reassign their own ticket */}
+                    {canReassign && ticket.status === 'Assigned' && (
+                        <button className="btn btn-secondary" onClick={() => setShowAssignModal(true)}>
+                            <UserPlus size={14} />
+                            Reassign
                         </button>
                     )}
 

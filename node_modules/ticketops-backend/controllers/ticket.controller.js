@@ -421,6 +421,17 @@ export const assignTicket = async (req, res, next) => {
       });
     }
 
+    // Permission check: Admin, Supervisor, Dispatcher OR the current assignee
+    const isManagement = ['Admin', 'Supervisor', 'Dispatcher'].includes(req.user.role);
+    const isAssignee = ticket.assignedTo && ticket.assignedTo.toString() === req.user._id.toString();
+
+    if (!isManagement && !isAssignee) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to reassign this ticket'
+      });
+    }
+
     ticket.assignedTo = assignedTo;
     ticket.assignedOn = new Date();
     ticket.status = 'Assigned';
@@ -951,6 +962,17 @@ export const escalateTicket = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Ticket not found'
+      });
+    }
+
+    // Permission check: Admin, Supervisor, Dispatcher OR the current assignee
+    const isManagement = ['Admin', 'Supervisor', 'Dispatcher'].includes(req.user.role);
+    const isAssignee = ticket.assignedTo && ticket.assignedTo.toString() === req.user._id.toString();
+
+    if (!isManagement && !isAssignee) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to escalate this ticket'
       });
     }
 
