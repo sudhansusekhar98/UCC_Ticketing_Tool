@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { rmaApi } from '../../services/api';
-import { toast } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { Package, Truck, CheckCircle, Clock, Server, FileText, History, Hash, Info, Settings, RefreshCw, MessageSquare, Cpu, MapPin, Building, Send, ShoppingBag, ArrowDownToLine } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 

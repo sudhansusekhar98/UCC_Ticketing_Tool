@@ -17,6 +17,17 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import './Tickets.css';
 
+const safeFormatDate = (date, formatStr) => {
+    try {
+        if (!date) return '—';
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '—';
+        return format(d, formatStr);
+    } catch (e) {
+        return '—';
+    }
+};
+
 export default function TicketsList() {
     const [tickets, setTickets] = useState([]);
     const [totalCount, setTotalCount] = useState(0);
@@ -69,14 +80,14 @@ export default function TicketsList() {
             setStatuses(statusRes.data.data || statusRes.data || []);
             setPriorities(priorityRes.data.data || priorityRes.data || []);
             setCategories(categoryRes.data.data || categoryRes.data || []);
-            
+
             // Map engineers to expected format
             const engineerData = engineersRes.data.data || engineersRes.data || [];
             setEngineers(engineerData.map(e => ({
                 value: e._id || e.value || e.userId,
                 label: e.fullName || e.label
             })));
-            
+
             // Map sites to expected format
             const siteData = sitesRes.data.data || sitesRes.data || [];
             setSites(siteData.map(s => ({
@@ -102,7 +113,7 @@ export default function TicketsList() {
             // Handle both Express.js and .NET response formats
             const ticketData = response.data.data || response.data.items || response.data || [];
             const total = response.data.pagination?.total || response.data.totalCount || ticketData.length;
-            
+
             // Map Express.js fields to frontend expected fields
             const mappedTickets = Array.isArray(ticketData) ? ticketData.map(t => ({
                 ...t,
@@ -111,10 +122,10 @@ export default function TicketsList() {
                 assetCode: t.assetId?.assetCode || t.assetCode,
                 siteName: t.assetId?.siteId?.siteName || t.siteName,
                 assignedToName: t.assignedTo?.fullName || t.assignedToName,
-                slaStatus: t.isSLARestoreBreached ? 'Breached' : 
-                           (t.isSLAResponseBreached ? 'AtRisk' : 'OnTrack')
+                slaStatus: t.isSLARestoreBreached ? 'Breached' :
+                    (t.isSLAResponseBreached ? 'AtRisk' : 'OnTrack')
             })) : [];
-            
+
             setTickets(mappedTickets);
             setTotalCount(total);
         } catch (error) {
@@ -379,7 +390,7 @@ export default function TicketsList() {
                                                 {ticket.priority}
                                             </span>
                                         </td>
-                                         <td>
+                                        <td>
                                             <span className={`badge ${getStatusClass(ticket.status)}`}>
                                                 {ticket.status}
                                             </span>
@@ -394,7 +405,7 @@ export default function TicketsList() {
                                         </td>
                                         <td>
                                             <span className="date-text">
-                                                {format(new Date(ticket.createdOn), 'MMM dd, HH:mm')}
+                                                {safeFormatDate(ticket.createdOn, 'MMM dd, HH:mm')}
                                             </span>
                                         </td>
                                         <td>

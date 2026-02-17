@@ -238,6 +238,13 @@ export const createTicket = async (req, res, next) => {
     // Note: SLA Policy and due dates are automatically assigned in the Ticket Model pre-save hook
     // based on the impact, urgency and priority.
 
+    // If no assignee provided and creator is NOT Admin, assign to self
+    if (!ticketData.assignedTo && req.user.role !== 'Admin') {
+      ticketData.assignedTo = req.user._id;
+      ticketData.assignedOn = new Date();
+      ticketData.status = 'Assigned';
+    }
+
     const ticket = await Ticket.create(ticketData);
 
     // Create activity for ticket creation
@@ -927,7 +934,7 @@ export const acknowledgeRejection = async (req, res, next) => {
 // @access  Private
 export const escalateTicket = async (req, res, next) => {
   try {
-    const { reason } = req.body;
+    const { reason, assignedTo } = req.body;
 
     if (!reason || !reason.trim()) {
       return res.status(400).json({
@@ -969,6 +976,17 @@ export const escalateTicket = async (req, res, next) => {
     ticket.escalatedBy = req.user._id;
     ticket.escalatedOn = new Date();
     ticket.escalationReason = reason.trim();
+
+    // Manual designation of escalation user
+    if (assignedTo) {
+      ticket.assignedTo = assignedTo;
+      ticket.assignedOn = new Date();
+      // If manually assigned, we can mark it as accepted by the assigner on behalf of target
+      // Or just leave it as Escalated with an assignee
+    } else {
+      ticket.assignedTo = undefined;
+    }
+
     // Clear previous acceptance info when further escalating
     ticket.escalationAcceptedBy = undefined;
     ticket.escalationAcceptedOn = undefined;

@@ -24,7 +24,7 @@ export default function TicketForm() {
         description: '',
         impact: 3,
         urgency: 3,
-        assignedTo: '',
+        assignedTo: !isEditing && !hasRole('Admin') ? user?.userId : '',
         tags: '',
     });
 
@@ -647,8 +647,8 @@ export default function TicketForm() {
                             </select>
                         </div>
 
-                        {/* Assign To (only for new tickets) */}
-                        {!isEditing && (
+                        {/* Assign To (only for new tickets) - Only Admin can change default assignment */}
+                        {!isEditing && hasRole('Admin') && (
                             <div className="form-group">
                                 <label className="form-label">Assign To (optional)</label>
                                 <select

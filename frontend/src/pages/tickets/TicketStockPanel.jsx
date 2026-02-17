@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { stockApi } from '../../services/api';
-import { toast } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { Database, CheckCircle, AlertTriangle, RotateCcw, Info, Search, XCircle, Check } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 

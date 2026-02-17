@@ -37,6 +37,17 @@ import AssetUpdateApproval from './AssetUpdateApproval';
 import { createPortal } from 'react-dom';
 import './Tickets.css';
 
+const safeFormatDate = (date, formatStr) => {
+    try {
+        if (!date) return '—';
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '—';
+        return format(d, formatStr);
+    } catch (e) {
+        return '—';
+    }
+};
+
 export default function TicketDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -323,10 +334,14 @@ export default function TicketDetail() {
         }
         setActionLoading(true);
         try {
-            await ticketsApi.escalate(id, escalationReason.trim());
+            await ticketsApi.escalate(id, {
+                reason: escalationReason.trim(),
+                assignedTo: selectedEscalationUser
+            });
             toast.success('Ticket escalated successfully');
             setShowEscalateModal(false);
             setEscalationReason('');
+            setSelectedEscalationUser('');
             fetchTicket();
             fetchAuditTrail();
         } catch (error) {
@@ -336,9 +351,10 @@ export default function TicketDetail() {
         }
     };
 
-    const loadEscalationUsers = async () => {
+    const loadEscalationUsers = async (level = null) => {
         try {
-            const response = await usersApi.getEscalationUsers(ticketSiteId, ticket?.escalationLevel);
+            const targetLevel = level || (ticket?.escalationLevel || 0) + 1;
+            const response = await usersApi.getEscalationUsers(ticketSiteId, targetLevel);
             const usersData = response.data.data || [];
             setEscalationUsers(usersData.map(u => ({
                 value: u._id,
@@ -471,7 +487,13 @@ export default function TicketDetail() {
                     )}
 
                     {canEscalate && (
-                        <button className="btn btn-warning" onClick={() => setShowEscalateModal(true)}>
+                        <button
+                            className="btn btn-warning"
+                            onClick={() => {
+                                loadEscalationUsers();
+                                setShowEscalateModal(true);
+                            }}
+                        >
                             <AlertTriangle size={14} />
                             Escalate
                         </button>
@@ -676,7 +698,7 @@ export default function TicketDetail() {
                             {ticket.resolvedOn && (
                                 <div className="detail-row">
                                     <span className="detail-label">Resolved On</span>
-                                    <span className="detail-value">{format(new Date(ticket.resolvedOn), 'PPpp')}</span>
+                                    <span className="detail-value">{safeFormatDate(ticket.resolvedOn, 'PPpp')}</span>
                                 </div>
                             )}
                         </div>
@@ -701,7 +723,7 @@ export default function TicketDetail() {
                                 </div>
                                 <div className="milestone-content">
                                     <div className="milestone-label">Ticket Created</div>
-                                    <div className="milestone-time">{format(new Date(ticket.createdOn), 'PPpp')}</div>
+                                    <div className="milestone-time">{safeFormatDate(ticket.createdOn, 'PPpp')}</div>
                                 </div>
                             </div>
 
@@ -713,7 +735,7 @@ export default function TicketDetail() {
                                     </div>
                                     <div className="milestone-content">
                                         <div className="milestone-label">Acknowledged</div>
-                                        <div className="milestone-time">{format(new Date(ticket.acknowledgedOn), 'PPpp')}</div>
+                                        <div className="milestone-time">{safeFormatDate(ticket.acknowledgedOn, 'PPpp')}</div>
                                     </div>
                                 </div>
                             )}
@@ -730,7 +752,7 @@ export default function TicketDetail() {
                                             {ticket.isSLAResponseBreached && <span className="badge badge-danger milestone-status">Breached</span>}
                                         </div>
                                         <div className="milestone-time">
-                                            {ticket.slaResponseDue ? format(new Date(ticket.slaResponseDue), 'PPpp') : 'No Target Set'}
+                                            {ticket.slaResponseDue ? safeFormatDate(ticket.slaResponseDue, 'PPpp') : 'No Target Set'}
                                         </div>
                                     </div>
                                 </div>
@@ -744,7 +766,7 @@ export default function TicketDetail() {
                                     </div>
                                     <div className="milestone-content">
                                         <div className="milestone-label">Work Started</div>
-                                        <div className="milestone-time">{format(new Date(ticket.startedOn), 'PPpp')}</div>
+                                        <div className="milestone-time">{safeFormatDate(ticket.startedOn, 'PPpp')}</div>
                                     </div>
                                 </div>
                             )}
@@ -757,7 +779,7 @@ export default function TicketDetail() {
                                     </div>
                                     <div className="milestone-content">
                                         <div className="milestone-label">Resolved</div>
-                                        <div className="milestone-time">{format(new Date(ticket.resolvedOn), 'PPpp')}</div>
+                                        <div className="milestone-time">{safeFormatDate(ticket.resolvedOn, 'PPpp')}</div>
                                     </div>
                                 </div>
                             )}
@@ -774,7 +796,7 @@ export default function TicketDetail() {
                                             {ticket.isSLARestoreBreached && <span className="badge badge-danger milestone-status">Breached</span>}
                                         </div>
                                         <div className="milestone-time">
-                                            {ticket.slaRestoreDue ? format(new Date(ticket.slaRestoreDue), 'PPpp') : 'No Target Set'}
+                                            {ticket.slaRestoreDue ? safeFormatDate(ticket.slaRestoreDue, 'PPpp') : 'No Target Set'}
                                         </div>
                                     </div>
                                 </div>
@@ -816,7 +838,7 @@ export default function TicketDetail() {
                                         )}
                                     </div>
                                     <div className="audit-time">
-                                        {format(new Date(audit.performedOn), 'MMM dd, HH:mm')}
+                                        {safeFormatDate(audit.performedOn, 'MMM dd, HH:mm')}
                                     </div>
                                 </div>
                             ))}
@@ -1014,6 +1036,23 @@ export default function TicketDetail() {
                                     placeholder="Describe the technical complexity or roadblock requiring escalation..."
                                     rows={4}
                                 />
+                            </div>
+
+                            <div className="form-group mt-4">
+                                <label className="form-label">Assign To (Escalation User)</label>
+                                <select
+                                    className="form-select"
+                                    value={selectedEscalationUser}
+                                    onChange={(e) => setSelectedEscalationUser(e.target.value)}
+                                >
+                                    <option value="">Awaiting Acceptance (Open Escalation)</option>
+                                    {escalationUsers.map((u) => (
+                                        <option key={u.value} value={u.value}>{u.label}</option>
+                                    ))}
+                                </select>
+                                <p className="text-xs text-muted mt-1 italic">
+                                    Leave blank if you want any available escalation user to accept it.
+                                </p>
                             </div>
                         </div>
                         <div className="modal-footer">
