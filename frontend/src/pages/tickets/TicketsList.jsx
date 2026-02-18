@@ -120,6 +120,7 @@ export default function TicketsList() {
                 ticketId: t._id || t.ticketId,
                 createdOn: t.createdAt || t.createdOn,
                 assetCode: t.assetId?.assetCode || t.assetCode,
+                mac: t.assetId?.mac || '',
                 siteName: t.assetId?.siteId?.siteName || t.siteName,
                 assignedToName: t.assignedTo?.fullName || t.assignedToName,
                 slaStatus: t.isSLARestoreBreached ? 'Breached' :
@@ -381,6 +382,7 @@ export default function TicketsList() {
                                         <td>
                                             <div className="asset-info">
                                                 {ticket.assetCode && <span className="asset-code">{ticket.assetCode}</span>}
+                                                {ticket.mac && <span className="asset-mac text-[10px] font-mono opacity-70">({ticket.mac})</span>}
                                                 {ticket.siteName && <span className="site-name">{ticket.siteName}</span>}
                                             </div>
                                         </td>

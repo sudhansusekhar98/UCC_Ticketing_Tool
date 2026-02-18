@@ -94,6 +94,19 @@
     transform: rotate(180deg);
 }
 
+/* Refresh Button */
+.btn-refresh {
+    border: 1px solid var(--border-medium) !important;
+    background: transparent;
+    transition: all 0.3s ease;
+}
+
+.btn-refresh:hover {
+    border-color: var(--primary-500) !important;
+    background: var(--bg-hover) !important;
+    transform: translateY(-1px);
+}
+
 /* Export Panel */
 .export-panel {
     background: var(--bg-card);

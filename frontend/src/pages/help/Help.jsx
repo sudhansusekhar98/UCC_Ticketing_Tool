@@ -16,7 +16,9 @@ import {
     ChevronRight,
     ChevronDown,
     Search,
-    ExternalLink
+    ExternalLink,
+    Database,
+    Package
 } from 'lucide-react';
 import './Help.css';
 
@@ -558,6 +560,113 @@ const HELP_SECTIONS = [
         ]
     },
     {
+        id: 'stock',
+        title: 'Stock Management',
+        icon: Database,
+        subsections: [
+            {
+                id: 'stock-overview',
+                title: 'Stock Overview',
+                content: `
+                    <h2>Stock Management</h2>
+                    <p>Track and manage spare inventory across all sites and Head Office. Stock availability is used during ticket resolution and RMA workflows.</p>
+                    
+                    <h3>Key Concepts</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Term</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Spare</strong></td><td>A device with status "Spare" available for replacement</td></tr>
+                            <tr><td><strong>Local Site Stock</strong></td><td>Spares stored at the ticket's physical site</td></tr>
+                            <tr><td><strong>Head Office (HO) Stock</strong></td><td>Central inventory of spares held at the Head Office</td></tr>
+                            <tr><td><strong>Asset Type</strong></td><td>Category of device (Camera, NVR, Switch, etc.)</td></tr>
+                            <tr><td><strong>Device Type</strong></td><td>Specific sub-type within an asset type (e.g., ALPR Camera, PTZ Camera)</td></tr>
+                        </tbody>
+                    </table>
+                `
+            },
+            {
+                id: 'stock-availability',
+                title: 'Stock Availability Panel',
+                content: `
+                    <h2>Stock Availability Panel</h2>
+                    <p>The Stock Availability panel appears on the <strong>Ticket Detail</strong> page when an asset is linked to the ticket. It shows how many compatible spare items are available for replacement.</p>
+                    
+                    <h3>Device Type Filtering</h3>
+                    <p>Stock counts are <strong>filtered by device type</strong> for accuracy. For example, if the ticket's asset is an <em>ALPR Camera</em>, only ALPR Camera spares are counted — not all cameras.</p>
+                    <ul>
+                        <li>Matching is based on both <strong>Asset Type</strong> and <strong>Device Type</strong></li>
+                        <li>If no device type is set on the asset, all spares of the same asset type are shown</li>
+                    </ul>
+                    
+                    <h3>Role-Based Visibility</h3>
+                    <p>What you see depends on your role:</p>
+                    <table>
+                        <thead>
+                            <tr><th>Role</th><th>Visibility</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Admin / Supervisor</strong></td><td>See stock from <em>all sites</em> with a per-site breakdown. Click any site row to expand and view individual spare items.</td></tr>
+                            <tr><td><strong>Engineer</strong></td><td>See only stock from the <em>ticket's site</em>. HO and other site stock is not shown.</td></tr>
+                        </tbody>
+                    </table>
+                    
+                    <h3>Per-Site Breakdown (Admin/Supervisor)</h3>
+                    <p>Admins and Supervisors see a collapsible list of all sites that have matching spare items:</p>
+                    <ul>
+                        <li>🟢 <strong>Ticket Site</strong> — Highlighted in green, shown first</li>
+                        <li>🟦 <strong>Head Office</strong> — Shown in blue with "HO" badge</li>
+                        <li>🟣 <strong>Other Sites</strong> — Shown in purple, sorted alphabetically</li>
+                    </ul>
+                    <p>Click a site row to expand and view individual spare item details (Asset Code, Serial Number, Make, Model).</p>
+                    
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> The total badge in the header shows the overall count of compatible spares across all visible sites. A red badge means no spares are available.
+                    </div>
+                `
+            },
+            {
+                id: 'stock-rma-integration',
+                title: 'Stock & RMA Integration',
+                content: `
+                    <h2>Stock & RMA Integration</h2>
+                    <p>Stock availability directly supports the RMA workflow. Here's how they work together:</p>
+                    
+                    <h3>Replacement Stock Sourcing</h3>
+                    <p>When an admin raises a replacement requisition during an RMA, they select the <strong>stock source</strong>:</p>
+                    <table>
+                        <thead>
+                            <tr><th>Source</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>🏢 HO Stock</strong></td><td>Replacement sourced from Head Office inventory. A stock transfer requisition is created automatically for HO → Site.</td></tr>
+                            <tr><td><strong>📦 Site Stock</strong></td><td>Replacement sourced from another site. A site-to-site transfer requisition is created.</td></tr>
+                            <tr><td><strong>🛒 Market</strong></td><td>Replacement purchased externally. Admin proceeds with dispatch once the item is procured.</td></tr>
+                        </tbody>
+                    </table>
+                    
+                    <h3>Repaired Item Destination</h3>
+                    <p>After an item is repaired and received back at HO, the admin selects where the repaired item should go:</p>
+                    <table>
+                        <thead>
+                            <tr><th>Destination</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>🟢 Back to Site</strong></td><td>Ship the repaired item back to the original ticket site for installation (default)</td></tr>
+                            <tr><td><strong>🟦 HO Stock</strong></td><td>Keep the repaired item at HO as spare stock (no shipping needed)</td></tr>
+                            <tr><td><strong>🟡 Other Site</strong></td><td>Ship the repaired item to a different site (select from dropdown)</td></tr>
+                        </tbody>
+                    </table>
+                    
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> When "HO Stock" is selected as the destination, the RMA is finalized immediately and the asset is moved to HO spare stock. No additional shipping step is needed.
+                    </div>
+                `
+            }
+        ]
+    },
+    {
         id: 'rma',
         title: 'RMA',
         icon: RotateCcw,
@@ -567,37 +676,57 @@ const HELP_SECTIONS = [
                 title: 'RMA Overview',
                 content: `
                     <h2>RMA (Return Merchandise Authorization)</h2>
-                    <p>Handle device replacement workflows within tickets. Request, approve, and track the replacement process.</p>
+                    <p>Handle device repair and replacement workflows within tickets. Request, approve, ship, repair, and track the complete lifecycle.</p>
                     
+                    <h3>Repair Workflow</h3>
                     <div class="workflow-steps">
                         <span class="step">Request</span>
                         <span class="arrow">→</span>
                         <span class="step">Approval</span>
                         <span class="arrow">→</span>
-                        <span class="step">Ordering</span>
+                        <span class="step">Send Item</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Repair</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Ship Return</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Receive</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Install</span>
+                    </div>
+                    
+                    <h3>Replacement Workflow</h3>
+                    <div class="workflow-steps">
+                        <span class="step">Request</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Approval</span>
+                        <span class="arrow">→</span>
+                        <span class="step">Requisition</span>
                         <span class="arrow">→</span>
                         <span class="step">Dispatch</span>
                         <span class="arrow">→</span>
                         <span class="step">Receive</span>
                         <span class="arrow">→</span>
                         <span class="step">Install</span>
-                        <span class="arrow">→</span>
-                        <span class="step">Complete</span>
                     </div>
                     
                     <h3>Status Definitions</h3>
                     <table>
                         <thead>
-                            <tr><th>Status</th><th>Description</th></tr>
+                            <tr><th>Status</th><th>Description</th><th>Action By</th></tr>
                         </thead>
                         <tbody>
-                            <tr><td><strong>Requested</strong></td><td>Engineer submitted RMA request</td></tr>
-                            <tr><td><strong>Approved</strong></td><td>Supervisor/Admin approved</td></tr>
-                            <tr><td><strong>Rejected</strong></td><td>Request was denied</td></tr>
-                            <tr><td><strong>Ordered</strong></td><td>Replacement device ordered</td></tr>
-                            <tr><td><strong>Dispatched</strong></td><td>Device shipped/in transit</td></tr>
-                            <tr><td><strong>Received</strong></td><td>Device received at site</td></tr>
-                            <tr><td><strong>Installed</strong></td><td>New device installed</td></tr>
+                            <tr><td><strong>Requested</strong></td><td>Engineer submitted RMA request</td><td>Engineer</td></tr>
+                            <tr><td><strong>Approved</strong></td><td>Admin approved the request</td><td>Admin</td></tr>
+                            <tr><td><strong>Rejected</strong></td><td>Request was denied</td><td>Admin</td></tr>
+                            <tr><td><strong>SentToHO</strong></td><td>Faulty item shipped to Head Office</td><td>Engineer</td></tr>
+                            <tr><td><strong>SentToServiceCenter</strong></td><td>Item sent directly to service center</td><td>Engineer</td></tr>
+                            <tr><td><strong>ReceivedAtHO</strong></td><td>Item received at Head Office</td><td>Admin</td></tr>
+                            <tr><td><strong>SentForRepairFromHO</strong></td><td>Item forwarded from HO to service center</td><td>Admin</td></tr>
+                            <tr><td><strong>ItemRepairedAtHO</strong></td><td>Repaired item received back at HO</td><td>Admin</td></tr>
+                            <tr><td><strong>ReturnShippedToSite</strong></td><td>Item shipped to destination site</td><td>Admin</td></tr>
+                            <tr><td><strong>ReceivedAtSite</strong></td><td>Item received at the site</td><td>Engineer</td></tr>
+                            <tr><td><strong>Installed</strong></td><td>Device installed and working</td><td>Engineer</td></tr>
                         </tbody>
                     </table>
                 `
@@ -613,22 +742,101 @@ const HELP_SECTIONS = [
                         <li>Ticket must be "In Progress"</li>
                         <li>You must be assigned to the ticket</li>
                         <li>Asset must be linked to the ticket</li>
+                        <li>No existing active RMA for this ticket</li>
                     </ul>
                     
                     <h3>Steps</h3>
                     <ol>
                         <li>Open the ticket detail</li>
-                        <li>Go to "RMA" tab</li>
+                        <li>Scroll to the "RMA Information" section</li>
                         <li>Click "Request RMA"</li>
                         <li>Fill in the form:
                             <ul>
-                                <li><strong>Reason</strong> - Why replacement is needed</li>
-                                <li><strong>Notes</strong> - Additional details</li>
-                                <li><strong>Urgency</strong> - Normal/Urgent</li>
+                                <li><strong>Reason</strong> — Why replacement/repair is needed</li>
+                                <li><strong>Replacement Source</strong> — Repair Only or Repair & Replace</li>
+                                <li><strong>Notes</strong> — Additional context</li>
                             </ul>
                         </li>
                         <li>Submit request</li>
                     </ol>
+                    
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> The original device details (IP address, credentials) are automatically captured in the RMA snapshot so they can be reused during installation.
+                    </div>
+                `
+            },
+            {
+                id: 'rma-repair-workflow',
+                title: 'Repair Workflow Steps',
+                content: `
+                    <h2>Repair Workflow — Step by Step</h2>
+                    
+                    <h3>Step 1: Send Faulty Item</h3>
+                    <p>After RMA is approved, the engineer ships the faulty device. Choose the route:</p>
+                    <ul>
+                        <li><strong>To HO</strong> — Ship to Head Office for forwarding</li>
+                        <li><strong>Direct to Service Center</strong> — Ship directly for repair</li>
+                    </ul>
+                    <p>Fill in carrier name, tracking number, and remarks in the logistics modal.</p>
+                    
+                    <h3>Step 2: Acknowledge at HO (Admin)</h3>
+                    <p>If the item was sent to HO, the admin marks it as "Received at HO" to confirm receipt.</p>
+                    
+                    <h3>Step 3: Forward to Service Center (Admin)</h3>
+                    <p>Admin ships the item from HO to the service center, entering service center ticket reference and logistics details.</p>
+                    
+                    <h3>Step 4: Mark as Repaired (Admin)</h3>
+                    <p>When the repaired item returns to HO, admin marks it as "Repaired Item Received at HO". The asset status changes from "In Repair" to "Spare".</p>
+                    
+                    <h3>Step 5: Select Destination & Ship (Admin)</h3>
+                    <p>This is a key decision point. Admin selects where the repaired item should go:</p>
+                    <table>
+                        <thead>
+                            <tr><th>Option</th><th>What Happens</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>📍 Back to Site</strong></td><td>Ship the repaired item back to the original ticket site. Engineer receives and installs it.</td></tr>
+                            <tr><td><strong>🏠 HO Stock</strong></td><td>Keep the item at HO as spare stock. The RMA is finalized immediately — no shipping step required. Asset is moved to HO inventory.</td></tr>
+                            <tr><td><strong>⇄ Other Site</strong></td><td>Ship to a different site selected from a dropdown. The receiving site's engineer will mark receipt.</td></tr>
+                        </tbody>
+                    </table>
+                    
+                    <h3>Step 6: Receive at Site</h3>
+                    <p>The engineer at the destination site marks the item as received. The asset is moved to the site's spare stock.</p>
+                    
+                    <h3>Step 7: Install Device</h3>
+                    <p>The engineer installs the device and updates credentials (IP Address, Username, Password). Original values are pre-filled from the RMA snapshot.</p>
+                    
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Leave the password field blank during installation to keep the existing password. All credentials are stored encrypted.
+                    </div>
+                `
+            },
+            {
+                id: 'rma-replacement',
+                title: 'Replacement Workflow',
+                content: `
+                    <h2>Replacement Workflow</h2>
+                    <p>When the RMA is of type "Repair & Replace", a parallel replacement workflow runs alongside the repair.</p>
+                    
+                    <h3>Raising a Replacement Requisition (Admin)</h3>
+                    <ol>
+                        <li>In the RMA section, click "Raise Replacement Requisition"</li>
+                        <li>Select a <strong>Stock Source</strong>:
+                            <ul>
+                                <li><strong>🏢 HO Stock</strong> — Automatically creates an HO → Site stock transfer</li>
+                                <li><strong>📦 Site Stock</strong> — Creates a site-to-site transfer (enter source site ID)</li>
+                                <li><strong>🛒 Market</strong> — External purchase, dispatch manually after procurement</li>
+                            </ul>
+                        </li>
+                        <li>Add remarks and submit</li>
+                    </ol>
+                    
+                    <h3>Dispatching a Replacement (Admin)</h3>
+                    <p>Once the replacement item is ready, admin dispatches it to the site by filling in logistics details (carrier, tracking number).</p>
+                    
+                    <h3>Receiving & Installing</h3>
+                    <p>The site engineer marks the replacement as received, then uses the Install modal to update device credentials and complete the RMA.</p>
                 `
             }
         ]

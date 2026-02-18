@@ -327,6 +327,7 @@ export const reportingApi = {
     exportRMA: (params) => api.get('/reporting/export/rma', { params, responseType: 'blob' }),
     exportSpareStock: (params) => api.get('/reporting/export/spare-stock', { params, responseType: 'blob' }),
     exportWorkActivity: (params) => api.get('/reporting/export/work-activity', { params, responseType: 'blob' }),
+    exportUserActivities: (params) => api.get('/reporting/export/user-activities', { params, responseType: 'blob' }),
 };
 
 // Stock API
@@ -343,8 +344,9 @@ export const stockApi = {
     // Transfers
     getTransfers: (params) => api.get('/stock/transfers', { params }),
     initiateTransfer: (data) => api.post('/stock/transfers', data),
-    dispatchTransfer: (id) => api.put(`/stock/transfers/${id}/dispatch`),
+    dispatchTransfer: (id, data = {}) => api.put(`/stock/transfers/${id}/dispatch`, data),
     receiveTransfer: (id) => api.put(`/stock/transfers/${id}/receive`),
+    getDispatchedTransfersForSite: (siteId) => api.get(`/stock/transfers/dispatched-for-site/${siteId}`),
     // Movement Logs
     getMovementLogs: (params) => api.get('/stock/movement-logs', { params }),
     getMovementStats: (params) => api.get('/stock/movement-stats', { params }),

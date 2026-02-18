@@ -3,6 +3,7 @@ import Asset from '../models/Asset.model.js';
 import User from '../models/User.model.js';
 import RMARequest from '../models/RMARequest.model.js';
 import DailyWorkLog from '../models/DailyWorkLog.model.js';
+import TicketActivity from '../models/TicketActivity.model.js';
 import mongoose from 'mongoose';
 import * as XLSX from 'xlsx';
 
@@ -828,6 +829,84 @@ export const exportWorkActivityReport = async (req, res, next) => {
     res.send(buffer);
   } catch (error) {
     console.error('Work activity export error:', error);
+    next(error);
+  }
+};
+
+// @desc    Export User Activities Report to Excel (Ticket-level activities per user)
+// @route   GET /api/reporting/export/user-activities
+// @access  Private (Admin, Supervisor)
+export const exportUserActivitiesReport = async (req, res, next) => {
+  try {
+    const { startDate, endDate, userId } = req.query;
+
+    const query = {};
+
+    // Date range filter (TicketActivity uses createdOn via timestamps option)
+    if (startDate || endDate) {
+      query.createdOn = {};
+      if (startDate) query.createdOn.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdOn.$lte = end;
+      }
+    }
+
+    // User filter
+    if (userId && userId !== 'all') {
+      query.userId = new mongoose.Types.ObjectId(userId);
+    }
+
+    // Fetch ticket activities with populated user and ticket data
+    const activities = await TicketActivity.find(query)
+      .populate('userId', 'fullName role')
+      .populate('ticketId', 'ticketNumber title category priority status')
+      .sort({ createdOn: -1 })
+      .lean();
+
+    // Transform data for Excel
+    const reportData = activities.map(activity => ({
+      'Date': activity.createdOn ? new Date(activity.createdOn).toLocaleDateString() : 'N/A',
+      'Time': activity.createdOn ? new Date(activity.createdOn).toLocaleTimeString() : 'N/A',
+      'User': activity.userId?.fullName || 'Unknown',
+      'Role': activity.userId?.role || 'N/A',
+      'Ticket Number': activity.ticketId?.ticketNumber || 'N/A',
+      'Ticket Title': activity.ticketId?.title || 'N/A',
+      'Ticket Category': activity.ticketId?.category || 'N/A',
+      'Ticket Priority': activity.ticketId?.priority || 'N/A',
+      'Ticket Status': activity.ticketId?.status || 'N/A',
+      'Activity Type': activity.activityType,
+      'Content': activity.content,
+      'Internal Note': activity.isInternal ? 'Yes' : 'No'
+    }));
+
+    if (reportData.length === 0) {
+      reportData.push({ 'Message': 'No user activities found for the selected criteria' });
+    }
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(reportData);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 12 }, { wch: 10 }, { wch: 22 }, { wch: 15 }, { wch: 18 },
+      { wch: 35 }, { wch: 18 }, { wch: 12 }, { wch: 14 }, { wch: 16 },
+      { wch: 55 }, { wch: 12 }
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'User Activities Report');
+
+    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    const filename = `user_activities_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buffer);
+  } catch (error) {
+    console.error('User activities export error:', error);
     next(error);
   }
 };

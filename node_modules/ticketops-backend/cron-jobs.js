@@ -25,14 +25,19 @@ export const setupCronJobs = () => {
             // active: not closed/resolved/cancelled
             // approaching: due in < 4 hours
             // not notified yet: isBreachWarningSent = false
+            // NOTE: Skip tickets with an active (non-finalized) RMA — TAT doesn't apply during RMA
 
             const warningThreshold = new Date(now.getTime() + 4 * 60 * 60 * 1000); // Now + 4 hours
 
             const ticketsToWarn = await Ticket.find({
-                status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] },
-                slaRestoreDue: { $lt: warningThreshold, $gt: now }, // Due within next 4 hours
-                isBreachWarningSent: { $ne: true },
-                assignedTo: { $exists: true, $ne: null }
+                $and: [
+                    { status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] } },
+                    { slaRestoreDue: { $lt: warningThreshold, $gt: now } },
+                    { isBreachWarningSent: { $ne: true } },
+                    { assignedTo: { $exists: true, $ne: null } },
+                    // Exclude tickets with an active RMA (rma exists but not finalized)
+                    { $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }] }
+                ]
             }).populate('assignedTo');
             console.log(`   Found ${ticketsToWarn.length} tickets to warn.`);
 
@@ -60,12 +65,17 @@ export const setupCronJobs = () => {
             // Find tickets that have JUST breached (or breached recently but not notified)
             // breached: due < now
             // not notified: isSlaBreachedNotificationSent = false
+            // NOTE: Skip tickets with an active (non-finalized) RMA — TAT doesn't apply during RMA
 
             const breachedTickets = await Ticket.find({
-                status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] },
-                slaRestoreDue: { $lt: now },
-                isSlaBreachedNotificationSent: { $ne: true },
-                assignedTo: { $exists: true, $ne: null }
+                $and: [
+                    { status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] } },
+                    { slaRestoreDue: { $lt: now } },
+                    { isSlaBreachedNotificationSent: { $ne: true } },
+                    { assignedTo: { $exists: true, $ne: null } },
+                    // Exclude tickets with an active RMA (rma exists but not finalized)
+                    { $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }] }
+                ]
             }).populate('assignedTo');
 
             if (breachedTickets.length > 0) {

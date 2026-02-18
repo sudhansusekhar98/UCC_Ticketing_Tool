@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 
 const stockTransferSchema = new mongoose.Schema({
+    transferName: {
+        type: String,
+        maxlength: 200,
+        trim: true
+    },
     sourceSiteId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Site',
@@ -26,14 +31,27 @@ const stockTransferSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Pending', 'Approved', 'InTransit', 'Completed', 'Rejected', 'Cancelled'],
+        enum: ['Pending', 'Approved', 'InTransit', 'Dispatched', 'Completed', 'Rejected', 'Cancelled'],
         default: 'Pending'
+    },
+    // Shipping / logistics details (filled at dispatch)
+    shippingDetails: {
+        carrier: { type: String, maxlength: 200, trim: true },
+        trackingNumber: { type: String, maxlength: 200, trim: true },
+        courierName: { type: String, maxlength: 200, trim: true },
+        remarks: { type: String, maxlength: 500, trim: true },
+        dispatchDate: Date
     },
     transferDate: Date,
     receivedDate: Date,
     receivedBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
+    },
+    // Link to ticket (optional — populated when selected in RMA)
+    linkedTicketId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Ticket'
     },
     notes: {
         type: String,
@@ -57,6 +75,7 @@ export const TransferStatuses = {
     PENDING: 'Pending',
     APPROVED: 'Approved',
     IN_TRANSIT: 'InTransit',
+    DISPATCHED: 'Dispatched',
     COMPLETED: 'Completed',
     REJECTED: 'Rejected',
     CANCELLED: 'Cancelled'

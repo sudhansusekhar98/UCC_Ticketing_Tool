@@ -97,13 +97,15 @@ export default function TicketDetail() {
     // Escalation-specific logic: If escalation is accepted, only the escalation user (current assignee) and Admin can resolve/close
     const isEscalationAccepted = !!ticket?.escalationAcceptedBy;
 
-    const canResolve = (isEscalationAccepted
-        ? (isAssignedToMe || isAdmin)
-        : (isAssignedToMe || hasRole(['L1Engineer', 'L2Engineer', 'Supervisor'])))
+    // RMA state helpers
+    const hasActiveRma = !!(ticket?.rmaId || ticket?.rmaNumber) && !ticket?.rmaFinalized;
+    const isRmaCompleted = !!(ticket?.rmaId || ticket?.rmaNumber) && (ticket?.rmaFinalized === true || ticket?.rmaVerified === true);
+
+    const canResolve = (isAdmin || isAssignedToMe || (isEscalationAccepted
+        ? false
+        : hasRole(['L1Engineer', 'L2Engineer', 'Supervisor'])))
         && (!ticket?.rmaNumber || ticket?.rmaVerified || ticket?.rmaFinalized);
-    const canClose = isEscalationAccepted
-        ? (isAssignedToMe || isAdmin)
-        : (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('DELETE_TICKET', ticketSiteId));
+    const canClose = isAdmin || hasRole(['Supervisor', 'Dispatcher']) || (isEscalationAccepted ? isAssignedToMe : hasRight('DELETE_TICKET', ticketSiteId));
     const canEscalate = ticket?.escalationLevel < 3 && ticket?.status !== 'Escalated' && !['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status) && (isAssignedToMe || hasRole(['Admin', 'Supervisor', 'Dispatcher']));
     const canAcceptEscalation = ticket?.status === 'Escalated' && (
         hasRole(['Admin', 'Supervisor', 'Dispatcher']) ||
@@ -439,11 +441,18 @@ export default function TicketDetail() {
                                 {ticket.rmaNumber}
                             </span>
                         )}
-                        <span className={`sla-indicator ${getSLAStatusClass(ticket.slaStatus)}`}>
-                            {ticket.slaStatus === 'Breached' && <AlertTriangle size={14} />}
-                            {ticket.slaStatus === 'AtRisk' && <Clock size={14} />}
-                            SLA: {ticket.slaStatus}
-                        </span>
+                        {hasActiveRma ? (
+                            <span className="sla-indicator sla-ontrack" style={{ opacity: 0.8 }}>
+                                <Clock size={14} />
+                                TAT Paused (RMA)
+                            </span>
+                        ) : (
+                            <span className={`sla-indicator ${getSLAStatusClass(ticket.slaStatus)}`}>
+                                {ticket.slaStatus === 'Breached' && <AlertTriangle size={14} />}
+                                {ticket.slaStatus === 'AtRisk' && <Clock size={14} />}
+                                SLA: {ticket.slaStatus}
+                            </span>
+                        )}
                     </div>
                     <h1 className="page-title">{ticket.title}</h1>
                 </div>
@@ -486,7 +495,7 @@ export default function TicketDetail() {
                         </button>
                     )}
 
-                    {canResolve && ['InProgress', 'Installed', 'Repaired', 'Replaced'].includes(ticket.status) && (
+                    {canResolve && (['InProgress', 'Installed', 'Repaired', 'Replaced'].includes(ticket.status) || (isRmaCompleted && !['Closed', 'Cancelled', 'Resolved', 'Verified'].includes(ticket.status))) && (
                         <button className="btn btn-success" onClick={() => setShowResolveModal(true)}>
                             <CheckCircle size={14} />
                             Resolve
@@ -535,6 +544,14 @@ export default function TicketDetail() {
                         <button className="btn btn-success" onClick={handleClose} disabled={actionLoading}>
                             <CheckCircle size={14} />
                             Verify & Close
+                        </button>
+                    )}
+
+                    {/* Admin can close directly when RMA is completed */}
+                    {canClose && isRmaCompleted && !['Closed', 'Cancelled', 'Resolved', 'Verified'].includes(ticket.status) && (
+                        <button className="btn btn-success" onClick={handleClose} disabled={actionLoading}>
+                            <CheckCircle size={14} />
+                            Close Ticket
                         </button>
                     )}
 
@@ -614,7 +631,23 @@ export default function TicketDetail() {
                                     <Tag size={12} />
                                     Asset Code
                                 </span>
-                                <span className="detail-value">{ticket.assetCode}</span>
+                                <span className="detail-value font-bold text-primary-500">{ticket.assetId?.assetCode || ticket.assetCode}</span>
+                            </div>
+
+                            <div className="detail-row">
+                                <span className="detail-label">
+                                    <Cpu size={12} />
+                                    MAC Address
+                                </span>
+                                <span className="detail-value font-mono">{ticket.assetId?.mac || '—'}</span>
+                            </div>
+
+                            <div className="detail-row">
+                                <span className="detail-label">
+                                    <Activity size={12} />
+                                    Serial Number
+                                </span>
+                                <span className="detail-value font-mono">{ticket.assetId?.serialNumber || '—'}</span>
                             </div>
 
                             <div className="detail-row">
@@ -622,7 +655,7 @@ export default function TicketDetail() {
                                     <Database size={12} />
                                     Asset Type
                                 </span>
-                                <span className="detail-value">{ticket.assetType}</span>
+                                <span className="detail-value">{ticket.assetId?.assetType || ticket.assetType}</span>
                             </div>
 
                             <div className="detail-row">
@@ -816,6 +849,51 @@ export default function TicketDetail() {
                                 </div>
                             )}
                         </div>
+
+                        {/* RMA Active — TAT Paused Indicator */}
+                        {hasActiveRma && (
+                            <div className="timeline-milestone" style={{
+                                background: 'rgba(245, 158, 11, 0.08)',
+                                border: '1px solid rgba(245, 158, 11, 0.2)',
+                                borderRadius: 'var(--radius-lg)',
+                                padding: 'var(--space-2) var(--space-3)',
+                                marginTop: 'var(--space-2)'
+                            }}>
+                                <div className="milestone-dot" style={{ color: 'var(--warning-500)' }}>
+                                    <Clock size={14} />
+                                </div>
+                                <div className="milestone-content">
+                                    <div className="milestone-label" style={{ color: 'var(--warning-500)', fontWeight: 700 }}>
+                                        TAT Paused — RMA Active
+                                    </div>
+                                    <div className="milestone-time" style={{ fontSize: '10px' }}>
+                                        SLA/TAT does not apply while device replacement is in progress
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {isRmaCompleted && (
+                            <div className="timeline-milestone active" style={{
+                                background: 'rgba(34, 197, 94, 0.08)',
+                                border: '1px solid rgba(34, 197, 94, 0.2)',
+                                borderRadius: 'var(--radius-lg)',
+                                padding: 'var(--space-2) var(--space-3)',
+                                marginTop: 'var(--space-2)'
+                            }}>
+                                <div className="milestone-dot" style={{ color: 'var(--success-500)' }}>
+                                    <CheckCircle size={14} />
+                                </div>
+                                <div className="milestone-content">
+                                    <div className="milestone-label" style={{ color: 'var(--success-500)', fontWeight: 700 }}>
+                                        RMA Completed
+                                    </div>
+                                    <div className="milestone-time" style={{ fontSize: '10px' }}>
+                                        Device replacement finalized. Ticket can now be resolved/closed.
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="sla-policy-info">
                             <div className="policy-details">

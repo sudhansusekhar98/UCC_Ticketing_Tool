@@ -201,6 +201,7 @@ export default function InventoryList() {
                         <table className="inventory-table">
                             <thead>
                                 <tr>
+                                    <th className="col-code">Asset Code</th>
                                     <th className="col-type">Asset Type</th>
                                     <th className="col-device">Device Type</th>
                                     <th className="col-make">Make</th>
@@ -263,6 +264,9 @@ export default function InventoryList() {
                                         {/* Asset Rows for this site */}
                                         {isExpanded && siteGroup.assets.map((asset, aIdx) => (
                                             <tr key={asset._id || `asset-${siteGroup.siteId}-${aIdx}`} className="inventory-data-row">
+                                                <td className="col-code font-bold text-primary-500">
+                                                    {asset.assetCode || '—'}
+                                                </td>
                                                 <td className="col-type">
                                                     <span className="type-badge">{asset.assetType || asset.groupAssetType}</span>
                                                 </td>
@@ -276,8 +280,8 @@ export default function InventoryList() {
                                                     {asset.model || '—'}
                                                 </td>
                                                 <td className="col-mac">
-                                                    <code className="mac-code" title={asset.assetCode}>
-                                                        {asset.assetCode || '—'}
+                                                    <code className="mac-code" title={asset.mac}>
+                                                        {asset.mac || '—'}
                                                     </code>
                                                 </td>
                                                 <td className="col-serial">
@@ -341,6 +345,10 @@ export default function InventoryList() {
                         <div className="modal-body">
                             <div className="asset-detail-grid">
                                 <div className="detail-item">
+                                    <label>Asset Code</label>
+                                    <div className="detail-value font-bold text-primary-500">{viewAsset.assetCode || '—'}</div>
+                                </div>
+                                <div className="detail-item">
                                     <label>Asset Type</label>
                                     <div className="detail-value">
                                         <span className="type-badge">{viewAsset.assetType || viewAsset.groupAssetType}</span>
@@ -361,7 +369,7 @@ export default function InventoryList() {
                                 <div className="detail-item full-width">
                                     <label>MAC Address</label>
                                     <div className="detail-value">
-                                        <code className="mac-code">{viewAsset.assetCode || '—'}</code>
+                                        <code className="mac-code">{viewAsset.mac || '—'}</code>
                                     </div>
                                 </div>
                                 <div className="detail-item full-width">

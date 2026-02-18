@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-    ArrowRightLeft, ArrowLeft, Package
+    ArrowRightLeft, ArrowLeft, Package, Tag, Cpu
 } from 'lucide-react';
 import { stockApi, sitesApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -20,7 +20,8 @@ export default function StockTransferForm() {
         sourceSiteId: '',
         destinationSiteId: '',
         assetIds: [],
-        notes: ''
+        notes: '',
+        transferName: ''
     });
 
     useEffect(() => {
@@ -142,6 +143,20 @@ export default function StockTransferForm() {
                             </div>
 
                             <div className="form-section">
+                                <div className="section-subtitle">Transfer Name (Optional)</div>
+                                <div className="form-group full-width">
+                                    <input
+                                        type="text"
+                                        name="transferName"
+                                        value={formData.transferName}
+                                        onChange={handleSiteChange}
+                                        className="form-input"
+                                        placeholder="Auto-generated if left blank (e.g. HO → Site A)"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-section">
                                 <div className="section-subtitle">Site Selection</div>
                                 <div className="form-row">
                                     <div className="form-group">
@@ -195,7 +210,21 @@ export default function StockTransferForm() {
                                                 </div>
                                                 <div className="asset-info">
                                                     <span className="asset-code">{asset.assetCode}</span>
-                                                    <span className="asset-meta">{asset.assetType} • {asset.stockLocation || 'Shelf'}</span>
+                                                    <span className="asset-meta">
+                                                        {asset.stockLocation || 'Shelf'}
+                                                        {asset.make && ` • ${asset.make}`}
+                                                        {asset.model && ` ${asset.model}`}
+                                                    </span>
+                                                </div>
+                                                <div className="asset-type-badges">
+                                                    <span className="badge badge-sm badge-info" title="Asset Type">
+                                                        <Tag size={10} /> {asset.assetType}
+                                                    </span>
+                                                    {asset.deviceType && (
+                                                        <span className="badge badge-sm badge-outline" title="Device Type">
+                                                            <Cpu size={10} /> {asset.deviceType}
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="asset-check">
                                                     {formData.assetIds.includes(asset._id) && <span className="check-mark">✓</span>}

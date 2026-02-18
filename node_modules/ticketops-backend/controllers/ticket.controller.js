@@ -118,7 +118,7 @@ export const getTickets = async (req, res, next) => {
 
     const [tickets, total] = await Promise.all([
       Ticket.find(query)
-        .populate('assetId', 'assetCode assetType locationDescription siteId')
+        .populate('assetId', 'assetCode assetType locationDescription siteId mac serialNumber deviceType')
         .populate('createdBy', 'fullName username profilePicture')
         .populate('assignedTo', 'fullName username role profilePicture')
         .populate('slaPolicyId', 'policyName priority')
@@ -128,9 +128,28 @@ export const getTickets = async (req, res, next) => {
       Ticket.countDocuments(query)
     ]);
 
+    // Decrypt sensitive asset fields for authorized users
+    const processedTickets = tickets.map(ticket => {
+      const ticketObj = ticket.toObject();
+      if (ticketObj.assetId) {
+        // Find if user is assigned to this site
+        const siteIdStr = ticketObj.siteId?._id?.toString() || ticketObj.siteId?.toString();
+        const isSiteAssigned = user.assignedSites && user.assignedSites.some(s => s.toString() === siteIdStr);
+
+        // Decrypt if Admin/Supervisor OR assigned to site
+        if (['Admin', 'Supervisor'].includes(user.role) || isSiteAssigned) {
+          ticketObj.assetId = Asset.decryptSensitiveFields(ticket.assetId);
+        } else {
+          // Otherwise mask
+          ticketObj.assetId = Asset.maskSensitiveFields(ticket.assetId);
+        }
+      }
+      return ticketObj;
+    });
+
     res.json({
       success: true,
-      data: tickets,
+      data: processedTickets,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -200,12 +219,27 @@ export const getTicketById = async (req, res, next) => {
     // Decrypt sensitive asset fields if authorized
     let ticketObj = ticket.toObject();
     if (ticketObj.assetId) {
-      if (['Admin', 'Supervisor'].includes(req.user.role)) {
+      const user = req.user;
+      // Check if user is assigned to the site
+      // Note: siteId is populated, so use _id
+      const siteIdStr = ticketObj.siteId?._id?.toString() || ticketObj.siteId?.toString();
+      const isSiteAssigned = user.assignedSites && user.assignedSites.some(s => s.toString() === siteIdStr);
+
+      // Check if user is assigned to the ticket and has started work
+      const isTicketAssigned = ticketObj.assignedTo && ticketObj.assignedTo._id.toString() === user._id.toString();
+      // Work started if status is NOT Open or Assigned. i.e. Acknowledged or later.
+      const isWorkStarted = !['Open', 'Assigned'].includes(ticketObj.status);
+
+      if (['Admin', 'Supervisor'].includes(user.role)) {
         ticketObj.assetId = Asset.decryptSensitiveFields(ticket.assetId);
-      } else if (req.user.role === 'Engineer' && ticketObj.assignedTo?._id?.toString() === req.user._id.toString()) {
-        // Assigned engineers can also see the full details
+      } else if (isSiteAssigned) {
+        // User assigned to the site can view actual SL and MAC
+        ticketObj.assetId = Asset.decryptSensitiveFields(ticket.assetId);
+      } else if (isTicketAssigned && isWorkStarted) {
+        // Assigned engineer can view only after acknowledging/starting
         ticketObj.assetId = Asset.decryptSensitiveFields(ticket.assetId);
       } else {
+        // Otherwise show dots (masked)
         ticketObj.assetId = Asset.maskSensitiveFields(ticket.assetId);
       }
     }
@@ -285,7 +319,18 @@ export const createTicket = async (req, res, next) => {
 
     const finalTicket = populatedTicket.toObject();
     if (finalTicket.assetId) {
-      if (['Admin', 'Supervisor'].includes(req.user.role)) {
+      const user = req.user;
+      const siteIdStr = finalTicket.siteId?._id?.toString() || finalTicket.siteId?.toString();
+      const isSiteAssigned = user.assignedSites && user.assignedSites.some(s => s.toString() === siteIdStr);
+
+      const isTicketAssigned = finalTicket.assignedTo && finalTicket.assignedTo._id.toString() === user._id.toString();
+      const isWorkStarted = !['Open', 'Assigned'].includes(finalTicket.status);
+
+      if (['Admin', 'Supervisor'].includes(user.role)) {
+        finalTicket.assetId = Asset.decryptSensitiveFields(populatedTicket.assetId);
+      } else if (isSiteAssigned) {
+        finalTicket.assetId = Asset.decryptSensitiveFields(populatedTicket.assetId);
+      } else if (isTicketAssigned && isWorkStarted) {
         finalTicket.assetId = Asset.decryptSensitiveFields(populatedTicket.assetId);
       } else {
         finalTicket.assetId = Asset.maskSensitiveFields(populatedTicket.assetId);
@@ -376,9 +421,19 @@ export const updateTicket = async (req, res, next) => {
 
     const finalTicket = ticket.toObject();
     if (finalTicket.assetId) {
-      if (['Admin', 'Supervisor'].includes(req.user.role)) {
+      const user = req.user;
+      // Check if user is assigned to site
+      const siteIdStr = finalTicket.siteId?._id?.toString() || finalTicket.siteId?.toString();
+      const isSiteAssigned = user.assignedSites && user.assignedSites.some(s => s.toString() === siteIdStr);
+
+      const isTicketAssigned = finalTicket.assignedTo && finalTicket.assignedTo._id.toString() === user._id.toString();
+      const isWorkStarted = !['Open', 'Assigned'].includes(finalTicket.status);
+
+      if (['Admin', 'Supervisor'].includes(user.role)) {
         finalTicket.assetId = Asset.decryptSensitiveFields(ticket.assetId);
-      } else if (req.user.role === 'Engineer' && finalTicket.assignedTo?._id?.toString() === req.user._id.toString()) {
+      } else if (isSiteAssigned) {
+        finalTicket.assetId = Asset.decryptSensitiveFields(ticket.assetId);
+      } else if (isTicketAssigned && isWorkStarted) {
         finalTicket.assetId = Asset.decryptSensitiveFields(ticket.assetId);
       } else {
         finalTicket.assetId = Asset.maskSensitiveFields(ticket.assetId);

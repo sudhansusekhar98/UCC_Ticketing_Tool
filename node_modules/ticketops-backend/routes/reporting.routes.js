@@ -9,7 +9,8 @@ import {
   exportAssetStatusReport,
   exportRMAReport,
   exportSpareStockReport,
-  exportWorkActivityReport
+  exportWorkActivityReport,
+  exportUserActivitiesReport
 } from '../controllers/reporting.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
@@ -29,5 +30,6 @@ router.get('/export/assets', exportAssetStatusReport);
 router.get('/export/rma', exportRMAReport);
 router.get('/export/spare-stock', exportSpareStockReport);
 router.get('/export/work-activity', exportWorkActivityReport);
+router.get('/export/user-activities', exportUserActivitiesReport);
 
 export default router;

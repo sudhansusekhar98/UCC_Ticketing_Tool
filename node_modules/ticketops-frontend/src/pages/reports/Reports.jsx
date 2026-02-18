@@ -5,7 +5,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
 } from 'recharts';
-import { FileDown, Activity, AlertCircle, CheckCircle, Package, RefreshCw, RotateCcw, Monitor, Users, HardDrive, FileText, ChevronDown, Download, Building2 } from 'lucide-react';
+import { FileDown, Activity, AlertCircle, CheckCircle, Package, RefreshCw, RotateCcw, Monitor, Users, HardDrive, FileText, ChevronDown, Download, Building2, UserCheck } from 'lucide-react';
 import './Reports.css';
 import toast from 'react-hot-toast';
 
@@ -27,6 +27,7 @@ const REPORT_TYPES = [
     { id: 'rma', label: 'RMA Report', icon: RotateCcw, description: 'Export RMA requests with timeline and status details' },
     { id: 'spare-stock', label: 'Spare Stocks Report', icon: Package, description: 'Export available spare stock assets across sites' },
     { id: 'work-activity', label: 'Work Activity Report', icon: Activity, description: 'Export all user activities including manual logs and automated tracking' },
+    { id: 'user-activities', label: 'User Activities Report', icon: UserCheck, description: 'Export per-user ticket activities: comments, status changes, escalations, and more' },
 ];
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -166,6 +167,10 @@ export default function Reports() {
                     response = await reportingApi.exportWorkActivity(exportParams);
                     filename = `work_activity_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
                     break;
+                case 'user-activities':
+                    response = await reportingApi.exportUserActivities(exportParams);
+                    filename = `user_activities_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                    break;
                 case 'tickets':
                 default:
                     response = await reportingApi.exportReport(exportParams);
@@ -211,7 +216,7 @@ export default function Reports() {
                     <p className="page-subtitle">Overview of system performance and metrics</p>
                 </div>
                 <div className="flex gap-3">
-                    <button className="btn btn-outline flex items-center gap-2" onClick={fetchData}>
+                    <button className="btn btn-outline btn-refresh flex items-center gap-2" onClick={fetchData}>
                         <RefreshCw size={18} />
                         Refresh
                     </button>

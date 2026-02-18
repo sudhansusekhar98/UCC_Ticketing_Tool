@@ -33,7 +33,8 @@ export default function AddStock() {
         model: '',
         customModel: '',
         serialNumber: '',
-        assetCode: ''
+        assetCode: '',
+        mac: ''
     });
 
     useEffect(() => {
@@ -132,7 +133,7 @@ export default function AddStock() {
         const finalModel = formData.model === 'Other' || formData.assetType === 'Other' ? formData.customModel : formData.model;
 
         if (!formData.siteId || !finalAssetType || !formData.assetCode || !formData.serialNumber) {
-            toast.error('Please fill in all required fields (Location, Type, MAC Address, SL No)');
+            toast.error('Please fill in all required fields (Location, Type, Asset Code, SL No)');
             return;
         }
 
@@ -217,7 +218,7 @@ export default function AddStock() {
                                 <div className="form-row">
                                     <div className="form-group">
                                         <label htmlFor="assetCode">
-                                            MAC Address <span className="required">*</span>
+                                            Asset Code <span className="required">*</span>
                                         </label>
                                         <input
                                             type="text"
@@ -225,11 +226,27 @@ export default function AddStock() {
                                             name="assetCode"
                                             value={formData.assetCode}
                                             onChange={handleChange}
-                                            placeholder="e.g., 00:1A:2B:3C:4D:5E"
+                                            placeholder="e.g., CAM-HO-001"
                                             className="form-input"
                                             required
                                         />
-                                        <span className="field-hint">Unique MAC Address</span>
+                                        <span className="field-hint">Unique fixed identifier (never changes)</span>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label htmlFor="mac">
+                                            MAC Address
+                                        </label>
+                                        <input
+                                            type="text"
+                                            id="mac"
+                                            name="mac"
+                                            value={formData.mac}
+                                            onChange={handleChange}
+                                            placeholder="e.g., 00:1A:2B:3C:4D:5E"
+                                            className="form-input"
+                                        />
+                                        <span className="field-hint">Network hardware address (optional)</span>
                                     </div>
 
                                     <div className="form-group">

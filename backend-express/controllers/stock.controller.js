@@ -55,7 +55,7 @@ export const getInventory = async (req, res, next) => {
         }
 
         // Aggregate by site and asset type
-        const inventory = await Asset.aggregate([
+        let inventory = await Asset.aggregate([
             { $match: matchQuery },
             {
                 $group: {
@@ -65,6 +65,7 @@ export const getInventory = async (req, res, next) => {
                         $push: {
                             _id: '$_id',
                             assetCode: '$assetCode',
+                            mac: '$mac', // Added MAC address
                             assetType: '$assetType',
                             deviceType: '$deviceType',
                             make: '$make',
@@ -98,6 +99,14 @@ export const getInventory = async (req, res, next) => {
             { $sort: { 'isHeadOffice': -1, 'siteName': 1, 'assetType': 1 } }
         ]);
 
+        // Decrypt sensitive fields for authorized users
+        if (['Admin', 'Supervisor'].includes(user.role)) {
+            inventory = inventory.map(group => ({
+                ...group,
+                assets: group.assets.map(asset => Asset.decryptSensitiveFields(asset))
+            }));
+        }
+
         res.json({
             success: true,
             data: inventory
@@ -113,50 +122,129 @@ export const getInventory = async (req, res, next) => {
 export const getStockAvailability = async (req, res, next) => {
     try {
         const { ticketId } = req.params;
+        const user = req.user;
 
-        const ticket = await Ticket.findById(ticketId).populate('assetId', 'assetType');
+        const ticket = await Ticket.findById(ticketId).populate('assetId', 'assetType deviceType');
         if (!ticket) {
             return res.status(404).json({ success: false, message: 'Ticket not found' });
         }
 
         const assetType = ticket.assetId?.assetType;
+        const deviceType = ticket.assetId?.deviceType;
         if (!assetType) {
             return res.json({
                 success: true,
-                data: { localStock: 0, hoStock: 0, assetType: null }
+                data: { localStock: 0, hoStock: 0, assetType: null, deviceType: null, allSitesStock: [] }
             });
         }
 
-        // Get local spare items
-        const localSpares = await Asset.find({
-            siteId: ticket.siteId,
-            assetType: assetType,
-            status: 'Spare'
-        }).select('assetCode mac serialNumber make model stockLocation');
-
-        // Get Head Office stock
-        const hoSite = await Site.findOne({ isHeadOffice: true });
-        let hoSpares = [];
-
-        if (hoSite && hoSite._id.toString() !== ticket.siteId?.toString()) {
-            hoSpares = await Asset.find({
-                siteId: hoSite._id,
-                assetType: assetType,
-                status: 'Spare'
-            }).select('assetCode mac serialNumber make model stockLocation');
+        // Build base filter: match assetType and deviceType (if available) for specificity
+        const baseFilter = { assetType, status: 'Spare' };
+        if (deviceType) {
+            baseFilter.deviceType = deviceType;
         }
 
-        res.json({
-            success: true,
-            data: {
-                assetType,
-                localStock: localSpares.length,
-                hoStock: hoSpares.length,
-                localSpares,
-                hoSpares,
-                hoSiteId: hoSite?._id
+        const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
+
+        // Get Head Office site
+        const hoSite = await Site.findOne({ isHeadOffice: true });
+
+        if (isAdminOrSupervisor) {
+            // ADMIN/SUPERVISOR: See stock from ALL sites with per-site breakdown
+            const allSites = await Site.find({ isActive: true }).select('siteName isHeadOffice').lean();
+
+            // Get all spares matching the asset/device type across all sites
+            const allSpares = await Asset.find(baseFilter)
+                .select('assetCode mac serialNumber make model stockLocation siteId deviceType')
+                .lean();
+
+            // Group by siteId
+            const siteMap = {};
+            for (const site of allSites) {
+                siteMap[site._id.toString()] = {
+                    siteId: site._id,
+                    siteName: site.siteName,
+                    isHeadOffice: site.isHeadOffice || false,
+                    isTicketSite: site._id.toString() === ticket.siteId?.toString(),
+                    count: 0,
+                    spares: []
+                };
             }
-        });
+
+            for (const spare of allSpares) {
+                const sid = spare.siteId?.toString();
+                if (siteMap[sid]) {
+                    siteMap[sid].count++;
+                    siteMap[sid].spares.push(spare);
+                }
+            }
+
+            // Convert to array and sort: ticket site first, then HO, then others
+            const allSitesStock = Object.values(siteMap)
+                .filter(s => s.count > 0)
+                .sort((a, b) => {
+                    if (a.isTicketSite && !b.isTicketSite) return -1;
+                    if (!a.isTicketSite && b.isTicketSite) return 1;
+                    if (a.isHeadOffice && !b.isHeadOffice) return -1;
+                    if (!a.isHeadOffice && b.isHeadOffice) return 1;
+                    return a.siteName.localeCompare(b.siteName);
+                });
+
+            // Also compute local and HO for backward compatibility
+            const localSpares = allSpares.filter(s => s.siteId?.toString() === ticket.siteId?.toString());
+            const hoSpares = hoSite ? allSpares.filter(s => s.siteId?.toString() === hoSite._id.toString() && s.siteId?.toString() !== ticket.siteId?.toString()) : [];
+
+            // Decrypt sensitive fields for all spares
+            const decryptSpares = (spares) => spares.map(s => Asset.decryptSensitiveFields(s));
+
+            // Apply decryption to grouped stock
+            allSitesStock.forEach(site => {
+                if (site.spares) {
+                    site.spares = decryptSpares(site.spares);
+                }
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    assetType,
+                    deviceType: deviceType || null,
+                    localStock: localSpares.length,
+                    hoStock: hoSpares.length,
+                    localSpares: decryptSpares(localSpares),
+                    hoSpares: decryptSpares(hoSpares),
+                    hoSiteId: hoSite?._id,
+                    allSitesStock,
+                    totalAvailable: allSpares.length,
+                    viewScope: 'all'
+                }
+            });
+        } else {
+            // ENGINEER: See only stock from the ticket's site
+            let localSpares = await Asset.find({
+                ...baseFilter,
+                siteId: ticket.siteId
+            }).select('assetCode mac serialNumber make model stockLocation deviceType');
+
+            // Decrypt local spares
+            localSpares = localSpares.map(s => Asset.decryptSensitiveFields(s));
+
+            res.json({
+                success: true,
+                data: {
+                    assetType,
+                    deviceType: deviceType || null,
+                    localStock: localSpares.length,
+                    hoStock: 0,
+                    localSpares,
+                    hoSpares: [],
+                    hoSiteId: null,
+                    allSitesStock: [],
+                    totalAvailable: localSpares.length,
+                    viewScope: 'site'
+                }
+            });
+        }
     } catch (error) {
         next(error);
     }
@@ -461,15 +549,19 @@ export const addStock = async (req, res, next) => {
             }
         }
 
-        // Check if MAC Address already exists
-        const existingAsset = await Asset.findOne({ assetCode: assetCode || req.body.mac });
+        // Validate: assetCode is required and must be unique
+        if (!assetCode) {
+            return res.status(400).json({ success: false, message: 'Asset Code is required' });
+        }
+
+        const existingAsset = await Asset.findOne({ assetCode });
         if (existingAsset) {
-            return res.status(400).json({ success: false, message: `MAC Address ${assetCode || req.body.mac} already exists` });
+            return res.status(400).json({ success: false, message: `Asset Code "${assetCode}" already exists` });
         }
 
         const asset = await Asset.create({
-            assetCode: assetCode || req.body.mac,
-            mac: assetCode || req.body.mac,
+            assetCode,
+            mac: req.body.mac || '',
             serialNumber,
             assetType,
             siteId,
@@ -494,7 +586,7 @@ export const addStock = async (req, res, next) => {
         res.status(201).json({
             success: true,
             data: asset,
-            message: `Spare ${assetType} (${asset.mac}) added to stock`
+            message: `Spare ${assetType} (${asset.assetCode}) added to stock`
         });
 
         // Fire-and-forget: log activity
@@ -545,7 +637,7 @@ export const getTransfers = async (req, res, next) => {
                 .populate('destinationSiteId', 'siteName isHeadOffice')
                 .populate('initiatedBy', 'fullName')
                 .populate('approvedBy', 'fullName')
-                .populate('assetIds', 'assetCode assetType')
+                .populate('assetIds', 'assetCode assetType deviceType make model')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(parseInt(limit)),
@@ -572,7 +664,7 @@ export const getTransfers = async (req, res, next) => {
 // @access  Private (Admin)
 export const initiateTransfer = async (req, res, next) => {
     try {
-        const { sourceSiteId, destinationSiteId, assetIds, notes } = req.body;
+        const { sourceSiteId, destinationSiteId, assetIds, notes, transferName } = req.body;
         const user = req.user;
 
         // Validate assets are spare and belong to source site
@@ -589,7 +681,20 @@ export const initiateTransfer = async (req, res, next) => {
             });
         }
 
+        // Auto-generate transfer name if not provided
+        let finalTransferName = transferName;
+        if (!finalTransferName) {
+            const [srcSite, destSite] = await Promise.all([
+                Site.findById(sourceSiteId).select('siteName isHeadOffice'),
+                Site.findById(destinationSiteId).select('siteName isHeadOffice')
+            ]);
+            const srcLabel = srcSite?.isHeadOffice ? 'HO' : (srcSite?.siteName || 'Unknown');
+            const destLabel = destSite?.isHeadOffice ? 'HO' : (destSite?.siteName || 'Unknown');
+            finalTransferName = `${srcLabel} → ${destLabel}`;
+        }
+
         const transfer = await StockTransfer.create({
+            transferName: finalTransferName,
             sourceSiteId,
             destinationSiteId,
             assetIds,
@@ -607,7 +712,7 @@ export const initiateTransfer = async (req, res, next) => {
         // Fire-and-forget: log activity
         DailyWorkLog.logActivity(user._id, {
             category: 'StockTransferred',
-            description: `Initiated stock transfer from source site to destination`,
+            description: `Initiated stock transfer: ${finalTransferName}`,
             refModel: 'StockTransfer',
             refId: transfer._id,
             metadata: { sourceSiteId, destinationSiteId, assetCount: assetIds.length }
@@ -623,6 +728,7 @@ export const initiateTransfer = async (req, res, next) => {
 export const dispatchTransfer = async (req, res, next) => {
     try {
         const { id } = req.params;
+        const { carrier, trackingNumber, courierName, remarks } = req.body;
         const user = req.user;
 
         const transfer = await StockTransfer.findById(id);
@@ -640,9 +746,16 @@ export const dispatchTransfer = async (req, res, next) => {
             { status: 'InTransit' }
         );
 
-        transfer.status = 'InTransit';
+        transfer.status = 'Dispatched';
         transfer.approvedBy = user._id;
         transfer.transferDate = new Date();
+        transfer.shippingDetails = {
+            carrier: carrier || '',
+            trackingNumber: trackingNumber || '',
+            courierName: courierName || '',
+            remarks: remarks || '',
+            dispatchDate: new Date()
+        };
         await transfer.save();
 
         res.json({
@@ -668,8 +781,8 @@ export const receiveTransfer = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Transfer not found' });
         }
 
-        if (transfer.status !== 'InTransit') {
-            return res.status(400).json({ success: false, message: 'Transfer is not in transit' });
+        if (transfer.status !== 'InTransit' && transfer.status !== 'Dispatched') {
+            return res.status(400).json({ success: false, message: 'Transfer is not in transit / dispatched' });
         }
 
         // Update assets to Spare at destination
@@ -687,6 +800,33 @@ export const receiveTransfer = async (req, res, next) => {
             success: true,
             data: transfer,
             message: 'Transfer received'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get dispatched stock transfers for a destination site (for RMA dropdown)
+// @route   GET /api/stock/transfers/dispatched-for-site/:siteId
+// @access  Private
+export const getDispatchedTransfersForSite = async (req, res, next) => {
+    try {
+        const { siteId } = req.params;
+
+        // Find transfers that are dispatched / in-transit and heading to this site
+        const transfers = await StockTransfer.find({
+            destinationSiteId: siteId,
+            status: { $in: ['Dispatched', 'InTransit'] }
+        })
+            .populate('sourceSiteId', 'siteName isHeadOffice')
+            .populate('destinationSiteId', 'siteName isHeadOffice')
+            .populate('assetIds', 'assetCode assetType deviceType make model')
+            .populate('initiatedBy', 'fullName')
+            .sort({ createdAt: -1 });
+
+        res.json({
+            success: true,
+            data: transfers
         });
     } catch (error) {
         next(error);
@@ -766,6 +906,7 @@ export const bulkUpload = async (req, res, next) => {
 
                 // Extract values using normalized keys
                 const macAddress = toString(row['macaddress']) || toString(row['mac']);
+                const assetCodeVal = toString(row['assetcode']) || toString(row['assetid']);
                 const assetType = toString(row['assettype']) || toString(row['devicetype']);
                 const siteName = toString(row['sitename']) || toString(row['site']);
                 const serialNumber = toString(row['serialnumber']) || toString(row['serialno']);
@@ -774,9 +915,9 @@ export const bulkUpload = async (req, res, next) => {
                 const deviceType = toString(row['devicetype']) || toString(row['modeltype']);
                 const stockLocation = toString(row['stocklocation']) || toString(row['location']);
 
-                // Validation
-                if (!macAddress || !assetType || !siteName) {
-                    throw new Error(`Mandatory fields missing for row ${rowNum} (Need MAC, Asset Type, and Site)`);
+                // Validation — assetCode is mandatory; macAddress is optional
+                if (!assetCodeVal || !assetType || !siteName) {
+                    throw new Error(`Mandatory fields missing for row ${rowNum} (Need Asset Code, Asset Type, and Site)`);
                 }
 
                 const targetSiteId = siteName ? siteMap.get(siteName.toLowerCase()) : null;
@@ -784,18 +925,20 @@ export const bulkUpload = async (req, res, next) => {
                     throw new Error(`Site "${siteName || 'Unknown'}" not found or inactive`);
                 }
 
-                // Check for uniqueness if MAC is not "NA"
-                const isMacNA = !macAddress || macAddress.toUpperCase() === 'NA' || macAddress.toUpperCase() === 'N/A';
-                if (!isMacNA) {
-                    // Check database for MAC
-                    const existingMAC = await Asset.findOne({ assetCode: macAddress });
-                    if (existingMAC) {
-                        throw new Error(`MAC Address "${macAddress}" already exists in the database`);
-                    }
-                    // Check current batch for MAC
-                    if (assetsToCreate.find(a => a.assetCode === macAddress)) {
-                        throw new Error(`Duplicate MAC Address "${macAddress}" found in the upload file`);
-                    }
+                // Check for uniqueness of assetCode
+                const isAssetCodeNA = !assetCodeVal || assetCodeVal.toUpperCase() === 'NA' || assetCodeVal.toUpperCase() === 'N/A';
+                if (isAssetCodeNA) {
+                    throw new Error(`Asset Code is required for row ${rowNum}`);
+                }
+
+                // Check database for assetCode
+                const existingAssetCode = await Asset.findOne({ assetCode: assetCodeVal });
+                if (existingAssetCode) {
+                    throw new Error(`Asset Code "${assetCodeVal}" already exists in the database`);
+                }
+                // Check current batch for assetCode
+                if (assetsToCreate.find(a => a.assetCode === assetCodeVal)) {
+                    throw new Error(`Duplicate Asset Code "${assetCodeVal}" found in the upload file`);
                 }
 
                 // Check for uniqueness if Serial Number is not "NA"
@@ -812,9 +955,11 @@ export const bulkUpload = async (req, res, next) => {
                     }
                 }
 
+                const isMacNA = !macAddress || macAddress.toUpperCase() === 'NA' || macAddress.toUpperCase() === 'N/A';
+
                 const newAsset = {
-                    assetCode: macAddress,
-                    mac: macAddress,
+                    assetCode: assetCodeVal,
+                    mac: isMacNA ? '' : macAddress,
                     assetType,
                     siteId: targetSiteId,
                     serialNumber: serialNumber || '',
@@ -838,7 +983,7 @@ export const bulkUpload = async (req, res, next) => {
                 results.failCount++;
                 results.errors.push({
                     row: rowNum,
-                    assetCode: row['macaddress'] || row['mac'] || 'Unknown',
+                    assetCode: row['assetcode'] || row['assetid'] || row['macaddress'] || row['mac'] || 'Unknown',
                     message: error.message
                 });
             }
@@ -877,6 +1022,7 @@ export const exportStockTemplate = async (req, res, next) => {
         const { format } = req.query;
 
         const headers = [
+            'Asset Code',
             'MAC Address',
             'Asset Type',
             'Device Type',
@@ -889,6 +1035,7 @@ export const exportStockTemplate = async (req, res, next) => {
 
         const sampleData = [
             {
+                'Asset Code': 'CAM-HO-001',
                 'MAC Address': '00:1A:2B:3C:4D:5E',
                 'Asset Type': 'Camera',
                 'Device Type': 'Fixed Dome',
@@ -947,6 +1094,7 @@ export const performStockReplacement = async (req, res, next) => {
 
         // Keep track of old details for logging
         const oldDetails = {
+            assetCode: defectiveAsset.assetCode,
             serialNumber: defectiveAsset.serialNumber || 'N/A',
             mac: defectiveAsset.mac || 'N/A',
             ipAddress: defectiveAsset.ipAddress || 'N/A',
@@ -954,7 +1102,9 @@ export const performStockReplacement = async (req, res, next) => {
             model: defectiveAsset.model || 'N/A'
         };
 
-        // Update the operational asset with spare's hardware details
+        // Update ONLY the hardware-specific fields on the EXISTING asset.
+        // assetCode is a FIXED IDENTIFIER and must NEVER change.
+        // This preserves the full RMA history against the same asset code.
         defectiveAsset.serialNumber = spareAsset.serialNumber;
         defectiveAsset.mac = spareAsset.mac;
         defectiveAsset.ipAddress = newIp || defectiveAsset.ipAddress;
@@ -964,15 +1114,20 @@ export const performStockReplacement = async (req, res, next) => {
 
         await defectiveAsset.save();
 
-        // Mark spare item as removed/deleted from stock
-        await Asset.findByIdAndDelete(spareAssetId);
+        // Mark the spare asset as Decommissioned (NOT deleted) so we keep a record
+        spareAsset.status = 'Decommissioned';
+        spareAsset.remark = `Consumed as replacement for ${defectiveAsset.assetCode} (Ticket: ${ticketId})`;
+        spareAsset.isActive = false;
+        await spareAsset.save();
 
         // Create StockReplacement record
         await StockReplacement.create({
             ticketId,
             assetId: defectiveAssetId,
+            spareAssetId: spareAssetId,
             oldDetails,
             newDetails: {
+                assetCode: defectiveAsset.assetCode, // unchanged — same asset code
                 serialNumber: spareAsset.serialNumber,
                 mac: spareAsset.mac,
                 ipAddress: newIp || defectiveAsset.ipAddress,

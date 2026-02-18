@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { stockApi } from '../../services/api';
 import toast from 'react-hot-toast';
-import { Database, CheckCircle, AlertTriangle, RotateCcw, Info, Search, XCircle, Check } from 'lucide-react';
+import { Database, CheckCircle, AlertTriangle, RotateCcw, Info, Search, XCircle, Check, ChevronDown, ChevronRight, MapPin, Building2, Package } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 
 const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdate }) => {
@@ -14,6 +14,9 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
     const [newIp, setNewIp] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [actionLoading, setActionLoading] = useState(false);
+    const [expandedSites, setExpandedSites] = useState({});
+
+    const isAdminOrSupervisor = hasRole(['Admin', 'Supervisor']);
 
     const closeModal = () => {
         setShowReplaceModal(false);
@@ -59,10 +62,15 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
         }
     };
 
+    const toggleSiteExpand = (siteId) => {
+        setExpandedSites(prev => ({ ...prev, [siteId]: !prev[siteId] }));
+    };
+
     if (loading) return <div className="p-4 text-center">Checking stock availability...</div>;
     if (!availability) return null;
 
-    const hasStock = availability.localStock > 0 || availability.hoStock > 0;
+    const hasStock = availability.totalAvailable > 0;
+    const displayType = availability.deviceType || availability.assetType || 'N/A';
 
     return (
         <div
@@ -70,38 +78,151 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
             style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRadius: '12px', border: '1px solid #f1f5f9' }}
         >
             {/* Header */}
-            <div className="flex items-center gap-3 mb-3">
-                <Database size={19} className="text-gray-400" />
-                <h3 className="text-[17px] font-semibold m-0" style={{ color: '#1e293b' }}>
-                    Stock Availability <span style={{ color: '#94a3b8', fontWeight: 'normal', fontSize: '13px', marginLeft: '4px' }}>({availability.assetType || 'N/A'})</span>
-                </h3>
+            <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex items-center gap-3">
+                    <Database size={19} className="text-gray-400" />
+                    <h3 className="text-[17px] font-semibold m-0" style={{ color: '#1e293b' }}>
+                        Stock Availability
+                        <span style={{ color: '#94a3b8', fontWeight: 'normal', fontSize: '13px', marginLeft: '4px' }}>({displayType})</span>
+                    </h3>
+                </div>
+                {/* Total badge */}
+                <div className="flex items-center gap-2">
+                    <span
+                        className="text-[11px] font-bold px-2.5 py-1 rounded-full"
+                        style={{
+                            backgroundColor: hasStock ? '#dcfce7' : '#fee2e2',
+                            color: hasStock ? '#166534' : '#991b1b'
+                        }}
+                    >
+                        {availability.totalAvailable} Total
+                    </span>
+                    {availability.viewScope === 'site' && (
+                        <span className="text-[9px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full"
+                            style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}>
+                            Your Site Only
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Subtle Divider */}
             <div style={{ borderTop: '1px solid #f1f5f9', marginBottom: '4px' }}></div>
 
-            {/* Stock Rows */}
-            <div className="flex flex-col">
-                <div className="flex justify-between items-center py-2.5 border-b" style={{ borderColor: '#f8fafc' }}>
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                        <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>Local Site Stock</span>
-                    </div>
-                    <span className="text-[20px] font-bold" style={{ color: availability.localStock > 0 ? '#059669' : '#cbd5e1' }}>
-                        {availability.localStock}
-                    </span>
-                </div>
+            {/* ==========================================
+                ADMIN/SUPERVISOR VIEW: Per-site breakdown
+               ========================================== */}
+            {isAdminOrSupervisor && availability.allSitesStock?.length > 0 ? (
+                <div className="flex flex-col gap-1">
+                    {availability.allSitesStock.map((site) => (
+                        <div key={site.siteId} className="rounded-lg overflow-hidden border" style={{ borderColor: '#f1f5f9' }}>
+                            {/* Site Row */}
+                            <div
+                                className="flex justify-between items-center py-2 px-3 cursor-pointer transition-all hover:bg-slate-50"
+                                onClick={() => toggleSiteExpand(site.siteId)}
+                                style={{ backgroundColor: site.isTicketSite ? '#f0fdf4' : site.isHeadOffice ? '#eff6ff' : '#ffffff' }}
+                            >
+                                <div className="flex items-center gap-2.5">
+                                    {expandedSites[site.siteId] ? <ChevronDown size={14} className="text-gray-400" /> : <ChevronRight size={14} className="text-gray-400" />}
+                                    <div
+                                        className="w-2 h-2 rounded-full"
+                                        style={{
+                                            backgroundColor: site.isTicketSite ? '#059669' : site.isHeadOffice ? '#2563eb' : '#8b5cf6'
+                                        }}
+                                    ></div>
+                                    <span className="text-[12px] font-bold tracking-wide" style={{ color: '#334155' }}>
+                                        {site.siteName}
+                                    </span>
+                                    {site.isTicketSite && (
+                                        <span className="text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
+                                            style={{ backgroundColor: '#dcfce7', color: '#166534' }}>
+                                            Ticket Site
+                                        </span>
+                                    )}
+                                    {site.isHeadOffice && (
+                                        <span className="text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
+                                            style={{ backgroundColor: '#dbeafe', color: '#1e40af' }}>
+                                            HO
+                                        </span>
+                                    )}
+                                </div>
+                                <span
+                                    className="text-[18px] font-bold"
+                                    style={{
+                                        color: site.count > 0
+                                            ? (site.isTicketSite ? '#059669' : site.isHeadOffice ? '#2563eb' : '#7c3aed')
+                                            : '#cbd5e1'
+                                    }}
+                                >
+                                    {site.count}
+                                </span>
+                            </div>
 
-                <div className="flex justify-between items-center py-2.5">
-                    <div className="flex items-center gap-2.5">
-                        <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                        <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>Head Office Stock</span>
-                    </div>
-                    <span className="text-[20px] font-bold" style={{ color: availability.hoStock > 0 ? '#2563eb' : '#cbd5e1' }}>
-                        {availability.hoStock}
-                    </span>
+                            {/* Expanded spare items */}
+                            {expandedSites[site.siteId] && site.spares?.length > 0 && (
+                                <div className="px-3 pb-2 pt-1 animate-fade-in" style={{ backgroundColor: '#fafbfc' }}>
+                                    <div className="grid gap-1.5">
+                                        {site.spares.map((spare) => (
+                                            <div
+                                                key={spare._id}
+                                                className="flex items-center justify-between px-3 py-2 rounded-lg border transition-all"
+                                                style={{
+                                                    backgroundColor: '#ffffff',
+                                                    borderColor: '#f1f5f9',
+                                                    fontSize: '11px'
+                                                }}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <Package size={12} className="text-gray-300" />
+                                                    <div>
+                                                        <span className="font-bold text-gray-700">{spare.assetCode}</span>
+                                                        {spare.serialNumber && (
+                                                            <span className="ml-2 text-gray-400">S/N: {spare.serialNumber}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="text-right text-gray-400">
+                                                    <span>{spare.make}</span>
+                                                    {spare.model && <span className="ml-1 text-gray-300">{spare.model}</span>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
                 </div>
-            </div>
+            ) : (
+                /* ==========================================
+                   ENGINEER VIEW: Only local site stock
+                   ========================================== */
+                <div className="flex flex-col">
+                    <div className="flex justify-between items-center py-2.5 border-b" style={{ borderColor: '#f8fafc' }}>
+                        <div className="flex items-center gap-2.5">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                            <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>
+                                {isAdminOrSupervisor ? 'Local Site Stock' : 'Your Site Stock'}
+                            </span>
+                        </div>
+                        <span className="text-[20px] font-bold" style={{ color: availability.localStock > 0 ? '#059669' : '#cbd5e1' }}>
+                            {availability.localStock}
+                        </span>
+                    </div>
+
+                    {isAdminOrSupervisor && (
+                        <div className="flex justify-between items-center py-2.5">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>Head Office Stock</span>
+                            </div>
+                            <span className="text-[20px] font-bold" style={{ color: availability.hoStock > 0 ? '#2563eb' : '#cbd5e1' }}>
+                                {availability.hoStock}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Contextual Alerts */}
             {!isLocked && ticketStatus === 'InProgress' && (
@@ -112,7 +233,12 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
                             style={{ backgroundColor: '#fef2f2', color: '#b91c1c', borderColor: '#fee2e2', borderRadius: '8px' }}
                         >
                             <AlertTriangle size={14} />
-                            <span>No stock available. Please initiate replacement through RMA.</span>
+                            <span>
+                                {availability.viewScope === 'site'
+                                    ? 'No stock available at your site for this device type. Please initiate replacement through RMA.'
+                                    : 'No stock available for this device type. Please initiate replacement through RMA.'
+                                }
+                            </span>
                         </div>
                     ) : (
                         <div

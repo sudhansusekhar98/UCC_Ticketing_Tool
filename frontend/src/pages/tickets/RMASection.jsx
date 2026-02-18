@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
-import { rmaApi } from '../../services/api';
+import { rmaApi, sitesApi, stockApi } from '../../services/api';
 import toast from 'react-hot-toast';
-import { Package, Truck, CheckCircle, Clock, Server, FileText, History, Hash, Info, Settings, RefreshCw, MessageSquare, Cpu, MapPin, Building, Send, ShoppingBag, ArrowDownToLine } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, Server, FileText, History, Hash, Info, Settings, RefreshCw, MessageSquare, Cpu, MapPin, Building, Send, ShoppingBag, ArrowDownToLine, Home, ArrowRightLeft } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 
 const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdate }) => {
@@ -36,6 +36,8 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const [installUserName, setInstallUserName] = useState('');
     const [installPassword, setInstallPassword] = useState('');
     const [installRemarks, setInstallRemarks] = useState('');
+    const [installSerialNumber, setInstallSerialNumber] = useState('');
+    const [installMac, setInstallMac] = useState('');
 
     const [rmaHistory, setRmaHistory] = useState([]);
     const [shippingDetails, setShippingDetails] = useState({ address: '', trackingNumber: '', carrier: '' });
@@ -52,10 +54,30 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const [replLogisticsTracking, setReplLogisticsTracking] = useState('');
     const [replLogisticsRemarks, setReplLogisticsRemarks] = useState('');
 
+    // Dispatched stock transfers for the ticket's site (for linking in dispatch modal)
+    const [dispatchedTransfers, setDispatchedTransfers] = useState([]);
+    const [selectedTransferId, setSelectedTransferId] = useState('');
+    const [loadingTransfers, setLoadingTransfers] = useState(false);
+
+    // Repaired item destination states (Admin only)
+    const [repairedItemDest, setRepairedItemDest] = useState('BackToSite');
+    const [repairedItemDestSiteId, setRepairedItemDestSiteId] = useState('');
+    const [sitesList, setSitesList] = useState([]);
+
     useEffect(() => {
         if (ticketId) loadRMA();
         if (assetId) loadHistory();
+        loadSitesList();
     }, [ticketId, assetId]);
+
+    const loadSitesList = async () => {
+        try {
+            const res = await sitesApi.getDropdown();
+            setSitesList(res.data.data || []);
+        } catch (err) {
+            console.error('Failed to load sites', err);
+        }
+    };
 
     const loadHistory = async () => {
         try {
@@ -159,32 +181,47 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
         setShowLogisticsModal(false);
     };
 
-    // Admin: Ship repaired item back to site
+    // Admin: Ship repaired item back to site (with destination selection)
     const handleShipReturnToSite = async () => {
-        await handleUpdateStatus('ReturnShippedToSite', {
+        const data = {
             logisticsReturnToSite: {
                 carrier: logisticsCarrier,
                 trackingNumber: logisticsTracking,
                 courierName: logisticsCourier,
                 remarks: logisticsRemarks
             },
-            shippingDetails: { carrier: logisticsCarrier, trackingNumber: logisticsTracking }
-        });
+            shippingDetails: { carrier: logisticsCarrier, trackingNumber: logisticsTracking },
+            repairedItemDestination: repairedItemDest
+        };
+        // If destination is another site, pass the override site ID
+        if (repairedItemDest === 'OtherSite' && repairedItemDestSiteId) {
+            data.repairedItemDestinationSiteId = repairedItemDestSiteId;
+        }
+        await handleUpdateStatus('ReturnShippedToSite', data);
         setShowLogisticsModal(false);
+        setRepairedItemDest('BackToSite');
+        setRepairedItemDestSiteId('');
     };
 
     // Install device
     const handleInstallDevice = async () => {
         try {
+            // Determine which track this installation applies to
+            const installTrack = targetStatus === 'Installed_Replacement' ? 'replacement' : 'repair';
+
             await rmaApi.confirmInstallation(rma._id, {
                 status: 'Installed & Working',
                 remarks: installRemarks,
                 newIpAddress: installIpAddress,
                 newUserName: installUserName,
-                newPassword: installPassword
+                newPassword: installPassword,
+                newSerialNumber: installSerialNumber,
+                newMac: installMac,
+                installTrack
             });
-            toast.success('Device installed successfully');
+            toast.success(`${installTrack === 'replacement' ? 'Replacement' : 'Repaired'} device installed successfully`);
             setShowInstallModal(false);
+            setTargetStatus('');
             loadRMA();
             if (onUpdate) onUpdate();
         } catch (error) {
@@ -197,6 +234,8 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
         setInstallIpAddress(rma?.originalDetailsSnapshot?.ipAddress || '');
         setInstallUserName(rma?.originalDetailsSnapshot?.userName || '');
         setInstallPassword('');
+        setInstallSerialNumber(rma?.originalDetailsSnapshot?.serialNumber || '');
+        setInstallMac(rma?.originalDetailsSnapshot?.mac || '');
         setInstallRemarks('');
         setShowInstallModal(true);
     };
@@ -229,6 +268,44 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
         }
     };
 
+    // Load dispatched stock transfers headed to this ticket's site
+    const loadDispatchedTransfers = async () => {
+        if (!siteId) return;
+        try {
+            setLoadingTransfers(true);
+            const res = await stockApi.getDispatchedTransfersForSite(siteId);
+            setDispatchedTransfers(res.data.data || []);
+        } catch (err) {
+            console.error('Failed to load dispatched transfers', err);
+        } finally {
+            setLoadingTransfers(false);
+        }
+    };
+
+    // When admin selects a transfer from the dropdown, auto-fill shipping fields
+    const handleTransferSelect = (transferId) => {
+        setSelectedTransferId(transferId);
+        if (!transferId) {
+            // Cleared selection — reset fields
+            setReplLogisticsCarrier('');
+            setReplLogisticsTracking('');
+            setReplLogisticsRemarks('');
+            return;
+        }
+        const selected = dispatchedTransfers.find(t => t._id === transferId);
+        if (selected?.shippingDetails) {
+            setReplLogisticsCarrier(selected.shippingDetails.carrier || '');
+            setReplLogisticsTracking(selected.shippingDetails.trackingNumber || '');
+            setReplLogisticsRemarks(selected.shippingDetails.remarks || '');
+        }
+    };
+
+    // Open dispatch replacement modal and load transfers
+    const openReplacementDispatchModal = () => {
+        setShowReplacementDispatchModal(true);
+        loadDispatchedTransfers();
+    };
+
     const handleDispatchReplacement = async () => {
         try {
             const data = {
@@ -238,6 +315,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                     trackingNumber: replLogisticsTracking,
                     remarks: replLogisticsRemarks
                 },
+                stockTransferId: selectedTransferId || undefined,
                 remarks: actionRemark || 'Replacement dispatched to site'
             };
             await rmaApi.updateStatus(rma._id, data);
@@ -246,6 +324,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
             setReplLogisticsCarrier('');
             setReplLogisticsTracking('');
             setReplLogisticsRemarks('');
+            setSelectedTransferId('');
             setActionRemark('');
             loadRMA();
             if (onUpdate) onUpdate();
@@ -261,73 +340,125 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const isL1 = hasRole(['L1Engineer', 'L2Engineer']);
 
     // ==========================================
-    // STATUS FLOW HELPER
+    // STATUS FLOW HELPER — returns { repairSteps, replacementSteps }
     // ==========================================
     const getStatusFlow = () => {
-        if (!rma) return [];
+        if (!rma) return { repairSteps: [], replacementSteps: [] };
 
         const isViaHO = rma.itemSendRoute === 'ToHO';
         const isDirectSC = rma.itemSendRoute === 'DirectToServiceCenter';
+        const rt = rma.repairTrackStatus;
+        const rplt = rma.replacementTrackStatus;
 
-        // Base flow
-        const steps = [
-            { key: 'Requested', label: 'Requested', icon: <FileText size={14} />, active: true, date: rma.createdAt },
-            { key: 'Approved', label: 'Approved', icon: <CheckCircle size={14} />, active: rma.status !== 'Requested' && rma.status !== 'Rejected', date: rma.approvedOn },
+        // Ordered repair stages for comparison
+        const repairOrder = ['Pending', 'SentToHO', 'SentToServiceCenter', 'ReceivedAtHO', 'SentForRepair', 'Repaired', 'ReturnShipped', 'ReturnReceived', 'Installed', 'CompletedToHOStock'];
+        const repairIdx = rt ? repairOrder.indexOf(rt) : -1;
+        const isRepairAtOrPast = (stage) => repairIdx >= repairOrder.indexOf(stage);
+
+        // Ordered replacement stages
+        const replOrder = ['Pending', 'RequisitionRaised', 'Dispatched', 'Received', 'Installed'];
+        const replIdx = rplt ? replOrder.indexOf(rplt) : -1;
+        const isReplAtOrPast = (stage) => rplt && rplt !== 'NotRequired' && replIdx >= replOrder.indexOf(stage);
+
+        // ---- Repair Track Steps ----
+        const repairSteps = [
+            { key: 'Requested', label: 'Requested', icon: <FileText size={16} />, active: true, date: rma.createdAt },
+            { key: 'Approved', label: 'Approved', icon: <CheckCircle size={16} />, active: rma.status !== 'Requested' && rma.status !== 'Rejected', date: rma.approvedOn },
         ];
 
         if (rma.status === 'Rejected') {
-            steps.push({ key: 'Rejected', label: 'Rejected', icon: <AlertTriangle size={14} />, active: true, date: null });
-            return steps;
+            repairSteps.push({ key: 'Rejected', label: 'Rejected', icon: <CheckCircle size={16} />, active: true, date: null, variant: 'danger' });
+            return { repairSteps, replacementSteps: [] };
         }
 
         // After approval - item sent
         if (isDirectSC) {
-            steps.push({ key: 'SentToServiceCenter', label: 'Sent to SC', icon: <Send size={14} />, active: ['SentToServiceCenter', 'ItemRepairedAtHO', 'ReturnShippedToSite', 'ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.repairDispatchDate });
+            repairSteps.push({ key: 'SentToServiceCenter', label: 'Sent to SC', icon: <Send size={16} />, active: isRepairAtOrPast('SentToServiceCenter'), date: rma.repairDispatchDate });
         } else if (isViaHO) {
-            steps.push(
-                { key: 'SentToHO', label: 'Sent to HO', icon: <Building size={14} />, active: ['SentToHO', 'ReceivedAtHO', 'SentForRepairFromHO', 'ItemRepairedAtHO', 'ReturnShippedToSite', 'ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsToHO?.dispatchDate },
-                { key: 'ReceivedAtHO', label: 'Received at HO', icon: <Package size={14} />, active: ['ReceivedAtHO', 'SentForRepairFromHO', 'ItemRepairedAtHO', 'ReturnShippedToSite', 'ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.receivedAtHODate },
-                { key: 'SentForRepairFromHO', label: 'Sent to SC', icon: <Send size={14} />, active: ['SentForRepairFromHO', 'ItemRepairedAtHO', 'ReturnShippedToSite', 'ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsToServiceCenter?.dispatchDate },
+            repairSteps.push(
+                { key: 'SentToHO', label: 'Sent to HO', icon: <Building size={16} />, active: isRepairAtOrPast('SentToHO'), date: rma.logisticsToHO?.dispatchDate },
+                { key: 'ReceivedAtHO', label: 'Received at HO', icon: <Package size={16} />, active: isRepairAtOrPast('ReceivedAtHO'), date: rma.receivedAtHODate },
+                { key: 'SentForRepairFromHO', label: 'Sent to SC', icon: <Send size={16} />, active: isRepairAtOrPast('SentForRepair'), date: rma.logisticsToServiceCenter?.dispatchDate },
             );
         } else {
-            // Not yet decided route - show generic "Send Item" step
-            if (['Approved'].includes(rma.status)) {
-                steps.push({ key: 'send', label: 'Send Item', icon: <Send size={14} />, active: false, date: null });
+            if (rt === 'Pending') {
+                repairSteps.push({ key: 'send', label: 'Send Item', icon: <Send size={16} />, active: false, date: null });
             }
         }
 
-        // Return from repair (only shown if RepairOnly or the repair leg of RepairAndReplace)
-        const afterRepairStatuses = ['ItemRepairedAtHO', 'ReturnShippedToSite', 'ReceivedAtSite', 'Installed'];
-        steps.push(
-            { key: 'ItemRepairedAtHO', label: 'Repaired (at HO)', icon: <CheckCircle size={14} />, active: afterRepairStatuses.includes(rma.status), date: rma.repairedItemReceivedAtHODate },
-            { key: 'ReturnShippedToSite', label: 'Shipped to Site', icon: <Truck size={14} />, active: ['ReturnShippedToSite', 'ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsReturnToSite?.dispatchDate },
-            { key: 'ReceivedAtSite', label: 'Received', icon: <MapPin size={14} />, active: ['ReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsReturnToSite?.receivedDate },
+        // Return from repair
+        repairSteps.push(
+            { key: 'ItemRepairedAtHO', label: 'Repaired', icon: <CheckCircle size={16} />, active: isRepairAtOrPast('Repaired'), date: rma.repairedItemReceivedAtHODate },
         );
 
-        // Replacement track (only for RepairAndReplace)
-        if (rma.replacementSource === 'RepairAndReplace') {
-            const replStatuses = ['ReplacementRequisitionRaised', 'ReplacementDispatched', 'ReplacementReceivedAtSite', 'Installed'];
-            steps.push(
-                { key: 'ReplacementRequisitionRaised', label: 'Requisition', icon: <ShoppingBag size={14} />, active: replStatuses.includes(rma.status), date: rma.replacementArrangedOn },
-                { key: 'ReplacementDispatched', label: 'Repl. Dispatched', icon: <Truck size={14} />, active: ['ReplacementDispatched', 'ReplacementReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsReplacementToSite?.dispatchDate },
-                { key: 'ReplacementReceivedAtSite', label: 'Repl. Received', icon: <ArrowDownToLine size={14} />, active: ['ReplacementReceivedAtSite', 'Installed'].includes(rma.status), date: rma.logisticsReplacementToSite?.receivedDate },
+        if (rt !== 'CompletedToHOStock') {
+            repairSteps.push(
+                { key: 'ReturnShippedToSite', label: 'Shipped Back', icon: <Truck size={16} />, active: isRepairAtOrPast('ReturnShipped'), date: rma.logisticsReturnToSite?.dispatchDate },
+                { key: 'ReceivedAtSite', label: 'Received', icon: <MapPin size={16} />, active: isRepairAtOrPast('ReturnReceived'), date: rma.logisticsReturnToSite?.receivedDate },
+                { key: 'RepairInstalled', label: 'Installed', icon: <Settings size={16} />, active: rma.repairTrackStatus === 'Installed' || rma.status === 'Installed', date: rma.installedOn },
+            );
+        } else {
+            repairSteps.push(
+                { key: 'CompletedToHOStock', label: 'Added to HO Stock', icon: <Building size={16} />, active: true, date: rma.installedOn },
             );
         }
 
-        steps.push(
-            { key: 'Installed', label: 'Installed', icon: <Settings size={14} />, active: rma.status === 'Installed', date: rma.installedOn },
-        );
+        // ---- Replacement Track Steps ----
+        const replacementSteps = [];
+        if (rma.replacementSource === 'RepairAndReplace' && rplt && rplt !== 'NotRequired') {
+            replacementSteps.push(
+                { key: 'ReplacementRequisitionRaised', label: 'Requisition Raised', icon: <ShoppingBag size={16} />, active: isReplAtOrPast('RequisitionRaised'), date: rma.replacementArrangedOn },
+                { key: 'ReplacementDispatched', label: 'Dispatched', icon: <Truck size={16} />, active: isReplAtOrPast('Dispatched'), date: rma.logisticsReplacementToSite?.dispatchDate },
+                { key: 'ReplacementReceivedAtSite', label: 'Received', icon: <ArrowDownToLine size={16} />, active: isReplAtOrPast('Received'), date: rma.logisticsReplacementToSite?.receivedDate },
+                { key: 'ReplacementInstalled', label: 'Installed', icon: <Settings size={16} />, active: rma.replacementTrackStatus === 'Installed' || rma.status === 'Installed', date: rma.installedOn },
+            );
+        }
 
-        return steps;
+        return { repairSteps, replacementSteps };
     };
 
-    const renderStep = (step) => (
-        <div key={step.key} className={`rma-step ${step.active ? 'active' : ''}`}>
-            <div className="rma-step-icon">{step.icon}</div>
-            <span className="rma-step-label">{step.label}</span>
-            {step.date && <span className="rma-step-date">{new Date(step.date).toLocaleDateString()}</span>}
-        </div>
-    );
+    const formatStepDate = (date) => {
+        if (!date) return null;
+        const d = new Date(date);
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+    };
+
+    const renderTrack = (steps, trackLabel, trackColor, trackIcon) => {
+        if (!steps || steps.length === 0) return null;
+        const activeCount = steps.filter(s => s.active).length;
+        const progressPct = steps.length > 1 ? ((activeCount - 1) / (steps.length - 1)) * 100 : 0;
+
+        return (
+            <div className={`rma-track rma-track--${trackColor}`}>
+                <div className="rma-track__header">
+                    <span className={`rma-track__icon rma-track__icon--${trackColor}`}>{trackIcon}</span>
+                    <span className="rma-track__label">{trackLabel}</span>
+                    <span className={`rma-track__badge rma-track__badge--${trackColor}`}>
+                        {activeCount}/{steps.length}
+                    </span>
+                </div>
+                <div className="rma-track__steps-wrapper">
+                    <div className="rma-track__rail">
+                        <div className="rma-track__rail-fill" style={{ width: `${Math.min(progressPct, 100)}%` }} />
+                    </div>
+                    <div className="rma-track__steps">
+                        {steps.map((step) => (
+                            <div key={step.key} className={`rma-step ${step.active ? 'active' : ''} ${step.variant === 'danger' ? 'danger' : ''}`}>
+                                <div className="rma-step__icon">{step.icon}</div>
+                                <div className="rma-step__info">
+                                    <span className="rma-step__label">{step.label}</span>
+                                    {step.date && <span className="rma-step__date">{formatStepDate(step.date)}</span>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Destructure the flow
+    const { repairSteps, replacementSteps } = getStatusFlow();
 
     // ==========================================
     // RENDER
@@ -369,12 +500,10 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
 
             {rma ? (
                 <div className="space-y-4">
-                    {/* Status Tracker */}
-                    <div className="rma-timeline-tracker">
-                        <div className="rma-timeline-line"></div>
-                        <div className="rma-timeline-steps">
-                            {getStatusFlow().map(step => renderStep(step))}
-                        </div>
+                    {/* Status Tracker — Dual Track */}
+                    <div className="rma-tracker-container">
+                        {renderTrack(repairSteps, 'Repair Track', 'primary', <RefreshCw size={14} />)}
+                        {replacementSteps.length > 0 && renderTrack(replacementSteps, 'Replacement Track', 'info', <Package size={14} />)}
                     </div>
 
                     {/* Details Container */}
@@ -388,7 +517,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                 </div>
                             </div>
                             <div className="rma-detail-item">
-                                <span className="detail-label"><Info size={12} /> Current Status</span>
+                                <span className="detail-label"><Info size={12} /> Overall Status</span>
                                 <div className="detail-value">
                                     <span className={`badge badge-${['Installed', 'ReceivedAtSite'].includes(rma.status) ? 'success' : rma.status === 'Rejected' ? 'danger' : 'warning'}`}>
                                         {rma.status.replace(/([A-Z])/g, ' $1').trim()}
@@ -398,10 +527,34 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             <div className="rma-detail-item">
                                 <span className="detail-label"><RefreshCw size={12} /> Type</span>
                                 <div className="detail-value text-xs font-bold uppercase">
-                                    {rma.replacementSource === 'RepairOnly' || rma.replacementSource === 'Repair' ? '🔧 Repair Only' : '🔄 Repair & Replace'}
+                                    {rma.replacementSource === 'RepairOnly' || rma.replacementSource === 'Repair' ? 'Repair Only' : 'Repair & Replace'}
                                 </div>
                             </div>
                         </div>
+
+                        {/* Group 1b: Parallel Track Statuses (only for RepairAndReplace) */}
+                        {rma.repairTrackStatus && (
+                            <div className="rma-info-group">
+                                <div className="rma-detail-item">
+                                    <span className="detail-label"><RefreshCw size={12} /> Repair Track</span>
+                                    <div className="detail-value">
+                                        <span className={`badge badge-${['Installed', 'CompletedToHOStock'].includes(rma.repairTrackStatus) ? 'success' : 'warning'}`}>
+                                            {(rma.repairTrackStatus || 'N/A').replace(/([A-Z])/g, ' $1').trim()}
+                                        </span>
+                                    </div>
+                                </div>
+                                {rma.replacementTrackStatus && rma.replacementTrackStatus !== 'NotRequired' && (
+                                    <div className="rma-detail-item">
+                                        <span className="detail-label"><Package size={12} /> Replacement Track</span>
+                                        <div className="detail-value">
+                                            <span className={`badge badge-${rma.replacementTrackStatus === 'Installed' ? 'success' : 'info'}`}>
+                                                {(rma.replacementTrackStatus || 'N/A').replace(/([A-Z])/g, ' $1').trim()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Group 2: Request Context */}
                         <div className="rma-info-group">
@@ -472,7 +625,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                        ======================================== */}
 
                     {/* STEP 2: After Approval - L1 needs to send item */}
-                    {rma.status === 'Approved' && (isL1 || canManageRMA) && (
+                    {rma.repairTrackStatus === 'Pending' && (isL1 || canManageRMA) && (
                         <div className="rma-finalization-alert status-received animate-fade-in">
                             <div className="rma-alert-info">
                                 <Send size={20} className="text-primary-500" />
@@ -495,7 +648,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                     )}
 
                     {/* STEP 3a: Item at HO - Admin acknowledges */}
-                    {rma.status === 'SentToHO' && canManageRMA && (
+                    {rma.repairTrackStatus === 'SentToHO' && canManageRMA && (
                         <div className="rma-finalization-alert status-received animate-fade-in">
                             <div className="rma-alert-info">
                                 <Building size={20} className="text-warning-500" />
@@ -518,7 +671,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                     )}
 
                     {/* STEP 3b: At HO - Admin sends to Service Center */}
-                    {rma.status === 'ReceivedAtHO' && canManageRMA && (
+                    {rma.repairTrackStatus === 'ReceivedAtHO' && canManageRMA && (
                         <div className="rma-finalization-alert status-in-repair animate-fade-in">
                             <div className="rma-alert-info">
                                 <RefreshCw size={20} className="text-warning-500" />
@@ -541,7 +694,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                     )}
 
                     {/* STEP 4: Repair done - Admin confirms receipt back at HO */}
-                    {(rma.status === 'SentToServiceCenter' || rma.status === 'SentForRepairFromHO') && canManageRMA && (
+                    {(rma.repairTrackStatus === 'SentToServiceCenter' || rma.repairTrackStatus === 'SentForRepair') && canManageRMA && (
                         <div className="rma-finalization-alert status-in-repair animate-fade-in">
                             <div className="rma-alert-info">
                                 <RefreshCw size={20} className="text-warning-500 animate-spin" style={{ animationDuration: '3s' }} />
@@ -563,31 +716,100 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                     )}
 
-                    {/* STEP 5: Admin ships repaired item back to site */}
-                    {rma.status === 'ItemRepairedAtHO' && canManageRMA && (
+                    {/* STEP 5: Admin ships repaired item — with destination selection */}
+                    {rma.repairTrackStatus === 'Repaired' && canManageRMA && (
                         <div className="rma-finalization-alert status-repaired animate-fade-in">
                             <div className="rma-alert-info">
                                 <CheckCircle size={20} className="text-success-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Repaired Item Ready — Ship to Site</p>
+                                    <p className="alert-title">Repaired Item Ready — Select Destination & Ship</p>
                                     <p className="alert-desc">
-                                        The repaired item has been received at HO. Ship it back to the site for installation.
+                                        The repaired item has been received at HO. Choose where to send it and initiate shipping.
                                     </p>
                                 </div>
                             </div>
-                            <div className="rma-alert-actions">
+
+                            {/* Destination selection */}
+                            <div className="mt-3 p-3 rounded-lg border" style={{ backgroundColor: '#fafbfc', borderColor: '#e2e8f0' }}>
+                                <label className="text-[10px] font-bold uppercase tracking-wider mb-2 block" style={{ color: '#64748b' }}>
+                                    Repaired Item Destination
+                                </label>
+                                <div className="grid grid-cols-3 gap-2 mb-2">
+                                    <button
+                                        type="button"
+                                        className={`btn btn-sm flex items-center gap-1.5 justify-center ${repairedItemDest === 'BackToSite' ? 'btn-success' : 'btn-outline'}`}
+                                        onClick={() => setRepairedItemDest('BackToSite')}
+                                    >
+                                        <MapPin size={12} /> Back to Site
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn btn-sm flex items-center gap-1.5 justify-center ${repairedItemDest === 'HOStock' ? 'btn-primary' : 'btn-outline'}`}
+                                        onClick={() => setRepairedItemDest('HOStock')}
+                                    >
+                                        <Home size={12} /> HO Stock
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn btn-sm flex items-center gap-1.5 justify-center ${repairedItemDest === 'OtherSite' ? 'btn-warning' : 'btn-outline'}`}
+                                        onClick={() => setRepairedItemDest('OtherSite')}
+                                    >
+                                        <ArrowRightLeft size={12} /> Other Site
+                                    </button>
+                                </div>
+
+                                {repairedItemDest === 'BackToSite' && (
+                                    <div className="animate-fade-in p-2 bg-success/5 rounded-lg border border-success/20 mt-2">
+                                        <p className="text-[10px] text-success-700">
+                                            The repaired item will be sent back to the original ticket site for installation.
+                                        </p>
+                                    </div>
+                                )}
+                                {repairedItemDest === 'HOStock' && (
+                                    <div className="animate-fade-in p-2 bg-primary/5 rounded-lg border border-primary/20 mt-2">
+                                        <p className="text-[10px] text-primary-700">
+                                            The repaired item will be added to Head Office spare stock. It will not be shipped to any site.
+                                        </p>
+                                    </div>
+                                )}
+                                {repairedItemDest === 'OtherSite' && (
+                                    <div className="animate-fade-in p-2 bg-warning/10 rounded-lg border border-warning/30 mt-2">
+                                        <p className="text-[10px] text-warning-700 mb-2">
+                                            The repaired item will be shipped to a different site.
+                                        </p>
+                                        <select
+                                            className="form-input text-xs"
+                                            value={repairedItemDestSiteId}
+                                            onChange={e => setRepairedItemDestSiteId(e.target.value)}
+                                        >
+                                            <option value="">Select destination site...</option>
+                                            {sitesList
+                                                .filter(s => s._id !== siteId)
+                                                .map(s => (
+                                                    <option key={s._id} value={s._id}>
+                                                        {s.siteName}{s.isHeadOffice ? ' (HO)' : ''}
+                                                    </option>
+                                                ))
+                                            }
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="rma-alert-actions mt-3">
                                 <button
                                     className="btn btn-sm btn-primary shadow-sm flex items-center gap-1"
                                     onClick={() => { resetLogisticsForm(); setTargetStatus('ReturnShippedToSite'); setShowLogisticsModal(true); }}
+                                    disabled={repairedItemDest === 'OtherSite' && !repairedItemDestSiteId}
                                 >
-                                    <Truck size={14} /> Ship to Site
+                                    <Truck size={14} /> {repairedItemDest === 'HOStock' ? 'Add to HO Stock' : 'Ship to Site'}
                                 </button>
                             </div>
                         </div>
                     )}
 
                     {/* STEP 6a: Item shipped - awaiting receipt at site */}
-                    {rma.status === 'ReturnShippedToSite' && (isL1 || canManageRMA) && (
+                    {rma.repairTrackStatus === 'ReturnShipped' && (isL1 || canManageRMA) && (
                         <div className="rma-finalization-alert status-received animate-fade-in">
                             <div className="rma-alert-info">
                                 <Truck size={20} className="text-primary-500" />
@@ -609,26 +831,47 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                     )}
 
-                    {/* STEP 6b: Received at site - install device */}
-                    {(rma.status === 'ReceivedAtSite' || rma.status === 'ReplacementReceivedAtSite') && (canInstall) && (
+                    {/* STEP 6b: Received at site - install device (Repair track) */}
+                    {rma.repairTrackStatus === 'ReturnReceived' && (canInstall) && (
                         <div className="rma-finalization-alert status-received animate-fade-in">
                             <div className="rma-alert-info">
                                 <Server size={20} className="text-success-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Item Received — Install Device</p>
+                                    <p className="alert-title">Repaired Item Received — Install Device</p>
                                     <p className="alert-desc">
-                                        {rma.status === 'ReplacementReceivedAtSite'
-                                            ? 'The replacement item has arrived at the site. Install the device and update its current details (IP, credentials).'
-                                            : 'The repaired item has arrived at the site. Install the device and update its current details (IP, credentials).'}
+                                        The repaired item has arrived at the site. Install the device and update its current details (IP, credentials).
                                     </p>
                                 </div>
                             </div>
                             <div className="rma-alert-actions">
                                 <button
                                     className="btn btn-sm btn-success shadow-sm flex items-center gap-1 animate-pulse"
-                                    onClick={openInstallModal}
+                                    onClick={() => { openInstallModal(); setTargetStatus('Installed_Repair'); }}
                                 >
                                     <Settings size={14} /> Install & Update Details
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* STEP 6c: Replacement received at site - install replacement device */}
+                    {rma.replacementTrackStatus === 'Received' && (canInstall) && (
+                        <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--success-500)' }}>
+                            <div className="rma-alert-info">
+                                <Server size={20} className="text-success-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">Replacement Item Received — Install Device</p>
+                                    <p className="alert-desc">
+                                        The replacement item has arrived at the site. Install the device and update its current details (IP, credentials).
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rma-alert-actions">
+                                <button
+                                    className="btn btn-sm btn-success shadow-sm flex items-center gap-1 animate-pulse"
+                                    onClick={() => { openInstallModal(); setTargetStatus('Installed_Replacement'); }}
+                                >
+                                    <Settings size={14} /> Install Replacement
                                 </button>
                             </div>
                         </div>
@@ -639,7 +882,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                        ======================================== */}
 
                     {/* REPLACEMENT STEP 1: After approval of RepairAndReplace — Admin raises requisition */}
-                    {rma.status === 'Approved' && rma.replacementSource === 'RepairAndReplace' && canManageRMA && (
+                    {rma.replacementTrackStatus === 'Pending' && canManageRMA && (
                         <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--info-500)' }}>
                             <div className="rma-alert-info">
                                 <ShoppingBag size={20} className="text-info-500" />
@@ -662,7 +905,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                     )}
 
                     {/* REPLACEMENT STEP 2: Requisition raised — Admin dispatches replacement */}
-                    {rma.status === 'ReplacementRequisitionRaised' && canManageRMA && (
+                    {rma.replacementTrackStatus === 'RequisitionRaised' && canManageRMA && (
                         <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--primary-500)' }}>
                             <div className="rma-alert-info">
                                 <Truck size={20} className="text-primary-500" />
@@ -676,7 +919,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             <div className="rma-alert-actions">
                                 <button
                                     className="btn btn-sm btn-primary shadow-sm flex items-center gap-1"
-                                    onClick={() => setShowReplacementDispatchModal(true)}
+                                    onClick={() => openReplacementDispatchModal()}
                                 >
                                     <Truck size={14} /> Dispatch Replacement
                                 </button>
@@ -685,7 +928,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                     )}
 
                     {/* REPLACEMENT STEP 3: Dispatched — L1/ticket owner confirms receipt */}
-                    {rma.status === 'ReplacementDispatched' && (isL1 || canManageRMA) && (
+                    {rma.replacementTrackStatus === 'Dispatched' && (isL1 || canManageRMA) && (
                         <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--success-500)' }}>
                             <div className="rma-alert-info">
                                 <ArrowDownToLine size={20} className="text-success-500" />
@@ -772,23 +1015,23 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                         className={`btn btn-sm ${replacementSource === 'RepairOnly' ? 'btn-warning' : 'btn-outline'}`}
                                         onClick={() => setReplacementSource('RepairOnly')}
                                     >
-                                        🔧 Repair Only
+                                        Repair Only
                                     </button>
                                     <button
                                         type="button"
                                         className={`btn btn-sm ${replacementSource === 'RepairAndReplace' ? 'btn-primary' : 'btn-outline'}`}
                                         onClick={() => setReplacementSource('RepairAndReplace')}
                                     >
-                                        🔄 Repair & Site Replacement
+                                        Repair & Site Replacement
                                     </button>
                                 </div>
 
                                 {replacementSource === 'RepairOnly' && (
                                     <div className="animate-fade-in p-3 bg-warning/10 rounded-lg border border-warning/30">
                                         <div className="flex items-start gap-2">
-                                            <span className="text-xl">🔧</span>
+                                            <span className="text-xl"></span>
                                             <div>
-                                                <p className="text-sm font-bold text-warning-700">Repair Only</p>
+                                                {/* <p className="text-sm font-bold text-warning-700">Repair Only</p> */}
                                                 <p className="text-[10px] text-warning-600 mt-1">
                                                     The faulty device will be sent for repair. Once repaired,
                                                     the same device will be returned to this site for re-installation.
@@ -798,13 +1041,13 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                         </div>
                                     </div>
                                 )}
-
+                                <br />
                                 {replacementSource === 'RepairAndReplace' && (
                                     <div className="animate-fade-in p-3 bg-primary/5 rounded-lg border border-primary/20">
                                         <div className="flex items-start gap-2">
-                                            <span className="text-xl">🔄</span>
+                                            <span className="text-xl"></span>
                                             <div>
-                                                <p className="text-sm font-bold text-primary-700">Send for Repair & Site Replacement</p>
+                                                {/* <p className="text-sm font-bold text-primary-700">Send for Repair & Site Replacement</p> */}
                                                 <p className="text-[10px] text-primary-600 mt-1">
                                                     The faulty device will be sent for repair <strong>and</strong> a replacement device
                                                     will be arranged from HO / another site by the Admin.
@@ -856,14 +1099,14 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                         className={`btn btn-sm ${itemSendRoute === 'DirectToServiceCenter' ? 'btn-primary' : 'btn-outline'}`}
                                         onClick={() => setItemSendRoute('DirectToServiceCenter')}
                                     >
-                                        📦 Direct to Service Center
+                                        Direct to Service Center
                                     </button>
                                     <button
                                         type="button"
                                         className={`btn btn-sm ${itemSendRoute === 'ToHO' ? 'btn-warning' : 'btn-outline'}`}
                                         onClick={() => setItemSendRoute('ToHO')}
                                     >
-                                        🏢 Send to Head Office
+                                        Send to Head Office
                                     </button>
                                 </div>
 
@@ -921,7 +1164,10 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         <div className="modal-header">
                             <h3 className="flex items-center gap-2">
                                 <Truck size={16} />
-                                {targetStatus === 'SentForRepairFromHO' ? 'Send to Service Center' : 'Ship to Site'}
+                                {targetStatus === 'SentForRepairFromHO' ? 'Send to Service Center'
+                                    : repairedItemDest === 'HOStock' ? 'Add to HO Stock'
+                                        : repairedItemDest === 'OtherSite' ? `Ship to ${sitesList.find(s => s._id === repairedItemDestSiteId)?.siteName || 'Other Site'}`
+                                            : 'Ship to Site'}
                             </h3>
                         </div>
                         <div className="modal-body">
@@ -978,6 +1224,34 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                 <p className="text-[10px] text-muted">
                                     Update the current details of the device after installation. These will be saved with the asset record.
                                 </p>
+                            </div>
+
+                            <div className="p-3 bg-secondary/10 rounded-lg border border-border/30 mb-3">
+                                <div className="text-[10px] text-muted uppercase tracking-wider font-bold mb-1 opacity-60">Asset Code (fixed, never changes)</div>
+                                <div className="font-mono font-bold text-sm text-primary-500">{rma?.originalDetailsSnapshot?.assetCode || rma?.originalAssetId || '—'}</div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                <div className="form-group mb-0">
+                                    <label className="form-label">Serial Number (SL)</label>
+                                    <input
+                                        className="form-input font-mono"
+                                        type="text"
+                                        placeholder="e.g., HK12345678"
+                                        value={installSerialNumber}
+                                        onChange={e => setInstallSerialNumber(e.target.value)}
+                                    />
+                                </div>
+                                <div className="form-group mb-0">
+                                    <label className="form-label">MAC Address</label>
+                                    <input
+                                        className="form-input font-mono"
+                                        type="text"
+                                        placeholder="e.g., 00:1A:2B:3C:4D:5E"
+                                        value={installMac}
+                                        onChange={e => setInstallMac(e.target.value)}
+                                    />
+                                </div>
                             </div>
 
                             <div className="form-group">
@@ -1063,21 +1337,21 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                         className={`btn btn-sm ${replacementStockSource === 'HOStock' ? 'btn-primary' : 'btn-outline'}`}
                                         onClick={() => setReplacementStockSource('HOStock')}
                                     >
-                                        🏢 HO Stock
+                                        HO Stock
                                     </button>
                                     <button
                                         type="button"
                                         className={`btn btn-sm ${replacementStockSource === 'SiteStock' ? 'btn-warning' : 'btn-outline'}`}
                                         onClick={() => setReplacementStockSource('SiteStock')}
                                     >
-                                        📦 Site Stock
+                                        Site Stock
                                     </button>
                                     <button
                                         type="button"
                                         className={`btn btn-sm ${replacementStockSource === 'Market' ? 'btn-info' : 'btn-outline'}`}
                                         onClick={() => setReplacementStockSource('Market')}
                                     >
-                                        🛒 Market
+                                        Market
                                     </button>
                                 </div>
 
@@ -1146,6 +1420,39 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             </h3>
                         </div>
                         <div className="modal-body">
+                            {/* Stock Transfer Dropdown */}
+                            <div className="p-3 bg-info/5 rounded-lg border border-info/20 mb-4 animate-fade-in">
+                                <h4 className="text-[10px] font-bold mb-2 uppercase tracking-wider opacity-60 flex items-center gap-2">
+                                    <ArrowRightLeft size={12} /> Link Stock Transfer (Optional)
+                                </h4>
+                                <p className="text-[10px] text-muted mb-2">
+                                    Select an existing dispatched stock transfer for this site. Shipping details will be auto-populated.
+                                </p>
+                                {loadingTransfers ? (
+                                    <p className="text-[10px] text-muted italic">Loading transfers...</p>
+                                ) : dispatchedTransfers.length > 0 ? (
+                                    <select
+                                        className="form-input text-xs"
+                                        value={selectedTransferId}
+                                        onChange={e => handleTransferSelect(e.target.value)}
+                                    >
+                                        <option value="">— None (enter details manually) —</option>
+                                        {dispatchedTransfers.map(tr => {
+                                            const srcLabel = tr.sourceSiteId?.isHeadOffice ? 'HO' : (tr.sourceSiteId?.siteName || '?');
+                                            const destLabel = tr.destinationSiteId?.isHeadOffice ? 'HO' : (tr.destinationSiteId?.siteName || '?');
+                                            const trfId = `TRF-${tr._id.substring(18).toUpperCase()}`;
+                                            return (
+                                                <option key={tr._id} value={tr._id}>
+                                                    {tr.transferName || `${srcLabel} → ${destLabel}`} | {trfId} | {tr.assetIds?.length || 0} items
+                                                </option>
+                                            );
+                                        })}
+                                    </select>
+                                ) : (
+                                    <p className="text-[10px] text-warning-600 italic">No dispatched transfers found for this site.</p>
+                                )}
+                            </div>
+
                             <div className="p-3 bg-secondary/10 rounded-lg border border-border/30">
                                 <h4 className="text-[10px] font-bold mb-3 uppercase tracking-wider opacity-60 flex items-center gap-2">
                                     <Truck size={12} /> Shipping Details

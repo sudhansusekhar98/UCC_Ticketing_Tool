@@ -9,6 +9,26 @@ import Requisition from '../models/Requisition.model.js';
 import StockMovementLog from '../models/StockMovementLog.model.js';
 import DailyWorkLog from '../models/DailyWorkLog.model.js';
 import { sendRMACreationEmail, sendRMAMilestoneEmail } from '../utils/email.utils.js';
+import { decrypt, isEncrypted } from '../utils/encryption.utils.js';
+
+// Helper: decrypt sensitive fields in originalDetailsSnapshot
+const decryptSnapshot = (rmaObj) => {
+  if (!rmaObj) return rmaObj;
+  const obj = rmaObj.toObject ? rmaObj.toObject() : { ...rmaObj };
+  if (obj.originalDetailsSnapshot) {
+    const snap = obj.originalDetailsSnapshot;
+    for (const field of ['ipAddress', 'mac', 'serialNumber', 'userName', 'password']) {
+      if (snap[field] && isEncrypted(snap[field])) {
+        try {
+          snap[field] = decrypt(snap[field]);
+        } catch (err) {
+          console.error(`[RMA] Failed to decrypt snapshot.${field}:`, err.message);
+        }
+      }
+    }
+  }
+  return obj;
+};
 
 // HO Stock auto-transfer threshold (if stock quantity > this, auto-approve transfer)
 const HO_STOCK_AUTO_TRANSFER_THRESHOLD = 2;
@@ -83,9 +103,12 @@ export const getAllRMAs = async (req, res, next) => {
       RMARequest.countDocuments(filter)
     ]);
 
+    // Decrypt snapshot fields for display
+    const decryptedRmas = rmas.map(r => decryptSnapshot(r));
+
     res.json({
       success: true,
-      data: rmas,
+      data: decryptedRmas,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -169,9 +192,10 @@ export const createRMA = async (req, res, next) => {
       siteId: siteIdValue,
       originalAssetId: asset._id,
       originalDetailsSnapshot: {
-        serialNumber: asset.serialNumber,
-        ipAddress: asset.ipAddress,
-        mac: asset.mac,
+        assetCode: asset.assetCode,
+        serialNumber: isEncrypted(asset.serialNumber) ? decrypt(asset.serialNumber) : asset.serialNumber,
+        ipAddress: isEncrypted(asset.ipAddress) ? decrypt(asset.ipAddress) : asset.ipAddress,
+        mac: isEncrypted(asset.mac) ? decrypt(asset.mac) : asset.mac,
         model: asset.model,
         make: asset.make
       },
@@ -296,7 +320,10 @@ export const getRMAByTicket = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'No RMA found for this ticket' });
     }
 
-    res.json({ success: true, data: rma });
+    // Decrypt snapshot fields for display
+    const decryptedRma = decryptSnapshot(rma);
+
+    res.json({ success: true, data: decryptedRma });
   } catch (error) {
     next(error);
   }
@@ -312,7 +339,8 @@ export const getRMAHistory = async (req, res, next) => {
       .populate('requestedBy', 'fullName')
       .sort({ createdAt: -1 });
 
-    res.json({ success: true, data: history });
+    const decryptedHistory = history.map(r => decryptSnapshot(r));
+    res.json({ success: true, data: decryptedHistory });
   } catch (error) {
     next(error);
   }
@@ -347,6 +375,17 @@ export const updateRMAStatus = async (req, res, next) => {
 
     const previousStatus = rma.status;
 
+    // Helper: check if both tracks are done and finalize
+    const checkAndFinalizeRMA = (rmaDoc) => {
+      const repairDone = ['Installed', 'CompletedToHOStock'].includes(rmaDoc.repairTrackStatus);
+      const replacementDone = rmaDoc.replacementTrackStatus === 'NotRequired'
+        || rmaDoc.replacementTrackStatus === 'Installed';
+      if (repairDone && replacementDone) {
+        rmaDoc.status = 'Installed';
+        rmaDoc.isFaultyItemFinalized = true;
+      }
+    };
+
     // === STATUS TRANSITION LOGIC ===
 
     // ADMIN: Approve or Reject
@@ -355,15 +394,15 @@ export const updateRMAStatus = async (req, res, next) => {
       rma.approvedOn = new Date();
       rma.status = 'Approved';
 
-      // If this is a RepairAndReplace RMA, Admin can specify the replacement source
+      // Initialize parallel track statuses
+      rma.repairTrackStatus = 'Pending';
       if (rma.replacementSource === 'RepairAndReplace') {
+        rma.replacementTrackStatus = 'Pending';
         const { replacementStockSource: stockSource, replacementSourceSiteId: sourceId } = req.body;
-        if (stockSource) {
-          rma.replacementStockSource = stockSource;
-        }
-        if (sourceId) {
-          rma.replacementSourceSiteId = sourceId;
-        }
+        if (stockSource) rma.replacementStockSource = stockSource;
+        if (sourceId) rma.replacementSourceSiteId = sourceId;
+      } else {
+        rma.replacementTrackStatus = 'NotRequired';
       }
     }
 
@@ -397,6 +436,7 @@ export const updateRMAStatus = async (req, res, next) => {
     // L1: Send item directly to Service Center
     if (status === 'SentToServiceCenter') {
       rma.status = 'SentToServiceCenter';
+      rma.repairTrackStatus = 'SentToServiceCenter';
       rma.itemSendRoute = 'DirectToServiceCenter';
       rma.repairDispatchDate = new Date();
       if (logisticsToServiceCenter) {
@@ -433,6 +473,7 @@ export const updateRMAStatus = async (req, res, next) => {
     // L1: Send item to HO
     if (status === 'SentToHO') {
       rma.status = 'SentToHO';
+      rma.repairTrackStatus = 'SentToHO';
       rma.itemSendRoute = 'ToHO';
       if (logisticsToHO) {
         rma.logisticsToHO = {
@@ -447,6 +488,7 @@ export const updateRMAStatus = async (req, res, next) => {
     // ADMIN: Acknowledge receipt at HO
     if (status === 'ReceivedAtHO') {
       rma.status = 'ReceivedAtHO';
+      rma.repairTrackStatus = 'ReceivedAtHO';
       rma.receivedAtHOBy = req.user._id;
       rma.receivedAtHODate = new Date();
       if (rma.logisticsToHO) {
@@ -457,6 +499,7 @@ export const updateRMAStatus = async (req, res, next) => {
     // ADMIN: Send item from HO to Service Center
     if (status === 'SentForRepairFromHO') {
       rma.status = 'SentForRepairFromHO';
+      rma.repairTrackStatus = 'SentForRepair';
       rma.repairDispatchDate = new Date();
       if (logisticsToServiceCenter) {
         rma.logisticsToServiceCenter = {
@@ -495,6 +538,7 @@ export const updateRMAStatus = async (req, res, next) => {
     // ADMIN: Repaired item received back at HO (Admin answers Yes)
     if (status === 'ItemRepairedAtHO') {
       rma.status = 'ItemRepairedAtHO';
+      rma.repairTrackStatus = 'Repaired';
       rma.repairedItemReceivedAtHO = true;
       rma.repairedItemReceivedAtHOBy = req.user._id;
       rma.repairedItemReceivedAtHODate = new Date();
@@ -522,9 +566,10 @@ export const updateRMAStatus = async (req, res, next) => {
       }
     }
 
-    // ADMIN: Ship repaired/replacement item back to site
+    // ADMIN: Ship repaired/replacement item back to site (with destination selection)
     if (status === 'ReturnShippedToSite') {
       rma.status = 'ReturnShippedToSite';
+      rma.repairTrackStatus = 'ReturnShipped';
       if (logisticsReturnToSite) {
         rma.logisticsReturnToSite = {
           ...rma.logisticsReturnToSite,
@@ -533,35 +578,92 @@ export const updateRMAStatus = async (req, res, next) => {
         };
       }
       if (shippingDetails) rma.shippingDetails = { ...rma.shippingDetails, ...shippingDetails };
+
+      // Save repaired item destination (Admin decision)
+      if (repairedItemDestination) {
+        rma.repairedItemDestination = repairedItemDestination;
+      }
+      if (repairedItemDestinationSiteId) {
+        rma.overrideDestinationSiteId = repairedItemDestinationSiteId;
+        rma.overrideApprovedBy = req.user._id;
+      }
+
+      // Handle HOStock destination — move asset to HO spare stock immediately
+      if (repairedItemDestination === 'HOStock') {
+        const hoSite = await Site.findOne({ isHeadOffice: true });
+        if (hoSite) {
+          const repairedAsset = await Asset.findById(rma.originalAssetId);
+          if (repairedAsset) {
+            const fromSiteId = repairedAsset.siteId;
+            const fromStatus = repairedAsset.status;
+            repairedAsset.status = 'Spare';
+            repairedAsset.siteId = hoSite._id;
+            repairedAsset.stockLocation = 'HO Stock (from repair)';
+            repairedAsset.locationDescription = `Repaired item added to HO stock - RMA ${rma.rmaNumber}`;
+            await repairedAsset.save();
+
+            await StockMovementLog.logMovement({
+              asset: repairedAsset,
+              movementType: 'Transfer',
+              fromSiteId,
+              toSiteId: hoSite._id,
+              fromStatus,
+              toStatus: 'Spare',
+              performedBy: req.user._id,
+              rmaId: rma._id,
+              ticketId: rma.ticketId,
+              notes: `RMA ${rma.rmaNumber} - Repaired item moved to HO stock (Admin decision)`
+            });
+          }
+        }
+        // Repair track is done (item stays at HO)
+        rma.repairTrackStatus = 'CompletedToHOStock';
+        rma.installedOn = new Date();
+        rma.installedBy = req.user._id;
+        rma.installationStatus = 'Not Installed'; // It's in stock, not installed
+        // Only finalize RMA if replacement track is also done
+        checkAndFinalizeRMA(rma);
+        if (rma.status !== 'Installed') {
+          // Repair done but replacement still pending — keep a meaningful status
+          rma.status = 'ItemRepairedAtHO';
+        }
+      }
     }
 
     // USER/L1: Mark received at site
     if (status === 'ReceivedAtSite') {
       rma.status = 'ReceivedAtSite';
+      rma.repairTrackStatus = 'ReturnReceived';
       if (rma.logisticsReturnToSite) {
         rma.logisticsReturnToSite.receivedDate = new Date();
       }
 
-      // Update asset - it's now at the site
+      // Determine the actual destination site
+      const destinationSiteId = (rma.repairedItemDestination === 'OtherSite' && rma.overrideDestinationSiteId)
+        ? rma.overrideDestinationSiteId
+        : rma.siteId;
+
+      // Update asset - it's now at the destination site
       const assetReturned = await Asset.findById(rma.originalAssetId);
       if (assetReturned) {
+        const fromSiteId = assetReturned.siteId;
         const fromStatus = assetReturned.status;
         assetReturned.status = 'Spare'; // Ready for installation
-        assetReturned.siteId = rma.siteId;
+        assetReturned.siteId = destinationSiteId;
         assetReturned.locationDescription = 'Received from repair - ready for installation';
         await assetReturned.save();
 
         await StockMovementLog.logMovement({
           asset: assetReturned,
-          movementType: 'StatusChange',
-          fromSiteId: assetReturned.siteId,
-          toSiteId: rma.siteId,
+          movementType: 'Transfer',
+          fromSiteId,
+          toSiteId: destinationSiteId,
           fromStatus,
           toStatus: 'Spare',
           performedBy: req.user._id,
           rmaId: rma._id,
           ticketId: rma.ticketId,
-          notes: `RMA ${rma.rmaNumber} - Item received at site, ready for installation`
+          notes: `RMA ${rma.rmaNumber} - Item received at ${rma.repairedItemDestination === 'OtherSite' ? 'alternate site' : 'site'}, ready for installation`
         });
       }
     }
@@ -578,7 +680,13 @@ export const updateRMAStatus = async (req, res, next) => {
         return res.status(400).json({ success: false, message: 'Replacement stock source is required' });
       }
 
-      rma.status = 'ReplacementRequisitionRaised';
+      // Only overwrite main status if repair track has completed
+      // Otherwise, keep repair track status as the main status
+      const repairDone = ['Installed', 'CompletedToHOStock'].includes(rma.repairTrackStatus);
+      if (repairDone || rma.status === 'Approved') {
+        rma.status = 'ReplacementRequisitionRaised';
+      }
+      rma.replacementTrackStatus = 'RequisitionRaised';
       rma.replacementStockSource = stockSource;
       rma.replacementArrangedBy = req.user._id;
       rma.replacementArrangedOn = new Date();
@@ -618,13 +726,24 @@ export const updateRMAStatus = async (req, res, next) => {
         rma.replacementRequisitionId = requisition._id;
 
         // Create a stock transfer record
+        // Build a human-readable transfer name
+        const [srcSiteName, destSiteName] = await Promise.all([
+          Site.findById(sourceSiteId).select('siteName isHeadOffice'),
+          Site.findById(rma.siteId).select('siteName isHeadOffice')
+        ]);
+        const srcLabel = srcSiteName?.isHeadOffice ? 'HO' : (srcSiteName?.siteName || 'Source');
+        const destLabel = destSiteName?.isHeadOffice ? 'HO' : (destSiteName?.siteName || 'Dest');
+        const trfName = `${srcLabel} → ${destLabel} | ${rma.rmaNumber}`;
+
         const stockTransfer = await StockTransfer.create({
+          transferName: trfName,
           sourceSiteId: sourceSiteId,
           destinationSiteId: rma.siteId,
           assetIds: [],  // Will be populated when specific asset is identified
           initiatedBy: req.user._id,
           approvedBy: req.user._id,
           status: 'Approved',
+          linkedTicketId: rma.ticketId,
           notes: `RMA ${rma.rmaNumber} - Stock transfer for replacement (${assetType})`
         });
 
@@ -636,9 +755,14 @@ export const updateRMAStatus = async (req, res, next) => {
 
     // ADMIN: Dispatch replacement stock to site
     if (status === 'ReplacementDispatched') {
-      const { logisticsReplacementToSite: replLogistics, reservedAssetId: replAssetId } = req.body;
+      const { logisticsReplacementToSite: replLogistics, reservedAssetId: replAssetId, stockTransferId: selectedTransferId } = req.body;
 
-      rma.status = 'ReplacementDispatched';
+      // Only overwrite main status if repair track has completed
+      const repairDone = ['Installed', 'CompletedToHOStock'].includes(rma.repairTrackStatus);
+      if (repairDone || ['ReplacementRequisitionRaised', 'Approved'].includes(rma.status)) {
+        rma.status = 'ReplacementDispatched';
+      }
+      rma.replacementTrackStatus = 'Dispatched';
 
       if (replLogistics) {
         rma.logisticsReplacementToSite = {
@@ -646,6 +770,17 @@ export const updateRMAStatus = async (req, res, next) => {
           ...replLogistics,
           dispatchDate: new Date()
         };
+      }
+
+      // Link a stock transfer if the admin selected one from the dropdown
+      if (selectedTransferId && !rma.stockTransferId) {
+        rma.stockTransferId = selectedTransferId;
+        // Also link the ticket to the stock transfer
+        try {
+          await StockTransfer.findByIdAndUpdate(selectedTransferId, {
+            linkedTicketId: rma.ticketId
+          });
+        } catch (_) { /* non-critical */ }
       }
 
       // If a specific replacement asset is identified, reserve it
@@ -687,7 +822,12 @@ export const updateRMAStatus = async (req, res, next) => {
 
     // L1/TICKET OWNER: Confirm replacement received at site
     if (status === 'ReplacementReceivedAtSite') {
-      rma.status = 'ReplacementReceivedAtSite';
+      // Only overwrite main status if repair track has completed
+      const repairDone = ['Installed', 'CompletedToHOStock'].includes(rma.repairTrackStatus);
+      if (repairDone || ['ReplacementDispatched', 'ReplacementRequisitionRaised'].includes(rma.status)) {
+        rma.status = 'ReplacementReceivedAtSite';
+      }
+      rma.replacementTrackStatus = 'Received';
 
       if (rma.logisticsReplacementToSite) {
         rma.logisticsReplacementToSite.receivedDate = new Date();
@@ -742,12 +882,24 @@ export const updateRMAStatus = async (req, res, next) => {
 
     // USER: Install device with updated details
     if (status === 'Installed') {
-      rma.status = 'Installed';
+      // Determine which track this installation applies to
+      const { installTrack } = req.body; // 'repair' or 'replacement'
+
+      if (installTrack === 'replacement') {
+        // Only update replacement track
+        rma.replacementTrackStatus = 'Installed';
+      } else {
+        // Default: repair track installed
+        rma.repairTrackStatus = 'Installed';
+      }
+
       rma.isInstallationConfirmed = true;
       rma.installationStatus = 'Installed & Working';
       rma.installedBy = req.user._id;
       rma.installedOn = new Date();
-      rma.isFaultyItemFinalized = true;
+
+      // Check if both tracks are complete
+      checkAndFinalizeRMA(rma);
 
       // Update asset with new details
       const installedAsset = await Asset.findById(rma.originalAssetId);
@@ -997,7 +1149,7 @@ export const updateRMAStatus = async (req, res, next) => {
 // @access  Private
 export const confirmInstallation = async (req, res, next) => {
   try {
-    const { status, remarks, newIpAddress, newUserName, newPassword } = req.body;
+    const { status, remarks, newIpAddress, newUserName, newPassword, newSerialNumber, newMac, installTrack } = req.body;
 
     const rma = await RMARequest.findById(req.params.id);
     if (!rma) {
@@ -1008,38 +1160,65 @@ export const confirmInstallation = async (req, res, next) => {
     rma.isInstallationConfirmed = true;
     rma.installedBy = req.user._id;
     rma.installedOn = new Date();
-    rma.status = 'Installed';
+
+    // Update the relevant track status
+    if (installTrack === 'replacement') {
+      rma.replacementTrackStatus = 'Installed';
+    } else {
+      rma.repairTrackStatus = 'Installed';
+    }
+
+    // Check if both tracks are done
+    const repairDone = ['Installed', 'CompletedToHOStock'].includes(rma.repairTrackStatus);
+    const replacementDone = rma.replacementTrackStatus === 'NotRequired'
+      || rma.replacementTrackStatus === 'Installed';
+    if (repairDone && replacementDone) {
+      rma.status = 'Installed';
+      rma.isFaultyItemFinalized = true;
+    }
 
     rma.timeline.push({
-      status: 'Installed',
+      status: `Installed (${installTrack === 'replacement' ? 'Replacement' : 'Repair'})`,
       changedBy: req.user._id,
       remarks: remarks || `Installation confirmed: ${status}`
     });
 
-    // Update the asset details
+    // Update the asset details — assetCode is NEVER changed
     const asset = await Asset.findById(rma.originalAssetId);
     if (asset) {
       asset.status = 'Operational';
+      // Update network/credential fields if provided
       if (newIpAddress) asset.ipAddress = newIpAddress;
       if (newUserName) asset.userName = newUserName;
       if (newPassword) asset.password = newPassword;
+      // Update hardware identifiers if a new SN/MAC was provided (e.g., new board installed)
+      if (newSerialNumber) asset.serialNumber = newSerialNumber;
+      if (newMac) asset.mac = newMac;
+      // assetCode remains unchanged — it is a fixed identifier
       await asset.save();
 
       rma.replacementDetails = {
         ...rma.replacementDetails,
-        ipAddress: newIpAddress || asset.ipAddress
+        ipAddress: newIpAddress || asset.ipAddress,
+        serialNumber: newSerialNumber || asset.serialNumber,
+        mac: newMac || asset.mac
       };
     }
 
-    rma.isFaultyItemFinalized = true;
+    if (rma.status === 'Installed') {
+      rma.isFaultyItemFinalized = true;
+    }
     await rma.save();
 
-    // Update ticket
-    const ticket = await Ticket.findById(rma.ticketId);
-    if (ticket) {
-      ticket.rmaFinalized = true;
-      ticket.rmaVerified = true;
-      await ticket.save();
+    // Update ticket — only finalize when both tracks are complete
+    if (rma.status === 'Installed') {
+      const ticket = await Ticket.findById(rma.ticketId);
+      if (ticket) {
+        ticket.status = 'Installed'; // Update ticket status to reflect installation
+        ticket.rmaFinalized = true;
+        ticket.rmaVerified = true;
+        await ticket.save();
+      }
     }
 
     // Log activity

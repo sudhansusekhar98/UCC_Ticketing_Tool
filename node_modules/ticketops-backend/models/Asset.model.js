@@ -47,7 +47,7 @@ const assetSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Operational', 'Degraded', 'Offline', 'Maintenance', 'In Repair', 'Not Installed', 'Spare', 'InTransit', 'Damaged', 'Reserved', 'Online', 'Passive Device'],
+    enum: ['Operational', 'Degraded', 'Offline', 'Maintenance', 'In Repair', 'Not Installed', 'Spare', 'InTransit', 'Damaged', 'Reserved', 'Online', 'Passive Device', 'Decommissioned'],
     default: 'Operational'
   },
   reservedByRma: {
@@ -126,9 +126,7 @@ const assetSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// ============================================================================
 // Mongoose Middleware: Encrypt sensitive fields before save
-// ============================================================================
 assetSchema.pre('save', function (next) {
   try {
     for (const field of SENSITIVE_ASSET_FIELDS) {
@@ -161,10 +159,8 @@ assetSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (next)
   }
 });
 
-// ============================================================================
 // Static method: Decrypt sensitive fields on a document
 // Only call this when the requesting user is authorized.
-// ============================================================================
 assetSchema.statics.decryptSensitiveFields = function (doc) {
   if (!doc) return doc;
 
@@ -182,9 +178,7 @@ assetSchema.statics.decryptSensitiveFields = function (doc) {
   return obj;
 };
 
-// ============================================================================
 // Static method: Mask sensitive fields for non-privileged users
-// ============================================================================
 assetSchema.statics.maskSensitiveFields = function (doc) {
   if (!doc) return doc;
 
@@ -194,7 +188,7 @@ assetSchema.statics.maskSensitiveFields = function (doc) {
       if (field === 'password') {
         obj[field] = '••••••••';
       } else {
-        obj[field] = '●●●●●●';
+        obj[field] = '••••••••';
       }
     }
   }
@@ -236,7 +230,8 @@ export const AssetStatuses = {
   RESERVED: 'Reserved',
   IN_REPAIR: 'In Repair',
   ONLINE: 'Online',
-  PASSIVE_DEVICE: 'Passive Device'
+  PASSIVE_DEVICE: 'Passive Device',
+  DECOMMISSIONED: 'Decommissioned'
 };
 
 export default mongoose.model('Asset', assetSchema);

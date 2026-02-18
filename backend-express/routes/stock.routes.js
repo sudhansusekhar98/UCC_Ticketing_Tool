@@ -12,6 +12,7 @@ import {
     initiateTransfer,
     dispatchTransfer,
     receiveTransfer,
+    getDispatchedTransfersForSite,
     bulkUpload,
     exportStockTemplate,
     performStockReplacement,
@@ -58,6 +59,7 @@ router.route('/transfers')
 
 router.put('/transfers/:id/dispatch', allowAccess({ roles: ['Admin'] }), dispatchTransfer);
 router.put('/transfers/:id/receive', receiveTransfer);
+router.get('/transfers/dispatched-for-site/:siteId', getDispatchedTransfersForSite);
 
 export default router;
 

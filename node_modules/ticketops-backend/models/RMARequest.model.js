@@ -22,6 +22,7 @@ const rmaRequestSchema = new mongoose.Schema({
   },
   // Snapshot of the asset details BEFORE replacement (for history)
   originalDetailsSnapshot: {
+    assetCode: String,
     serialNumber: String,
     ipAddress: String,
     mac: String,
@@ -30,6 +31,7 @@ const rmaRequestSchema = new mongoose.Schema({
   },
   // Details of the new device replacing the old one
   replacementDetails: {
+    assetCode: String,
     serialNumber: String,
     ipAddress: String,
     mac: String,
@@ -117,6 +119,39 @@ const rmaRequestSchema = new mongoose.Schema({
       'RepairedItemEnRoute', 'RepairedItemReceived'
     ],
     default: 'Requested'
+  },
+  // === PARALLEL TRACK STATUSES ===
+  // Repair track: tracks the faulty item through repair and return
+  repairTrackStatus: {
+    type: String,
+    enum: [
+      'Pending',               // Not started yet (RMA approved but item not sent)
+      'SentToHO',              // Sent to HO
+      'SentToServiceCenter',   // Sent directly to SC
+      'ReceivedAtHO',          // Received at HO
+      'SentForRepair',         // Forwarded from HO to SC
+      'Repaired',              // Repaired item received back at HO
+      'ReturnShipped',         // Shipped back to site
+      'ReturnReceived',        // Received at destination site
+      'Installed',             // Installed at site
+      'CompletedToHOStock',    // Sent to HO stock (no installation)
+      null
+    ],
+    default: null
+  },
+  // Replacement track: tracks the replacement device sourcing and delivery
+  replacementTrackStatus: {
+    type: String,
+    enum: [
+      'NotRequired',           // RepairOnly — no replacement needed
+      'Pending',               // RepairAndReplace approved but not yet started
+      'RequisitionRaised',     // Admin raised requisition
+      'Dispatched',            // Replacement dispatched to site
+      'Received',              // Received at site
+      'Installed',             // Installed
+      null
+    ],
+    default: null
   },
   // Complex Lifecycle Fields
   isSiteStockUsed: {

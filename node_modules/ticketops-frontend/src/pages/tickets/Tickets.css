@@ -989,93 +989,235 @@
   }
 }
 
-/* RMA Timeline steps */
-.rma-timeline-tracker {
-  position: relative;
-  padding: var(--space-4);
-  margin-bottom: var(--space-5);
+/* ===== RMA Workflow Tracker — Dual Track Design ===== */
+
+.rma-tracker-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+/* --- Track wrapper --- */
+.rma-track {
   background: var(--bg-secondary);
-  border-radius: var(--radius-xl);
   border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
 
-.rma-timeline-line {
-  position: absolute;
-  top: 42px;
-  left: 30px;
-  right: 30px;
-  height: 2px;
-  background: var(--bg-tertiary);
-  z-index: 1;
+.rma-track--primary {
+  border-left: 3px solid var(--primary-500);
 }
 
-/* Ensure the line turns primary as steps progress, though here it's static. 
-   Ideally we'd use a background-gradient or a separate fill line. */
+.rma-track--info {
+  border-left: 3px solid var(--info-500, #06b6d4);
+}
 
+/* --- Track header --- */
+.rma-track__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-light);
+}
 
-.rma-timeline-steps {
+.rma-track__icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rma-track__icon--primary {
+  background: var(--primary-500);
+  color: white;
+}
+
+.rma-track__icon--info {
+  background: var(--info-500, #06b6d4);
+  color: white;
+}
+
+.rma-track__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.rma-track__badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+.rma-track__badge--primary {
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary-500);
+}
+
+.rma-track__badge--info {
+  background: rgba(6, 182, 212, 0.12);
+  color: var(--info-500, #06b6d4);
+}
+
+/* --- Steps wrapper (horizontal scroll) --- */
+.rma-track__steps-wrapper {
+  position: relative;
+  padding: 16px 16px 14px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rma-track__steps-wrapper::-webkit-scrollbar {
+  height: 3px;
+}
+
+.rma-track__steps-wrapper::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: 99px;
+}
+
+/* --- Rail (connecting line) --- */
+.rma-track__rail {
+  position: absolute;
+  top: 34px;
+  left: 34px;
+  right: 34px;
+  height: 3px;
+  background: var(--bg-tertiary);
+  border-radius: 99px;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.rma-track--primary .rma-track__rail-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-500), var(--primary-400));
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.rma-track--info .rma-track__rail-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--info-500, #06b6d4), var(--info-400, #22d3ee));
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- Steps row --- */
+.rma-track__steps {
   display: flex;
   justify-content: space-between;
   position: relative;
   z-index: 2;
-  width: 100%;
+  min-width: max-content;
+  gap: 4px;
 }
 
+/* --- Individual step --- */
 .rma-step {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-1);
+  gap: 6px;
   flex: 1;
+  min-width: 72px;
+  max-width: 100px;
   text-align: center;
   position: relative;
-  min-width: 60px;
 }
 
-.rma-step-icon {
-  width: 32px;
-  height: 32px;
+.rma-step__icon {
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full);
-  background: var(--bg-tertiary);
+  background: var(--bg-card);
   color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 3px solid var(--bg-secondary);
-  transition: all 0.3s ease;
+  border: 2.5px solid var(--border-medium);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 2;
+  flex-shrink: 0;
 }
 
-.rma-step.active .rma-step-icon {
-  background: var(--primary-500);
+.rma-step.active .rma-step__icon {
+  border-color: transparent;
   color: white;
-  border-color: var(--bg-secondary);
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
 }
 
-.rma-step-label {
-  font-size: 8px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0;
-  line-height: 1.2;
-  color: var(--text-muted);
-  width: 100%;
-  padding: 0 2px;
-  display: block;
-  word-wrap: break-word;
+.rma-track--primary .rma-step.active .rma-step__icon {
+  background: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15), 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
-.rma-step-date {
+.rma-track--info .rma-step.active .rma-step__icon {
+  background: var(--info-500, #06b6d4);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15), 0 2px 8px rgba(6, 182, 212, 0.3);
+}
+
+.rma-step.danger .rma-step__icon {
+  background: var(--danger-500, #ef4444) !important;
+  border-color: transparent !important;
+  color: white !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15), 0 2px 8px rgba(239, 68, 68, 0.3) !important;
+}
+
+/* --- Step info (label + date) --- */
+.rma-step__info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.rma-step__label {
   font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+  color: var(--text-muted);
+  max-width: 88px;
+  word-wrap: break-word;
+  transition: color 0.3s ease;
+}
+
+.rma-step.active .rma-step__label {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.rma-step.danger .rma-step__label {
+  color: var(--danger-500, #ef4444);
+  font-weight: 700;
+}
+
+.rma-step__date {
+  font-size: 9px;
   color: var(--text-muted);
   font-weight: 500;
-  margin-top: -4px;
+  opacity: 0.7;
+  white-space: nowrap;
 }
 
-.rma-step.active .rma-step-label {
-  color: var(--primary-400);
+.rma-step.active .rma-step__date {
+  opacity: 1;
+  font-weight: 600;
 }
 
 
@@ -1246,31 +1388,33 @@
     justify-content: center;
   }
 
-  /* RMA timeline compact on small phones */
-  .rma-timeline-tracker {
-    padding: var(--space-2);
+  /* RMA tracker compact on small phones */
+  .rma-track__header {
+    padding: 8px 12px;
   }
 
-  .rma-timeline-steps {
-    flex-wrap: wrap;
-    gap: var(--space-2);
+  .rma-track__steps-wrapper {
+    padding: 12px 10px 10px;
   }
 
   .rma-step {
-    min-width: 50px;
+    min-width: 58px;
   }
 
-  .rma-step-icon {
-    width: 24px;
-    height: 24px;
+  .rma-step__icon {
+    width: 28px;
+    height: 28px;
   }
 
-  .rma-step-label {
-    font-size: 7px;
+  .rma-step__label {
+    font-size: 8px;
   }
 
-  .rma-timeline-line {
-    display: none;
+  .rma-track__rail {
+    top: 26px;
+    left: 24px;
+    right: 24px;
+    height: 2px;
   }
 
   /* Detail sections */

@@ -241,3 +241,61 @@
     color: var(--text-muted);
     font-weight: 400;
 }
+
+/* Asset type badges inside selection list */
+.asset-type-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.asset-type-badges .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.5625rem;
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.asset-type-badges .badge-info {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--info-500);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.asset-type-badges .badge-outline {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border-light);
+}
+
+/* Transfer card header — use transferName as primary label */
+.transfer-header .id-label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.transfer-header .id-value {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-family: var(--font-mono, monospace);
+}
+
+/* Activity badge colours */
+.activity-badge.badge-dispatched {
+    background: rgba(245, 158, 11, 0.15);
+    color: #D97706;
+}
+
+.activity-badge.badge-intransit {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--primary-500);
+}

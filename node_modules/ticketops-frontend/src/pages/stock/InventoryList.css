@@ -88,6 +88,10 @@
 }
 
 /* Columns */
+.col-code {
+    width: 120px;
+}
+
 .col-type {
     width: 130px;
 }
