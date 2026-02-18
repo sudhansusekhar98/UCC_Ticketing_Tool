@@ -33,8 +33,10 @@ export default function AddStock() {
         model: '',
         customModel: '',
         serialNumber: '',
-        assetCode: '',
-        mac: ''
+        mac: '',
+        quantity: 1,
+        unit: 'Nos',
+        remarks: ''
     });
 
     useEffect(() => {
@@ -132,8 +134,8 @@ export default function AddStock() {
         const finalDeviceType = formData.deviceType === 'Other' || formData.assetType === 'Other' ? formData.customDeviceType : formData.deviceType;
         const finalModel = formData.model === 'Other' || formData.assetType === 'Other' ? formData.customModel : formData.model;
 
-        if (!formData.siteId || !finalAssetType || !formData.assetCode || !formData.serialNumber) {
-            toast.error('Please fill in all required fields (Location, Type, Asset Code, SL No)');
+        if (!formData.siteId || !finalAssetType || !formData.serialNumber) {
+            toast.error('Please fill in all required fields (Location, Type, SL No)');
             return;
         }
 
@@ -216,23 +218,6 @@ export default function AddStock() {
                             <div className="form-section">
                                 <div className="section-subtitle">Primary Details & Classification</div>
                                 <div className="form-row">
-                                    <div className="form-group">
-                                        <label htmlFor="assetCode">
-                                            Asset Code <span className="required">*</span>
-                                        </label>
-                                        <input
-                                            type="text"
-                                            id="assetCode"
-                                            name="assetCode"
-                                            value={formData.assetCode}
-                                            onChange={handleChange}
-                                            placeholder="e.g., CAM-HO-001"
-                                            className="form-input"
-                                            required
-                                        />
-                                        <span className="field-hint">Unique fixed identifier (never changes)</span>
-                                    </div>
-
                                     <div className="form-group">
                                         <label htmlFor="mac">
                                             MAC Address
@@ -421,6 +406,48 @@ export default function AddStock() {
                                             className="form-input"
                                         />
                                         <span className="field-hint">Shelf, rack, or bin</span>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label htmlFor="quantity">Quantity</label>
+                                        <input
+                                            type="number"
+                                            id="quantity"
+                                            name="quantity"
+                                            value={formData.quantity}
+                                            onChange={handleChange}
+                                            placeholder="e.g., 10"
+                                            className="form-input"
+                                            min="1"
+                                        />
+                                        <span className="field-hint">Number of items</span>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label htmlFor="unit">Unit</label>
+                                        <input
+                                            type="text"
+                                            id="unit"
+                                            name="unit"
+                                            value={formData.unit}
+                                            onChange={handleChange}
+                                            placeholder="e.g., Nos, Mtrs"
+                                            className="form-input"
+                                        />
+                                        <span className="field-hint">Unit of measurement</span>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label htmlFor="remarks">Remarks</label>
+                                        <textarea
+                                            id="remarks"
+                                            name="remarks"
+                                            value={formData.remarks}
+                                            onChange={handleChange}
+                                            placeholder="Additional notes..."
+                                            className="form-input"
+                                            rows="1"
+                                        />
                                     </div>
                                 </div>
                             </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
-    Upload, ArrowLeft, FileSpreadsheet, AlertCircle, Package, X
+    Upload, ArrowLeft, FileSpreadsheet, AlertCircle, Package, X, CheckCircle2, XCircle
 } from 'lucide-react';
 import { stockApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -21,6 +21,7 @@ export default function BulkAddStock() {
             const ext = selectedFile.name.split('.').pop().toLowerCase();
             if (['xlsx', 'xls', 'csv'].includes(ext)) {
                 setFile(selectedFile);
+                setResults(null); // Clear previous results
             } else {
                 toast.error('Please select an Excel or CSV file');
                 e.target.value = null;
@@ -58,14 +59,18 @@ export default function BulkAddStock() {
             const response = await stockApi.bulkUpload(formData);
             setResults(response.data);
             if (response.data.success) {
-                toast.success('File processed successfully');
+                toast.success(`${response.data.successCount} items imported successfully`);
             } else {
-                toast.error('Some rows failed to import');
+                toast.error(`${response.data.failCount} rows failed. ${response.data.successCount} imported. See details below.`);
             }
         } catch (error) {
             console.error('Upload failed:', error);
             const backendError = error.response?.data?.error;
             const message = error.response?.data?.message || 'Failed to upload and process file';
+            // If the response has results data, show it
+            if (error.response?.data?.errors) {
+                setResults(error.response.data);
+            }
             toast.error(backendError ? `${message}: ${backendError}` : message);
         } finally {
             setLoading(false);
@@ -127,7 +132,7 @@ export default function BulkAddStock() {
                                                 <button
                                                     type="button"
                                                     className="btn-icon-remove"
-                                                    onClick={(e) => { e.stopPropagation(); setFile(null); }}
+                                                    onClick={(e) => { e.stopPropagation(); setFile(null); setResults(null); }}
                                                 >
                                                     <X size={16} />
                                                 </button>
@@ -166,16 +171,62 @@ export default function BulkAddStock() {
                                 </form>
                             </div>
 
+                            {/* Import Results Panel */}
+                            {results && (
+                                <div className="import-results-panel">
+                                    <div className="results-summary">
+                                        <div className="results-title">
+                                            {results.success ? (
+                                                <CheckCircle2 size={18} className="text-success" />
+                                            ) : (
+                                                <AlertCircle size={18} className="text-warning" />
+                                            )}
+                                            <span>Import Results</span>
+                                        </div>
+                                        <div className="results-stats">
+                                            <span className="stat-success">
+                                                <CheckCircle2 size={14} /> {results.successCount || 0} Imported
+                                            </span>
+                                            <span className="stat-fail">
+                                                <XCircle size={14} /> {results.failCount || 0} Failed
+                                            </span>
+                                        </div>
+                                        {results.message && (
+                                            <p className="results-message">{results.message}</p>
+                                        )}
+                                    </div>
+
+                                    {results.errors && results.errors.length > 0 && (
+                                        <div className="results-errors">
+                                            <div className="errors-header">
+                                                <XCircle size={14} className="text-danger" />
+                                                <span>Row Errors ({results.errors.length})</span>
+                                            </div>
+                                            <div className="errors-list">
+                                                {results.errors.map((err, idx) => (
+                                                    <div key={idx} className="error-row">
+                                                        <span className="error-row-num">Row {err.row}</span>
+                                                        <span className="error-asset">{err.assetCode}</span>
+                                                        <span className="error-message">{err.message}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             <div className="instructions-box">
                                 <div className="instructions-header">
                                     <AlertCircle size={14} className="text-warning" />
                                     <span>Instructions</span>
                                 </div>
                                 <ul>
-                                    <li>MAC Address must be unique</li>
-                                    <li>Site Name must match exactly</li>
-                                    <li>Asset Type is mandatory</li>
+                                    <li>MAC Address must be unique (use NA if none)</li>
+                                    <li><strong>Site Name</strong> and <strong>Asset Type</strong> are mandatory</li>
                                     <li>Serial Number is recommended</li>
+                                    <li>Quantity: use a number or leave empty (defaults to 1). Rows with "NA" quantity are skipped.</li>
+                                    <li>Unit and Remarks are optional</li>
                                 </ul>
                             </div>
                         </div>

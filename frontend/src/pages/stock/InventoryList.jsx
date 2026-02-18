@@ -201,7 +201,6 @@ export default function InventoryList() {
                         <table className="inventory-table">
                             <thead>
                                 <tr>
-                                    <th className="col-code">Asset Code</th>
                                     <th className="col-type">Asset Type</th>
                                     <th className="col-device">Device Type</th>
                                     <th className="col-make">Make</th>
@@ -209,6 +208,9 @@ export default function InventoryList() {
                                     <th className="col-mac">MAC Address</th>
                                     <th className="col-serial">Serial Number</th>
                                     <th className="col-location">Shelf/Bin</th>
+                                    <th className="col-qty">Qty</th>
+                                    <th className="col-unit">Unit</th>
+                                    <th className="col-remarks">Remarks</th>
                                     <th className="col-actions">Actions</th>
                                 </tr>
                             </thead>
@@ -240,7 +242,7 @@ export default function InventoryList() {
                                             className="site-separator-row"
                                             onClick={() => setExpandedGroups(prev => ({ ...prev, [siteGroup.siteId]: !isExpanded }))}
                                         >
-                                            <td colSpan="8">
+                                            <td colSpan="11">
                                                 <div className="separator-content">
                                                     <div className="separator-left">
                                                         {isExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
@@ -264,9 +266,6 @@ export default function InventoryList() {
                                         {/* Asset Rows for this site */}
                                         {isExpanded && siteGroup.assets.map((asset, aIdx) => (
                                             <tr key={asset._id || `asset-${siteGroup.siteId}-${aIdx}`} className="inventory-data-row">
-                                                <td className="col-code font-bold text-primary-500">
-                                                    {asset.assetCode || '—'}
-                                                </td>
                                                 <td className="col-type">
                                                     <span className="type-badge">{asset.assetType || asset.groupAssetType}</span>
                                                 </td>
@@ -291,6 +290,17 @@ export default function InventoryList() {
                                                 </td>
                                                 <td className="col-location">
                                                     <span className="location-text">{asset.stockLocation || '—'}</span>
+                                                </td>
+                                                <td className="col-qty">
+                                                    {asset.quantity || '1'}
+                                                </td>
+                                                <td className="col-unit">
+                                                    {asset.unit || 'Nos'}
+                                                </td>
+                                                <td className="col-remarks">
+                                                    <span className="remarks-text" title={asset.remarks || asset.remark}>
+                                                        {asset.remarks || asset.remark || '—'}
+                                                    </span>
                                                 </td>
                                                 <td className="col-actions">
                                                     <div className="action-buttons-direct">
@@ -345,10 +355,6 @@ export default function InventoryList() {
                         <div className="modal-body">
                             <div className="asset-detail-grid">
                                 <div className="detail-item">
-                                    <label>Asset Code</label>
-                                    <div className="detail-value font-bold text-primary-500">{viewAsset.assetCode || '—'}</div>
-                                </div>
-                                <div className="detail-item">
                                     <label>Asset Type</label>
                                     <div className="detail-value">
                                         <span className="type-badge">{viewAsset.assetType || viewAsset.groupAssetType}</span>
@@ -379,6 +385,18 @@ export default function InventoryList() {
                                 <div className="detail-item">
                                     <label>Storage Location</label>
                                     <div className="detail-value">{viewAsset.stockLocation || '—'}</div>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Quantity</label>
+                                    <div className="detail-value">{viewAsset.quantity || '1'}</div>
+                                </div>
+                                <div className="detail-item">
+                                    <label>Unit</label>
+                                    <div className="detail-value">{viewAsset.unit || 'Nos'}</div>
+                                </div>
+                                <div className="detail-item full-width">
+                                    <label>Remarks</label>
+                                    <div className="detail-value">{viewAsset.remarks || viewAsset.remark || '—'}</div>
                                 </div>
                                 <div className="detail-item">
                                     <label>Status</label>

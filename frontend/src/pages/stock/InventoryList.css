@@ -67,7 +67,7 @@
     border-collapse: collapse;
     table-layout: fixed;
     font-size: 0.8125rem;
-    min-width: 1100px;
+    min-width: 1400px;
 }
 
 .inventory-table thead th {
@@ -117,7 +117,20 @@
 }
 
 .col-location {
-    width: auto;
+    width: 150px;
+}
+
+.col-qty {
+    width: 60px;
+    text-align: center;
+}
+
+.col-unit {
+    width: 80px;
+}
+
+.col-remarks {
+    width: 200px;
 }
 
 .col-actions {
@@ -260,6 +273,16 @@
 .location-text {
     font-weight: 400;
     color: var(--text-muted);
+}
+
+.remarks-text {
+    font-weight: 400;
+    color: var(--text-muted);
+    font-style: italic;
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* Action Buttons */

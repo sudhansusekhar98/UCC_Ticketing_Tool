@@ -60,18 +60,20 @@ export const getInventory = async (req, res, next) => {
             {
                 $group: {
                     _id: { siteId: '$siteId', assetType: '$assetType' },
-                    count: { $sum: 1 },
+                    count: { $sum: { $ifNull: ['$quantity', 1] } },
                     assets: {
                         $push: {
                             _id: '$_id',
-                            assetCode: '$assetCode',
-                            mac: '$mac', // Added MAC address
+                            mac: '$mac',
                             assetType: '$assetType',
                             deviceType: '$deviceType',
                             make: '$make',
                             model: '$model',
                             serialNumber: '$serialNumber',
-                            stockLocation: '$stockLocation'
+                            stockLocation: '$stockLocation',
+                            quantity: '$quantity',
+                            unit: '$unit',
+                            remarks: '$remarks'
                         }
                     }
                 }
@@ -525,7 +527,11 @@ export const rejectRequisition = async (req, res, next) => {
 // @access  Private (Admin or users with MANAGE_SITE_STOCK right for the site)
 export const addStock = async (req, res, next) => {
     try {
-        const { siteId, assetType, stockLocation, make, model, deviceType, assetCode, serialNumber } = req.body;
+        const {
+            siteId, assetType, stockLocation, make, model,
+            deviceType, serialNumber,
+            quantity, unit, remarks, remark
+        } = req.body;
         const user = req.user;
 
         const site = await Site.findById(siteId);
@@ -549,18 +555,11 @@ export const addStock = async (req, res, next) => {
             }
         }
 
-        // Validate: assetCode is required and must be unique
-        if (!assetCode) {
-            return res.status(400).json({ success: false, message: 'Asset Code is required' });
-        }
-
-        const existingAsset = await Asset.findOne({ assetCode });
-        if (existingAsset) {
-            return res.status(400).json({ success: false, message: `Asset Code "${assetCode}" already exists` });
-        }
+        // Auto-generate assetCode for stock items (not user-facing)
+        const finalAssetCode = `SPR-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
 
         const asset = await Asset.create({
-            assetCode,
+            assetCode: finalAssetCode,
             mac: req.body.mac || '',
             serialNumber,
             assetType,
@@ -570,6 +569,10 @@ export const addStock = async (req, res, next) => {
             make,
             model,
             deviceType,
+            quantity: quantity || 1,
+            unit: unit || 'Nos',
+            remarks: remarks || remark || '',
+            remark: remarks || remark || '', // For backward compatibility
             criticality: 2 // Default criticality for spares
         });
 
@@ -906,7 +909,6 @@ export const bulkUpload = async (req, res, next) => {
 
                 // Extract values using normalized keys
                 const macAddress = toString(row['macaddress']) || toString(row['mac']);
-                const assetCodeVal = toString(row['assetcode']) || toString(row['assetid']);
                 const assetType = toString(row['assettype']) || toString(row['devicetype']);
                 const siteName = toString(row['sitename']) || toString(row['site']);
                 const serialNumber = toString(row['serialnumber']) || toString(row['serialno']);
@@ -914,10 +916,25 @@ export const bulkUpload = async (req, res, next) => {
                 const model = toString(row['model']);
                 const deviceType = toString(row['devicetype']) || toString(row['modeltype']);
                 const stockLocation = toString(row['stocklocation']) || toString(row['location']);
+                const quantityVal = toString(row['quantity']);
+                const unit = toString(row['unit']) || 'Nos';
+                const remarks = toString(row['remarks']) || toString(row['remark']);
 
-                // Validation — assetCode is mandatory; macAddress is optional
-                if (!assetCodeVal || !assetType || !siteName) {
-                    throw new Error(`Mandatory fields missing for row ${rowNum} (Need Asset Code, Asset Type, and Site)`);
+                // Handle quantity: if number, use it; if NA, ignore entry; if empty, default to 1
+                let quantity = 1;
+                if (quantityVal) {
+                    if (quantityVal.toUpperCase() === 'NA') {
+                        throw new Error(`Row ${rowNum} ignored because Quantity is "NA"`);
+                    }
+                    const parsed = parseInt(quantityVal);
+                    if (!isNaN(parsed)) {
+                        quantity = parsed;
+                    }
+                }
+
+                // Validation — only assetType and siteName are mandatory
+                if (!assetType || !siteName) {
+                    throw new Error(`Mandatory fields missing for row ${rowNum} (Need Asset Type and Site Name)`);
                 }
 
                 const targetSiteId = siteName ? siteMap.get(siteName.toLowerCase()) : null;
@@ -925,21 +942,8 @@ export const bulkUpload = async (req, res, next) => {
                     throw new Error(`Site "${siteName || 'Unknown'}" not found or inactive`);
                 }
 
-                // Check for uniqueness of assetCode
-                const isAssetCodeNA = !assetCodeVal || assetCodeVal.toUpperCase() === 'NA' || assetCodeVal.toUpperCase() === 'N/A';
-                if (isAssetCodeNA) {
-                    throw new Error(`Asset Code is required for row ${rowNum}`);
-                }
-
-                // Check database for assetCode
-                const existingAssetCode = await Asset.findOne({ assetCode: assetCodeVal });
-                if (existingAssetCode) {
-                    throw new Error(`Asset Code "${assetCodeVal}" already exists in the database`);
-                }
-                // Check current batch for assetCode
-                if (assetsToCreate.find(a => a.assetCode === assetCodeVal)) {
-                    throw new Error(`Duplicate Asset Code "${assetCodeVal}" found in the upload file`);
-                }
+                // Auto-generate assetCode for stock items (not user-facing)
+                const finalAssetCode = `SPR-${Date.now()}-${rowNum}`;
 
                 // Check for uniqueness if Serial Number is not "NA"
                 const isSerialNA = !serialNumber || serialNumber.toUpperCase() === 'NA' || serialNumber.toUpperCase() === 'N/A';
@@ -958,7 +962,7 @@ export const bulkUpload = async (req, res, next) => {
                 const isMacNA = !macAddress || macAddress.toUpperCase() === 'NA' || macAddress.toUpperCase() === 'N/A';
 
                 const newAsset = {
-                    assetCode: assetCodeVal,
+                    assetCode: finalAssetCode,
                     mac: isMacNA ? '' : macAddress,
                     assetType,
                     siteId: targetSiteId,
@@ -967,6 +971,10 @@ export const bulkUpload = async (req, res, next) => {
                     model: model || '',
                     deviceType: deviceType || '',
                     stockLocation: stockLocation || '',
+                    quantity,
+                    unit,
+                    remarks: remarks || '',
+                    remark: remarks || '', // Keep for backward compatibility
                     status: 'Spare',
                     criticality: 2
                 };
@@ -1022,7 +1030,6 @@ export const exportStockTemplate = async (req, res, next) => {
         const { format } = req.query;
 
         const headers = [
-            'Asset Code',
             'MAC Address',
             'Asset Type',
             'Device Type',
@@ -1030,12 +1037,14 @@ export const exportStockTemplate = async (req, res, next) => {
             'Serial Number',
             'Make',
             'Model',
-            'Stock Location'
+            'Stock Location',
+            'Quantity',
+            'Unit',
+            'Remarks'
         ];
 
         const sampleData = [
             {
-                'Asset Code': 'CAM-HO-001',
                 'MAC Address': '00:1A:2B:3C:4D:5E',
                 'Asset Type': 'Camera',
                 'Device Type': 'Fixed Dome',
@@ -1043,7 +1052,10 @@ export const exportStockTemplate = async (req, res, next) => {
                 'Serial Number': 'HK12345678',
                 'Make': 'Hikvision',
                 'Model': 'DS-2CD2143G2-I',
-                'Stock Location': 'Rack A - Shelf 1'
+                'Stock Location': 'Rack A - Shelf 1',
+                'Quantity': 1,
+                'Unit': 'Nos',
+                'Remarks': 'Sample remark'
             }
         ];
 

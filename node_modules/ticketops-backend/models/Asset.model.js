@@ -4,7 +4,6 @@ import { encrypt, decrypt, isEncrypted, SENSITIVE_ASSET_FIELDS } from '../utils/
 const assetSchema = new mongoose.Schema({
   assetCode: {
     type: String,
-    required: [true, 'Asset code is required'],
     maxlength: 50,
     trim: true
   },
@@ -110,6 +109,21 @@ const assetSchema = new mongoose.Schema({
     type: String,
     maxlength: 1024 // Increased to accommodate encrypted ciphertext
     // Note: Device/asset password - encrypted at rest
+  },
+  quantity: {
+    type: Number,
+    default: 1
+  },
+  unit: {
+    type: String,
+    maxlength: 50,
+    trim: true,
+    default: 'Nos'
+  },
+  remarks: {
+    type: String,
+    maxlength: 500,
+    trim: true
   },
   remark: {
     type: String,
