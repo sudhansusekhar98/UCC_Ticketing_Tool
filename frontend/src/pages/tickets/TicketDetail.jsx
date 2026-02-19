@@ -673,14 +673,6 @@ export default function TicketDetail() {
                                 </span>
                                 <span className="detail-value">{ticket.serialNumber || '—'}</span>
                             </div>
-
-                            <div className="detail-row">
-                                <span className="detail-label">
-                                    <Cpu size={12} />
-                                    Mac Address
-                                </span>
-                                <span className="detail-value">{ticket.mac || '—'}</span>
-                            </div>
                         </div>
                     )}
 

@@ -18,7 +18,8 @@ import {
     CheckSquare,
     Users,
     User,
-    Send
+    Send,
+    Shield
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { worklogApi, sitesApi, ticketsApi, usersApi } from '../../services/api';
@@ -34,6 +35,7 @@ const MANUAL_CATEGORIES = [
     { value: 'AdminWork', label: 'Admin Work' },
     { value: 'Coordination', label: 'Coordination' },
     { value: 'Training', label: 'Training' },
+    { value: 'Investigation', label: 'Investigation' },
     { value: 'Other', label: 'Other' }
 ];
 
@@ -71,6 +73,7 @@ const CATEGORY_LABELS = {
     AdminWork: 'Admin Work',
     Coordination: 'Coordination',
     Training: 'Training',
+    Investigation: 'Investigation',
     Other: 'Other'
 };
 
@@ -98,6 +101,7 @@ export default function WorkLog() {
         duration: '',
         ticketRef: '',
         siteId: '',
+        policeStation: '',
         attachments: []
     });
 
@@ -231,6 +235,10 @@ export default function WorkLog() {
             toast.error('Please enter a description');
             return;
         }
+        if (entryForm.category === 'Investigation' && !entryForm.policeStation.trim()) {
+            toast.error('Please enter the Police Station');
+            return;
+        }
         try {
             setSubmitting(true);
             const formData = new FormData();
@@ -239,6 +247,7 @@ export default function WorkLog() {
             if (entryForm.duration) formData.append('duration', entryForm.duration);
             if (entryForm.ticketRef) formData.append('ticketRef', entryForm.ticketRef);
             if (entryForm.siteId) formData.append('siteId', entryForm.siteId);
+            if (entryForm.category === 'Investigation' && entryForm.policeStation) formData.append('policeStation', entryForm.policeStation);
             entryForm.attachments.forEach(file => {
                 formData.append('attachments', file);
             });
@@ -250,6 +259,7 @@ export default function WorkLog() {
                 duration: '',
                 ticketRef: '',
                 siteId: '',
+                policeStation: '',
                 attachments: []
             });
             fetchLog();
@@ -317,10 +327,13 @@ export default function WorkLog() {
                                 </div>
                             </div>
                             <p className="wl-tl-desc">{activity.description}</p>
-                            {(activity.duration || activity.siteId || activity.ticketRef) && (
+                            {(activity.duration || activity.siteId || activity.ticketRef || activity.policeStation) && (
                                 <div className="wl-tl-meta">
                                     {activity.duration && (
                                         <span><Clock size={11} /> {activity.duration}m</span>
+                                    )}
+                                    {activity.policeStation && (
+                                        <span><Shield size={11} /> {activity.policeStation}</span>
                                     )}
                                     {activity.siteId && (
                                         <span><MapPin size={11} /> {activity.siteId.name || activity.siteId.siteName || 'Site'}</span>
@@ -498,6 +511,19 @@ export default function WorkLog() {
                                                     />
                                                 </div>
                                             </div>
+
+                                            {entryForm.category === 'Investigation' && (
+                                                <div className="wl-field">
+                                                    <label><Shield size={13} /> Police Station <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter Police Station name"
+                                                        value={entryForm.policeStation}
+                                                        onChange={(e) => setEntryForm({ ...entryForm, policeStation: e.target.value })}
+                                                        required
+                                                    />
+                                                </div>
+                                            )}
 
                                             <div className="wl-field">
                                                 <label>Description</label>

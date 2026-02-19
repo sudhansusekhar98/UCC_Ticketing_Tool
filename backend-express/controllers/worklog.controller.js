@@ -187,7 +187,7 @@ export const getTeamLogs = async (req, res, next) => {
 // @access  Private
 export const addManualEntry = async (req, res, next) => {
     try {
-        const { category, description, duration, ticketRef, siteId } = req.body;
+        const { category, description, duration, ticketRef, siteId, policeStation } = req.body;
 
         if (!category || !description) {
             return res.status(400).json({
@@ -197,11 +197,19 @@ export const addManualEntry = async (req, res, next) => {
         }
 
         // Validate category is a manual-allowed one
-        const manualCategories = ['SiteVisit', 'AdminWork', 'Coordination', 'Training', 'Other'];
+        const manualCategories = ['SiteVisit','Documentation', 'Upgradation', 'AdminWork', 'Coordination', 'Training', 'Investigation', 'Other'];
         if (!manualCategories.includes(category)) {
             return res.status(400).json({
                 success: false,
                 message: `Invalid category for manual entry. Must be one of: ${manualCategories.join(', ')}`
+            });
+        }
+
+        // Validate policeStation is required for Investigation category
+        if (category === 'Investigation' && (!policeStation || !policeStation.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Police Station is required for Investigation entries'
             });
         }
 
@@ -247,6 +255,7 @@ export const addManualEntry = async (req, res, next) => {
             duration: duration ? parseInt(duration) : undefined,
             ticketRef: ticketRef || undefined,
             siteId: siteId || undefined,
+            policeStation: category === 'Investigation' ? policeStation.trim() : undefined,
             attachments,
             timestamp: new Date()
         };

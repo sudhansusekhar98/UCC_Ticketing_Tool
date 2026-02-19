@@ -10,7 +10,7 @@ const ACTIVITY_CATEGORIES = [
     'UserCreated', 'UserUpdated', 'UserDeleted',
     'NotificationCreated',
     'SiteCreated', 'SiteUpdated', 'SiteDeleted',
-    'SiteVisit', 'AdminWork', 'Coordination', 'Training', 'Other'
+    'SiteVisit','Documentation', 'Upgradation', 'AdminWork', 'Coordination', 'Training', 'Investigation', 'Other'
 ];
 
 const activityEntrySchema = new mongoose.Schema({
@@ -40,6 +40,10 @@ const activityEntrySchema = new mongoose.Schema({
     siteId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Site'
+    },
+    policeStation: {
+        type: String,
+        maxlength: 200
     },
     refModel: {
         type: String,
@@ -133,6 +137,7 @@ const CATEGORY_STAT_MAP = {
     AdminWork: 'manualEntries',
     Coordination: 'manualEntries',
     Training: 'manualEntries',
+    Investigation: 'manualEntries',
     Other: 'manualEntries'
 };
 
