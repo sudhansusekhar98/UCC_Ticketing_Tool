@@ -215,7 +215,10 @@ function App() {
           <Route
             path="/tickets/:id/edit"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}>
+              <ProtectedRoute
+                allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
+                requiredRight={PERMISSIONS.EDIT_TICKET}
+              >
                 <TicketForm />
               </ProtectedRoute>
             }
