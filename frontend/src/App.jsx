@@ -488,11 +488,10 @@ function App() {
             }
           />
 
-          {/* Help - Admin Only */}
           <Route
             path="/help"
             element={
-              <ProtectedRoute allowedRoles={['Admin']}>
+              <ProtectedRoute>
                 <Help />
               </ProtectedRoute>
             }
@@ -508,4 +507,3 @@ function App() {
 }
 
 export default App;
-
