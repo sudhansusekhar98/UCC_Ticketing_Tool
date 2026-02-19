@@ -665,14 +665,6 @@ export default function TicketDetail() {
                                 </span>
                                 <span className="detail-value">{ticket.siteName}</span>
                             </div>
-
-                            <div className="detail-row">
-                                <span className="detail-label">
-                                    <Hash size={12} />
-                                    SL Number
-                                </span>
-                                <span className="detail-value">{ticket.serialNumber || '—'}</span>
-                            </div>
                         </div>
                     )}
 

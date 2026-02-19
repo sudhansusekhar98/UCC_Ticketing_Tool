@@ -36,9 +36,9 @@ const fixSlaData = async () => {
                     console.warn(`   ⚠️ Validation failed for ${ticket.ticketNumber}. Forcing save without validation...`);
                     // If validation fails (e.g. missing fields in legacy data), force save just the SLA fields
                     await ticket.save({ validateBeforeSave: false });
-                    console.log(`   ✅ Force Repaired: ${ticket.ticketNumber}`);
+                    console.log(`    Force Repaired: ${ticket.ticketNumber}`);
                 } else {
-                    console.error(`   ❌ Failed to repair ${ticket.ticketNumber}:`, err.message);
+                    console.error(`    Failed to repair ${ticket.ticketNumber}:`, err.message);
                 }
             }
         }
