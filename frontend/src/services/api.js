@@ -357,5 +357,14 @@ export const stockApi = {
     downloadTemplate: (format) => api.get(`/stock/export-template?format=${format}`, { responseType: 'blob' }),
     replaceAsset: (data) => api.post('/stock/replace', data),
     getReplacementHistory: (assetId) => api.get(`/stock/asset/${assetId}/history`),
+    // Stock-specific lookups (only from Spare assets)
+    getStockAssetTypes: () => api.get('/stock/asset-types'),
+    getStockDeviceTypes: (assetType) => api.get('/stock/device-types', { params: { assetType } }),
+    getStockModels: (assetType, deviceType) => api.get('/stock/models', { params: { assetType, deviceType } }),
+    // Export selected inventory assets
+    exportSelectedAssets: (assetIds, format = 'xlsx') => api.post('/stock/export-selected', { assetIds, format }, { responseType: 'blob' }),
+    // Stock CRUD
+    updateStock: (assetId, data) => api.put(`/stock/${assetId}`, data),
+    deleteStock: (assetId) => api.delete(`/stock/${assetId}`),
 };
 

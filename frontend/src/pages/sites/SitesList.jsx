@@ -115,7 +115,7 @@ export default function SitesList() {
     const totalPages = Math.ceil(totalCount / pageSize);
 
     return (
-        <div className="page-container animate-fade-in">
+        <div className="page-container animate-fade-in sites-page">
             <div className="page-header">
                 <div>
                     <h1 className="page-title">Sites &nbsp;</h1>
@@ -133,9 +133,9 @@ export default function SitesList() {
 
             {/* Filters */}
             <div className="filter-bar glass-card compact">
-                <div className="search-filter-row">
-                    <div className="search-box large">
-                        <Search size={18} />
+                <div className="filter-bar-content">
+                    <div className="search-box small">
+                        <Search size={16} />
                         <input
                             type="text"
                             placeholder="Search sites..."
@@ -143,19 +143,23 @@ export default function SitesList() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <select
-                        className="form-select compact-select"
-                        value={cityFilter}
-                        onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">All Cities</option>
-                        {cities.map(city => (
-                            <option key={city} value={city}>{city}</option>
-                        ))}
-                    </select>
-                    <button className="btn btn-secondary btn-icon" onClick={fetchSites}>
-                        <RefreshCw size={18} />
-                    </button>
+                    <div className="filters-inline">
+                        <select
+                            className="filter-select"
+                            value={cityFilter}
+                            onChange={(e) => { setCityFilter(e.target.value); setPage(1); }}
+                        >
+                            <option value="">All Cities</option>
+                            {cities.map(city => (
+                                <option key={city} value={city}>{city}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="filter-actions-inline">
+                        <button className="btn btn-secondary icon-btn-small" onClick={fetchSites} title="Refresh">
+                            <RefreshCw size={14} />
+                        </button>
+                    </div>
                 </div>
             </div>
 

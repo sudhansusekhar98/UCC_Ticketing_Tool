@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
     Package, ArrowLeft, Plus, Warehouse, Building2, Cpu, Upload
 } from 'lucide-react';
-import { stockApi, sitesApi, lookupsApi } from '../../services/api';
+import { stockApi, sitesApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../context/authStore';
 import { PERMISSIONS } from '../../constants/permissions';
@@ -66,7 +66,7 @@ export default function AddStock() {
 
             const [sitesRes, typesRes] = await Promise.all([
                 sitesApi.getAll({ limit: 100 }),
-                lookupsApi.getAssetTypes()
+                stockApi.getStockAssetTypes()  // Only types that exist in current stock
             ]);
 
             let siteData = sitesRes.data.data || sitesRes.data || [];
@@ -101,7 +101,7 @@ export default function AddStock() {
 
     const fetchDeviceTypes = async (assetType) => {
         try {
-            const response = await lookupsApi.getDeviceTypes(assetType);
+            const response = await stockApi.getStockDeviceTypes(assetType);  // Only types from Spare assets
             setDeviceTypes(response.data.data || []);
         } catch (error) {
             console.error('Failed to fetch device types:', error);
@@ -111,7 +111,7 @@ export default function AddStock() {
 
     const fetchModels = async (assetType, deviceType = '') => {
         try {
-            const response = await lookupsApi.getModels(assetType, deviceType);
+            const response = await stockApi.getStockModels(assetType, deviceType);  // Only models from Spare assets
             setModels(response.data.data || []);
         } catch (error) {
             console.error('Failed to fetch models:', error);

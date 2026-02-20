@@ -681,9 +681,9 @@ export default function AssetsList() {
 
             {/* Filters */}
             <div className="filter-bar glass-card compact">
-                <div className="search-filter-row">
-                    <div className="search-box large">
-                        <Search size={18} />
+                <div className="filter-bar-content">
+                    <div className="search-box small">
+                        <Search size={16} />
                         <input
                             type="text"
                             placeholder="Search assets..."
@@ -691,69 +691,73 @@ export default function AssetsList() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <select
-                        className="form-select compact-select"
-                        value={siteFilter}
-                        onChange={(e) => { setSiteFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">All Sites</option>
-                        {sites.map(site => (
-                            <option key={site.value} value={site.value}>{site.label}</option>
-                        ))}
-                    </select>
-                    {/* Location dropdown - only show when site is selected and locations exist */}
-                    {siteFilter && locations.length > 0 && (
+                    <div className="filters-inline">
                         <select
-                            className="form-select compact-select"
-                            value={locationFilter}
-                            onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
-                            title="Filter by location"
+                            className="filter-select"
+                            value={siteFilter}
+                            onChange={(e) => { setSiteFilter(e.target.value); setPage(1); }}
                         >
-                            <option value="">All Locations</option>
-                            {locations.map(loc => (
-                                <option key={loc.value} value={loc.value}>{loc.label}</option>
+                            <option value="">All Sites</option>
+                            {sites.map(site => (
+                                <option key={site.value} value={site.value}>{site.label}</option>
                             ))}
                         </select>
-                    )}
-                    {/* Asset Type dropdown - only show when site is selected and asset types exist */}
-                    {siteFilter && assetTypes.length > 0 && (
+                        {/* Location dropdown - only show when site is selected and locations exist */}
+                        {siteFilter && locations.length > 0 && (
+                            <select
+                                className="filter-select"
+                                value={locationFilter}
+                                onChange={(e) => { setLocationFilter(e.target.value); setPage(1); }}
+                                title="Filter by location"
+                            >
+                                <option value="">All Locations</option>
+                                {locations.map(loc => (
+                                    <option key={loc.value} value={loc.value}>{loc.label}</option>
+                                ))}
+                            </select>
+                        )}
+                        {/* Asset Type dropdown - only show when site is selected and asset types exist */}
+                        {siteFilter && assetTypes.length > 0 && (
+                            <select
+                                className="filter-select"
+                                value={typeFilter}
+                                onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+                            >
+                                <option value="">All Types</option>
+                                {assetTypes.map(type => (
+                                    <option key={type.value} value={type.value}>{type.label}</option>
+                                ))}
+                            </select>
+                        )}
+                        {/* Device Type dropdown - only show when asset type is selected and device types exist */}
+                        {siteFilter && typeFilter && deviceTypes.length > 0 && (
+                            <select
+                                className="filter-select"
+                                value={deviceFilter}
+                                onChange={(e) => { setDeviceFilter(e.target.value); setPage(1); }}
+                            >
+                                <option value="">All Devices</option>
+                                {deviceTypes.map(device => (
+                                    <option key={device.value} value={device.value}>{device.label}</option>
+                                ))}
+                            </select>
+                        )}
                         <select
-                            className="form-select compact-select"
-                            value={typeFilter}
-                            onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
+                            className="filter-select"
+                            value={statusFilter}
+                            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
                         >
-                            <option value="">All Asset Types</option>
-                            {assetTypes.map(type => (
-                                <option key={type.value} value={type.value}>{type.label}</option>
+                            <option value="">All Status</option>
+                            {assetStatuses.map(status => (
+                                <option key={status.value} value={status.value}>{status.label}</option>
                             ))}
                         </select>
-                    )}
-                    {/* Device Type dropdown - only show when asset type is selected and device types exist */}
-                    {siteFilter && typeFilter && deviceTypes.length > 0 && (
-                        <select
-                            className="form-select compact-select"
-                            value={deviceFilter}
-                            onChange={(e) => { setDeviceFilter(e.target.value); setPage(1); }}
-                        >
-                            <option value="">All Devices</option>
-                            {deviceTypes.map(device => (
-                                <option key={device.value} value={device.value}>{device.label}</option>
-                            ))}
-                        </select>
-                    )}
-                    <select
-                        className="form-select compact-select"
-                        value={statusFilter}
-                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">All Status</option>
-                        {assetStatuses.map(status => (
-                            <option key={status.value} value={status.value}>{status.label}</option>
-                        ))}
-                    </select>
-                    <button className="btn btn-secondary btn-icon" onClick={fetchAssets}>
-                        <RefreshCw size={18} />
-                    </button>
+                    </div>
+                    <div className="filter-actions-inline">
+                        <button className="btn btn-secondary icon-btn-small" onClick={fetchAssets} title="Refresh">
+                            <RefreshCw size={14} />
+                        </button>
+                    </div>
                 </div>
             </div>
 

@@ -54,13 +54,46 @@ export const getInventory = async (req, res, next) => {
             ];
         }
 
-        // Aggregate by site and asset type
+        // Aggregate by site and asset type.
+        // Items measured in meters (unit case-insensitively equals 'meter' or 'm')
+        // are listed individually but are EXCLUDED from the numeric count.
+        const METER_UNITS = ['meter', 'meters', 'm'];
+
         let inventory = await Asset.aggregate([
             { $match: matchQuery },
             {
                 $group: {
                     _id: { siteId: '$siteId', assetType: '$assetType' },
-                    count: { $sum: { $ifNull: ['$quantity', 1] } },
+                    // Count only assets whose unit is NOT a meter unit
+                    count: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $in: [
+                                        { $toLower: { $ifNull: ['$unit', 'nos'] } },
+                                        METER_UNITS
+                                    ]
+                                },
+                                0,  // meter-unit items contribute 0 to count
+                                { $ifNull: ['$quantity', 1] }
+                            ]
+                        }
+                    },
+                    // Sum total meters for display in the group header
+                    meterTotalLength: {
+                        $sum: {
+                            $cond: [
+                                {
+                                    $in: [
+                                        { $toLower: { $ifNull: ['$unit', 'nos'] } },
+                                        METER_UNITS
+                                    ]
+                                },
+                                { $ifNull: ['$quantity', 0] },
+                                0
+                            ]
+                        }
+                    },
                     assets: {
                         $push: {
                             _id: '$_id',
@@ -73,7 +106,14 @@ export const getInventory = async (req, res, next) => {
                             stockLocation: '$stockLocation',
                             quantity: '$quantity',
                             unit: '$unit',
-                            remarks: '$remarks'
+                            remarks: '$remarks',
+                            // Flag so the frontend can distinguish meter items
+                            isMeterUnit: {
+                                $in: [
+                                    { $toLower: { $ifNull: ['$unit', 'nos'] } },
+                                    METER_UNITS
+                                ]
+                            }
                         }
                     }
                 }
@@ -95,6 +135,7 @@ export const getInventory = async (req, res, next) => {
                     isHeadOffice: '$site.isHeadOffice',
                     assetType: '$_id.assetType',
                     count: 1,
+                    meterTotalLength: 1,
                     assets: 1
                 }
             },
@@ -605,6 +646,111 @@ export const addStock = async (req, res, next) => {
     }
 };
 
+// @desc    Update stock-specific fields on a spare asset
+// @route   PUT /api/stock/:assetId
+// @access  Private (Admin/Supervisor or MANAGE_SITE_STOCK right)
+export const updateStock = async (req, res, next) => {
+    try {
+        const { assetId } = req.params;
+        const user = req.user;
+
+        // Only allow editing these stock-specific fields
+        const allowedFields = ['assetType', 'deviceType', 'make', 'model', 'mac', 'serialNumber', 'stockLocation', 'quantity', 'unit', 'remarks', 'remark'];
+        const updateData = {};
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                updateData[field] = req.body[field];
+            }
+        }
+
+        // Keep remarks & remark in sync for backward compatibility
+        if (updateData.remarks !== undefined) {
+            updateData.remark = updateData.remarks;
+        } else if (updateData.remark !== undefined) {
+            updateData.remarks = updateData.remark;
+        }
+
+        const asset = await Asset.findOne({ _id: assetId, status: 'Spare' });
+        if (!asset) {
+            return res.status(404).json({ success: false, message: 'Stock item not found or is not a spare asset' });
+        }
+
+        // Permission check
+        const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
+        if (!isAdminOrSupervisor) {
+            const siteId = asset.siteId?.toString();
+            const hasRight = hasRightForSite(user, 'MANAGE_SITE_STOCK', siteId);
+            if (!hasRight) {
+                return res.status(403).json({ success: false, message: 'You do not have permission to edit stock at this site' });
+            }
+        }
+
+        // Apply update — encryption middleware handles mac/serialNumber automatically
+        const updated = await Asset.findByIdAndUpdate(
+            assetId,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        );
+
+        res.json({
+            success: true,
+            data: updated,
+            message: 'Stock item updated successfully'
+        });
+
+        // Fire-and-forget: log activity
+        DailyWorkLog.logActivity(user._id, {
+            category: 'StockAdded',
+            description: `Updated stock item (${asset.assetType || 'Unknown'}) at site`,
+            refModel: 'Asset',
+            refId: asset._id,
+            metadata: { assetId: asset._id, changes: Object.keys(updateData) }
+        }).catch(() => { });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Delete a spare stock asset
+// @route   DELETE /api/stock/:assetId
+// @access  Private (Admin/Supervisor or MANAGE_SITE_STOCK right)
+export const deleteStock = async (req, res, next) => {
+    try {
+        const { assetId } = req.params;
+        const user = req.user;
+
+        const asset = await Asset.findOne({ _id: assetId, status: 'Spare' });
+        if (!asset) {
+            return res.status(404).json({ success: false, message: 'Stock item not found or is not a spare asset' });
+        }
+
+        const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
+        if (!isAdminOrSupervisor) {
+            const hasRight = hasRightForSite(user, 'MANAGE_SITE_STOCK', asset.siteId?.toString());
+            if (!hasRight) {
+                return res.status(403).json({ success: false, message: 'You do not have permission to delete stock at this site' });
+            }
+        }
+
+        await Asset.findByIdAndDelete(assetId);
+
+        res.json({ success: true, message: 'Stock item deleted successfully' });
+
+        // Fire-and-forget: log activity
+        DailyWorkLog.logActivity(user._id, {
+            category: 'StockDeleted',
+            description: `Deleted stock item (${asset.assetType || 'Unknown'}) - ${asset.serialNumber || asset.mac || 'No identifier'}`,
+            refModel: 'Asset',
+            refId: asset._id,
+            metadata: { assetId: asset._id }
+        }).catch(() => { });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Get stock transfers
 // @route   GET /api/stock/transfers
 // @access  Private
@@ -1013,6 +1159,21 @@ export const bulkUpload = async (req, res, next) => {
             message: `Processed ${data.length} rows. ${results.successCount} imported, ${results.failCount} failed.`
         });
 
+        // Fire-and-forget: log bulk upload activity to work log
+        if (results.successCount > 0) {
+            DailyWorkLog.logActivity(req.user._id, {
+                category: 'StockAdded',
+                description: `Bulk uploaded ${results.successCount} stock item(s) via Excel/CSV (${results.failCount} failed)`,
+                refModel: null,
+                refId: null,
+                metadata: {
+                    successCount: results.successCount,
+                    failCount: results.failCount,
+                    totalRows: data.length
+                }
+            }).catch(() => { });
+        }
+
     } catch (error) {
         // Cleanup file on crash
         if (req.file && !req.file.buffer && fs.existsSync(req.file.path)) {
@@ -1361,6 +1522,116 @@ export const getMovementStats = async (req, res, next) => {
                 recentMovements
             }
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get distinct asset types from Spare (stock) assets only
+// @route   GET /api/stock/asset-types
+// @access  Private
+export const getStockAssetTypes = async (req, res, next) => {
+    try {
+        const assetTypes = await Asset.distinct('assetType', { status: 'Spare' });
+        const formatted = assetTypes
+            .filter(t => t && t.trim() !== '')
+            .sort()
+            .map(t => ({ value: t, label: t }));
+        res.json({ success: true, data: formatted });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get distinct device types from Spare (stock) assets, optionally filtered by assetType
+// @route   GET /api/stock/device-types
+// @access  Private
+export const getStockDeviceTypes = async (req, res, next) => {
+    try {
+        const { assetType } = req.query;
+        const query = { status: 'Spare' };
+        if (assetType) query.assetType = assetType;
+        const deviceTypes = await Asset.distinct('deviceType', query);
+        const formatted = deviceTypes
+            .filter(dt => dt && dt.trim() !== '')
+            .sort()
+            .map(dt => ({ value: dt, label: dt }));
+        res.json({ success: true, data: formatted });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get distinct models from Spare (stock) assets, filtered by assetType/deviceType
+// @route   GET /api/stock/models
+// @access  Private
+export const getStockModels = async (req, res, next) => {
+    try {
+        const { assetType, deviceType } = req.query;
+        const query = { status: 'Spare' };
+        if (assetType) query.assetType = assetType;
+        if (deviceType) query.deviceType = deviceType;
+        const models = await Asset.distinct('model', query);
+        const formatted = models
+            .filter(m => m && m.trim() !== '')
+            .sort()
+            .map(m => ({ value: m, label: m }));
+        res.json({ success: true, data: formatted });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Export selected inventory assets to Excel/CSV
+// @route   POST /api/stock/export-selected
+// @access  Private
+export const exportSelectedAssets = async (req, res, next) => {
+    try {
+        const { assetIds, format = 'xlsx' } = req.body;
+
+        if (!assetIds || !Array.isArray(assetIds) || assetIds.length === 0) {
+            return res.status(400).json({ success: false, message: 'No asset IDs provided' });
+        }
+
+        const assets = await Asset.find({
+            _id: { $in: assetIds },
+            status: 'Spare'
+        }).populate('siteId', 'siteName isHeadOffice').lean();
+
+        if (assets.length === 0) {
+            return res.status(404).json({ success: false, message: 'No matching stock assets found' });
+        }
+
+        const rows = assets.map(a => ({
+            'Asset Type': a.assetType || '',
+            'Device Type': a.deviceType || '',
+            'Make': a.make || '',
+            'Model': a.model || '',
+            'MAC Address': a.mac || '',
+            'Serial Number': a.serialNumber || '',
+            'Stock Location': a.stockLocation || '',
+            'Quantity': a.quantity || 1,
+            'Unit': a.unit || 'Nos',
+            'Remarks': a.remarks || a.remark || '',
+            'Site': a.siteId?.siteName || '',
+            'Head Office': a.siteId?.isHeadOffice ? 'Yes' : 'No'
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Selected Assets');
+
+        if (format === 'csv') {
+            const csv = XLSX.utils.sheet_to_csv(ws);
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename=selected_assets.csv');
+            return res.status(200).send(csv);
+        } else {
+            const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            res.setHeader('Content-Disposition', 'attachment; filename=selected_assets.xlsx');
+            return res.status(200).send(buffer);
+        }
     } catch (error) {
         next(error);
     }

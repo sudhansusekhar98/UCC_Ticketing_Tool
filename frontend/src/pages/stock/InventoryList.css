@@ -134,7 +134,7 @@
 }
 
 .col-actions {
-    width: 110px;
+    width: 140px;
     text-align: center;
     padding-left: 0.5rem !important;
     padding-right: 0.5rem !important;
@@ -223,12 +223,75 @@
     background: rgba(99, 102, 241, 0.04);
 }
 
+.inventory-data-row.selected-row {
+    background: rgba(99, 102, 241, 0.08);
+    outline: 1px solid rgba(99, 102, 241, 0.2);
+    outline-offset: -1px;
+}
+
+/* Meter-unit rows — wire/cable items (measured in meters, not counted) */
+.inventory-data-row.meter-row {
+    background: rgba(20, 184, 166, 0.04);
+    border-left: 3px solid rgba(20, 184, 166, 0.5);
+}
+
+.inventory-data-row.meter-row:hover {
+    background: rgba(20, 184, 166, 0.08);
+}
+
+.meter-qty-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: rgba(20, 184, 166, 0.12);
+    color: #0d9488;
+    border: 1px solid rgba(20, 184, 166, 0.3);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: var(--font-mono, 'SF Mono', 'Consolas', monospace);
+    cursor: help;
+}
+
+.meter-unit-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    background: rgba(20, 184, 166, 0.12);
+    color: #0d9488;
+    border: 1px solid rgba(20, 184, 166, 0.25);
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* Meter count pill in site headers */
+.item-count.meter-count {
+    background: rgba(20, 184, 166, 0.1);
+    color: #0d9488;
+    border-color: rgba(20, 184, 166, 0.25);
+    margin-left: 4px;
+}
+
 .row-even {
     background: var(--bg-primary);
 }
 
 .row-odd {
     background: var(--bg-card);
+}
+
+.export-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: 4px 12px;
 }
 
 /* Data Cells */
@@ -322,6 +385,14 @@
     color: var(--warning-600);
     border-color: var(--warning-200);
     box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+    transform: translateY(-2px);
+}
+
+.action-btn-direct.delete:hover {
+    background: rgba(239, 68, 68, 0.08);
+    color: var(--error-600, #dc2626);
+    border-color: rgba(239, 68, 68, 0.25);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
     transform: translateY(-2px);
 }
 

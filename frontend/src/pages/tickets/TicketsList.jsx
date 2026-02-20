@@ -3,7 +3,6 @@ import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
     Plus,
     Search,
-    Filter,
     RefreshCw,
     ChevronLeft,
     ChevronRight,
@@ -32,7 +31,6 @@ export default function TicketsList() {
     const [tickets, setTickets] = useState([]);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
-    const [showFilters, setShowFilters] = useState(false);
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { hasRole, hasRightForAnySite } = useAuthStore();
@@ -151,6 +149,20 @@ export default function TicketsList() {
         setFilters({ ...filters, page: 1 });
     };
 
+    // Accepts an explicit filter snapshot — used by dropdowns so they don't hit stale closure
+    const handleSearchWith = (f) => {
+        const params = new URLSearchParams();
+        if (f.status) params.set('status', f.status);
+        if (f.priority) params.set('priority', f.priority);
+        if (f.category) params.set('category', f.category);
+        if (f.assignedTo) params.set('assignedTo', f.assignedTo);
+        if (f.siteId) params.set('siteId', f.siteId);
+        if (f.slaStatus) params.set('slaStatus', f.slaStatus);
+        if (f.searchTerm) params.set('search', f.searchTerm);
+        params.set('page', '1');
+        setSearchParams(params);
+    };
+
     const handleClearFilters = () => {
         setFilters({
             status: '',
@@ -216,126 +228,97 @@ export default function TicketsList() {
                 </div>
             </div>
 
-            {/* Search & Filter Bar */}
+            {/* Search & Filter Bar — always visible, changes apply immediately */}
             <div className="filter-bar glass-card">
-                <div className="search-filter-row">
-                    <div className="search-box large">
-                        <Search size={18} />
+                <div className="filter-bar-content">
+                    <div className="search-box small">
+                        <Search size={16} />
                         <input
                             type="text"
-                            placeholder="Search by ticket number, title, or asset..."
+                            placeholder="Search ticket, asset..."
                             value={filters.searchTerm}
                             onChange={(e) => setFilters({ ...filters, searchTerm: e.target.value })}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                         />
                     </div>
-                    <button className="btn btn-secondary" onClick={() => setShowFilters(!showFilters)}>
-                        <Filter size={18} />
-                        Filters
-                    </button>
-                    <button className="btn btn-secondary" onClick={fetchTickets}>
-                        <RefreshCw size={18} />
-                    </button>
-                </div>
 
-                {showFilters && (
-                    <div className="filters-panel">
-                        <div className="filters-grid">
-                            <div className="filter-group">
-                                <label>Status</label>
-                                <select
-                                    value={filters.status}
-                                    onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                    className="form-select"
-                                >
-                                    <option value="">All Statuses</option>
-                                    {statuses.map((s) => (
-                                        <option key={s.value} value={s.value}>{s.label}</option>
-                                    ))}
-                                </select>
-                            </div>
+                    <div className="filters-inline">
+                        <select
+                            value={filters.status}
+                            onChange={(e) => { const f = { ...filters, status: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                            className="form-select filter-select"
+                        >
+                            <option value="">All Statuses</option>
+                            {statuses.map((s) => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                        </select>
 
-                            <div className="filter-group">
-                                <label>Priority</label>
-                                <select
-                                    value={filters.priority}
-                                    onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
-                                    className="form-select"
-                                >
-                                    <option value="">All Priorities</option>
-                                    {priorities.map((p) => (
-                                        <option key={p.value} value={p.value}>{p.label}</option>
-                                    ))}
-                                </select>
-                            </div>
+                        <select
+                            value={filters.priority}
+                            onChange={(e) => { const f = { ...filters, priority: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                            className="form-select filter-select"
+                        >
+                            <option value="">All Priorities</option>
+                            {priorities.map((p) => (
+                                <option key={p.value} value={p.value}>{p.label}</option>
+                            ))}
+                        </select>
 
-                            <div className="filter-group">
-                                <label>Category</label>
-                                <select
-                                    value={filters.category}
-                                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                                    className="form-select"
-                                >
-                                    <option value="">All Categories</option>
-                                    {categories.map((c) => (
-                                        <option key={c.value} value={c.value}>{c.label}</option>
-                                    ))}
-                                </select>
-                            </div>
+                        <select
+                            value={filters.category}
+                            onChange={(e) => { const f = { ...filters, category: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                            className="form-select filter-select"
+                        >
+                            <option value="">All Categories</option>
+                            {categories.map((c) => (
+                                <option key={c.value} value={c.value}>{c.label}</option>
+                            ))}
+                        </select>
 
-                            <div className="filter-group">
-                                <label>Assigned To</label>
-                                <select
-                                    value={filters.assignedTo}
-                                    onChange={(e) => setFilters({ ...filters, assignedTo: e.target.value })}
-                                    className="form-select"
-                                >
-                                    <option value="">All Engineers</option>
-                                    {engineers.map((e) => (
-                                        <option key={e.value} value={e.value}>{e.label}</option>
-                                    ))}
-                                </select>
-                            </div>
+                        <select
+                            value={filters.assignedTo}
+                            onChange={(e) => { const f = { ...filters, assignedTo: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                            className="form-select filter-select"
+                        >
+                            <option value="">All Engineers</option>
+                            {engineers.map((e) => (
+                                <option key={e.value} value={e.value}>{e.label}</option>
+                            ))}
+                        </select>
 
-                            <div className="filter-group">
-                                <label>Site</label>
-                                <select
-                                    value={filters.siteId}
-                                    onChange={(e) => setFilters({ ...filters, siteId: e.target.value })}
-                                    className="form-select"
-                                >
-                                    <option value="">All Sites</option>
-                                    {sites.map((s) => (
-                                        <option key={s.value} value={s.value}>{s.label}</option>
-                                    ))}
-                                </select>
-                            </div>
+                        <select
+                            value={filters.siteId}
+                            onChange={(e) => { const f = { ...filters, siteId: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                            className="form-select filter-select"
+                        >
+                            <option value="">All Sites</option>
+                            {sites.map((s) => (
+                                <option key={s.value} value={s.value}>{s.label}</option>
+                            ))}
+                        </select>
 
-                            <div className="filter-group">
-                                <label>SLA Status</label>
-                                <select
-                                    value={filters.slaStatus}
-                                    onChange={(e) => setFilters({ ...filters, slaStatus: e.target.value })}
-                                    className="form-select"
-                                >
-                                    <option value="">All SLA Status</option>
-                                    <option value="Breached">Breached</option>
-                                    <option value="AtRisk">At Risk</option>
-                                    <option value="OnTrack">On Track</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="filter-actions">
-                            <button className="btn btn-primary" onClick={handleSearch}>
-                                Apply Filters
-                            </button>
-                            <button className="btn btn-ghost" onClick={handleClearFilters}>
-                                Clear All
-                            </button>
-                        </div>
+                        <select
+                            value={filters.slaStatus}
+                            onChange={(e) => { const f = { ...filters, slaStatus: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                            className="form-select filter-select"
+                        >
+                            <option value="">All SLA</option>
+                            <option value="Breached">Breached</option>
+                            <option value="AtRisk">At Risk</option>
+                            <option value="OnTrack">On Track</option>
+                        </select>
                     </div>
-                )}
+
+                    <div className="filter-actions-inline">
+                        <button className="btn btn-secondary icon-btn-small" onClick={fetchTickets} title="Refresh">
+                            <RefreshCw size={14} />
+                        </button>
+                        <button className="btn btn-ghost text-btn-small" onClick={handleClearFilters} title="Clear All Filters">
+                            Clear
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Tickets Table */}
@@ -355,7 +338,8 @@ export default function TicketsList() {
                     </div>
                 ) : (
                     <>
-                        <table className="data-table">
+                        {/* Desktop Table View */}
+                        <table className="data-table tickets-table hide-on-mobile">
                             <thead>
                                 <tr>
                                     <th>Ticket #</th>
@@ -423,6 +407,56 @@ export default function TicketsList() {
                                 ))}
                             </tbody>
                         </table>
+
+                        {/* Mobile Card View */}
+                        <div className="mobile-tickets-list show-on-mobile">
+                            {tickets.map((ticket) => (
+                                <div
+                                    className="ticket-mobile-card glass-card"
+                                    key={ticket.ticketId}
+                                    onClick={() => navigate(`/tickets/${ticket.ticketId}`)}
+                                >
+                                    <div className="card-top">
+                                        <span className="ticket-number">{ticket.ticketNumber}</span>
+                                        <div className="card-badges">
+                                            <span className={`badge badge-priority ${getPriorityClass(ticket.priority)}`}>
+                                                {ticket.priority}
+                                            </span>
+                                            <span className={`badge badge-status ${getStatusClass(ticket.status)}`}>
+                                                {ticket.status}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <h3 className="card-title">{ticket.title}</h3>
+
+                                    <div className="card-details">
+                                        <div className="card-detail-item">
+                                            <span className="detail-label">Asset:</span>
+                                            <span className="detail-value">{ticket.assetCode || '—'}</span>
+                                        </div>
+                                        <div className="card-detail-item">
+                                            <span className="detail-label">Site:</span>
+                                            <span className="detail-value text-truncate">{ticket.siteName || '—'}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="card-footer">
+                                        <div className={`sla-indicator small ${getSLAStatusClass(ticket.slaStatus)}`}>
+                                            <span>SLA: {ticket.slaStatus}</span>
+                                        </div>
+                                        <span className="card-date">
+                                            {safeFormatDate(ticket.createdOn, 'MMM dd, HH:mm')}
+                                        </span>
+                                    </div>
+
+                                    <div className="card-assigned">
+                                        <span className="detail-label">Assigned:</span>
+                                        <span className="detail-value">{ticket.assignedToName || 'Unassigned'}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
 
                         {/* Pagination */}
                         {totalPages > 1 && (

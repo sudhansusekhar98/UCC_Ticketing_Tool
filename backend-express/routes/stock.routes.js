@@ -8,6 +8,8 @@ import {
     fulfillRequisition,
     rejectRequisition,
     addStock,
+    updateStock,
+    deleteStock,
     getTransfers,
     initiateTransfer,
     dispatchTransfer,
@@ -18,7 +20,11 @@ import {
     performStockReplacement,
     getAssetReplacementHistory,
     getStockMovementLogs,
-    getMovementStats
+    getMovementStats,
+    getStockAssetTypes,
+    getStockDeviceTypes,
+    getStockModels,
+    exportSelectedAssets
 } from '../controllers/stock.controller.js';
 import { protect, allowAccess } from '../middleware/auth.middleware.js';
 import { simpleUpload } from '../utils/upload.js';
@@ -34,10 +40,18 @@ router.get('/availability/:ticketId', getStockAvailability);
 router.get('/asset/:assetId/history', getAssetReplacementHistory);
 router.post('/replace', performStockReplacement);
 
+// Stock-specific lookup routes (filter by Spare status only)
+router.get('/asset-types', getStockAssetTypes);
+router.get('/device-types', getStockDeviceTypes);
+router.get('/models', getStockModels);
+router.post('/export-selected', exportSelectedAssets);
+
 // Stock management (Admin OR users with MANAGE_SITE_STOCK right)
 router.post('/add', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), addStock);
 router.post('/bulk-upload', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), simpleUpload.single('file'), bulkUpload);
 router.get('/export-template', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), exportStockTemplate);
+router.put('/:assetId', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), updateStock);
+router.delete('/:assetId', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), deleteStock);
 
 // Movement logs
 router.get('/movement-logs', getStockMovementLogs);
