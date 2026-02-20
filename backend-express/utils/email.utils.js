@@ -753,6 +753,138 @@ export const sendGeneralNotificationEmail = async (recipients, notification) => 
   }
 };
 
+// Default export declared after all function definitions to avoid ES module TDZ errors.
+// Named exports are on each function via 'export const'.
+
+/**
+ * Notify all admins that a new client sign-up is pending review
+ */
+export const sendClientSignupAlertEmail = async (registration, adminEmails) => {
+  try {
+    if (!adminEmails || adminEmails.length === 0) return;
+    const transporter = createTransporter();
+
+    const content = `
+      <p>Hello Admin,</p>
+      <p>A new client has submitted a registration request and is awaiting your review.</p>
+
+      <table class="data-table">
+        <tr><th>Name</th><td>${registration.fullName}</td></tr>
+        <tr><th>Email</th><td>${registration.email}</td></tr>
+        <tr><th>Phone</th><td>${registration.phone}</td></tr>
+        <tr><th>Designation</th><td>${registration.designation}</td></tr>
+        <tr><th>Site Name</th><td>${registration.siteName}</td></tr>
+        ${registration.message ? `<tr><th>Message</th><td>${registration.message}</td></tr>` : ''}
+        <tr><th>Submitted On</th><td>${new Date(registration.createdAt).toLocaleString()}</td></tr>
+      </table>
+
+      <p>Please log in to review and approve or reject this request.</p>
+
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/admin/client-registrations" class="btn" style="color: white !important; text-decoration: none;">Review Request</a>
+      </div>
+
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
+    `;
+
+    const subject = `New Client Sign-Up Request: ${registration.fullName} (${registration.siteName})`;
+    await transporter.sendMail({
+      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+      to: adminEmails.join(', '),
+      subject,
+      html: emailTemplate(content, 'New Client Registration'),
+    });
+
+    console.log(`Client signup alert sent to ${adminEmails.length} admin(s)`);
+    await logNotification(adminEmails.join(', '), subject, content, 'Account', null, 'Sent');
+  } catch (error) {
+    console.error('Error sending client signup alert email:', error);
+  }
+};
+
+/**
+ * Send approval email to client with their login credentials
+ */
+export const sendClientApprovalEmail = async (registration, username, tempPassword) => {
+  try {
+    const transporter = createTransporter();
+
+    const content = `
+      <p>Hello <strong>${registration.fullName}</strong>,</p>
+      <p>Great news! Your client registration request has been <strong style="color: #10b981;">approved</strong>.</p>
+      <p>Your TicketOps account has been created. Please use the credentials below to log in.</p>
+
+      <table class="data-table">
+        <tr><th>Username</th><td><code>${username}</code></td></tr>
+        <tr><th>Temporary Password</th><td><code>${tempPassword}</code></td></tr>
+        <tr><th>Site</th><td>${registration.siteName}</td></tr>
+      </table>
+
+      <div class="info-box">
+        <strong>Important:</strong> This is a temporary password. Please change it after your first login for security purposes.
+      </div>
+
+      <p>Once logged in, you can raise support tickets for your site and track their progress in real time.</p>
+
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/login" class="btn" style="color: white !important; text-decoration: none;">Login Now</a>
+      </div>
+
+      <p>If you have any questions, please contact your system administrator.</p>
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
+    `;
+
+    const subject = 'Your TicketOps Client Account is Ready';
+    await transporter.sendMail({
+      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+      to: registration.email,
+      subject,
+      html: emailTemplate(content, 'Account Approved'),
+    });
+
+    console.log(`Client approval email sent to ${registration.email}`);
+    await logNotification(registration.email, subject, content, 'Account', null, 'Sent', null, registration.userId);
+  } catch (error) {
+    console.error('Error sending client approval email:', error);
+  }
+};
+
+/**
+ * Send rejection email to client with the reason provided by admin
+ */
+export const sendClientRejectionEmail = async (registration) => {
+  try {
+    const transporter = createTransporter();
+
+    const content = `
+      <p>Hello <strong>${registration.fullName}</strong>,</p>
+      <p>Thank you for your interest in TicketOps. Unfortunately, we were unable to approve your registration request at this time.</p>
+
+      ${registration.rejectionReason ? `
+      <p><strong>Reason:</strong></p>
+      <div class="info-box" style="border-left-color: #ef4444;">${registration.rejectionReason}</div>
+      ` : ''}
+
+      <p>If you believe this is an error or need further clarification, please contact your administrator.</p>
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
+    `;
+
+    const subject = 'TicketOps — Registration Request Update';
+    await transporter.sendMail({
+      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+      to: registration.email,
+      subject,
+      html: emailTemplate(content, 'Registration Update'),
+    });
+
+    console.log(`Client rejection email sent to ${registration.email}`);
+    await logNotification(registration.email, subject, content, 'Account', null, 'Sent');
+  } catch (error) {
+    console.error('Error sending client rejection email:', error);
+  }
+};
+
+// Combined default export placed after all declarations.
 export default {
   sendAccountCreationEmail,
   sendTicketAssignmentEmail,
@@ -763,5 +895,8 @@ export default {
   sendBreachWarningEmail,
   sendSlaBreachedEmail,
   sendRMAMilestoneEmail,
-  sendGeneralNotificationEmail
+  sendGeneralNotificationEmail,
+  sendClientSignupAlertEmail,
+  sendClientApprovalEmail,
+  sendClientRejectionEmail
 };

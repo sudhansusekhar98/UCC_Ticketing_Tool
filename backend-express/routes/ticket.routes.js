@@ -39,7 +39,7 @@ router.get('/dashboard/stats', getDashboardStats);
 // CRUD routes
 router.route('/')
   .get(getTickets)
-  .post(allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor'], right: 'CREATE_TICKET' }), createTicket);
+  .post(allowAccess({ roles: ['Admin', 'Dispatcher', 'Supervisor', 'SiteClient'], right: 'CREATE_TICKET' }), createTicket);
 
 router.route('/:id')
   .get(getTicketById)

@@ -11,6 +11,7 @@ export default function TicketForm() {
     const navigate = useNavigate();
     const isEditing = Boolean(id);
     const { user, getSitesWithRight, hasRole } = useAuthStore();
+    const isSiteClient = hasRole('SiteClient');
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -37,7 +38,14 @@ export default function TicketForm() {
     const [deviceTypes, setDeviceTypes] = useState([]);
     const [engineers, setEngineers] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
-    const [selectedSiteId, setSelectedSiteId] = useState('');
+    const [selectedSiteId, setSelectedSiteId] = useState(() => {
+        // Auto-select site for SiteClient from their assigned sites
+        if (isSiteClient && user?.assignedSites?.length > 0) {
+            const firstSite = user.assignedSites[0];
+            return firstSite?._id || firstSite || '';
+        }
+        return '';
+    });
     const [selectedLocationName, setSelectedLocationName] = useState('');
     const [selectedAssetType, setSelectedAssetType] = useState('');
     const [selectedDeviceType, setSelectedDeviceType] = useState('');
@@ -58,6 +66,13 @@ export default function TicketForm() {
             loadTicket();
         }
     }, [id]);
+
+    // Auto-select site for SiteClient when sites dropdown loads (fallback)
+    useEffect(() => {
+        if (isSiteClient && !selectedSiteId && sites.length > 0) {
+            setSelectedSiteId(sites[0].value);
+        }
+    }, [isSiteClient, sites]);
 
     // Load location names and asset types when site changes
     useEffect(() => {
@@ -263,19 +278,23 @@ export default function TicketForm() {
             const assetIdValue = typeof ticket.assetId === 'object' ? ticket.assetId?._id : ticket.assetId;
             const assignedToValue = typeof ticket.assignedTo === 'object' ? ticket.assignedTo?._id : ticket.assignedTo;
 
+            // Extract siteId from the ticket itself first, then from asset as fallback
+            const ticketSiteId = typeof ticket.siteId === 'object' ? ticket.siteId?._id : ticket.siteId;
+
             // Extract site, asset type, and device type from the asset object if populated
             const asset = ticket.assetId && typeof ticket.assetId === 'object' ? ticket.assetId : null;
-            if (asset) {
-                // Set site ID from asset
-                const siteIdValue = typeof asset.siteId === 'object' ? asset.siteId?._id : asset.siteId;
-                if (siteIdValue) {
-                    setSelectedSiteId(siteIdValue);
-                    // Load location names for this site
-                    await loadLocationNames(siteIdValue);
-                    // Load asset types for this site and location
-                    await loadAssetTypesForSite(siteIdValue, asset.locationName || '');
-                }
+            const assetSiteId = asset ? (typeof asset.siteId === 'object' ? asset.siteId?._id : asset.siteId) : null;
+            const effectiveSiteId = ticketSiteId || assetSiteId;
 
+            if (effectiveSiteId) {
+                setSelectedSiteId(effectiveSiteId);
+                // Load location names for this site
+                await loadLocationNames(effectiveSiteId);
+                // Load asset types for this site and location
+                await loadAssetTypesForSite(effectiveSiteId, asset?.locationName || '');
+            }
+
+            if (asset) {
                 // Set location name from asset
                 if (asset.locationName) {
                     setSelectedLocationName(asset.locationName);
@@ -285,7 +304,7 @@ export default function TicketForm() {
                 if (asset.assetType) {
                     setSelectedAssetType(asset.assetType);
                     // Load device types for this asset type
-                    await loadDeviceTypesForSite(siteIdValue, asset.locationName || '', asset.assetType);
+                    await loadDeviceTypesForSite(effectiveSiteId, asset.locationName || '', asset.assetType);
                 }
 
                 // Set device type from asset
@@ -294,8 +313,8 @@ export default function TicketForm() {
                 }
 
                 // Load assets for the site and asset type to populate the dropdown
-                if (siteIdValue) {
-                    await loadAssets(siteIdValue, asset.locationName || '', asset.assetType || '', asset.deviceType || '');
+                if (effectiveSiteId) {
+                    await loadAssets(effectiveSiteId, asset.locationName || '', asset.assetType || '', asset.deviceType || '');
                 }
             }
 
@@ -361,7 +380,7 @@ export default function TicketForm() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!selectedSiteId) {
+        if (!isSiteClient && !selectedSiteId) {
             toast.error('Please select a Site');
             return;
         }
@@ -373,13 +392,16 @@ export default function TicketForm() {
 
         setSaving(true);
         try {
+            const siteId = isSiteClient
+                ? (selectedSiteId || user?.assignedSites?.[0]?._id || user?.assignedSites?.[0])
+                : selectedSiteId;
             const payload = {
                 ...formData,
-                siteId: selectedSiteId,
-                assetId: formData.assetId || null, // Keep as string for MongoDB ObjectId
-                assignedTo: formData.assignedTo || null, // Keep as string for MongoDB ObjectId
-                impact: parseInt(formData.impact),
-                urgency: parseInt(formData.urgency),
+                siteId,
+                assetId: isSiteClient ? null : (formData.assetId || null),
+                assignedTo: formData.assignedTo || null,
+                impact: isSiteClient ? 3 : parseInt(formData.impact),
+                urgency: isSiteClient ? 3 : parseInt(formData.urgency),
             };
 
             if (isEditing) {
@@ -457,110 +479,119 @@ export default function TicketForm() {
             <form onSubmit={handleSubmit} className="form-card glass-card">
                 <div className='asset-form-container' style={{ margin: "1rem" }}>
                     <div className="form-grid">
-                        {/* Site Selection (mandatory) */}
-                        <div className="form-group">
-                            <label className="form-label">Site *</label>
-                            <select
-                                className="form-select"
-                                value={selectedSiteId}
-                                onChange={(e) => setSelectedSiteId(e.target.value)}
-                                required
-                            >
-                                <option value="">Select Site</option>
-                                {sites.map((site) => (
-                                    <option key={site.value} value={site.value}>{site.label}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {/* Site Selection (mandatory for non-clients, auto-selected for clients) */}
+                        {isSiteClient ? (
+                            <input type="hidden" value={user?.assignedSites?.[0]?._id || user?.assignedSites?.[0] || ''} />
+                        ) : (
+                            <div className="form-group">
+                                <label className="form-label">Site *</label>
+                                <select
+                                    className="form-select"
+                                    value={selectedSiteId}
+                                    onChange={(e) => setSelectedSiteId(e.target.value)}
+                                    required
+                                >
+                                    <option value="">Select Site</option>
+                                    {sites.map((site) => (
+                                        <option key={site.value} value={site.value}>{site.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
-                        {/* Location Name Selection (filter for assets) */}
-                        <div className="form-group">
-                            <label className="form-label">Location Name</label>
-                            <select
-                                className="form-select"
-                                value={selectedLocationName}
-                                onChange={(e) => setSelectedLocationName(e.target.value)}
-                                disabled={!selectedSiteId || locationNames.length === 0}
-                            >
-                                <option value="">
-                                    {!selectedSiteId
-                                        ? 'Select Site first'
-                                        : locationNames.length === 0
-                                            ? 'No locations available'
-                                            : 'All Locations'}
-                                </option>
-                                {locationNames.map((loc) => (
-                                    <option key={loc.value} value={loc.value}>{loc.label}</option>
-                                ))}
-                            </select>
-                        </div>
+                        {/* Location, Asset Type, Device Type, Asset Selection - Hidden for SiteClient */}
+                        {!isSiteClient && (
+                            <>
+                                {/* Location Name Selection (filter for assets) */}
+                                <div className="form-group">
+                                    <label className="form-label">Location Name</label>
+                                    <select
+                                        className="form-select"
+                                        value={selectedLocationName}
+                                        onChange={(e) => setSelectedLocationName(e.target.value)}
+                                        disabled={!selectedSiteId || locationNames.length === 0}
+                                    >
+                                        <option value="">
+                                            {!selectedSiteId
+                                                ? 'Select Site first'
+                                                : locationNames.length === 0
+                                                    ? 'No locations available'
+                                                    : 'All Locations'}
+                                        </option>
+                                        {locationNames.map((loc) => (
+                                            <option key={loc.value} value={loc.value}>{loc.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        {/* Asset Type Selection (filter for assets) */}
-                        <div className="form-group">
-                            <label className="form-label">Asset Type</label>
-                            <select
-                                className="form-select"
-                                value={selectedAssetType}
-                                onChange={(e) => setSelectedAssetType(e.target.value)}
-                                disabled={!selectedSiteId || assetTypes.length === 0}
-                            >
-                                <option value="">
-                                    {!selectedSiteId
-                                        ? 'Select Site first'
-                                        : assetTypes.length === 0
-                                            ? 'No asset types available'
-                                            : 'All Asset Types'}
-                                </option>
-                                {assetTypes.map((type) => (
-                                    <option key={type.value} value={type.value}>{type.label}</option>
-                                ))}
-                            </select>
-                        </div>
+                                {/* Asset Type Selection (filter for assets) */}
+                                <div className="form-group">
+                                    <label className="form-label">Asset Type</label>
+                                    <select
+                                        className="form-select"
+                                        value={selectedAssetType}
+                                        onChange={(e) => setSelectedAssetType(e.target.value)}
+                                        disabled={!selectedSiteId || assetTypes.length === 0}
+                                    >
+                                        <option value="">
+                                            {!selectedSiteId
+                                                ? 'Select Site first'
+                                                : assetTypes.length === 0
+                                                    ? 'No asset types available'
+                                                    : 'All Asset Types'}
+                                        </option>
+                                        {assetTypes.map((type) => (
+                                            <option key={type.value} value={type.value}>{type.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        {/* Device Type Selection (filter for assets) */}
-                        <div className="form-group">
-                            <label className="form-label">Device Type</label>
-                            <select
-                                className="form-select"
-                                value={selectedDeviceType}
-                                onChange={(e) => setSelectedDeviceType(e.target.value)}
-                                disabled={!selectedAssetType || deviceTypes.length === 0}
-                            >
-                                <option value="">
-                                    {!selectedAssetType
-                                        ? 'Select Asset Type first'
-                                        : deviceTypes.length === 0
-                                            ? 'No device types available'
-                                            : 'All Device Types'}
-                                </option>
-                                {deviceTypes.map((dt) => (
-                                    <option key={dt.value} value={dt.value}>{dt.label}</option>
-                                ))}
-                            </select>
-                        </div>
+                                {/* Device Type Selection (filter for assets) */}
+                                <div className="form-group">
+                                    <label className="form-label">Device Type</label>
+                                    <select
+                                        className="form-select"
+                                        value={selectedDeviceType}
+                                        onChange={(e) => setSelectedDeviceType(e.target.value)}
+                                        disabled={!selectedAssetType || deviceTypes.length === 0}
+                                    >
+                                        <option value="">
+                                            {!selectedAssetType
+                                                ? 'Select Asset Type first'
+                                                : deviceTypes.length === 0
+                                                    ? 'No device types available'
+                                                    : 'All Device Types'}
+                                        </option>
+                                        {deviceTypes.map((dt) => (
+                                            <option key={dt.value} value={dt.value}>{dt.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
 
-                        {/* Asset Selection */}
-                        <div className="form-group">
-                            <label className="form-label">Asset</label>
-                            <select
-                                className="form-select"
-                                value={formData.assetId}
-                                onChange={(e) => handleChange('assetId', e.target.value)}
-                                disabled={!selectedSiteId}
-                            >
-                                <option value="">
-                                    {!selectedSiteId
-                                        ? 'Select Site first'
-                                        : assets.length === 0
-                                            ? 'No assets available'
-                                            : 'Select Asset (optional)'
-                                    }
-                                </option>
-                                {assets.map((asset) => (
-                                    <option key={asset.value} value={asset.value}>{asset.label}</option>
-                                ))}
-                            </select>
-                        </div>
+                                {/* Asset Selection */}
+                                <div className="form-group">
+                                    <label className="form-label">Asset</label>
+                                    <select
+                                        className="form-select"
+                                        value={formData.assetId}
+                                        onChange={(e) => handleChange('assetId', e.target.value)}
+                                        disabled={!selectedSiteId}
+                                    >
+                                        <option value="">
+                                            {!selectedSiteId
+                                                ? 'Select Site first'
+                                                : assets.length === 0
+                                                    ? 'No assets available'
+                                                    : 'Select Asset (optional)'
+                                            }
+                                        </option>
+                                        {assets.map((asset) => (
+                                            <option key={asset.value} value={asset.value}>{asset.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </>
+                        )}
 
                         {/* Category */}
                         <div className="form-group">
@@ -615,37 +646,42 @@ export default function TicketForm() {
                             />
                         </div>
 
-                        {/* Impact */}
-                        <div className="form-group">
-                            <label className="form-label">Impact (1-5)</label>
-                            <select
-                                className="form-select"
-                                value={formData.impact}
-                                onChange={(e) => handleChange('impact', e.target.value)}
-                            >
-                                <option value="1">1 - Minimal</option>
-                                <option value="2">2 - Low</option>
-                                <option value="3">3 - Moderate</option>
-                                <option value="4">4 - Significant</option>
-                                <option value="5">5 - Critical</option>
-                            </select>
-                        </div>
+                        {/* Impact & Urgency - Hidden for SiteClient */}
+                        {!isSiteClient && (
+                            <>
+                                {/* Impact */}
+                                <div className="form-group">
+                                    <label className="form-label">Impact (1-5)</label>
+                                    <select
+                                        className="form-select"
+                                        value={formData.impact}
+                                        onChange={(e) => handleChange('impact', e.target.value)}
+                                    >
+                                        <option value="1">1 - Minimal</option>
+                                        <option value="2">2 - Low</option>
+                                        <option value="3">3 - Moderate</option>
+                                        <option value="4">4 - Significant</option>
+                                        <option value="5">5 - Critical</option>
+                                    </select>
+                                </div>
 
-                        {/* Urgency */}
-                        <div className="form-group">
-                            <label className="form-label">Urgency (1-5)</label>
-                            <select
-                                className="form-select"
-                                value={formData.urgency}
-                                onChange={(e) => handleChange('urgency', e.target.value)}
-                            >
-                                <option value="1">1 - Planned</option>
-                                <option value="2">2 - Low</option>
-                                <option value="3">3 - Normal</option>
-                                <option value="4">4 - High</option>
-                                <option value="5">5 - Immediate</option>
-                            </select>
-                        </div>
+                                {/* Urgency */}
+                                <div className="form-group">
+                                    <label className="form-label">Urgency (1-5)</label>
+                                    <select
+                                        className="form-select"
+                                        value={formData.urgency}
+                                        onChange={(e) => handleChange('urgency', e.target.value)}
+                                    >
+                                        <option value="1">1 - Planned</option>
+                                        <option value="2">2 - Low</option>
+                                        <option value="3">3 - Normal</option>
+                                        <option value="4">4 - High</option>
+                                        <option value="5">5 - Immediate</option>
+                                    </select>
+                                </div>
+                            </>
+                        )}
 
                         {/* Assign To (only for new tickets) - Only Admin can change default assignment */}
                         {!isEditing && hasRole('Admin') && (
@@ -683,17 +719,19 @@ export default function TicketForm() {
                             </div>
                         )}
 
-                        {/* Tags */}
-                        <div className="form-group">
-                            <label className="form-label">Tags</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                value={formData.tags}
-                                onChange={(e) => handleChange('tags', e.target.value)}
-                                placeholder="Comma-separated tags"
-                            />
-                        </div>
+                        {/* Tags - Hidden for SiteClient */}
+                        {!isSiteClient && (
+                            <div className="form-group">
+                                <label className="form-label">Tags</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={formData.tags}
+                                    onChange={(e) => handleChange('tags', e.target.value)}
+                                    placeholder="Comma-separated tags"
+                                />
+                            </div>
+                        )}
 
                         {/* File Attachments (only for new tickets) */}
                         {!isEditing && (
@@ -790,45 +828,49 @@ export default function TicketForm() {
                         )}
                     </div>
 
-                    {/* Priority Preview */}
-                    <div className="priority-preview">
-                        <span className="preview-label">Calculated Priority:</span>
-                        <span className={`badge priority-${getPriorityFromScore(formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2)).toLowerCase()}`}>
-                            {getPriorityFromScore(formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2))}
-                        </span>
-                        <span className="preview-note">
-                            (Score: {formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2)} = Impact × Urgency × Asset Criticality)
-                        </span>
-                    </div>
+                    {/* Priority Preview - Hidden for SiteClient */}
+                    {!isSiteClient && (
+                        <>
+                            <div className="priority-preview">
+                                <span className="preview-label">Calculated Priority:</span>
+                                <span className={`badge priority-${getPriorityFromScore(formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2)).toLowerCase()}`}>
+                                    {getPriorityFromScore(formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2))}
+                                </span>
+                                <span className="preview-note">
+                                    (Score: {formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2)} = Impact × Urgency × Asset Criticality)
+                                </span>
+                            </div>
 
-                    {calculatedTargets.response && (
-                        <div className="sla-preview-grid" style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                            gap: '1rem',
-                            marginTop: '1rem',
-                            padding: '1rem',
-                            backgroundColor: 'var(--surface-alt)',
-                            borderRadius: '8px',
-                            border: '1px solid var(--border)'
-                        }}>
-                            <div className="sla-preview-item">
-                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                                    Predicted Response Target
-                                </label>
-                                <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
-                                    {calculatedTargets.response.toLocaleString()}
-                                </span>
-                            </div>
-                            <div className="sla-preview-item">
-                                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
-                                    Predicted Resolution Target
-                                </label>
-                                <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
-                                    {calculatedTargets.resolution.toLocaleString()}
-                                </span>
-                            </div>
-                        </div>
+                            {calculatedTargets.response && (
+                                <div className="sla-preview-grid" style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                    gap: '1rem',
+                                    marginTop: '1rem',
+                                    padding: '1rem',
+                                    backgroundColor: 'var(--surface-alt)',
+                                    borderRadius: '8px',
+                                    border: '1px solid var(--border)'
+                                }}>
+                                    <div className="sla-preview-item">
+                                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                                            Predicted Response Target
+                                        </label>
+                                        <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
+                                            {calculatedTargets.response.toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <div className="sla-preview-item">
+                                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                                            Predicted Resolution Target
+                                        </label>
+                                        <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
+                                            {calculatedTargets.resolution.toLocaleString()}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
 
                     <div className="form-actions">

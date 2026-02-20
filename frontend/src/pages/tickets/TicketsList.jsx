@@ -55,7 +55,8 @@ export default function TicketsList() {
     const [engineers, setEngineers] = useState([]);
     const [sites, setSites] = useState([]);
 
-    const canCreate = hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRightForAnySite('CREATE_TICKET');
+    const isSiteClient = hasRole('SiteClient');
+    const canCreate = hasRole(['Admin', 'Supervisor', 'Dispatcher', 'SiteClient']) || hasRightForAnySite('CREATE_TICKET');
 
     useEffect(() => {
         loadDropdowns();
@@ -276,38 +277,43 @@ export default function TicketsList() {
                             ))}
                         </select>
 
-                        <select
-                            value={filters.assignedTo}
-                            onChange={(e) => { const f = { ...filters, assignedTo: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
-                            className="form-select filter-select"
-                        >
-                            <option value="">All Engineers</option>
-                            {engineers.map((e) => (
-                                <option key={e.value} value={e.value}>{e.label}</option>
-                            ))}
-                        </select>
+                        {/* Assigned To, Site, and SLA filters - Hidden for SiteClient */}
+                        {!isSiteClient && (
+                            <>
+                                <select
+                                    value={filters.assignedTo}
+                                    onChange={(e) => { const f = { ...filters, assignedTo: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                                    className="form-select filter-select"
+                                >
+                                    <option value="">All Engineers</option>
+                                    {engineers.map((e) => (
+                                        <option key={e.value} value={e.value}>{e.label}</option>
+                                    ))}
+                                </select>
 
-                        <select
-                            value={filters.siteId}
-                            onChange={(e) => { const f = { ...filters, siteId: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
-                            className="form-select filter-select"
-                        >
-                            <option value="">All Sites</option>
-                            {sites.map((s) => (
-                                <option key={s.value} value={s.value}>{s.label}</option>
-                            ))}
-                        </select>
+                                <select
+                                    value={filters.siteId}
+                                    onChange={(e) => { const f = { ...filters, siteId: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                                    className="form-select filter-select"
+                                >
+                                    <option value="">All Sites</option>
+                                    {sites.map((s) => (
+                                        <option key={s.value} value={s.value}>{s.label}</option>
+                                    ))}
+                                </select>
 
-                        <select
-                            value={filters.slaStatus}
-                            onChange={(e) => { const f = { ...filters, slaStatus: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
-                            className="form-select filter-select"
-                        >
-                            <option value="">All SLA</option>
-                            <option value="Breached">Breached</option>
-                            <option value="AtRisk">At Risk</option>
-                            <option value="OnTrack">On Track</option>
-                        </select>
+                                <select
+                                    value={filters.slaStatus}
+                                    onChange={(e) => { const f = { ...filters, slaStatus: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                                    className="form-select filter-select"
+                                >
+                                    <option value="">All SLA</option>
+                                    <option value="Breached">Breached</option>
+                                    <option value="AtRisk">At Risk</option>
+                                    <option value="OnTrack">On Track</option>
+                                </select>
+                            </>
+                        )}
                     </div>
 
                     <div className="filter-actions-inline">

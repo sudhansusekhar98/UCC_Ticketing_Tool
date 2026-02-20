@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Loader } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
@@ -110,6 +110,11 @@ export default function Login() {
                     {/* <div className="login-footer">
                         <p>Default credentials: <code>admin</code> / <code>Admin@123</code></p>
                     </div> */}
+
+                    <div className="login-client-link">
+                        <span>Site customer?</span>
+                        <Link to="/signup">Request client access →</Link>
+                    </div>
                 </div>
 
                 <div className="login-features">

@@ -1,0 +1,397 @@
+/* Client Registrations & Management Admin Page */
+
+/* ===== View Switcher ===== */
+.cr-view-switcher {
+    display: flex;
+    gap: 4px;
+    margin-bottom: var(--space-4);
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    padding: 4px;
+    width: fit-content;
+}
+
+.cr-view-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-5);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cr-view-btn:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.cr-view-btn.active {
+    background: var(--gradient-primary);
+    color: #fff;
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.35);
+}
+
+/* ===== Sub-tabs (Registration status) ===== */
+.cr-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-lg);
+    width: fit-content;
+}
+
+.cr-tab {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    border: none;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.cr-tab:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.cr-tab.active {
+    background: var(--primary-500);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+}
+
+.cr-tab-badge {
+    background: var(--danger-500);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: var(--radius-full);
+    min-width: 16px;
+    text-align: center;
+}
+
+/* ===== Table ===== */
+.cr-table-card {
+    overflow: hidden;
+}
+
+.cr-table th,
+.cr-table td {
+    white-space: nowrap;
+}
+
+.cr-name {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.cr-message {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 1px 5px;
+    width: fit-content;
+}
+
+.cr-actions {
+    display: flex;
+    gap: var(--space-2);
+}
+
+.cr-desig {
+    font-size: var(--text-xs);
+    color: var(--text-secondary);
+}
+
+/* ===== Client table extras ===== */
+.cr-username {
+    font-size: 0.8rem;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    color: var(--primary-400);
+    background: rgba(59, 130, 246, 0.08);
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+}
+
+.cr-site-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.7rem;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-500);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    margin-right: 4px;
+    margin-bottom: 2px;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    font-weight: 500;
+}
+
+.cr-row-inactive {
+    opacity: 0.55;
+}
+
+.btn-icon-only {
+    padding: var(--space-2) !important;
+    min-width: unset;
+}
+
+/* ===== Client toolbar ===== */
+.cr-client-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-lg);
+}
+
+.cr-search-box {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    flex: 1;
+    max-width: 350px;
+}
+
+.cr-search-box svg {
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.cr-search-box .form-input {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    font-size: var(--text-sm);
+    padding: var(--space-1) var(--space-2);
+}
+
+.cr-search-box .form-input:focus {
+    border: none;
+    box-shadow: none;
+}
+
+/* ===== Modals ===== */
+.cr-modal {
+    max-width: 480px;
+    width: 90vw;
+}
+
+.cr-modal-lg {
+    max-width: 600px;
+}
+
+.credentials-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    margin: var(--space-4) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.credential-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.cred-label {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+    width: 130px;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+}
+
+.cred-value {
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 0.9rem;
+    color: var(--primary-400);
+    font-weight: 700;
+    background: rgba(99, 102, 241, 0.08);
+    padding: 4px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    letter-spacing: 0.05em;
+    user-select: all;
+    cursor: text;
+}
+
+/* Form grid in modal */
+.cr-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+}
+
+/* ===== Site selector chips ===== */
+.cr-site-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
+    max-height: 180px;
+    overflow-y: auto;
+    padding: var(--space-2);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+}
+
+.cr-site-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: var(--radius-full);
+    font-size: 0.78rem;
+    font-weight: 500;
+    border: 1px solid var(--border-light);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.cr-site-chip input {
+    display: none;
+}
+
+.cr-site-chip:hover {
+    border-color: var(--primary-400);
+    color: var(--primary-400);
+}
+
+.cr-site-chip.selected {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: var(--primary-500);
+    color: var(--primary-500);
+    font-weight: 600;
+}
+
+/* ===== Loading & Empty states ===== */
+.modal-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-8);
+    color: var(--text-muted);
+}
+
+.loading-state,
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    padding: var(--space-10);
+    color: var(--text-muted);
+}
+
+.empty-state svg {
+    opacity: 0.3;
+}
+
+/* ===== Button variants ===== */
+.btn-success {
+    background: var(--success-500, #10b981);
+    color: #fff;
+    border: none;
+}
+
+.btn-success:hover {
+    background: var(--success-600, #059669);
+}
+
+.btn-warning {
+    background: var(--warning-500, #f59e0b);
+    color: #fff;
+    border: none;
+}
+
+.btn-warning:hover {
+    background: #d97706;
+}
+
+.btn-outline-danger {
+    background: transparent;
+    color: var(--danger-500);
+    border: 1px solid var(--danger-500);
+}
+
+.btn-outline-danger:hover {
+    background: var(--danger-500);
+    color: #fff;
+}
+
+.icon-btn-small {
+    padding: var(--space-2);
+    min-width: unset;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+    .cr-view-switcher {
+        width: 100%;
+    }
+
+    .cr-view-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .cr-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .cr-client-toolbar {
+        flex-direction: column;
+        gap: var(--space-3);
+        align-items: stretch;
+    }
+
+    .cr-search-box {
+        max-width: 100%;
+    }
+
+    .credential-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-1);
+    }
+
+    .cred-label {
+        width: auto;
+    }
+}
