@@ -147,38 +147,42 @@ export default function UsersList() {
 
             {/* Filters */}
             <div className="filter-bar glass-card compact">
-                <div className="search-filter-row">
-                    <div className="search-box large">
-                        <Search size={18} />
+                <div className="filter-bar-content">
+                    <div className="search-box small">
+                        <Search size={16} />
                         <input
                             type="text"
-                            placeholder="Search by name, email, or username..."
+                            placeholder="Search by name, email, username..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <select
-                        className="form-select compact-select"
-                        value={roleFilter}
-                        onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">All Roles</option>
-                        {roles.map(role => (
-                            <option key={role.value} value={role.value}>{role.label}</option>
-                        ))}
-                    </select>
-                    <select
-                        className="form-select compact-select"
-                        value={statusFilter}
-                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">All Status</option>
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                    </select>
-                    <button className="btn btn-secondary btn-icon" onClick={fetchUsers}>
-                        <RefreshCw size={18} />
-                    </button>
+                    <div className="filters-inline">
+                        <select
+                            className="filter-select"
+                            value={roleFilter}
+                            onChange={(e) => { setRoleFilter(e.target.value); setPage(1); }}
+                        >
+                            <option value="">All Roles</option>
+                            {roles.map(role => (
+                                <option key={role.value} value={role.value}>{role.label}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="filter-select"
+                            value={statusFilter}
+                            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                        >
+                            <option value="">All Status</option>
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+                    <div className="filter-actions-inline">
+                        <button className="btn btn-secondary icon-btn-small" onClick={fetchUsers} title="Refresh">
+                            <RefreshCw size={14} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
