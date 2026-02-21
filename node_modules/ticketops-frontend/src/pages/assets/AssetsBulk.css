@@ -335,11 +335,11 @@
   bottom: 0;
   background: var(--bg-card);
   border-top: 1px solid var(--border-light);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-1) var(--space-4);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   z-index: 10;
   margin-top: auto;
   flex-shrink: 0;
