@@ -212,6 +212,7 @@ import assetUpdateRequestRoutes from './routes/assetUpdateRequest.routes.js';
 import reportingRoutes from './routes/reporting.routes.js';
 import stockRoutes from './routes/stock.routes.js';
 import worklogRoutes from './routes/worklog.routes.js';
+import clientRegistrationRoutes from './routes/clientRegistration.routes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/sites', siteRoutes);
@@ -228,6 +229,7 @@ app.use('/api/asset-update-requests', assetUpdateRequestRoutes);
 app.use('/api/reporting', reportingRoutes);
 app.use('/api/stock', stockRoutes);
 app.use('/api/worklogs', worklogRoutes);
+app.use('/api/client-registrations', clientRegistrationRoutes);
 
 // Static files for uploads
 app.use('/uploads', express.static('uploads'));

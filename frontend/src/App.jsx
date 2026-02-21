@@ -12,6 +12,8 @@ import Layout from './components/layout/Layout';
 
 // Pages
 import Login from './pages/auth/Login';
+import ClientSignup from './pages/auth/ClientSignup';
+import ClientRegistrations from './pages/admin/ClientRegistrations';
 import Dashboard from './pages/dashboard/Dashboard';
 import Reports from './pages/reports/Reports';
 import TicketsList from './pages/tickets/TicketsList';
@@ -164,6 +166,16 @@ function App() {
             }
           />
 
+          {/* Client Sign-Up — Public */}
+          <Route
+            path="/signup"
+            element={
+              <PublicRoute>
+                <ClientSignup />
+              </PublicRoute>
+            }
+          />
+
           {/* Protected Routes */}
           <Route
             path="/dashboard"
@@ -197,7 +209,7 @@ function App() {
             path="/tickets/new"
             element={
               <ProtectedRoute
-                allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
+                allowedRoles={['Admin', 'Supervisor', 'Dispatcher', 'SiteClient']}
                 requiredRight={PERMISSIONS.CREATE_TICKET}
               >
                 <TicketForm />
@@ -494,8 +506,18 @@ function App() {
           <Route
             path="/help"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer']}>
                 <Help />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin: Client Registrations */}
+          <Route
+            path="/admin/client-registrations"
+            element={
+              <ProtectedRoute allowedRoles={['Admin']}>
+                <ClientRegistrations />
               </ProtectedRoute>
             }
           />

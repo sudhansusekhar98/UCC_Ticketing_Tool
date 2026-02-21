@@ -170,6 +170,7 @@ export default function Dashboard() {
     // Permission checks
     const isAdmin = hasRole(['Admin']);
     const canSeeUsers = hasRole(['Admin']);
+    const isSiteClient = hasRole(['SiteClient']);
 
     // Greeting Logic
     const getGreeting = () => {
@@ -250,19 +251,120 @@ export default function Dashboard() {
     };
 
     useEffect(() => {
-        fetchSites();
-        fetchEngineers();
-    }, []);
-
-    useEffect(() => {
         fetchStats();
-        fetchAssets();
+        if (!isSiteClient) {
+            fetchAssets();
+        }
         const interval = setInterval(() => fetchStats(), 30000); // 30s auto-refresh
         return () => clearInterval(interval);
     }, [selectedSite]);
 
+    // SiteClient: skip fetching engineers, sites dropdown, and assets
+    useEffect(() => {
+        if (!isSiteClient) {
+            fetchSites();
+            fetchEngineers();
+        }
+    }, []);
+
     if (loading) return <DashboardSkeleton />;
 
+    // ====== SITE CLIENT RESTRICTED DASHBOARD ======
+    if (isSiteClient) {
+        return (
+            <div className="dashboard">
+                <div className="page-header animate-enter">
+                    <div className="header-content">
+                        <div className="greeting-row">
+                            <span className="greeting-text">
+                                {getGreeting()}, {user?.fullName || 'there'}!
+                            </span>
+                        </div>
+                        <div className="dashboard-header-titles">
+                            <h1 className="page-title">My Dashboard</h1>
+                            <p className="page-subtitle">Track your support tickets and raise new issues</p>
+                        </div>
+                    </div>
+                    <div className="header-actions">
+                        <button
+                            className={`btn btn-secondary dashboard-refresh-btn ${refreshing ? 'refreshing' : ''}`}
+                            onClick={() => fetchStats(true)}
+                            disabled={refreshing}
+                            title="Refresh Data"
+                        >
+                            <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+                            <span className="btn-text">Refresh</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Client Stats - Only their tickets */}
+                <div className="dashboard-stats-grid">
+                    <Link to="/tickets" className="stat-card primary animate-enter delay-100">
+                        <div className="stat-card-bg-blob"></div>
+                        <div className="stat-header">
+                            <div className="stat-icon-wrapper"><Ticket size={20} /></div>
+                            <span className="stat-link">View All <ArrowUpRight size={14} /></span>
+                        </div>
+                        <div className="stat-content">
+                            <div className="stat-value"><AnimatedStatValue value={stats?.openTickets || 0} /></div>
+                            <div className="stat-label">Open Tickets</div>
+                        </div>
+                    </Link>
+
+                    <Link to="/tickets?status=InProgress" className="stat-card warning animate-enter delay-200">
+                        <div className="stat-card-bg-blob"></div>
+                        <div className="stat-header">
+                            <div className="stat-icon-wrapper"><Activity size={20} /></div>
+                            <span className="stat-link">View <ArrowUpRight size={14} /></span>
+                        </div>
+                        <div className="stat-content">
+                            <div className="stat-value"><AnimatedStatValue value={stats?.inProgressTickets || 0} /></div>
+                            <div className="stat-label">In Progress</div>
+                        </div>
+                    </Link>
+
+                    <Link to="/tickets?status=Resolved" className="stat-card success animate-enter delay-300">
+                        <div className="stat-card-bg-blob"></div>
+                        <div className="stat-header">
+                            <div className="stat-icon-wrapper"><CheckCircle size={20} /></div>
+                            <span className="stat-link">View <ArrowUpRight size={14} /></span>
+                        </div>
+                        <div className="stat-content">
+                            <div className="stat-value"><AnimatedStatValue value={(stats?.resolvedTickets || 0) + (stats?.closedTickets || 0)} /></div>
+                            <div className="stat-label">Resolved</div>
+                        </div>
+                    </Link>
+                </div>
+
+                {/* Client Quick Actions */}
+                <div className="quick-actions animate-enter delay-400">
+                    <h3 className="section-title">
+                        <Zap size={20} className="text-warning" />
+                        Quick Actions
+                    </h3>
+                    <div className="actions-grid">
+                        <Link to="/tickets/new" className="action-card">
+                            <div className="action-icon primary">
+                                <Plus strokeWidth={2} size={24} />
+                            </div>
+                            <span className="action-label">Raise Ticket</span>
+                            <span className="action-desc">Report an issue</span>
+                        </Link>
+                        <Link to="/tickets" className="action-card">
+                            <div className="action-icon warning">
+                                <Inbox strokeWidth={1.5} size={24} />
+                            </div>
+                            <span className="action-label">My Tickets</span>
+                            <span className="action-desc">Track progress</span>
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // ====== FULL DASHBOARD (Admin, Engineer, etc.) ======
     return (
         <div className="dashboard">
             <div className="page-header animate-enter">

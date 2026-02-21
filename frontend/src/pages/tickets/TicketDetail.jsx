@@ -52,6 +52,7 @@ export default function TicketDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user, hasRole, hasRight } = useAuthStore();
+    const isSiteClient = hasRole('SiteClient');
     const [ticket, setTicket] = useState(null);
     const [auditTrail, setAuditTrail] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -595,118 +596,128 @@ export default function TicketDetail() {
                             <span className="detail-value">{ticket.description || '—'}</span>
                         </div>
 
-                        <div className="detail-row">
-                            <span className="detail-label">
-                                <Activity size={12} />
-                                Impact / Urgency
-                            </span>
-                            <span className="detail-value">{ticket.impact} / {ticket.urgency} (Score: {ticket.priorityScore})</span>
-                        </div>
+                        {/* Impact/Urgency and Source - Hidden for SiteClient */}
+                        {!isSiteClient && (
+                            <>
+                                <div className="detail-row">
+                                    <span className="detail-label">
+                                        <Activity size={12} />
+                                        Impact / Urgency
+                                    </span>
+                                    <span className="detail-value">{ticket.impact} / {ticket.urgency} (Score: {ticket.priorityScore})</span>
+                                </div>
 
-                        <div className="detail-row">
-                            <span className="detail-label">
-                                <Database size={12} />
-                                Source
-                            </span>
-                            <span className="detail-value">{ticket.source}</span>
-                        </div>
+                                <div className="detail-row">
+                                    <span className="detail-label">
+                                        <Database size={12} />
+                                        Source
+                                    </span>
+                                    <span className="detail-value">{ticket.source}</span>
+                                </div>
 
-                        {ticket.tags && (
-                            <div className="detail-row">
-                                <span className="detail-label">Tags</span>
-                                <span className="detail-value">{ticket.tags}</span>
-                            </div>
+                                {ticket.tags && (
+                                    <div className="detail-row">
+                                        <span className="detail-label">Tags</span>
+                                        <span className="detail-value">{ticket.tags}</span>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
 
-                    {/* Asset Information */}
-                    {ticket.assetId && (
-                        <div className="detail-section glass-card">
-                            <div className="section-header">
-                                <h3 className="section-title">Asset Information</h3>
-                            </div>
+                    {/* Asset Information, Stock, RMA, Asset Update - Hidden for SiteClient */}
+                    {!isSiteClient && (
+                        <>
+                            {/* Asset Information */}
+                            {ticket.assetId && (
+                                <div className="detail-section glass-card">
+                                    <div className="section-header">
+                                        <h3 className="section-title">Asset Information</h3>
+                                    </div>
 
-                            <div className="detail-row">
-                                <span className="detail-label">
-                                    <Tag size={12} />
-                                    Asset Code
-                                </span>
-                                <span className="detail-value font-bold text-primary-500">{ticket.assetId?.assetCode || ticket.assetCode}</span>
-                            </div>
+                                    <div className="detail-row">
+                                        <span className="detail-label">
+                                            <Tag size={12} />
+                                            Asset Code
+                                        </span>
+                                        <span className="detail-value font-bold text-primary-500">{ticket.assetId?.assetCode || ticket.assetCode}</span>
+                                    </div>
 
-                            <div className="detail-row">
-                                <span className="detail-label">
-                                    <Cpu size={12} />
-                                    MAC Address
-                                </span>
-                                <span className="detail-value font-mono">{ticket.assetId?.mac || '—'}</span>
-                            </div>
+                                    <div className="detail-row">
+                                        <span className="detail-label">
+                                            <Cpu size={12} />
+                                            MAC Address
+                                        </span>
+                                        <span className="detail-value font-mono">{ticket.assetId?.mac || '—'}</span>
+                                    </div>
 
-                            <div className="detail-row">
-                                <span className="detail-label">
-                                    <Activity size={12} />
-                                    Serial Number
-                                </span>
-                                <span className="detail-value font-mono">{ticket.assetId?.serialNumber || '—'}</span>
-                            </div>
+                                    <div className="detail-row">
+                                        <span className="detail-label">
+                                            <Activity size={12} />
+                                            Serial Number
+                                        </span>
+                                        <span className="detail-value font-mono">{ticket.assetId?.serialNumber || '—'}</span>
+                                    </div>
 
-                            <div className="detail-row">
-                                <span className="detail-label">
-                                    <Database size={12} />
-                                    Asset Type
-                                </span>
-                                <span className="detail-value">{ticket.assetId?.assetType || ticket.assetType}</span>
-                            </div>
+                                    <div className="detail-row">
+                                        <span className="detail-label">
+                                            <Database size={12} />
+                                            Asset Type
+                                        </span>
+                                        <span className="detail-value">{ticket.assetId?.assetType || ticket.assetType}</span>
+                                    </div>
 
-                            <div className="detail-row">
-                                <span className="detail-label">
-                                    <Building2 size={12} />
-                                    Site
-                                </span>
-                                <span className="detail-value">{ticket.siteName}</span>
-                            </div>
-                        </div>
-                    )}
+                                    <div className="detail-row">
+                                        <span className="detail-label">
+                                            <Building2 size={12} />
+                                            Site
+                                        </span>
+                                        <span className="detail-value">{ticket.siteName}</span>
+                                    </div>
+                                </div>
+                            )}
 
-                    {/* Stock Availability & Replacement */}
-                    {ticket.assetId && (
-                        <TicketStockPanel
-                            ticketId={ticket.ticketId}
-                            siteId={ticketSiteId}
-                            assetId={ticket.assetId?._id || ticket.assetId}
-                            ticketStatus={ticket.status}
-                            isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
-                            onUpdate={() => {
-                                fetchTicket();
-                                fetchAuditTrail();
-                            }}
-                        />
-                    )}
+                            {/* Stock Availability & Replacement */}
+                            {ticket.assetId && (
+                                <TicketStockPanel
+                                    ticketId={ticket.ticketId}
+                                    siteId={ticketSiteId}
+                                    assetId={ticket.assetId?._id || ticket.assetId}
+                                    ticketStatus={ticket.status}
+                                    isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
+                                    onUpdate={() => {
+                                        fetchTicket();
+                                        fetchAuditTrail();
+                                    }}
+                                />
+                            )}
 
-                    {/* RMA Information */}
-                    {ticket.assetId && (
-                        <RMASection
-                            ticketId={ticket.ticketId}
-                            siteId={ticketSiteId}
-                            assetId={ticket.assetId?._id || ticket.assetId} // Correctly pass asset ID
-                            ticketStatus={ticket.status}
-                            isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
-                            onUpdate={() => {
-                                fetchTicket();
-                                fetchAuditTrail();
-                            }}
-                        />
-                    )}
+                            {/* RMA Information */}
+                            {ticket.assetId && (
+                                <RMASection
+                                    ticketId={ticket.ticketId}
+                                    siteId={ticketSiteId}
+                                    assetId={ticket.assetId?._id || ticket.assetId}
+                                    ticketStatus={ticket.status}
+                                    isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
+                                    onUpdate={() => {
+                                        fetchTicket();
+                                        fetchAuditTrail();
+                                    }}
+                                />
+                            )}
 
-                    {/* Asset Update Approval */}
-                    {ticket.ticketId && (
-                        <AssetUpdateApproval
-                            ticketId={ticket.ticketId}
-                            onUpdate={() => {
-                                fetchTicket();
-                                fetchAuditTrail();
-                            }}
-                        />
+                            {/* Asset Update Approval */}
+                            {ticket.ticketId && (
+                                <AssetUpdateApproval
+                                    ticketId={ticket.ticketId}
+                                    onUpdate={() => {
+                                        fetchTicket();
+                                        fetchAuditTrail();
+                                    }}
+                                />
+                            )}
+                        </>
                     )}
 
                     {/* Resolution */}
