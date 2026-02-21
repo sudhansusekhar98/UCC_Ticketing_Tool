@@ -648,26 +648,26 @@ export default function AssetsList() {
                                 <Activity size={18} className={checkingStatus ? 'spin' : ''} />
                                 {checkingStatus ? 'Checking...' : 'Check Status'}
                             </button>
-                            <button
-                                className="btn btn-secondary"
-                                onClick={handleExportStatusReport}
-                                disabled={exporting}
-                                title="Export Status Report"
-                            >
-                                <Download size={18} />
-                                Status Report
-                            </button>
-                            <button
-                                className="btn btn-secondary"
-                                onClick={handleExport}
-                                disabled={exporting}
-                                title="Export Assets to CSV"
-                            >
-                                <Download size={18} />
-                                {exporting ? 'Exporting...' : 'Export'}
-                            </button>
                         </>
                     )}
+                    <button
+                        className="btn btn-secondary"
+                        onClick={handleExportStatusReport}
+                        disabled={exporting}
+                        title="Export Status Report"
+                    >
+                        <Download size={18} />
+                        Status Report
+                    </button>
+                    <button
+                        className="btn btn-secondary"
+                        onClick={handleExport}
+                        disabled={exporting}
+                        title="Export Assets to CSV"
+                    >
+                        <Download size={18} />
+                        {exporting ? 'Exporting...' : 'Export'}
+                    </button>
                     {canCreate && (
                         <Link to="/assets/new" className="btn btn-primary">
                             <Plus size={18} />
