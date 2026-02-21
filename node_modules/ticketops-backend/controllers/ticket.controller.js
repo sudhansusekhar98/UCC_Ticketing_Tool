@@ -23,13 +23,11 @@ export const getTickets = async (req, res, next) => {
     // Role-based filtering
     const user = req.user;
 
-    // Admin sees all. Others see based on site/assignment logic.
-    if (user.role !== 'Admin') {
-      // Normal users see:
-      // 1. Tickets assigned to them
-      // 2. Tickets created by them
-      // 3. Tickets for their assigned sites
-      // 4. Escalated tickets for sites where they have escalation rights (already covered by siteId filter usually, but let's be explicit)
+    // SiteClient: only sees their own tickets
+    if (user.role === 'SiteClient') {
+      query.createdBy = user._id;
+    } else if (user.role !== 'Admin') {
+      // Normal users see tickets assigned to them, created by them, or in their assigned sites
       query.$or = [
         { assignedTo: user._id },
         { createdBy: user._id },
@@ -188,6 +186,14 @@ export const getTicketById = async (req, res, next) => {
       });
     }
 
+    // SiteClient: can only view tickets they created
+    if (req.user.role === 'SiteClient' && ticket.createdBy._id.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
     // Self-healing: If SLA data is missing, calculate it now
     if (!ticket.slaPolicyId || !ticket.slaResponseDue || !ticket.slaRestoreDue) {
       try {
@@ -263,20 +269,27 @@ export const createTicket = async (req, res, next) => {
       createdBy: req.user._id
     };
 
-    // If assignedTo is provided during creation, set status to Assigned
-    if (ticketData.assignedTo) {
-      ticketData.status = 'Assigned';
-      ticketData.assignedOn = new Date();
-    }
+    // SiteClient restrictions: force siteId from user, strip engineering fields, leave unassigned
+    if (req.user.role === 'SiteClient') {
+      ticketData.siteId = req.user.siteId || req.user.assignedSites?.[0] || req.body.siteId;
+      ticketData.assignedTo = undefined;
+      ticketData.assetId = undefined;
+      ticketData.priority = ticketData.priority || 'P3'; // default
+      ticketData.category = ticketData.category || 'General';
+      ticketData.status = 'Open'; // always open, admin assigns
+    } else {
+      // If assignedTo is provided during creation, set status to Assigned
+      if (ticketData.assignedTo) {
+        ticketData.status = 'Assigned';
+        ticketData.assignedOn = new Date();
+      }
 
-    // Note: SLA Policy and due dates are automatically assigned in the Ticket Model pre-save hook
-    // based on the impact, urgency and priority.
-
-    // If no assignee provided and creator is NOT Admin, assign to self
-    if (!ticketData.assignedTo && req.user.role !== 'Admin') {
-      ticketData.assignedTo = req.user._id;
-      ticketData.assignedOn = new Date();
-      ticketData.status = 'Assigned';
+      // If no assignee provided and creator is NOT Admin, assign to self
+      if (!ticketData.assignedTo && req.user.role !== 'Admin') {
+        ticketData.assignedTo = req.user._id;
+        ticketData.assignedOn = new Date();
+        ticketData.status = 'Assigned';
+      }
     }
 
     const ticket = await Ticket.create(ticketData);
@@ -361,6 +374,14 @@ export const createTicket = async (req, res, next) => {
 // @access  Private
 export const updateTicket = async (req, res, next) => {
   try {
+    // SiteClient cannot edit tickets
+    if (req.user.role === 'SiteClient') {
+      return res.status(403).json({
+        success: false,
+        message: 'Clients are not permitted to edit ticket details'
+      });
+    }
+
     const originalTicket = await Ticket.findById(req.params.id);
     if (!originalTicket) {
       return res.status(404).json({
@@ -1248,6 +1269,9 @@ export const getDashboardStats = async (req, res, next) => {
         }
       }
       matchQuery.siteId = new mongoose.Types.ObjectId(siteId);
+    } else if (user.role === 'SiteClient') {
+      // SiteClient: only sees stats for tickets they created
+      matchQuery.createdBy = user._id;
     } else if (user.role !== 'Admin') {
       // Existing role-based filtering: tickets from assigned sites OR created/assigned to me
       const assignedSiteIds = (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s));

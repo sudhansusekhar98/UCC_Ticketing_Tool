@@ -18,6 +18,7 @@ import {
     HelpCircle,
     Package,
     ClipboardList,
+    UserCheck,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import { PERMISSIONS } from '../../constants/permissions';
@@ -26,8 +27,8 @@ import TOpsLogo from '../../assets/TicketOps.png';
 import './Layout.css';
 
 const menuItems = [
-    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
-    { path: '/tickets', icon: Ticket, label: 'Tickets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
+    { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer', 'SiteClient'] },
+    { path: '/tickets', icon: Ticket, label: 'Tickets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer', 'SiteClient'] },
     { path: '/reports', icon: BarChart3, label: 'Reports', roles: ['Admin', 'Supervisor', 'Dispatcher'] },
     { path: '/assets', icon: Monitor, label: 'Assets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer', 'L1Engineer', 'L2Engineer'] },
     { path: '/sites', icon: MapPin, label: 'Sites', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer'] },
@@ -36,17 +37,31 @@ const menuItems = [
     { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },
     { path: '/user-rights', icon: Shield, label: 'User Rights', roles: ['Admin'] },
     { path: '/notifications/manage', icon: Bell, label: 'Notifications', roles: ['Admin'] },
+    { path: '/admin/client-registrations', icon: UserCheck, label: 'Client Requests', roles: ['Admin'], badge: true },
     { path: '/help', icon: HelpCircle, label: 'Help Center', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
-    { path: '/settings', icon: Settings, label: 'Settings', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer'] },
+    { path: '/settings', icon: Settings, label: 'Settings', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer', 'SiteClient'] },
 ];
 
 export default function Layout({ children }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [pendingClientCount, setPendingClientCount] = useState(0);
     const location = useLocation();
     const navigate = useNavigate();
-    const { user, logout, hasRightForAnySite } = useAuthStore();
+    const { user, logout, hasRightForAnySite, accessToken } = useAuthStore();
     const userMenuRef = useRef(null);
+
+    // Fetch pending client registration count for Admin badge
+    useEffect(() => {
+        if (user?.role !== 'Admin') return;
+        const API_BASE = import.meta.env.VITE_API_URL || '/api';
+        fetch(`${API_BASE}/client-registrations?status=Pending&limit=1`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        })
+            .then(r => r.json())
+            .then(d => { if (d.success) setPendingClientCount(d.pagination?.total || 0); })
+            .catch(() => { });
+    }, [user?.role, accessToken, location.pathname]);
 
     // Close user menu when clicking outside
     useEffect(() => {
@@ -112,6 +127,9 @@ export default function Layout({ children }) {
                         >
                             <item.icon size={20} />
                             {sidebarOpen && <span>{item.label}</span>}
+                            {item.badge && pendingClientCount > 0 && (
+                                <span className="nav-badge">{pendingClientCount}</span>
+                            )}
                         </Link>
                     ))}
                 </nav>

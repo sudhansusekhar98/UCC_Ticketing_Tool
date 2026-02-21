@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     required: [true, 'Role is required'],
-    enum: ['Dispatcher', 'L1Engineer', 'L2Engineer', 'Supervisor', 'Admin', 'ClientViewer'],
+    enum: ['Dispatcher', 'L1Engineer', 'L2Engineer', 'Supervisor', 'Admin', 'ClientViewer', 'SiteClient'],
     default: 'L1Engineer'
   },
   mobileNumber: {
@@ -133,7 +133,8 @@ export const UserRoles = {
   L2_ENGINEER: 'L2Engineer',
   SUPERVISOR: 'Supervisor',
   ADMIN: 'Admin',
-  CLIENT_VIEWER: 'ClientViewer'
+  CLIENT_VIEWER: 'ClientViewer',
+  SITE_CLIENT: 'SiteClient'
 };
 
 export default mongoose.model('User', userSchema);
