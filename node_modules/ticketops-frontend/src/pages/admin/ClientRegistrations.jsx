@@ -51,7 +51,11 @@ export default function ClientRegistrations() {
     const [sites, setSites] = useState([]);
     // Client modals
     const [clientModal, setClientModal] = useState(null); // { mode: 'create'|'edit', data: {...} }
+<<<<<<< HEAD
     const [clientForm, setClientForm] = useState({ fullName: '', email: '', phone: '', designation: '', assignedSite: '', tempPassword: '' });
+=======
+    const [clientForm, setClientForm] = useState({ fullName: '', email: '', phone: '', designation: '', assignedSites: [], tempPassword: '' });
+>>>>>>> e3297f91adb40a5f1c3ba9ea0f554695d24b361b
     const [resetModal, setResetModal] = useState(null); // { id, fullName, email }
     const [resetPassword, setResetPassword] = useState('');
     const [deleteModal, setDeleteModal] = useState(null);
@@ -161,17 +165,28 @@ export default function ClientRegistrations() {
 
     // Create / Edit modal
     const openCreateClient = () => {
+<<<<<<< HEAD
         setClientForm({ fullName: '', email: '', phone: '', designation: '', assignedSite: '', tempPassword: generatePassword() });
         setClientModal({ mode: 'create' });
     };
     const openEditClient = (client) => {
         const firstSite = (client.assignedSites || [])[0];
+=======
+        setClientForm({ fullName: '', email: '', phone: '', designation: '', assignedSites: [], tempPassword: generatePassword() });
+        setClientModal({ mode: 'create' });
+    };
+    const openEditClient = (client) => {
+>>>>>>> e3297f91adb40a5f1c3ba9ea0f554695d24b361b
         setClientForm({
             fullName: client.fullName,
             email: client.email,
             phone: client.mobileNumber || '',
             designation: client.designation || '',
+<<<<<<< HEAD
             assignedSite: firstSite ? (typeof firstSite === 'object' ? firstSite._id : firstSite) : '',
+=======
+            assignedSites: (client.assignedSites || []).map(s => typeof s === 'object' ? s._id : s),
+>>>>>>> e3297f91adb40a5f1c3ba9ea0f554695d24b361b
             tempPassword: ''
         });
         setClientModal({ mode: 'edit', id: client._id });
@@ -179,8 +194,16 @@ export default function ClientRegistrations() {
 
     const handleClientFormChange = (e) => setClientForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
+<<<<<<< HEAD
     const handleSiteSelect = (e) => {
         setClientForm(prev => ({ ...prev, assignedSite: e.target.value }));
+=======
+    const handleSiteToggle = (siteId) => {
+        setClientForm(prev => {
+            const has = prev.assignedSites.includes(siteId);
+            return { ...prev, assignedSites: has ? prev.assignedSites.filter(s => s !== siteId) : [...prev.assignedSites, siteId] };
+        });
+>>>>>>> e3297f91adb40a5f1c3ba9ea0f554695d24b361b
     };
 
     const handleClientSave = async () => {
@@ -195,7 +218,11 @@ export default function ClientRegistrations() {
                 email: clientForm.email,
                 phone: clientForm.phone,
                 designation: clientForm.designation,
+<<<<<<< HEAD
                 assignedSites: clientForm.assignedSite ? [clientForm.assignedSite] : []
+=======
+                assignedSites: clientForm.assignedSites
+>>>>>>> e3297f91adb40a5f1c3ba9ea0f554695d24b361b
             };
             if (isCreate) body.tempPassword = clientForm.tempPassword;
 
@@ -525,6 +552,7 @@ export default function ClientRegistrations() {
 
                             {/* Site assignment */}
                             <div className="form-group" style={{ marginTop: 12 }}>
+<<<<<<< HEAD
                                 <label className="form-label">Assigned Site <span style={{ color: 'var(--danger-500)' }}>*</span></label>
                                 <select
                                     className="form-input cr-site-dropdown"
@@ -536,6 +564,19 @@ export default function ClientRegistrations() {
                                         <option key={site._id} value={site._id}>{site.siteName}</option>
                                     ))}
                                 </select>
+=======
+                                <label className="form-label">Assigned Sites</label>
+                                <div className="cr-site-selector">
+                                    {sites.length === 0 ? (
+                                        <p className="text-muted" style={{ fontSize: '0.8rem' }}>No sites available</p>
+                                    ) : sites.map(site => (
+                                        <label key={site._id} className={`cr-site-chip ${clientForm.assignedSites.includes(site._id) ? 'selected' : ''}`}>
+                                            <input type="checkbox" checked={clientForm.assignedSites.includes(site._id)} onChange={() => handleSiteToggle(site._id)} />
+                                            <MapPin size={12} /> {site.siteName}
+                                        </label>
+                                    ))}
+                                </div>
+>>>>>>> e3297f91adb40a5f1c3ba9ea0f554695d24b361b
                             </div>
                         </div>
                         <div className="modal-footer">
