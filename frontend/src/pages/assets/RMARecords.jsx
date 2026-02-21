@@ -4,7 +4,6 @@ import {
     RotateCcw,
     RefreshCw,
     Search,
-    Filter,
     ChevronLeft,
     ChevronRight,
     Clock,
@@ -104,6 +103,8 @@ export default function RMARecords() {
         }
     };
 
+    const COMPLETED_STATUSES = ['Installed', 'Rejected', 'Discarded'];
+
     const fetchRMAs = async () => {
         setLoading(true);
         try {
@@ -115,9 +116,15 @@ export default function RMARecords() {
             });
 
             const data = response.data;
-            setRmas(data.data || []);
-            setOngoingRmas(data.ongoing || []);
-            setCompletedRmas(data.completed || []);
+            const allRmas = data.data || [];
+            setRmas(allRmas);
+
+            // Split into ongoing and completed client-side
+            const ongoing = allRmas.filter(r => !COMPLETED_STATUSES.includes(r.status));
+            const completed = allRmas.filter(r => COMPLETED_STATUSES.includes(r.status));
+            setOngoingRmas(ongoing);
+            setCompletedRmas(completed);
+
             setTotalCount(data.pagination?.total || 0);
             setTotalPages(data.pagination?.pages || 1);
         } catch (error) {
@@ -178,10 +185,6 @@ export default function RMARecords() {
                             <List size={18} />
                         </button>
                     </div>
-                    <button className="btn btn-secondary" onClick={fetchRMAs}>
-                        <RefreshCw size={18} />
-                        Refresh
-                    </button>
                     <Link to="/assets" className="btn btn-secondary">
                         <ArrowLeft size={18} />
                         Back to Assets
@@ -240,9 +243,9 @@ export default function RMARecords() {
 
             {/* Filters */}
             <div className="filter-bar glass-card compact">
-                <div className="search-filter-row">
-                    <div className="search-box large">
-                        <Search size={18} />
+                <div className="filter-bar-content">
+                    <div className="search-box small">
+                        <Search size={16} />
                         <input
                             type="text"
                             placeholder="Search by ticket, asset, or site..."
@@ -250,46 +253,53 @@ export default function RMARecords() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <select
-                        className="form-select compact-select"
-                        value={siteFilter}
-                        onChange={(e) => { setSiteFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">All Sites</option>
-                        {sites.map(site => (
-                            <option key={site.value} value={site.value}>{site.label}</option>
-                        ))}
-                    </select>
-                    <select
-                        className="form-select compact-select"
-                        value={statusFilter}
-                        onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                    >
-                        <option value="">All Statuses</option>
-                        <optgroup label="Workflow">
-                            <option value="Requested">Requested</option>
-                            <option value="Approved">Approved</option>
-                            <option value="SentToServiceCenter">Sent to Service Center</option>
-                            <option value="SentToHO">Sent to HO</option>
-                            <option value="ReceivedAtHO">Received at HO</option>
-                            <option value="SentForRepairFromHO">Sent to SC from HO</option>
-                            <option value="ItemRepairedAtHO">Repaired (at HO)</option>
-                            <option value="ReturnShippedToSite">Shipped to Site</option>
-                            <option value="ReceivedAtSite">Received at Site</option>
-                            <option value="Installed">Installed</option>
-                            <option value="ReplacementRequisitionRaised">Requisition Raised</option>
-                            <option value="ReplacementDispatched">Replacement Dispatched</option>
-                            <option value="ReplacementReceivedAtSite">Replacement Received</option>
-                            <option value="Rejected">Rejected</option>
-                        </optgroup>
-                        <optgroup label="Legacy">
-                            <option value="Ordered">Ordered</option>
-                            <option value="Dispatched">Dispatched</option>
-                            <option value="Received">Received</option>
-                            <option value="InRepair">In Repair</option>
-                            <option value="Repaired">Repaired</option>
-                        </optgroup>
-                    </select>
+                    <div className="filters-inline">
+                        <select
+                            className="filter-select"
+                            value={siteFilter}
+                            onChange={(e) => { setSiteFilter(e.target.value); setPage(1); }}
+                        >
+                            <option value="">All Sites</option>
+                            {sites.map(site => (
+                                <option key={site.value} value={site.value}>{site.label}</option>
+                            ))}
+                        </select>
+                        <select
+                            className="filter-select"
+                            value={statusFilter}
+                            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+                        >
+                            <option value="">All Statuses</option>
+                            <optgroup label="Workflow">
+                                <option value="Requested">Requested</option>
+                                <option value="Approved">Approved</option>
+                                <option value="SentToServiceCenter">Sent to Service Center</option>
+                                <option value="SentToHO">Sent to HO</option>
+                                <option value="ReceivedAtHO">Received at HO</option>
+                                <option value="SentForRepairFromHO">Sent to SC from HO</option>
+                                <option value="ItemRepairedAtHO">Repaired (at HO)</option>
+                                <option value="ReturnShippedToSite">Shipped to Site</option>
+                                <option value="ReceivedAtSite">Received at Site</option>
+                                <option value="Installed">Installed</option>
+                                <option value="ReplacementRequisitionRaised">Requisition Raised</option>
+                                <option value="ReplacementDispatched">Replacement Dispatched</option>
+                                <option value="ReplacementReceivedAtSite">Replacement Received</option>
+                                <option value="Rejected">Rejected</option>
+                            </optgroup>
+                            <optgroup label="Legacy">
+                                <option value="Ordered">Ordered</option>
+                                <option value="Dispatched">Dispatched</option>
+                                <option value="Received">Received</option>
+                                <option value="InRepair">In Repair</option>
+                                <option value="Repaired">Repaired</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div className="filter-actions-inline">
+                        <button className="btn btn-secondary icon-btn-small" onClick={fetchRMAs} title="Refresh">
+                            <RefreshCw size={14} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
