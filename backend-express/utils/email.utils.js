@@ -708,7 +708,7 @@ export const sendGeneralNotificationEmail = async (recipients, notification) => 
       
       ${notification.link ? `
       <div style="text-align: center;">
-        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}${notification.link}" class="btn" style="color: white !important; text-decoration: none;">View on System</a>
+        <a href="${notification.link.startsWith('http') ? notification.link : (process.env.FRONTEND_URL || 'https://ticketops.vluccc.com') + notification.link}" class="btn" style="color: white !important; text-decoration: none;">View on System</a>
       </div>
       ` : ''}
       
