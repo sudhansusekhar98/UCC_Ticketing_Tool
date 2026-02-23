@@ -361,9 +361,13 @@
     font-family: inherit;
     font-size: 0.82rem;
     line-height: 1.5;
-    resize: none;
-    transition: all 0.2s;
+    resize: vertical;
+    transition: border-color 0.2s, box-shadow 0.2s;
     outline: none;
+    min-height: 48px;
+    max-height: 300px;
+    overflow-y: auto;
+    field-sizing: content;
 }
 
 .wl-summary-card textarea:focus {

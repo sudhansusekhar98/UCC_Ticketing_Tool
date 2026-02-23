@@ -469,11 +469,21 @@ export default function WorkLog() {
                                 <div className="wl-card wl-summary-card">
                                     <h3><FileText size={15} /> Daily Summary</h3>
                                     <textarea
+                                        ref={(el) => {
+                                            if (el) {
+                                                el.style.height = 'auto';
+                                                el.style.height = el.scrollHeight + 'px';
+                                            }
+                                        }}
                                         placeholder="Write a brief summary of your work today..."
                                         value={summary}
-                                        onChange={(e) => setSummary(e.target.value)}
+                                        onChange={(e) => {
+                                            setSummary(e.target.value);
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = e.target.scrollHeight + 'px';
+                                        }}
                                         disabled={!isToday || viewMode !== 'my'}
-                                        rows={2}
+                                        rows={1}
                                     />
                                     {isToday && viewMode === 'my' && (
                                         <button
