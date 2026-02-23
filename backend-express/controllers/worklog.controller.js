@@ -43,7 +43,7 @@ export const getMyLogs = async (req, res, next) => {
                 .skip(skip)
                 .limit(parseInt(limit))
                 .populate('activities.ticketRef', 'ticketNumber title')
-                .populate('activities.siteId', 'name code')
+                .populate('activities.siteId', 'siteName siteUniqueID')
                 .lean(),
             DailyWorkLog.countDocuments(query)
         ]);
@@ -72,7 +72,7 @@ export const getMyToday = async (req, res, next) => {
 
         let log = await DailyWorkLog.findOne({ userId: req.user._id, date: today })
             .populate('activities.ticketRef', 'ticketNumber title')
-            .populate('activities.siteId', 'name code')
+            .populate('activities.siteId', 'siteName siteUniqueID')
             .lean();
 
         if (!log) {
@@ -117,7 +117,7 @@ export const getUserLogs = async (req, res, next) => {
                 .skip(skip)
                 .limit(parseInt(limit))
                 .populate('activities.ticketRef', 'ticketNumber title')
-                .populate('activities.siteId', 'name code')
+                .populate('activities.siteId', 'siteName siteUniqueID')
                 .lean(),
             DailyWorkLog.countDocuments(query)
         ]);
@@ -162,7 +162,7 @@ export const getTeamLogs = async (req, res, next) => {
                 .limit(parseInt(limit))
                 .populate('userId', 'fullName role profilePicture')
                 .populate('activities.ticketRef', 'ticketNumber title')
-                .populate('activities.siteId', 'name code')
+                .populate('activities.siteId', 'siteName siteUniqueID')
                 .lean(),
             DailyWorkLog.countDocuments(query)
         ]);
@@ -197,7 +197,7 @@ export const addManualEntry = async (req, res, next) => {
         }
 
         // Validate category is a manual-allowed one
-        const manualCategories = ['SiteVisit','Documentation', 'Upgradation', 'AdminWork', 'Coordination', 'Training', 'Investigation', 'Other'];
+        const manualCategories = ['SiteVisit', 'Documentation', 'Upgradation', 'MaintenanceWork', 'AdminWork', 'Coordination', 'Training', 'Investigation', 'Other'];
         if (!manualCategories.includes(category)) {
             return res.status(400).json({
                 success: false,

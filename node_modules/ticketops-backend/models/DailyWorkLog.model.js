@@ -10,7 +10,7 @@ const ACTIVITY_CATEGORIES = [
     'UserCreated', 'UserUpdated', 'UserDeleted',
     'NotificationCreated',
     'SiteCreated', 'SiteUpdated', 'SiteDeleted',
-    'SiteVisit','Documentation', 'Upgradation', 'AdminWork', 'Coordination', 'Training', 'Investigation', 'Other'
+    'SiteVisit', 'Documentation', 'Upgradation', 'MaintenanceWork', 'AdminWork', 'Coordination', 'Training', 'Investigation', 'Other'
 ];
 
 const activityEntrySchema = new mongoose.Schema({
@@ -134,6 +134,7 @@ const CATEGORY_STAT_MAP = {
     SiteUpdated: 'sitesManaged',
     SiteDeleted: 'sitesManaged',
     SiteVisit: 'manualEntries',
+    MaintenanceWork: 'manualEntries',
     AdminWork: 'manualEntries',
     Coordination: 'manualEntries',
     Training: 'manualEntries',

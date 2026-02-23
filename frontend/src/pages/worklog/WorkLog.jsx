@@ -30,8 +30,8 @@ import './WorkLog.css';
 const MANUAL_CATEGORIES = [
     { value: 'SiteVisit', label: 'Site Visit' },
     { value: 'MaintenanceWork', label: 'Maintenance Work' },
-    { value: 'Upgradation', label: 'Upgradation' },
     { value: 'Documentation', label: 'Documentation' },
+    { value: 'Upgradation', label: 'Upgradation' },
     { value: 'AdminWork', label: 'Admin Work' },
     { value: 'Coordination', label: 'Coordination' },
     { value: 'Training', label: 'Training' },
@@ -70,6 +70,9 @@ const CATEGORY_LABELS = {
     SiteUpdated: 'Site Updated',
     SiteDeleted: 'Site Deleted',
     SiteVisit: 'Site Visit',
+    MaintenanceWork: 'Maintenance Work',
+    Documentation: 'Documentation',
+    Upgradation: 'Upgradation',
     AdminWork: 'Admin Work',
     Coordination: 'Coordination',
     Training: 'Training',
@@ -336,7 +339,7 @@ export default function WorkLog() {
                                         <span><Shield size={11} /> {activity.policeStation}</span>
                                     )}
                                     {activity.siteId && (
-                                        <span><MapPin size={11} /> {activity.siteId.name || activity.siteId.siteName || 'Site'}</span>
+                                        <span><MapPin size={11} /> {activity.siteId.siteName || activity.siteId.siteUniqueID || 'Site'}</span>
                                     )}
                                     {activity.ticketRef && (
                                         <span>
