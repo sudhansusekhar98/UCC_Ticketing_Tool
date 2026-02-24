@@ -236,7 +236,7 @@ export default function SiteView() {
             </div>
 
             {/* Assets Preview Section */}
-            <div className="info-card glass-card">
+            {/* <div className="info-card glass-card">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="section-title">
                         <Monitor size={20} />
@@ -285,7 +285,7 @@ export default function SiteView() {
                         </table>
                     </div>
                 )}
-            </div>
+            </div> */}
         </div >
     );
 }
