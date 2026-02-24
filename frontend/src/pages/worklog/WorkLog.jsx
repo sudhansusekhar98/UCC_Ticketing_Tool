@@ -333,7 +333,7 @@ export default function WorkLog() {
                             {(activity.duration || activity.siteId || activity.ticketRef || activity.policeStation) && (
                                 <div className="wl-tl-meta">
                                     {activity.duration && (
-                                        <span><Clock size={11} /> {activity.duration}m</span>
+                                        <span><Clock size={11} /> {activity.duration >= 60 ? (activity.duration % 60 === 0 ? `${activity.duration / 60}h` : `${(activity.duration / 60).toFixed(1)}h`) : `${activity.duration}m`}</span>
                                     )}
                                     {activity.policeStation && (
                                         <span><Shield size={11} /> {activity.policeStation}</span>
