@@ -24,6 +24,7 @@ import {
     Package,
     Hash,
     Cpu,
+    MapPin,
 } from 'lucide-react';
 import { ticketsApi, usersApi } from '../../services/api';
 import socketService from '../../services/socket';
@@ -155,6 +156,7 @@ export default function TicketDetail() {
                 assetType: ticketData.assetId?.assetType || ticketData.assetType,
                 serialNumber: ticketData.assetId?.serialNumber || ticketData.serialNumber,
                 mac: ticketData.assetId?.mac || ticketData.mac,
+                locationName: ticketData.assetId?.locationName || ticketData.locationName,
                 siteName: ticketData.siteId?.siteName || ticketData.assetId?.siteId?.siteName || ticketData.siteName,
                 siteId: ticketData.siteId?._id || ticketData.siteId || ticketData.assetId?.siteId?._id || ticketData.assetId?.siteId,
                 createdByName: ticketData.createdBy?.fullName || ticketData.createdByName,
@@ -623,6 +625,22 @@ export default function TicketDetail() {
                                 )}
                             </>
                         )}
+
+                        <div className="detail-row">
+                            <span className="detail-label">
+                                <Building2 size={12} />
+                                Site
+                            </span>
+                            <span className="detail-value">{ticket.siteName || '—'}</span>
+                        </div>
+
+                        <div className="detail-row">
+                            <span className="detail-label">
+                                <MapPin size={12} />
+                                Location
+                            </span>
+                            <span className="detail-value">{ticket.locationName || '—'}</span>
+                        </div>
                     </div>
 
                     {/* Asset Information, Stock, RMA, Asset Update - Hidden for SiteClient */}
@@ -667,13 +685,7 @@ export default function TicketDetail() {
                                         <span className="detail-value">{ticket.assetId?.assetType || ticket.assetType}</span>
                                     </div>
 
-                                    <div className="detail-row">
-                                        <span className="detail-label">
-                                            <Building2 size={12} />
-                                            Site
-                                        </span>
-                                        <span className="detail-value">{ticket.siteName}</span>
-                                    </div>
+
                                 </div>
                             )}
 
