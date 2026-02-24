@@ -303,7 +303,11 @@ export default function UserRights() {
                                     onClick={() => handleUserSelect(item)}
                                 >
                                     <div className="user-avatar-small">
-                                        {item.user.fullName.charAt(0)}
+                                        {item.user.profilePicture ? (
+                                            <img src={item.user.profilePicture} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                        ) : (
+                                            item.user.fullName.charAt(0)
+                                        )}
                                     </div>
                                     <div className="user-info">
                                         <div className="name">{item.user.fullName}</div>
@@ -332,7 +336,11 @@ export default function UserRights() {
                             <div className="editor-header">
                                 <div className="user-details-premium">
                                     <div className="user-avatar-premium">
-                                        {selectedUser.user.fullName.charAt(0)}
+                                        {selectedUser.user.profilePicture ? (
+                                            <img src={selectedUser.user.profilePicture} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                        ) : (
+                                            selectedUser.user.fullName.charAt(0)
+                                        )}
                                     </div>
                                     <div className="user-meta-compact">
                                         <h2>{selectedUser.user.fullName}</h2>

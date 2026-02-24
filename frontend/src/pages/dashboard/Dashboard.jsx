@@ -222,7 +222,8 @@ export default function Dashboard() {
             const engineerData = response.data.data || response.data || [];
             setEngineers(engineerData.map(e => ({
                 value: e._id || e.userId || e.value,
-                label: e.fullName || e.label
+                label: e.fullName || e.label,
+                profilePicture: e.profilePicture
             })));
         } catch (error) {
             console.error('Failed to fetch engineers:', error);
@@ -711,7 +712,11 @@ export default function Dashboard() {
                                     style={{ animationDelay: `${index * 50}ms`, textDecoration: 'none' }}
                                 >
                                     <div className="engineer-avatar">
-                                        <User size={14} />
+                                        {engineer.profilePicture ? (
+                                            <img src={engineer.profilePicture} alt={engineer.label} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                        ) : (
+                                            <User size={14} />
+                                        )}
                                     </div>
                                     <div className="engineer-info">
                                         <span className="engineer-name">{engineer.label}</span>

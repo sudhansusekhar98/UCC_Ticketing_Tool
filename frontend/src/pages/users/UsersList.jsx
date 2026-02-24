@@ -220,7 +220,11 @@ export default function UsersList() {
                                         <td>
                                             <div className="user-cell">
                                                 <div className="user-avatar">
-                                                    {user.fullName.charAt(0).toUpperCase()}
+                                                    {user.profilePicture ? (
+                                                        <img src={user.profilePicture} alt={user.fullName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                                    ) : (
+                                                        user.fullName.charAt(0).toUpperCase()
+                                                    )}
                                                     <div className={`status-indicator ${user.isOnline ? 'online' : user.isActiveToday ? 'active-today' : 'offline'}`}
                                                         title={user.isOnline ? 'Online' : user.isActiveToday ? 'Active Today' : 'Offline'}>
                                                     </div>

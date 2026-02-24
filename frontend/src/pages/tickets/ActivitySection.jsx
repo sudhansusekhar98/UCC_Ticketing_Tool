@@ -74,6 +74,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                 activityId: a._id || a.activityId,
                 userId: typeof a.userId === 'object' ? a.userId?._id : a.userId,
                 userName: a.userId?.fullName || a.userName || 'Unknown',
+                userAvatar: typeof a.userId === 'object' ? a.userId?.profilePicture : null,
                 userRole: a.userId?.role || a.userRole || '',
                 createdOn: a.createdAt || a.createdOn,
                 attachments: (a.attachments || []).map(att => ({
