@@ -361,9 +361,9 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                             key={activity.activityId}
                             className={`activity-item ${activity.userId === user?.userId ? 'own' : ''} ${activity.isInternal ? 'internal' : ''}`}
                         >
-                            <div className="activity-avatar">
-                                {activity.userAvatar ? (
-                                    <img src={activity.userAvatar} alt={activity.userName} className="activity-avatar-img" />
+                            <div className="activity-avatar" data-initial={(activity.userName || 'U').charAt(0).toUpperCase()}>
+                                {activity.userAvatar && activity.userAvatar !== 'null' && activity.userAvatar !== 'undefined' ? (
+                                    <img src={activity.userAvatar} alt={activity.userName} className="activity-avatar-img" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('show-initial'); }} />
                                 ) : (
                                     (activity.userName || 'U').charAt(0).toUpperCase()
                                 )}

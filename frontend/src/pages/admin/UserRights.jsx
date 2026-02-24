@@ -302,9 +302,9 @@ export default function UserRights() {
                                     className={`user-item ${selectedUser?.user._id === item.user._id ? 'active' : ''}`}
                                     onClick={() => handleUserSelect(item)}
                                 >
-                                    <div className="user-avatar-small">
-                                        {item.user.profilePicture ? (
-                                            <img src={item.user.profilePicture} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                    <div className="user-avatar-small" data-initial={item.user.fullName.charAt(0).toUpperCase()}>
+                                        {item.user.profilePicture && item.user.profilePicture !== 'null' && item.user.profilePicture !== 'undefined' ? (
+                                            <img src={item.user.profilePicture} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('show-initial'); }} />
                                         ) : (
                                             item.user.fullName.charAt(0)
                                         )}
@@ -335,9 +335,9 @@ export default function UserRights() {
                         <div className="editor-content">
                             <div className="editor-header">
                                 <div className="user-details-premium">
-                                    <div className="user-avatar-premium">
-                                        {selectedUser.user.profilePicture ? (
-                                            <img src={selectedUser.user.profilePicture} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                    <div className="user-avatar-premium" data-initial={selectedUser.user.fullName.charAt(0).toUpperCase()}>
+                                        {selectedUser.user.profilePicture && selectedUser.user.profilePicture !== 'null' && selectedUser.user.profilePicture !== 'undefined' ? (
+                                            <img src={selectedUser.user.profilePicture} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('show-initial'); }} />
                                         ) : (
                                             selectedUser.user.fullName.charAt(0)
                                         )}

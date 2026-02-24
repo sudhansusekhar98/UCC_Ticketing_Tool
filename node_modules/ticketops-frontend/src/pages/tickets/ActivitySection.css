@@ -211,6 +211,11 @@
     color: white;
     flex-shrink: 0;
     overflow: hidden;
+    position: relative;
+}
+
+.activity-avatar.show-initial::before {
+    content: attr(data-initial);
 }
 
 .activity-avatar-img {

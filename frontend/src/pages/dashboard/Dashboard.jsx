@@ -712,7 +712,7 @@ export default function Dashboard() {
                                     style={{ animationDelay: `${index * 50}ms`, textDecoration: 'none' }}
                                 >
                                     <div className="engineer-avatar">
-                                        {engineer.profilePicture ? (
+                                        {engineer.profilePicture && engineer.profilePicture !== 'null' && engineer.profilePicture !== 'undefined' ? (
                                             <img src={engineer.profilePicture} alt={engineer.label} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                                         ) : (
                                             <User size={14} />

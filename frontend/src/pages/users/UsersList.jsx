@@ -219,9 +219,14 @@ export default function UsersList() {
                                         <td>{(page - 1) * pageSize + index + 1}</td>
                                         <td>
                                             <div className="user-cell">
-                                                <div className="user-avatar">
-                                                    {user.profilePicture ? (
-                                                        <img src={user.profilePicture} alt={user.fullName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                                <div className="user-avatar" data-initial={user.fullName.charAt(0).toUpperCase()}>
+                                                    {user.profilePicture && user.profilePicture !== 'null' && user.profilePicture !== 'undefined' ? (
+                                                        <img
+                                                            src={user.profilePicture}
+                                                            alt={user.fullName}
+                                                            style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                                                            onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('show-initial'); }}
+                                                        />
                                                     ) : (
                                                         user.fullName.charAt(0).toUpperCase()
                                                     )}

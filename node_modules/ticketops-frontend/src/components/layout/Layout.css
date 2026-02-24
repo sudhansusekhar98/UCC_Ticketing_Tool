@@ -527,6 +527,11 @@
     font-weight: 600;
     font-size: var(--text-sm);
     overflow: hidden;
+    position: relative;
+}
+
+.user-avatar.show-initial::before {
+    content: attr(data-initial);
 }
 
 .header-avatar-img {

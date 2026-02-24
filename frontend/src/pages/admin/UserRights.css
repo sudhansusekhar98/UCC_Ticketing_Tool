@@ -266,6 +266,11 @@
   justify-content: center;
   font-weight: 600;
   flex-shrink: 0;
+  position: relative;
+}
+
+.user-avatar-small.show-initial::before {
+  content: attr(data-initial);
 }
 
 .user-info .name {
@@ -338,6 +343,11 @@
   font-weight: 700;
   font-size: 1.25rem;
   box-shadow: 0 4px 10px rgba(var(--primary-500-rgb), 0.2);
+  position: relative;
+}
+
+.user-avatar-premium.show-initial::before {
+  content: attr(data-initial);
 }
 
 .user-meta-compact h2 {

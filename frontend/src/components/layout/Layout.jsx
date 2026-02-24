@@ -443,9 +443,9 @@ export default function Layout({ children }) {
                                 aria-label="User menu dropdown"
                                 aria-expanded={userMenuOpen}
                             >
-                                <div className="user-avatar" aria-hidden="true">
-                                    {user?.profilePicture ? (
-                                        <img src={user.profilePicture} alt={user.fullName} className="header-avatar-img" width={36} height={36} />
+                                <div className="user-avatar" aria-hidden="true" data-initial={user?.fullName?.charAt(0).toUpperCase() || 'U'}>
+                                    {user?.profilePicture && user.profilePicture !== 'null' && user.profilePicture !== 'undefined' ? (
+                                        <img src={user.profilePicture} alt={user.fullName} className="header-avatar-img" width={36} height={36} onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('show-initial'); }} />
                                     ) : (
                                         user?.fullName?.charAt(0) || 'U'
                                     )}
