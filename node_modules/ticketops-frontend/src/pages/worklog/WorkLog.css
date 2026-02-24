@@ -1,6 +1,4 @@
-/* ============================================
-   Work Log – Single-screen, compact design
-   ============================================ */
+/* Work Log – Single-screen, compact design */
 
 /* Page Wrapper */
 .wl-page {
@@ -14,9 +12,7 @@
     background: var(--bg-tertiary);
 }
 
-/* =========================================
-   1. Header
-   ========================================= */
+/* 1. Header */
 .wl-header {
     display: flex;
     align-items: center;
@@ -278,9 +274,7 @@
     border-left: 3px solid #14b8a6;
 }
 
-/* =========================================
-   3. Body / Content Grid
-   ========================================= */
+/* 3. Body / Content Grid */
 .wl-body {
     display: flex;
     flex-direction: column;
@@ -348,9 +342,7 @@
     color: var(--primary-500);
 }
 
-/* =========================================
-   4. Summary Card
-   ========================================= */
+/* 4. Summary Card */
 .wl-summary-card textarea {
     width: 100%;
     background: var(--bg-tertiary);
@@ -404,9 +396,7 @@
     cursor: not-allowed;
 }
 
-/* =========================================
-   5. Form Card
-   ========================================= */
+/* 5. Form Card */
 .wl-form {
     display: flex;
     flex-direction: column;
@@ -571,9 +561,7 @@
     background: var(--danger-500);
 }
 
-/* =========================================
-   6. Timeline
-   ========================================= */
+/* 6. Timeline */
 .wl-timeline-card {
     display: flex;
     flex-direction: column;
@@ -774,9 +762,7 @@
     transform: scale(1.1);
 }
 
-/* =========================================
-   7. Empty State
-   ========================================= */
+/* 7. Empty State */
 .wl-empty-state {
     display: flex;
     flex-direction: column;
@@ -790,9 +776,7 @@
     text-align: center;
 }
 
-/* =========================================
-   8. Team View
-   ========================================= */
+/* 8. Team View */
 .wl-team-view {
     flex: 1;
     overflow-y: auto;
@@ -920,9 +904,7 @@
     opacity: 0.7;
 }
 
-/* =========================================
-   9. Responsive
-   ========================================= */
+/* 9. Responsive */
 @media (max-width: 1024px) {
     .wl-content-grid {
         grid-template-columns: 1fr;
@@ -1006,9 +988,7 @@
     }
 }
 
-/* =========================================
-   Attachment Images
-   ========================================= */
+/* 10. Attachment Images */
 .wl-tl-imgs {
     display: flex;
     flex-wrap: wrap;

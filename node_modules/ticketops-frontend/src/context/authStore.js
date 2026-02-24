@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { authApi } from '../services/api';
 
+const SESSION_MAX_AGE_MS = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
+
 const useAuthStore = create(
     persist(
         (set, get) => ({
@@ -11,6 +13,7 @@ const useAuthStore = create(
             isAuthenticated: false,
             isLoading: false,
             error: null,
+            loginTimestamp: null,
 
             login: async (username, password) => {
                 set({ isLoading: true, error: null });
@@ -46,6 +49,7 @@ const useAuthStore = create(
                             isAuthenticated: true,
                             isLoading: false,
                             error: null,
+                            loginTimestamp: Date.now(),
                         });
 
                         return { success: true };
@@ -136,6 +140,7 @@ const useAuthStore = create(
                         refreshToken: null,
                         isAuthenticated: false,
                         error: null,
+                        loginTimestamp: null,
                     });
                 }
             },
@@ -167,6 +172,16 @@ const useAuthStore = create(
             },
 
             clearError: () => set({ error: null }),
+
+            // Check if session has expired (6 hours since login)
+            checkSessionExpiry: () => {
+                const { loginTimestamp, isAuthenticated } = get();
+                if (!isAuthenticated || !loginTimestamp) return;
+                if (Date.now() - loginTimestamp > SESSION_MAX_AGE_MS) {
+                    console.log('[Auth] Session expired after 6 hours, logging out.');
+                    get().logout();
+                }
+            },
 
             hasRole: (roles) => {
                 const { user } = get();
@@ -284,7 +299,16 @@ const useAuthStore = create(
                 accessToken: state.accessToken,
                 refreshToken: state.refreshToken,
                 isAuthenticated: state.isAuthenticated,
+                loginTimestamp: state.loginTimestamp,
             }),
+            onRehydrate: () => {
+                // After restoring state from localStorage, check if session expired
+                return (state) => {
+                    if (state) {
+                        state.checkSessionExpiry();
+                    }
+                };
+            },
         }
     )
 );

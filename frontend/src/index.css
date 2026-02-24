@@ -538,6 +538,54 @@ h6 {
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
+/* Custom styling for generic select dropdowns */
+select.form-select,
+select.filter-select,
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+  padding-right: 2.25rem;
+  cursor: pointer;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+}
+
+select.form-select:hover,
+select.filter-select:hover,
+select:hover {
+  border-color: var(--primary-400);
+  background-color: var(--bg-tertiary);
+}
+
+select.form-select:focus,
+select.filter-select:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+select.filter-select {
+  background-position: right 0.5rem center;
+  background-size: 14px;
+  padding-right: 1.75rem;
+  border-radius: var(--radius-md);
+}
+
+select option {
+  /* Note: border-radius/padding on <option> is ignored by most browsers */
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
 .form-input::placeholder {
   color: var(--text-muted);
 }

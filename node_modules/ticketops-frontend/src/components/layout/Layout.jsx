@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -19,9 +19,11 @@ import {
     Package,
     ClipboardList,
     UserCheck,
+    Loader,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import { PERMISSIONS } from '../../constants/permissions';
+import { ticketsApi, assetsApi, sitesApi, usersApi } from '../../services/api';
 import NotificationBell from '../notifications/NotificationBell';
 import TOpsLogo from '../../assets/TicketOps.png';
 import './Layout.css';
@@ -48,8 +50,18 @@ export default function Layout({ children }) {
     const [pendingClientCount, setPendingClientCount] = useState(0);
     const location = useLocation();
     const navigate = useNavigate();
-    const { user, logout, hasRightForAnySite, accessToken } = useAuthStore();
+    const { user, logout, hasRightForAnySite, hasRole, accessToken } = useAuthStore();
     const userMenuRef = useRef(null);
+
+    // Global search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState(null);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [showSearchResults, setShowSearchResults] = useState(false);
+    const [activeResultIndex, setActiveResultIndex] = useState(-1);
+    const searchInputRef = useRef(null);
+    const searchContainerRef = useRef(null);
+    const searchTimerRef = useRef(null);
 
     // Fetch pending client registration count for Admin badge
     useEffect(() => {
@@ -69,16 +81,195 @@ export default function Layout({ children }) {
             if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
                 setUserMenuOpen(false);
             }
+            if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+                setShowSearchResults(false);
+            }
         };
 
-        if (userMenuOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Keyboard shortcut: Ctrl+K to focus search
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInputRef.current?.focus();
+            }
+            if (e.key === 'Escape') {
+                setShowSearchResults(false);
+                searchInputRef.current?.blur();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    // Close search results on navigation
+    useEffect(() => {
+        setShowSearchResults(false);
+        setSearchQuery('');
+        setSearchResults(null);
+    }, [location.pathname]);
+
+    // Debounced search
+    const performSearch = useCallback(async (query) => {
+        if (!query || query.trim().length < 2) {
+            setSearchResults(null);
+            setShowSearchResults(false);
+            return;
         }
 
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [userMenuOpen]);
+        setSearchLoading(true);
+        setShowSearchResults(true);
+        setActiveResultIndex(-1);
+
+        try {
+            const searchParam = query.trim();
+            const results = { tickets: [], assets: [], sites: [], users: [] };
+
+            // Run searches in parallel — catch individually so one failure doesn't block all
+            const [ticketsRes, assetsRes, sitesRes, usersRes] = await Promise.allSettled([
+                ticketsApi.getAll({ search: searchParam, limit: 5 }),
+                assetsApi.getAll({ search: searchParam, limit: 5 }),
+                sitesApi.getAll({ search: searchParam, limit: 5 }),
+                hasRole(['Admin', 'Supervisor']) ? usersApi.getAll({ search: searchParam, limit: 5 }) : Promise.resolve(null),
+            ]);
+
+            if (ticketsRes.status === 'fulfilled' && ticketsRes.value?.data) {
+                const data = ticketsRes.value.data.data || ticketsRes.value.data.items || [];
+                results.tickets = data.slice(0, 5).map(t => ({
+                    id: t._id || t.ticketId,
+                    title: t.ticketId || t._id,
+                    subtitle: t.subject || t.description?.slice(0, 60) || '',
+                    path: `/tickets/${t._id || t.ticketId}`,
+                    status: t.status,
+                }));
+            }
+
+            if (assetsRes.status === 'fulfilled' && assetsRes.value?.data) {
+                const data = assetsRes.value.data.data || assetsRes.value.data.items || [];
+                results.assets = data.slice(0, 5).map(a => ({
+                    id: a._id || a.assetId,
+                    title: a.assetCode || a.ipAddress || a._id,
+                    subtitle: `${a.assetType || ''} ${a.deviceType ? '· ' + a.deviceType : ''} ${a.siteName ? '· ' + a.siteName : ''}`.trim(),
+                    path: `/assets/${a._id || a.assetId}`,
+                    status: a.status,
+                }));
+            }
+
+            if (sitesRes.status === 'fulfilled' && sitesRes.value?.data) {
+                const data = sitesRes.value.data.data || sitesRes.value.data.items || [];
+                results.sites = data.slice(0, 5).map(s => ({
+                    id: s._id || s.siteId,
+                    title: s.siteName || s.name,
+                    subtitle: `${s.city || ''} ${s.zone ? '· ' + s.zone : ''}`.trim(),
+                    path: `/sites/${s._id || s.siteId}`,
+                }));
+            }
+
+            if (usersRes.status === 'fulfilled' && usersRes.value?.data) {
+                const data = usersRes.value.data.data || usersRes.value.data.items || [];
+                results.users = data.slice(0, 5).map(u => ({
+                    id: u._id || u.userId,
+                    title: u.fullName || u.username,
+                    subtitle: `${u.role || ''} ${u.email ? '· ' + u.email : ''}`.trim(),
+                    path: `/users/${u._id || u.userId}/edit`,
+                }));
+            }
+
+            setSearchResults(results);
+        } catch (err) {
+            console.error('[GlobalSearch] Error:', err);
+            setSearchResults({ tickets: [], assets: [], sites: [], users: [] });
+        } finally {
+            setSearchLoading(false);
+        }
+    }, [hasRole]);
+
+    const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setSearchQuery(value);
+
+        // Clear previous timer
+        if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
+        if (!value || value.trim().length < 2) {
+            setSearchResults(null);
+            setShowSearchResults(false);
+            return;
+        }
+
+        // Debounce 400ms
+        searchTimerRef.current = setTimeout(() => {
+            performSearch(value);
+        }, 400);
+    };
+
+    const handleSearchFocus = () => {
+        if (searchResults && searchQuery.trim().length >= 2) {
+            setShowSearchResults(true);
+        }
+    };
+
+    // Flatten results for keyboard navigation
+    const flatResults = searchResults
+        ? [
+            ...searchResults.tickets.map(r => ({ ...r, category: 'tickets' })),
+            ...searchResults.assets.map(r => ({ ...r, category: 'assets' })),
+            ...searchResults.sites.map(r => ({ ...r, category: 'sites' })),
+            ...searchResults.users.map(r => ({ ...r, category: 'users' })),
+        ]
+        : [];
+
+    const handleSearchKeyDown = (e) => {
+        if (!showSearchResults || flatResults.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setActiveResultIndex(prev => (prev + 1) % flatResults.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setActiveResultIndex(prev => (prev <= 0 ? flatResults.length - 1 : prev - 1));
+        } else if (e.key === 'Enter' && activeResultIndex >= 0) {
+            e.preventDefault();
+            const selected = flatResults[activeResultIndex];
+            if (selected) {
+                navigate(selected.path);
+                setShowSearchResults(false);
+                setSearchQuery('');
+            }
+        }
+    };
+
+    const handleResultClick = (path) => {
+        navigate(path);
+        setShowSearchResults(false);
+        setSearchQuery('');
+    };
+
+    const totalResults = flatResults.length;
+
+    const getCategoryIcon = (category) => {
+        switch (category) {
+            case 'tickets': return <Ticket size={14} />;
+            case 'assets': return <Monitor size={14} />;
+            case 'sites': return <MapPin size={14} />;
+            case 'users': return <Users size={14} />;
+            default: return <Search size={14} />;
+        }
+    };
+
+    const getCategoryLabel = (category) => {
+        switch (category) {
+            case 'tickets': return 'Tickets';
+            case 'assets': return 'Assets';
+            case 'sites': return 'Sites';
+            case 'users': return 'Users';
+            default: return '';
+        }
+    };
 
     const handleLogout = async () => {
         await logout();
@@ -88,13 +279,75 @@ export default function Layout({ children }) {
     // Filter menu items based on role OR rights
     const filteredMenuItems = menuItems.filter(item => {
         // Check if user has a matching role
-        const hasRole = item.roles.includes(user?.role);
+        const hasMatchingRole = item.roles.includes(user?.role);
 
         // Check if user has any of the matching rights
         const hasRight = item.rights?.some(right => hasRightForAnySite(right)) || false;
 
-        return hasRole || hasRight;
+        return hasMatchingRole || hasRight;
     });
+
+    // Render search results dropdown
+    const renderSearchResults = () => {
+        if (!showSearchResults) return null;
+
+        return (
+            <div className="global-search-dropdown">
+                {searchLoading ? (
+                    <div className="search-loading">
+                        <Loader size={18} className="spin" />
+                        <span>Searching...</span>
+                    </div>
+                ) : searchResults && totalResults === 0 ? (
+                    <div className="search-empty">
+                        <Search size={20} />
+                        <span>No results found for "{searchQuery}"</span>
+                    </div>
+                ) : searchResults ? (
+                    <>
+                        {['tickets', 'assets', 'sites', 'users'].map(category => {
+                            const items = searchResults[category];
+                            if (!items || items.length === 0) return null;
+
+                            return (
+                                <div key={category} className="search-category">
+                                    <div className="search-category-header">
+                                        {getCategoryIcon(category)}
+                                        <span>{getCategoryLabel(category)}</span>
+                                        <span className="search-category-count">{items.length}</span>
+                                    </div>
+                                    {items.map((item) => {
+                                        const flatIdx = flatResults.findIndex(r => r.id === item.id && r.category === category);
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                className={`search-result-item ${flatIdx === activeResultIndex ? 'active' : ''}`}
+                                                onClick={() => handleResultClick(item.path)}
+                                                onMouseEnter={() => setActiveResultIndex(flatIdx)}
+                                            >
+                                                <div className="search-result-title">{item.title}</div>
+                                                {item.subtitle && <div className="search-result-subtitle">{item.subtitle}</div>}
+                                                {item.status && (
+                                                    <span className={`search-result-status ${item.status?.toLowerCase().replace(/\s+/g, '-')}`}>
+                                                        {item.status}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })}
+                        <div className="search-footer">
+                            <span className="search-hint">
+                                <kbd>↑</kbd> <kbd>↓</kbd> to navigate · <kbd>Enter</kbd> to select · <kbd>Esc</kbd> to close
+                            </span>
+                        </div>
+                    </>
+                ) : null}
+            </div>
+        );
+    };
 
     return (
         <div className="layout">
@@ -135,8 +388,8 @@ export default function Layout({ children }) {
                 </nav>
 
                 <div className="sidebar-footer">
-                    <button className="nav-item logout-btn" onClick={handleLogout}>
-                        <LogOut size={20} />
+                    <button className="nav-item logout-btn" onClick={handleLogout} aria-label="Logout">
+                        <LogOut size={20} aria-hidden="true" />
                         {sidebarOpen && <span>Logout</span>}
                     </button>
                 </div>
@@ -150,16 +403,36 @@ export default function Layout({ children }) {
                         <button
                             className="mobile-sidebar-toggle"
                             onClick={() => setSidebarOpen(!sidebarOpen)}
+                            aria-label="Toggle sidebar navigation"
+                            aria-expanded={sidebarOpen}
                         >
-                            <Menu size={24} />
+                            <Menu size={24} aria-hidden="true" />
                         </button>
-                        <div className="search-box">
-                            <Search size={18} />
+                        <div className="search-box" ref={searchContainerRef}>
+                            <Search size={18} aria-hidden="true" />
                             <input
+                                ref={searchInputRef}
                                 type="text"
-                                placeholder="Search tickets, assets..."
+                                placeholder="Search tickets, assets, sites..."
                                 className="search-input"
+                                value={searchQuery}
+                                onChange={handleSearchChange}
+                                onFocus={handleSearchFocus}
+                                onKeyDown={handleSearchKeyDown}
+                                aria-label="Global search input"
                             />
+                            {searchQuery && (
+                                <button
+                                    className="search-clear-btn"
+                                    onClick={() => { setSearchQuery(''); setSearchResults(null); setShowSearchResults(false); }}
+                                    aria-label="Clear search"
+                                >
+                                    <X size={14} aria-hidden="true" />
+                                </button>
+                            )}
+                            <div aria-live="polite">
+                                {renderSearchResults()}
+                            </div>
                         </div>
                     </div>
 
@@ -172,10 +445,12 @@ export default function Layout({ children }) {
                             <button
                                 className="user-menu-btn"
                                 onClick={() => setUserMenuOpen(!userMenuOpen)}
+                                aria-label="User menu dropdown"
+                                aria-expanded={userMenuOpen}
                             >
-                                <div className="user-avatar">
+                                <div className="user-avatar" aria-hidden="true">
                                     {user?.profilePicture ? (
-                                        <img src={user.profilePicture} alt={user.fullName} className="header-avatar-img" />
+                                        <img src={user.profilePicture} alt={user.fullName} className="header-avatar-img" width={36} height={36} />
                                     ) : (
                                         user?.fullName?.charAt(0) || 'U'
                                     )}
@@ -213,3 +488,4 @@ export default function Layout({ children }) {
         </div>
     );
 }
+
