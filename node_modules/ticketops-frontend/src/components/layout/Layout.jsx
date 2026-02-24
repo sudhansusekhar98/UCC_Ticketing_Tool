@@ -131,17 +131,17 @@ export default function Layout({ children }) {
 
             // Run searches in parallel — catch individually so one failure doesn't block all
             const [ticketsRes, assetsRes, sitesRes, usersRes] = await Promise.allSettled([
-                ticketsApi.getAll({ search: searchParam, limit: 5 }),
-                assetsApi.getAll({ search: searchParam, limit: 5 }),
-                sitesApi.getAll({ search: searchParam, limit: 5 }),
-                hasRole(['Admin', 'Supervisor']) ? usersApi.getAll({ search: searchParam, limit: 5 }) : Promise.resolve(null),
+                ticketsApi.getAll({ search: searchParam }),
+                assetsApi.getAll({ search: searchParam }),
+                sitesApi.getAll({ search: searchParam }),
+                hasRole(['Admin', 'Supervisor']) ? usersApi.getAll({ search: searchParam }) : Promise.resolve(null),
             ]);
 
             if (ticketsRes.status === 'fulfilled' && ticketsRes.value?.data) {
                 const data = ticketsRes.value.data.data || ticketsRes.value.data.items || [];
-                results.tickets = data.slice(0, 5).map(t => ({
+                results.tickets = data.map(t => ({
                     id: t._id || t.ticketId,
-                    title: t.ticketId || t._id,
+                    title: t.ticketNumber || t.ticketId || t._id,
                     subtitle: t.subject || t.description?.slice(0, 60) || '',
                     path: `/tickets/${t._id || t.ticketId}`,
                     status: t.status,
@@ -150,7 +150,7 @@ export default function Layout({ children }) {
 
             if (assetsRes.status === 'fulfilled' && assetsRes.value?.data) {
                 const data = assetsRes.value.data.data || assetsRes.value.data.items || [];
-                results.assets = data.slice(0, 5).map(a => ({
+                results.assets = data.map(a => ({
                     id: a._id || a.assetId,
                     title: a.assetCode || a.ipAddress || a._id,
                     subtitle: `${a.assetType || ''} ${a.deviceType ? '· ' + a.deviceType : ''} ${a.siteName ? '· ' + a.siteName : ''}`.trim(),
@@ -161,7 +161,7 @@ export default function Layout({ children }) {
 
             if (sitesRes.status === 'fulfilled' && sitesRes.value?.data) {
                 const data = sitesRes.value.data.data || sitesRes.value.data.items || [];
-                results.sites = data.slice(0, 5).map(s => ({
+                results.sites = data.map(s => ({
                     id: s._id || s.siteId,
                     title: s.siteName || s.name,
                     subtitle: `${s.city || ''} ${s.zone ? '· ' + s.zone : ''}`.trim(),
@@ -171,7 +171,7 @@ export default function Layout({ children }) {
 
             if (usersRes.status === 'fulfilled' && usersRes.value?.data) {
                 const data = usersRes.value.data.data || usersRes.value.data.items || [];
-                results.users = data.slice(0, 5).map(u => ({
+                results.users = data.map(u => ({
                     id: u._id || u.userId,
                     title: u.fullName || u.username,
                     subtitle: `${u.role || ''} ${u.email ? '· ' + u.email : ''}`.trim(),
@@ -338,11 +338,6 @@ export default function Layout({ children }) {
                                 </div>
                             );
                         })}
-                        <div className="search-footer">
-                            <span className="search-hint">
-                                <kbd>↑</kbd> <kbd>↓</kbd> to navigate · <kbd>Enter</kbd> to select · <kbd>Esc</kbd> to close
-                            </span>
-                        </div>
                     </>
                 ) : null}
             </div>
