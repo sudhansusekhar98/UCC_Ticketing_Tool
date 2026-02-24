@@ -230,9 +230,9 @@ export default function UsersList() {
                                                     ) : (
                                                         user.fullName.charAt(0).toUpperCase()
                                                     )}
-                                                    <div className={`status-indicator ${user.isOnline ? 'online' : user.isActiveToday ? 'active-today' : 'offline'}`}
+                                                    {/* <div className={`status-indicator ${user.isOnline ? 'online' : user.isActiveToday ? 'active-today' : 'offline'}`}
                                                         title={user.isOnline ? 'Online' : user.isActiveToday ? 'Active Today' : 'Offline'}>
-                                                    </div>
+                                                    </div> */}
                                                 </div>
                                                 <div className="user-info">
                                                     <span className="user-name">{user.fullName}</span>
