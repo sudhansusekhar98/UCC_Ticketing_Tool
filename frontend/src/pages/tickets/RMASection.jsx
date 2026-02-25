@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { rmaApi, sitesApi, stockApi } from '../../services/api';
 import toast from 'react-hot-toast';
-import { Package, Truck, CheckCircle, Clock, Server, FileText, History, Hash, Info, Settings, RefreshCw, MessageSquare, Cpu, MapPin, Building, Send, ShoppingBag, ArrowDownToLine, Home, ArrowRightLeft } from 'lucide-react';
+import { Package, Truck, CheckCircle, Clock, Server, FileText, History, Hash, Info, Settings, RefreshCw, MessageSquare, Cpu, MapPin, Building, Send, ShoppingBag, ArrowDownToLine, Home, ArrowRightLeft, XCircle, AlertTriangle } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 
 const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdate }) => {
@@ -16,6 +16,8 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const [showHistoryModal, setShowHistoryModal] = useState(false);
     const [showSendItemModal, setShowSendItemModal] = useState(false);
     const [showLogisticsModal, setShowLogisticsModal] = useState(false);
+    const [showRejectModal, setShowRejectModal] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState('');
 
     // Form States
     const [requestReason, setRequestReason] = useState('');
@@ -487,6 +489,19 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             onClick={() => setShowRequestModal(true)}
                         >
                             {hasRight('DIRECT_RMA_GENERATE', siteId) ? 'Direct RMA Creation' : 'Request RMA'}
+                        </button>
+                    )}
+                    {rma?.status === 'Rejected' && !isLocked && ticketStatus === 'InProgress' && (
+                        <button
+                            className="btn btn-sm btn-warning flex items-center gap-1"
+                            onClick={() => {
+                                setRequestReason('');
+                                setReplacementSource('RepairOnly');
+                                setShippingDetails({ address: '', trackingNumber: '', carrier: '' });
+                                setShowRequestModal(true);
+                            }}
+                        >
+                            <RefreshCw size={14} /> Re-Request RMA
                         </button>
                     )}
                     {!rma && !isLocked && ticketStatus !== 'InProgress' && (
@@ -966,11 +981,65 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                     )}
 
+                    {/* REJECTED — Show rejection details and re-request option */}
+                    {rma.status === 'Rejected' && (
+                        <div className="rma-finalization-alert animate-fade-in" style={{ borderLeft: '4px solid var(--danger-500)', background: 'linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(239,68,68,0.02) 100%)' }}>
+                            <div className="rma-alert-info">
+                                <XCircle size={20} className="text-danger-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title" style={{ color: 'var(--danger-600)' }}>RMA Request Rejected</p>
+                                    {(() => {
+                                        const rejectionEntry = [...(rma.timeline || [])].reverse().find(t => t.status === 'Rejected');
+                                        return (
+                                            <>
+                                                <p className="alert-desc">
+                                                    {rejectionEntry?.remarks
+                                                        ? <><strong>Reason:</strong> {rejectionEntry.remarks}</>
+                                                        : 'Your RMA request was rejected by the admin. Please review the reason and re-submit if needed.'
+                                                    }
+                                                </p>
+                                                <div className="flex items-center gap-3 mt-2" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                                    {rejectionEntry?.changedBy?.fullName && (
+                                                        <span>Rejected by: <strong>{rejectionEntry.changedBy.fullName}</strong></span>
+                                                    )}
+                                                    {rejectionEntry?.createdAt && (
+                                                        <span>on {new Date(rejectionEntry.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                                    )}
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+                            {!isLocked && ticketStatus === 'InProgress' && (
+                                <div className="rma-alert-actions">
+                                    <div className="flex flex-col items-end gap-2">
+                                        <button
+                                            className="btn btn-sm btn-warning shadow-sm flex items-center gap-1"
+                                            onClick={() => {
+                                                setRequestReason('');
+                                                setReplacementSource('RepairOnly');
+                                                setShippingDetails({ address: '', trackingNumber: '', carrier: '' });
+                                                setShowRequestModal(true);
+                                            }}
+                                        >
+                                            <RefreshCw size={14} /> Re-Request RMA
+                                        </button>
+                                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                            <AlertTriangle size={10} style={{ display: 'inline', marginRight: '3px' }} />
+                                            Please correct the issues before re-submitting
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Admin quick approve/reject */}
                     <div className="rma-actions-wrapper">
                         {canManageRMA && rma.status === 'Requested' && (
                             <>
-                                <button className="btn btn-sm btn-danger px-3" onClick={() => handleUpdateStatus('Rejected')}>Reject</button>
+                                <button className="btn btn-sm btn-danger px-3" onClick={() => { setRejectionReason(''); setShowRejectModal(true); }}>Reject</button>
                                 <button className="btn btn-sm btn-success px-3" onClick={() => handleUpdateStatus('Approved')}>Approve</button>
                             </>
                         )}
@@ -993,10 +1062,27 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         <div className="modal-header">
                             <h3 className="flex items-center gap-2">
                                 <Package size={16} />
-                                {hasRight('DIRECT_RMA_GENERATE', siteId) ? 'Direct RMA Creation' : 'Initiate RMA Request'}
+                                {rma?.status === 'Rejected'
+                                    ? 'Re-Request RMA'
+                                    : hasRight('DIRECT_RMA_GENERATE', siteId) ? 'Direct RMA Creation' : 'Initiate RMA Request'
+                                }
                             </h3>
                         </div>
                         <div className="modal-body">
+                            {/* Show previous rejection info if re-requesting */}
+                            {rma?.status === 'Rejected' && (() => {
+                                const rejEntry = [...(rma.timeline || [])].reverse().find(t => t.status === 'Rejected');
+                                return rejEntry?.remarks ? (
+                                    <div className="mb-4 p-3 rounded-lg border animate-fade-in" style={{ background: 'rgba(239,68,68,0.06)', borderColor: 'rgba(239,68,68,0.2)' }}>
+                                        <p className="text-[10px] uppercase font-bold tracking-wider mb-1" style={{ color: 'var(--danger-500)' }}>
+                                            <XCircle size={10} style={{ display: 'inline', marginRight: '4px' }} />
+                                            Previous Rejection Reason
+                                        </p>
+                                        <p className="text-xs" style={{ color: 'var(--danger-700)' }}>{rejEntry.remarks}</p>
+                                        <p className="text-[10px] text-muted mt-1 italic">Please address this issue in your new request.</p>
+                                    </div>
+                                ) : null;
+                            })()}
                             <div className="form-group">
                                 <label className="form-label">Reason for RMA *</label>
                                 <textarea
@@ -1530,6 +1616,52 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                         <div className="modal-footer">
                             <button className="btn btn-ghost" onClick={() => setShowHistoryModal(false)}>Close</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Reject RMA Modal — requires reason */}
+            {showRejectModal && createPortal(
+                <div className="modal-overlay animate-fade-in" onClick={() => setShowRejectModal(false)}>
+                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+                        <div className="modal-header" style={{ borderBottom: '2px solid var(--danger-500)' }}>
+                            <h3 className="flex items-center gap-2" style={{ color: 'var(--danger-600)' }}>
+                                <XCircle size={18} /> Reject RMA Request
+                            </h3>
+                        </div>
+                        <div className="modal-body">
+                            <p className="text-xs text-muted mb-3">
+                                Please provide a clear reason for rejecting this RMA request. The engineer will see this reason and can re-submit a corrected request.
+                            </p>
+                            <div className="form-group">
+                                <label className="form-label">
+                                    <AlertTriangle size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                                    Rejection Reason <span style={{ color: 'var(--danger-500)' }}>*</span>
+                                </label>
+                                <textarea
+                                    className="form-input"
+                                    rows={3}
+                                    value={rejectionReason}
+                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                    placeholder="e.g. Insufficient details, incorrect asset information, repair not needed..."
+                                    style={{ resize: 'vertical' }}
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-ghost" onClick={() => setShowRejectModal(false)}>Cancel</button>
+                            <button
+                                className="btn btn-danger flex items-center gap-1"
+                                disabled={!rejectionReason.trim()}
+                                onClick={() => {
+                                    handleUpdateStatus('Rejected', { remarks: rejectionReason.trim() });
+                                    setShowRejectModal(false);
+                                }}
+                            >
+                                <XCircle size={14} /> Confirm Rejection
+                            </button>
                         </div>
                     </div>
                 </div>,
