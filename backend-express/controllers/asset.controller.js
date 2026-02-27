@@ -740,16 +740,11 @@ export const bulkImportAssets = async (req, res, next) => {
 
         const existingAsset = await Asset.findOne({ assetCode: assetData.assetCode });
 
-        // If asset exists, don't overwrite its current status and isActive fields
-        const updatePayload = { ...assetData };
-        if (existingAsset) {
-          delete updatePayload.status;
-          delete updatePayload.isActive;
-        }
-
+        // Always apply the full payload including status and isActive.
+        // The Excel file is the source of truth for bulk updates.
         await Asset.findOneAndUpdate(
           { assetCode: assetData.assetCode },
-          { ...updatePayload, updatedAt: new Date() },
+          { ...assetData, updatedAt: new Date() },
           { upsert: true, new: true, runValidators: true }
         );
 
