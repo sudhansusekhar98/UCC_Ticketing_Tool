@@ -18,16 +18,17 @@ const execAsync = promisify(exec);
 const pingProgressStore = new Map();
 
 /**
- * Cross-platform ping check. Uses PowerShell Test-Connection on Windows,
+ * Cross-platform ping check. Uses native ping command on Windows,
  * falls back to TCP connect probe on other platforms (e.g., Vercel/Linux).
  */
 async function crossPlatformPing(ipAddress, timeoutMs = 3000) {
-  // Try PowerShell on Windows first
+  // Use native ping.exe on Windows (near-zero startup vs PowerShell's 1-3s cold start)
   if (process.platform === 'win32') {
     try {
-      const command = `powershell.exe -Command "Test-Connection -ComputerName ${ipAddress} -Count 1 -Quiet"`;
-      const { stdout } = await execAsync(command, { timeout: timeoutMs + 1000 });
-      return stdout.trim() === 'True';
+      const command = `ping -n 1 -w ${timeoutMs} ${ipAddress}`;
+      const { stdout } = await execAsync(command, { timeout: timeoutMs + 3000 });
+      // A successful ping reply contains "TTL=" in the output
+      return /TTL=/i.test(stdout);
     } catch {
       return false;
     }
