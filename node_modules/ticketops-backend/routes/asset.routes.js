@@ -21,7 +21,7 @@ import {
   getPingProgress,
   clearPingProgress
 } from '../controllers/asset.controller.js';
-import { protect, authorize } from '../middleware/auth.middleware.js';
+import { protect, authorize, allowAccess } from '../middleware/auth.middleware.js';
 import { simpleUpload } from '../utils/upload.js';
 import { sensitiveLimiter } from '../middleware/rateLimiter.middleware.js';
 
@@ -48,15 +48,15 @@ router.delete('/ping-progress', authorize('Admin', 'Supervisor'), clearPingProgr
 router.post('/bulk-status-update', authorize('Admin', 'Supervisor'), updateBulkStatus);
 router.post('/import', authorize('Admin'), upload.single('file'), bulkImportAssets);
 
-// CRUD routes
+// CRUD routes — allow by role OR by MANAGE_ASSETS right
 router.route('/')
   .get(getAssets)
-  .post(authorize('Admin', 'Dispatcher'), createAsset);
+  .post(allowAccess({ roles: ['Admin', 'Supervisor', 'Dispatcher'], right: 'MANAGE_ASSETS' }), createAsset);
 
 router.route('/:id')
   .get(getAssetById)
-  .put(authorize('Admin', 'Dispatcher'), updateAsset)
-  .delete(authorize('Admin'), deleteAsset);
+  .put(allowAccess({ roles: ['Admin', 'Supervisor', 'Dispatcher'], right: 'MANAGE_ASSETS' }), updateAsset)
+  .delete(allowAccess({ roles: ['Admin', 'Supervisor'], right: 'MANAGE_ASSETS' }), deleteAsset);
 
 // Secure credentials endpoint - Admin/Supervisor only with rate limiting
 router.get('/:id/credentials', sensitiveLimiter, authorize('Admin', 'Supervisor'), getAssetCredentials);

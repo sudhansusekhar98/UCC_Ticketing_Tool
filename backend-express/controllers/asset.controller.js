@@ -347,9 +347,23 @@ export const updateAsset = async (req, res, next) => {
   try {
     const query = { _id: req.params.id };
 
-    // Non-admins can only update assets of their own site
-    if (req.user.role !== 'Admin') {
-      query.siteId = req.user.siteId;
+    // Restrict non-privileged users to assets at their authorized sites
+    if (!['Admin', 'Supervisor'].includes(req.user.role)) {
+      // Check if user has global MANAGE_ASSETS right
+      const hasGlobalRight = req.user.rights?.globalRights?.includes('MANAGE_ASSETS');
+      if (!hasGlobalRight) {
+        // Get sites where the user has MANAGE_ASSETS right
+        const authorizedSites = (req.user.rights?.siteRights || [])
+          .filter(sr => sr.rights?.includes('MANAGE_ASSETS'))
+          .map(sr => sr.site);
+        // Include user's own site
+        if (req.user.siteId) authorizedSites.push(req.user.siteId);
+        if (authorizedSites.length > 0) {
+          query.siteId = { $in: authorizedSites };
+        } else {
+          query.siteId = req.user.siteId;
+        }
+      }
     }
 
     const asset = await Asset.findOneAndUpdate(
@@ -390,8 +404,19 @@ export const updateAsset = async (req, res, next) => {
 export const deleteAsset = async (req, res, next) => {
   try {
     const query = { _id: req.params.id };
-    if (req.user.role !== 'Admin') {
-      query.siteId = req.user.siteId;
+    if (!['Admin', 'Supervisor'].includes(req.user.role)) {
+      const hasGlobalRight = req.user.rights?.globalRights?.includes('MANAGE_ASSETS');
+      if (!hasGlobalRight) {
+        const authorizedSites = (req.user.rights?.siteRights || [])
+          .filter(sr => sr.rights?.includes('MANAGE_ASSETS'))
+          .map(sr => sr.site);
+        if (req.user.siteId) authorizedSites.push(req.user.siteId);
+        if (authorizedSites.length > 0) {
+          query.siteId = { $in: authorizedSites };
+        } else {
+          query.siteId = req.user.siteId;
+        }
+      }
     }
 
     const asset = await Asset.findOneAndDelete(query);
