@@ -18,24 +18,38 @@ const execAsync = promisify(exec);
 const pingProgressStore = new Map();
 
 /**
- * Cross-platform ping check. Uses native ping command on Windows,
- * falls back to TCP connect probe on other platforms (e.g., Vercel/Linux).
+ * Cross-platform ping check.
+ * - Windows:    native ping.exe -n 1 -w <ms>
+ * - Linux/Mac:  native ping -c 1 -W <sec>  (ICMP)
+ * - Serverless: TCP connect probe on common ports (last resort)
  */
 async function crossPlatformPing(ipAddress, timeoutMs = 3000) {
-  // Use native ping.exe on Windows (near-zero startup vs PowerShell's 1-3s cold start)
+  // Windows: native ping.exe
   if (process.platform === 'win32') {
     try {
       const command = `ping -n 1 -w ${timeoutMs} ${ipAddress}`;
       const { stdout } = await execAsync(command, { timeout: timeoutMs + 3000 });
-      // A successful ping reply contains "TTL=" in the output
       return /TTL=/i.test(stdout);
     } catch {
       return false;
     }
   }
 
-  // Fallback: TCP connect probe on common ports (80, 443, 554, 8080)
-  // This works on Linux/serverless environments
+  // Linux / macOS: native ping command (ICMP)
+  try {
+    const timeoutSec = Math.max(1, Math.ceil(timeoutMs / 1000));
+    // -c 1 = one packet, -W = timeout in seconds (Linux), -t = timeout (macOS)
+    const flag = process.platform === 'darwin' ? '-t' : '-W';
+    const command = `ping -c 1 ${flag} ${timeoutSec} ${ipAddress}`;
+    const { stdout } = await execAsync(command, { timeout: timeoutMs + 3000 });
+    // Linux/Mac ping output contains "ttl=" on success
+    return /ttl=/i.test(stdout);
+  } catch {
+    // ping command failed or not available — fall through to TCP probe
+  }
+
+  // Last resort: TCP connect probe on common ports
+  // (for serverless environments where ICMP is blocked)
   const ports = [80, 443, 554, 8080];
   for (const port of ports) {
     try {
@@ -869,7 +883,7 @@ export const downloadTemplate = async (req, res, next) => {
   }
 };
 
-// @desc    Check assets status using cross-platform ping
+// @desc    Get assets for client-side ping check (returns decrypted IPs)
 // @route   POST /api/assets/check-status
 // @access  Private (Admin, Supervisor)
 export const checkAssetsStatus = async (req, res, next) => {
@@ -881,157 +895,37 @@ export const checkAssetsStatus = async (req, res, next) => {
       return res.json({
         success: true,
         message: 'No assets found with selected filters.',
-        data: { total: 0, online: 0, offline: 0, passive: 0 }
+        data: []
       });
     }
 
-    const assets = await Asset.find(query);
-    const io = req.app.get('io');
-    const userId = req.user._id.toString();
-    const userRoom = `user_${userId}`;
+    const assets = await Asset.find(query).select('assetCode ipAddress status');
 
     if (assets.length === 0) {
       return res.json({
         success: true,
         message: 'No assets found matching filters.',
-        data: { total: 0, online: 0, offline: 0, passive: 0 }
+        data: []
       });
     }
 
-    // Launch visible PowerShell window for local feedback if on Windows
-    if (process.platform === 'win32') {
-      try {
-        const pingCommands = assets.map(a => {
-          const rawIp = a.ipAddress ? (isEncrypted(a.ipAddress) ? decrypt(a.ipAddress) : a.ipAddress) : '';
-          const ip = rawIp.trim().toUpperCase();
-          if (!ip || ip === 'NA') return `Write-Host "[-] ${a.assetCode.padEnd(15)} | Passive Device" -ForegroundColor Gray`;
-          return `Write-Host "[...] Pinging ${a.assetCode.padEnd(15)} (${rawIp.trim().padEnd(15)})... " -NoNewline; if (Test-Connection -ComputerName ${rawIp.trim()} -Count 1 -Quiet) { Write-Host "ONLINE" -ForegroundColor Green } else { Write-Host "OFFLINE" -ForegroundColor Red }`;
-        }).join('\n');
+    // Decrypt IPs and return asset list for client-side pinging
+    const assetList = assets.map(a => {
+      const rawIp = a.ipAddress ? (isEncrypted(a.ipAddress) ? decrypt(a.ipAddress) : a.ipAddress) : '';
+      const ip = rawIp.trim();
+      return {
+        _id: a._id,
+        assetCode: a.assetCode,
+        ipAddress: (!ip || ip.toUpperCase() === 'NA') ? '' : ip,
+      };
+    });
 
-        const scriptContent = `
-$Host.UI.RawUI.WindowTitle = "TicketOps Asset Ping - ${assets.length} Devices"
-Clear-Host
-Write-Host "===============================================" -ForegroundColor Cyan
-Write-Host "   TICKETOPS LIVE ASSET CONNECTIVITY CHECK     " -ForegroundColor Cyan
-Write-Host "===============================================" -ForegroundColor Cyan
-Write-Host "Started at: $(Get-Date)"
-Write-Host ""
-${pingCommands}
-Write-Host ""
-Write-Host "===============================================" -ForegroundColor Cyan
-Write-Host "Check Complete. Results synced to Dashboard.   " -ForegroundColor Yellow
-Write-Host "Press any key to close this window..."
-$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-`;
-        const scriptPath = path.join(process.cwd(), 'temp_ping_check.ps1');
-        fs.writeFileSync(scriptPath, scriptContent.trim());
-        exec(`start "TicketOps Ping" powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`);
-      } catch (err) {
-        console.error('Failed to launch PS window:', err);
-      }
-    }
-
-    // Initialize progress store for this user (for HTTP polling fallback)
-    const progressData = {
-      status: 'running',
-      stats: { total: assets.length, online: 0, offline: 0, passive: 0, processed: 0 },
-      log: [],
-      lastUpdated: Date.now()
-    };
-    pingProgressStore.set(userId, progressData);
-
-    console.log(`[Ping] Starting check for ${assets.length} assets (user: ${userId})`);
-
-    // Emit start event via Socket.IO if available
-    if (io) {
-      io.to(userRoom).emit('asset:ping:start', { total: assets.length });
-    }
-
-    // Process pings in background - do NOT await to avoid HTTP timeout
-    (async () => {
-      const BATCH_SIZE = 5;
-      const results = progressData.stats;
-
-      for (let i = 0; i < assets.length; i += BATCH_SIZE) {
-        const batch = assets.slice(i, i + BATCH_SIZE);
-
-        await Promise.all(batch.map(async (asset) => {
-          let currentStatus = 'Offline';
-          const rawIp = asset.ipAddress ? (isEncrypted(asset.ipAddress) ? decrypt(asset.ipAddress) : asset.ipAddress) : '';
-          const ip = rawIp.trim().toUpperCase();
-
-          if (!ip || ip === 'NA') {
-            currentStatus = 'Passive Device';
-            results.passive++;
-          } else {
-            try {
-              const isOnline = await crossPlatformPing(rawIp.trim(), 3000);
-              if (isOnline) {
-                currentStatus = 'Online';
-                results.online++;
-              } else {
-                currentStatus = 'Offline';
-                results.offline++;
-              }
-            } catch (err) {
-              currentStatus = 'Offline';
-              results.offline++;
-            }
-          }
-
-          // Use updateOne instead of save() to avoid full document re-validation
-          // (save() would re-validate encrypted fields against maxlength)
-          try {
-            await Asset.updateOne(
-              { _id: asset._id },
-              { $set: { status: currentStatus, updatedAt: new Date() } }
-            );
-          } catch (saveErr) {
-            console.error(`[Ping] Failed to update asset ${asset.assetCode}:`, saveErr.message);
-          }
-          results.processed++;
-
-          const progressEntry = {
-            assetCode: asset.assetCode,
-            ipAddress: rawIp ? `${rawIp.split('.')[0]}.***.***` : 'N/A',
-            status: currentStatus,
-            processed: results.processed,
-            total: results.total,
-            stats: { online: results.online, offline: results.offline, passive: results.passive }
-          };
-
-          // Update in-memory store for HTTP polling
-          progressData.log.unshift(progressEntry);
-          if (progressData.log.length > 50) progressData.log.length = 50;
-          progressData.lastUpdated = Date.now();
-
-          // Also emit via Socket.IO if available
-          if (io) {
-            io.to(userRoom).emit('asset:ping:progress', progressEntry);
-          }
-        }));
-      }
-
-      // Mark as complete
-      progressData.status = 'complete';
-      progressData.lastUpdated = Date.now();
-
-      console.log(`[Ping] Complete for user ${userId}: ${results.online} Online, ${results.offline} Offline, ${results.passive} Passive`);
-
-      if (io) {
-        io.to(userRoom).emit('asset:ping:complete', results);
-      }
-
-      // Clean up progress store after 5 minutes
-      setTimeout(() => {
-        pingProgressStore.delete(userId);
-      }, 5 * 60 * 1000);
-    })();
+    console.log(`[Ping] Returning ${assetList.length} assets for client-side ping check (user: ${req.user._id})`);
 
     res.json({
       success: true,
-      message: 'Status check initiated in background.',
-      data: { total: assets.length }
+      message: `Found ${assetList.length} assets for ping check.`,
+      data: assetList
     });
   } catch (error) {
     next(error);
@@ -1078,14 +972,12 @@ export const clearPingProgress = async (req, res) => {
   res.json({ success: true });
 };
 
-// @desc    Bulk update asset statuses from local ping agent
+// @desc    Bulk update asset statuses from client-side ping script
 // @route   POST /api/assets/bulk-status-update
-// @access  Private
+// @access  Private (Admin, Supervisor)
 export const updateBulkStatus = async (req, res, next) => {
   try {
     const { results } = req.body; // Array of { id, status }
-    const io = req.app.get('io');
-    const userRoom = `user_${req.user._id}`;
 
     if (!results || !Array.isArray(results)) {
       return res.status(400).json({ success: false, message: 'Invalid results format' });
@@ -1093,65 +985,29 @@ export const updateBulkStatus = async (req, res, next) => {
 
     const stats = { total: results.length, online: 0, offline: 0, passive: 0, processed: 0 };
 
+    // Batch update — trust the status from the client's local ping script
     for (const item of results) {
-      const asset = await Asset.findById(item.id);
-      if (asset) {
-        let currentStatus = 'Offline';
+      if (!item.id || !item.status) continue;
 
-        if (!asset.ipAddress || asset.ipAddress.trim() === '') {
-          currentStatus = 'Passive Device';
-          stats.passive++;
-        } else {
-          try {
-            const ipRegex = /^[0-9.]+$/;
-            if (!ipRegex.test(asset.ipAddress)) {
-              currentStatus = 'Offline';
-              stats.offline++;
-            } else {
-              // Perform the physical ping on the machine where this backend is running
-              const command = `powershell.exe -Command "Test-Connection -ComputerName ${asset.ipAddress} -Count 1 -Quiet"`;
-              const { stdout } = await execAsync(command, { timeout: 4000 });
+      const validStatuses = ['Online', 'Offline', 'Passive Device'];
+      const status = validStatuses.includes(item.status) ? item.status : 'Offline';
 
-              if (stdout.trim() === 'True') {
-                currentStatus = 'Online';
-                stats.online++;
-              } else {
-                currentStatus = 'Offline';
-                stats.offline++;
-              }
-            }
-          } catch (err) {
-            currentStatus = 'Offline';
-            stats.offline++;
-          }
-        }
+      try {
+        await Asset.updateOne(
+          { _id: item.id },
+          { $set: { status, updatedAt: new Date() } }
+        );
 
-        asset.status = currentStatus;
-        asset.updatedAt = new Date();
-        await asset.save();
+        if (status === 'Online') stats.online++;
+        else if (status === 'Passive Device') stats.passive++;
+        else stats.offline++;
         stats.processed++;
-
-        // Send real-time feedback back to the UI room
-        if (io) {
-          io.to(userRoom).emit('asset:ping:progress', {
-            assetCode: asset.assetCode,
-            ipAddress: asset.ipAddress,
-            status: asset.status,
-            processed: stats.processed,
-            total: stats.total,
-            stats: {
-              online: stats.online,
-              offline: stats.offline,
-              passive: stats.passive
-            }
-          });
-        }
+      } catch (err) {
+        console.error(`[BulkUpdate] Failed to update asset ${item.id}:`, err.message);
       }
     }
 
-    if (io) {
-      io.to(userRoom).emit('asset:ping:complete', stats);
-    }
+    console.log(`[BulkUpdate] Updated ${stats.processed}/${stats.total} assets: ${stats.online} Online, ${stats.offline} Offline, ${stats.passive} Passive`);
 
     res.json({ success: true, message: 'Statuses updated successfully', data: stats });
   } catch (error) {

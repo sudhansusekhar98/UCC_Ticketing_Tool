@@ -39,6 +39,149 @@ const getAssetIcon = (type) => {
     }
 };
 
+/**
+ * Generate a .bat file that wraps a PowerShell script for local LAN pinging.
+ * The script pings each device locally and POSTs results back to the API.
+ */
+function generatePingBat(assets, apiUrl, token) {
+    // Build the asset data as a PowerShell array
+    const assetLines = assets.map(a => {
+        const ip = a.ipAddress || '';
+        const id = a._id;
+        const code = a.assetCode || 'Unknown';
+        return `    @{ Id='${id}'; Code='${code}'; Ip='${ip}' }`;
+    }).join(",`n\n");
+
+    // The PowerShell script that runs inside the .bat
+    const psScript = `
+$Host.UI.RawUI.WindowTitle = "TicketOps Asset Ping Check - ${assets.length} Devices"
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
+Clear-Host
+Write-Host ""
+Write-Host "  =================================================" -ForegroundColor Cyan
+Write-Host "     TICKETOPS LOCAL ASSET CONNECTIVITY CHECK      " -ForegroundColor Cyan
+Write-Host "  =================================================" -ForegroundColor Cyan
+Write-Host "  Started at : $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+Write-Host "  Devices    : ${assets.length}"
+Write-Host "  =================================================" -ForegroundColor Cyan
+Write-Host ""
+
+$apiUrl = '${apiUrl}'
+$token  = '${token}'
+$headers = @{
+    'Authorization' = "Bearer $token"
+    'Content-Type'  = 'application/json'
+}
+
+$assets = @(
+${assetLines}
+)
+
+$results  = @()
+$online   = 0
+$offline  = 0
+$passive  = 0
+$total    = $assets.Count
+$count    = 0
+
+foreach ($asset in $assets) {
+    $count++
+    $pct = [math]::Round(($count / $total) * 100)
+    
+    if (-not $asset.Ip -or $asset.Ip -eq '') {
+        $status = 'Passive Device'
+        $passive++
+        Write-Host "  [$count/$total] $($asset.Code.PadRight(18)) | " -NoNewline
+        Write-Host "PASSIVE" -ForegroundColor DarkGray -NoNewline
+        Write-Host " (No IP)" -ForegroundColor Gray
+    } else {
+        Write-Host "  [$count/$total] $($asset.Code.PadRight(18)) | $($asset.Ip.PadRight(16)) | " -NoNewline
+        
+        $isOnline = Test-Connection -ComputerName $asset.Ip -Count 1 -Quiet -ErrorAction SilentlyContinue
+        
+        if ($isOnline) {
+            $status = 'Online'
+            $online++
+            Write-Host "ONLINE" -ForegroundColor Green
+        } else {
+            $status = 'Offline'
+            $offline++
+            Write-Host "OFFLINE" -ForegroundColor Red
+        }
+    }
+    
+    $results += @{ id = $asset.Id; status = $status }
+    
+    # Send results in batches of 25 to avoid timeout
+    if ($results.Count -ge 25) {
+        try {
+            $body = @{ results = $results } | ConvertTo-Json -Depth 3
+            Invoke-RestMethod -Uri "$apiUrl/assets/bulk-status-update" -Method POST -Headers $headers -Body $body -ErrorAction SilentlyContinue | Out-Null
+            Write-Host "    -> Batch synced to cloud ($($results.Count) devices)" -ForegroundColor DarkYellow
+        } catch {
+            Write-Host "    -> Sync failed: $($_.Exception.Message)" -ForegroundColor DarkRed
+        }
+        $results = @()
+    }
+}
+
+# Send remaining results
+if ($results.Count -gt 0) {
+    try {
+        $body = @{ results = $results } | ConvertTo-Json -Depth 3
+        Invoke-RestMethod -Uri "$apiUrl/assets/bulk-status-update" -Method POST -Headers $headers -Body $body -ErrorAction SilentlyContinue | Out-Null
+        Write-Host "    -> Final batch synced ($($results.Count) devices)" -ForegroundColor DarkYellow
+    } catch {
+        Write-Host "    -> Final sync failed: $($_.Exception.Message)" -ForegroundColor DarkRed
+    }
+}
+
+Write-Host ""
+Write-Host "  =================================================" -ForegroundColor Cyan
+Write-Host "  CHECK COMPLETE" -ForegroundColor Green
+Write-Host "  =================================================" -ForegroundColor Cyan
+Write-Host "  Online  : $online" -ForegroundColor Green
+Write-Host "  Offline : $offline" -ForegroundColor Red
+Write-Host "  Passive : $passive" -ForegroundColor Gray
+Write-Host "  Total   : $total"
+Write-Host "  =================================================" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "  Results have been synced to the TicketOps dashboard." -ForegroundColor Yellow
+Write-Host "  You can close this window or press any key to exit." -ForegroundColor Gray
+Write-Host ""
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+`;
+
+    // Encode the PowerShell script as base64 for -EncodedCommand
+    // PowerShell -EncodedCommand expects UTF-16LE base64
+    const utf16le = new Uint8Array(psScript.length * 2);
+    for (let i = 0; i < psScript.length; i++) {
+        const code = psScript.charCodeAt(i);
+        utf16le[i * 2] = code & 0xFF;
+        utf16le[i * 2 + 1] = (code >> 8) & 0xFF;
+    }
+    let binary = '';
+    for (let i = 0; i < utf16le.length; i++) {
+        binary += String.fromCharCode(utf16le[i]);
+    }
+    const base64Script = btoa(binary);
+
+    return `@echo off
+:: ============================================
+:: TicketOps Asset Ping Check
+:: Generated: ${new Date().toISOString().slice(0, 19)}
+:: Devices: ${assets.length}
+:: ============================================
+:: This file pings devices from your LOCAL network
+:: and syncs results to the TicketOps dashboard.
+:: Double-click to run.
+:: ============================================
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass -EncodedCommand ${base64Script}
+`;
+}
+
 export default function AssetsList() {
     const [assets, setAssets] = useState([]);
     const [totalCount, setTotalCount] = useState(0);
@@ -498,7 +641,7 @@ export default function AssetsList() {
     };
 
     const handleCheckStatus = async () => {
-        if (!window.confirm('Run IP status check for current filters? This will update asset statuses based on ping results.')) return;
+        if (!window.confirm('Run IP status check for current filters?\n\nThis will download a PowerShell script that pings devices from your local network and syncs results to the dashboard.')) return;
 
         setPingProgress([]);
         setPingStats({ total: 0, processed: 0, online: 0, offline: 0, passive: 0 });
@@ -506,18 +649,118 @@ export default function AssetsList() {
         setCheckingStatus(true);
 
         try {
-            await assetsApi.checkStatus({
+            // 1. Fetch assets with decrypted IPs from the API
+            const response = await assetsApi.checkStatus({
                 search: debouncedSearchValue || undefined,
                 siteId: siteFilter || undefined,
                 locationName: locationFilter || undefined,
                 assetType: typeFilter || undefined,
                 status: statusFilter || undefined,
             });
+
+            const assets = response.data?.data || [];
+            if (!assets.length) {
+                toast.info('No assets found for the selected filters.');
+                setCheckingStatus(false);
+                return;
+            }
+
+            // 2. Get the auth token and API URL
+            const token = localStorage.getItem('accessToken');
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+            // 3. Generate PowerShell script as a .bat file
+            const batContent = generatePingBat(assets, apiUrl, token);
+
+            // 4. Auto-download the .bat file
+            const blob = new Blob([batContent], { type: 'application/bat' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `TicketOps_PingCheck_${new Date().toISOString().slice(0, 10)}.bat`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }, 100);
+
+            // Set total for the modal display
+            setPingStats(prev => ({ ...prev, total: assets.length }));
+
+            toast.success(
+                `Script downloaded with ${assets.length} devices.\nDouble-click the .bat file to run pings from your local network.`,
+                { duration: 8000 }
+            );
+
+            // 5. Start polling for results (the script will POST results to the API)
+            startPingResultPolling(assets.length);
+
         } catch (error) {
             toast.error('Failed to run status check');
             setCheckingStatus(false);
         }
     };
+
+    // Poll the asset list to track status changes made by the script
+    const pingPollTimerRef = useRef(null);
+
+    const startPingResultPolling = (expectedTotal) => {
+        // Clear any existing poll
+        if (pingPollTimerRef.current) clearInterval(pingPollTimerRef.current);
+
+        let lastProcessed = 0;
+        let staleCount = 0;
+
+        pingPollTimerRef.current = setInterval(async () => {
+            try {
+                const response = await assetsApi.getAll({
+                    page: 1,
+                    limit: 1,
+                    search: debouncedSearchValue || undefined,
+                    siteId: siteFilter || undefined,
+                    locationName: locationFilter || undefined,
+                    assetType: typeFilter || undefined,
+                });
+                const counts = response.data.statusCounts || { online: 0, offline: 0, passive: 0 };
+                const currentProcessed = counts.online + counts.offline + counts.passive;
+
+                setPingStats({
+                    total: expectedTotal,
+                    processed: currentProcessed,
+                    online: counts.online,
+                    offline: counts.offline,
+                    passive: counts.passive,
+                });
+
+                // Check if processing seems complete (no new updates for 15 seconds)
+                if (currentProcessed === lastProcessed) {
+                    staleCount++;
+                } else {
+                    staleCount = 0;
+                    lastProcessed = currentProcessed;
+                }
+
+                // Stop polling after 5 stale intervals (15s) or if we seem done
+                if (staleCount >= 5) {
+                    clearInterval(pingPollTimerRef.current);
+                    pingPollTimerRef.current = null;
+                    setCheckingStatus(false);
+                    fetchAssets();
+                    toast.success(`Status check sync complete: ${counts.online} Online, ${counts.offline} Offline`);
+                }
+            } catch (err) {
+                console.error('[PingPoll] Error:', err);
+            }
+        }, 3000);
+    };
+
+    // Cleanup poll on unmount
+    useEffect(() => {
+        return () => {
+            if (pingPollTimerRef.current) clearInterval(pingPollTimerRef.current);
+        };
+    }, []);
 
     const handleExportStatusReport = async () => {
         setExporting(true);
@@ -1005,16 +1248,14 @@ export default function AssetsList() {
 }
 
 function PingProgressModal({ stats, progress, onClose, isChecking }) {
-    const progressPercent = stats.total > 0 ? Math.round((stats.processed / stats.total) * 100) : 0;
+    const progressPercent = stats.total > 0 ? Math.round(((stats.online + stats.offline + stats.passive) / stats.total) * 100) : 0;
 
     return (
         <div className="modal-overlay" onClick={!isChecking ? onClose : undefined}>
             <div className="modal ping-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                     <h3><Activity size={20} className={isChecking ? 'spin' : ''} /> IP Ping Progress</h3>
-                    {!isChecking && (
-                        <button className="btn-close" onClick={onClose}><X size={20} /></button>
-                    )}
+                    <button className="btn-close" onClick={onClose}><X size={20} /></button>
                 </div>
                 <div className="modal-body">
                     <div className="ping-stats-grid">
@@ -1036,9 +1277,29 @@ function PingProgressModal({ stats, progress, onClose, isChecking }) {
                         </div>
                     </div>
 
+                    {isChecking && (
+                        <div style={{
+                            background: 'var(--bg-secondary, #f0f4ff)',
+                            borderRadius: '8px',
+                            padding: '12px 16px',
+                            marginBottom: '16px',
+                            border: '1px solid var(--border-color, #e0e7ff)',
+                            fontSize: '13px',
+                            lineHeight: '1.6'
+                        }}>
+                            <strong>📋 Instructions:</strong>
+                            <ol style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+                                <li>Open your <strong>Downloads</strong> folder</li>
+                                <li><strong>Double-click</strong> the <code>TicketOps_PingCheck_*.bat</code> file</li>
+                                <li>A PowerShell window will open and start pinging devices</li>
+                                <li>Results will sync here automatically as batches complete</li>
+                            </ol>
+                        </div>
+                    )}
+
                     <div className="progress-container">
                         <div className="progress-header">
-                            <span>{isChecking ? 'Checking status...' : 'Check completed'}</span>
+                            <span>{isChecking ? 'Waiting for script results...' : 'Check completed'}</span>
                             <span>{progressPercent}%</span>
                         </div>
                         <div className="progress-bar-bg">
@@ -1049,13 +1310,11 @@ function PingProgressModal({ stats, progress, onClose, isChecking }) {
                         </div>
                     </div>
 
-                    <div className="ping-log">
-                        <h4>Activity Log</h4>
-                        <div className="log-entries">
-                            {progress.length === 0 ? (
-                                <div className="empty-log">Initializing ping check...</div>
-                            ) : (
-                                progress.map((entry, idx) => (
+                    {progress.length > 0 && (
+                        <div className="ping-log">
+                            <h4>Activity Log</h4>
+                            <div className="log-entries">
+                                {progress.map((entry, idx) => (
                                     <div key={idx} className={`log-entry ${entry.status.toLowerCase().replace(' ', '-')}`}>
                                         <div className="log-entry-info">
                                             <span className="code">{entry.assetCode}</span>
@@ -1065,18 +1324,17 @@ function PingProgressModal({ stats, progress, onClose, isChecking }) {
                                             {entry.status}
                                         </span>
                                     </div>
-                                ))
-                            )}
+                                ))}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
                 <div className="modal-footer">
                     <button
                         className="btn btn-primary"
                         onClick={onClose}
-                        disabled={isChecking}
                     >
-                        {isChecking ? 'Checking...' : 'Close'}
+                        {isChecking ? 'Stop Waiting & Close' : 'Close'}
                     </button>
                 </div>
             </div>
