@@ -818,17 +818,19 @@ export const updateRMAStatus = async (req, res, next) => {
       const faultyIdStock = getFaultyAssetId(rma);
       const repairedAsset = await Asset.findById(faultyIdStock);
       if (repairedAsset) {
+        const fromSiteId = repairedAsset.siteId;
         const fromStatus = repairedAsset.status;
         repairedAsset.status = 'Spare';
+        repairedAsset.siteId = rma.siteId; // Move to the RMA's site so it shows in correct stock
         repairedAsset.stockLocation = 'Site Stock (from repair)';
         repairedAsset.locationDescription = `Repaired item added to site stock - RMA ${rma.rmaNumber}`;
         await repairedAsset.save();
 
         await StockMovementLog.logMovement({
           asset: repairedAsset,
-          movementType: 'StatusChange',
-          fromSiteId: repairedAsset.siteId,
-          toSiteId: repairedAsset.siteId,
+          movementType: 'Transfer',
+          fromSiteId,
+          toSiteId: rma.siteId,
           fromStatus,
           toStatus: 'Spare',
           performedBy: req.user._id,
@@ -1550,10 +1552,15 @@ export const confirmInstallation = async (req, res, next) => {
         }
       }
     } else {
-      // ── REPAIR TRACK: Update original asset with engineer-provided details ──
-      const asset = await Asset.findById(rma.originalAssetId);
+      // ── REPAIR TRACK: Update the faulty/repaired asset ──
+      // Use getFaultyAssetId: after a replacement swap, originalAssetId is the
+      // live slot (already Operational). The faulty item is tracked by reservedAssetId.
+      const faultyId = getFaultyAssetId(rma);
+      const asset = await Asset.findById(faultyId);
       if (asset) {
+        const fromStatus = asset.status;
         asset.status = 'Operational';
+        asset.siteId = rma.siteId; // Ensure it's at the correct site
         if (newIpAddress) asset.ipAddress = newIpAddress;
         if (newUserName) asset.userName = newUserName;
         if (newPassword) asset.password = newPassword;
@@ -1572,8 +1579,8 @@ export const confirmInstallation = async (req, res, next) => {
           asset,
           movementType: 'StatusChange',
           fromSiteId: asset.siteId,
-          toSiteId: asset.siteId,
-          fromStatus: 'Spare',
+          toSiteId: rma.siteId,
+          fromStatus,
           toStatus: 'Operational',
           performedBy: req.user._id,
           rmaId: rma._id,

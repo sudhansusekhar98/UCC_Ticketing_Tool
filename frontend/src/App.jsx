@@ -58,9 +58,11 @@ function ProtectedRoute({ children, allowedRoles, requiredRight }) {
     const hasRequiredRole = allowedRoles ? hasRole(allowedRoles) : false;
     const hasRequiredRight = requiredRight ? hasRightForAnySite(requiredRight) : false;
 
-    // If both are provided, OR logic is usually intended (either role or right)
-    // If only one is provided, that one must be true
     if (!hasRequiredRole && !hasRequiredRight) {
+      // Show error toast instead of silently redirecting
+      import('react-hot-toast').then(({ default: toast }) => {
+        toast.error('You do not have permission to access this page.', { id: 'access-denied' });
+      });
       return <Navigate to="/dashboard" replace />;
     }
   }
@@ -295,7 +297,7 @@ function App() {
           <Route
             path="/assets/new"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.MANAGE_ASSETS}>
                 <AssetForm />
               </ProtectedRoute>
             }
@@ -319,7 +321,7 @@ function App() {
           <Route
             path="/assets/:id/edit"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.MANAGE_ASSETS}>
                 <AssetForm />
               </ProtectedRoute>
             }
