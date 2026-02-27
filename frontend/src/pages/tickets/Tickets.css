@@ -786,28 +786,26 @@
   }
 
   .tickets-page .filter-bar-content {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-
-  .tickets-page .filter-bar-content::-webkit-scrollbar {
-    display: none;
+    flex-wrap: wrap;
+    gap: var(--space-2);
   }
 
   .tickets-page .search-box.small {
     flex-shrink: 0;
-    width: 180px;
+    width: 100%;
+    max-width: none;
+    min-width: unset;
   }
 
   .tickets-page .filters-inline {
-    flex-shrink: 0;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    width: 100%;
   }
 
   .tickets-page .filter-select {
-    width: 120px;
+    flex: 1;
+    min-width: 100px;
+    max-width: none;
   }
 
   .data-table {
