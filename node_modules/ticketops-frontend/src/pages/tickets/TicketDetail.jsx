@@ -192,20 +192,20 @@ export default function TicketDetail() {
 
     const loadEngineers = async () => {
         try {
-            const response = await usersApi.getEngineers();
-            const engData = response.data.data || response.data || [];
-            setEngineers(engData.map(e => ({
+            const response = await usersApi.getDropdown();
+            const userData = response.data.data || response.data || [];
+            setEngineers(userData.map(e => ({
                 value: e._id || e.value || e.userId,
-                label: e.fullName || e.label
+                label: `${e.fullName || e.label}${e.role ? ` (${e.role})` : ''}`
             })));
         } catch (error) {
-            console.error('Failed to load engineers', error);
+            console.error('Failed to load employees', error);
         }
     };
 
     const handleAssign = async () => {
         if (!assignData.assignedTo) {
-            toast.error('Please select an engineer');
+            toast.error('Please select an employee');
             return;
         }
         setActionLoading(true);
@@ -663,6 +663,14 @@ export default function TicketDetail() {
 
                                     <div className="detail-row">
                                         <span className="detail-label">
+                                            <MapPin size={12} />
+                                            Location Name
+                                        </span>
+                                        <span className="detail-value">{ticket.assetId?.locationName || ticket.locationName || '—'}</span>
+                                    </div>
+
+                                    <div className="detail-row">
+                                        <span className="detail-label">
                                             <Cpu size={12} />
                                             MAC Address
                                         </span>
@@ -963,13 +971,13 @@ export default function TicketDetail() {
                         </div>
                         <div className="modal-body">
                             <div className="form-group">
-                                <label className="form-label">Select Engineer</label>
+                                <label className="form-label">Select Employee</label>
                                 <select
                                     className="form-select"
                                     value={assignData.assignedTo}
                                     onChange={(e) => setAssignData({ ...assignData, assignedTo: e.target.value })}
                                 >
-                                    <option value="">Choose engineer...</option>
+                                    <option value="">Choose employee...</option>
                                     {engineers.map((eng) => (
                                         <option key={eng.value} value={eng.value}>{eng.label}</option>
                                     ))}

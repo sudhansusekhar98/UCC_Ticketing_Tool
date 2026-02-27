@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllRMAs, createRMA, getRMAByTicket, getRMAHistory, updateRMAStatus, confirmInstallation } from '../controllers/rma.controller.js';
+import { getAllRMAs, createRMA, getRMAByTicket, getRMAHistory, updateRMAStatus, confirmInstallation, getTransferSpares } from '../controllers/rma.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
@@ -10,6 +10,7 @@ router.get('/', getAllRMAs);
 router.post('/', createRMA);
 router.get('/ticket/:ticketId', getRMAByTicket);
 router.get('/asset/:assetId', getRMAHistory);
+router.get('/:id/transfer-spares', authorize('Admin', 'Supervisor', 'Dispatcher'), getTransferSpares);
 
 // Status updates - Approve/Order restricted to Admin/Dispatcher usually
 // Engineer can 'Install' -> logic handled in frontend/controller permission check? 

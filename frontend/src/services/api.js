@@ -96,22 +96,30 @@ api.interceptors.response.use(
                         refreshToken,
                     });
 
-                    // Express.js returns { token } instead of { accessToken }
-                    const { token } = response.data.data;
+                    // Express.js returns { token, refreshToken } (token rotation)
+                    const { token, refreshToken: newRefreshToken } = response.data.data;
                     localStorage.setItem('accessToken', token);
+                    // Store the rotated refresh token so subsequent refreshes work
+                    if (newRefreshToken) {
+                        localStorage.setItem('refreshToken', newRefreshToken);
+                    }
 
                     originalRequest.headers.Authorization = `Bearer ${token}`;
                     return api(originalRequest);
                 }
             } catch {
-                // Refresh failed - clear tokens and redirect to login
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                localStorage.removeItem('user');
-                // Also clear cache on logout
-                useCacheStore.getState().clearAll();
-                window.location.href = '/login';
+                // Refresh failed — fall through to force logout below
             }
+
+            // No refresh token OR refresh failed — force logout and redirect
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            useCacheStore.getState().clearAll();
+            // Clear Zustand persisted auth state so ProtectedRoute sees isAuthenticated=false
+            localStorage.removeItem('auth-storage');
+            window.location.href = '/login';
+            return new Promise(() => { }); // Prevent further .then() chains from running
         }
 
         return Promise.reject(error);
@@ -289,6 +297,7 @@ export const rmaApi = {
     getHistory: (assetId) => api.get(`/rma/asset/${assetId}`),
     updateStatus: (id, data) => api.put(`/rma/${id}/status`, data),
     confirmInstallation: (id, data) => api.put(`/rma/${id}/confirm-installation`, data),
+    getTransferSpares: (rmaId) => api.get(`/rma/${rmaId}/transfer-spares`),
 };
 
 // Asset Update Request API

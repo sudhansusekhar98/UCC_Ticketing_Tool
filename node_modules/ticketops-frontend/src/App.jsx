@@ -101,6 +101,19 @@ function App() {
     return cleanup;
   }, [initTheme, setupSystemThemeListener]);
 
+  // Periodic session expiry check (catches 6-hour timeout even without page refresh)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const { checkSessionExpiry } = useAuthStore.getState();
+    // Check immediately on mount
+    checkSessionExpiry();
+    // Then check every 60 seconds
+    const interval = setInterval(() => {
+      checkSessionExpiry();
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
+
   // Connect to SignalR when authenticated
   useEffect(() => {
     if (isAuthenticated && accessToken) {

@@ -178,8 +178,21 @@ const useAuthStore = create(
                 const { loginTimestamp, isAuthenticated } = get();
                 if (!isAuthenticated || !loginTimestamp) return;
                 if (Date.now() - loginTimestamp > SESSION_MAX_AGE_MS) {
-                    console.log('[Auth] Session expired after 6 hours, logging out.');
-                    get().logout();
+                    console.log('[Auth] Session expired after 6 hours, forcing logout.');
+                    // Clear all auth state immediately (don't call logout() which tries an API call)
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('refreshToken');
+                    localStorage.removeItem('auth-storage');
+                    set({
+                        user: null,
+                        accessToken: null,
+                        refreshToken: null,
+                        isAuthenticated: false,
+                        error: null,
+                        loginTimestamp: null,
+                    });
+                    // Force redirect to login
+                    window.location.href = '/login';
                 }
             },
 

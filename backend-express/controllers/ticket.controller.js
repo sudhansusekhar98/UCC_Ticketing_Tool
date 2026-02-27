@@ -116,7 +116,7 @@ export const getTickets = async (req, res, next) => {
 
     const [tickets, total] = await Promise.all([
       Ticket.find(query)
-        .populate('assetId', 'assetCode assetType locationDescription siteId mac serialNumber deviceType')
+        .populate('assetId', 'assetCode assetType locationName locationDescription siteId mac serialNumber deviceType')
         .populate('createdBy', 'fullName username profilePicture')
         .populate('assignedTo', 'fullName username role profilePicture')
         .populate('slaPolicyId', 'policyName priority')
@@ -169,7 +169,7 @@ export const getTicketById = async (req, res, next) => {
       .populate('siteId', 'siteName siteUniqueID city')
       .populate({
         path: 'assetId',
-        select: 'assetCode assetType deviceType locationDescription siteId serialNumber ipAddress mac make model',
+        select: 'assetCode assetType deviceType locationName locationDescription siteId serialNumber ipAddress mac make model',
         populate: {
           path: 'siteId',
           select: 'siteName siteUniqueID city'
@@ -313,7 +313,7 @@ export const createTicket = async (req, res, next) => {
 
     const populatedTicket = await Ticket.findById(ticket._id)
       .populate('siteId', 'siteName siteUniqueID city')
-      .populate('assetId', 'assetCode assetType deviceType locationDescription siteId serialNumber ipAddress mac model make')
+      .populate('assetId', 'assetCode assetType deviceType locationName locationDescription siteId serialNumber ipAddress mac model make')
       .populate('createdBy', 'fullName username')
       .populate('assignedTo', 'fullName username role email')
       .populate('slaPolicyId', 'policyName');

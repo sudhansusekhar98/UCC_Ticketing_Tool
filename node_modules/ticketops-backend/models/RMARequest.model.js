@@ -37,6 +37,9 @@ const rmaRequestSchema = new mongoose.Schema({
     mac: String,
     model: String,
     make: String,
+    // Old faulty device identity (set after asset swap)
+    oldSerialNumber: String,
+    oldMac: String,
   },
   // ---- NEW SIMPLIFIED WORKFLOW ----
   // Two options: 'RepairOnly' or 'RepairAndReplace'
@@ -106,6 +109,8 @@ const rmaRequestSchema = new mongoose.Schema({
       'ItemRepairedAtHO',      // Repaired item received back at HO (Admin confirms Yes)
       'ReturnShippedToSite',   // Admin ships repaired/replacement item back to site
       'ReceivedAtSite',        // User/L1 marks received at site
+      'RepairedReceivedAtSite', // L1 received repaired item back from SC directly
+      'AddToSiteStock',        // Repaired item added to site stock
       'Installed',             // User marks as installed with updated details
       // Replacement stock workflow (Admin/Escalation scope)
       'ReplacementRequisitionRaised',  // Admin raises requisition for stock transfer
@@ -132,8 +137,10 @@ const rmaRequestSchema = new mongoose.Schema({
       'SentForRepair',         // Forwarded from HO to SC
       'Repaired',              // Repaired item received back at HO
       'ReturnShipped',         // Shipped back to site
-      'ReturnReceived',        // Received at destination site
+      'ReturnReceived',        // Received at destination site (from HO/admin route)
+      'RepairedReceivedAtSite', // L1 received repaired item back from service center directly
       'Installed',             // Installed at site
+      'AddedToSiteStock',      // Added to site spare stock (when replacement was done)
       'CompletedToHOStock',    // Sent to HO stock (no installation)
       null
     ],

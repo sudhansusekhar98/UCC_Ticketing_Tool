@@ -18,6 +18,8 @@ const stockMovementLogSchema = new mongoose.Schema({
             'StatusChange',    // Status change (e.g., Spare -> Operational)
             'Reserved',        // Reserved for RMA
             'Released',        // Released from reservation
+            'Replaced',        // Device replaced via RMA installation
+            'Installed',       // Device installed at site
             'Disposed'         // Marked as damaged/disposed
         ],
         required: true
@@ -141,6 +143,8 @@ export const MovementTypes = {
     STATUS_CHANGE: 'StatusChange',
     RESERVED: 'Reserved',
     RELEASED: 'Released',
+    REPLACED: 'Replaced',
+    INSTALLED: 'Installed',
     DISPOSED: 'Disposed'
 };
 

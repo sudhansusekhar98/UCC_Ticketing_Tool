@@ -40,6 +40,8 @@ const RMA_STATUS_CONFIG = {
     'ItemRepairedAtHO': { color: 'info', icon: CheckCircle, label: 'Repaired (at HO)' },
     'ReturnShippedToSite': { color: 'primary', icon: Truck, label: 'Shipped to Site' },
     'ReceivedAtSite': { color: 'info', icon: MapPin, label: 'Received at Site' },
+    'RepairedReceivedAtSite': { color: 'info', icon: MapPin, label: 'Repaired (at Site)' },
+    'AddToSiteStock': { color: 'success', icon: Package, label: 'Added to Site Stock' },
     'Installed': { color: 'success', icon: Settings, label: 'Installed' },
     // Replacement workflow
     'ReplacementRequisitionRaised': { color: 'info', icon: Package, label: 'Requisition Raised' },

@@ -142,13 +142,12 @@ export const getInventory = async (req, res, next) => {
             { $sort: { 'isHeadOffice': -1, 'siteName': 1, 'assetType': 1 } }
         ]);
 
-        // Decrypt sensitive fields for authorized users
-        if (['Admin', 'Supervisor'].includes(user.role)) {
-            inventory = inventory.map(group => ({
-                ...group,
-                assets: group.assets.map(asset => Asset.decryptSensitiveFields(asset))
-            }));
-        }
+        // Decrypt sensitive fields (mac, serialNumber) for all users
+        // Stock is already scoped to the user's assigned sites via the matchQuery above
+        inventory = inventory.map(group => ({
+            ...group,
+            assets: group.assets.map(asset => Asset.decryptSensitiveFields(asset))
+        }));
 
         res.json({
             success: true,
@@ -198,7 +197,7 @@ export const getStockAvailability = async (req, res, next) => {
 
             // Get all spares matching the asset/device type across all sites
             const allSpares = await Asset.find(baseFilter)
-                .select('assetCode mac serialNumber make model stockLocation siteId deviceType')
+                .select('assetCode mac serialNumber make model stockLocation siteId deviceType assetType')
                 .lean();
 
             // Group by siteId
@@ -267,7 +266,7 @@ export const getStockAvailability = async (req, res, next) => {
             let localSpares = await Asset.find({
                 ...baseFilter,
                 siteId: ticket.siteId
-            }).select('assetCode mac serialNumber make model stockLocation deviceType');
+            }).select('assetCode mac serialNumber make model stockLocation deviceType assetType');
 
             // Decrypt local spares
             localSpares = localSpares.map(s => Asset.decryptSensitiveFields(s));
