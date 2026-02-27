@@ -395,32 +395,21 @@
     border-radius: var(--radius-xl);
 }
 
-/* Stats Grid - Top 6 cards - FLEXBOX FORCED SINGLE ROW */
+/* Stats Grid - Top 6 cards - RESPONSIVE GRID */
 .dashboard-stats-grid {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    gap: 0.5rem !important;
-    margin-bottom: var(--space-2) !important;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+    margin-bottom: var(--space-2);
     width: 100%;
 }
 
-.dashboard-stats-grid>* {
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
-}
-
-/* Secondary Stats Grid - Assets, Engineers, Sites - FLEXBOX FORCED SINGLE ROW */
+/* Secondary Stats Grid - Assets, Engineers, Sites */
 .dashboard-stats-grid.secondary-stats {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    gap: 1rem !important;
-    /* Increased space between the lists (cards) */
-    margin-bottom: var(--space-4) !important;
-}
-
-.dashboard-stats-grid.secondary-stats>* {
-    flex: 1 1 0 !important;
-    min-width: 0 !important;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-bottom: var(--space-4);
 }
 
 .dashboard-stats-grid.secondary-stats .stat-card {
@@ -1615,13 +1604,7 @@
     }
 
     .dashboard-stats-grid {
-        flex-wrap: wrap !important;
-        gap: var(--space-2) !important;
-    }
-
-    .dashboard-stats-grid>* {
-        flex: 1 1 calc(33.33% - 0.5rem) !important;
-        min-width: 150px !important;
+        grid-template-columns: repeat(3, 1fr);
     }
 
     .stat-card {
@@ -1642,22 +1625,13 @@
         min-height: 100vh;
     }
 
-    .dashboard-stats-grid>* {
-        flex: 1 1 calc(33.33% - 0.5rem) !important;
-        min-width: 120px !important;
+    .dashboard-stats-grid {
+        grid-template-columns: repeat(3, 1fr);
     }
 
     .dashboard-stats-grid.secondary-stats,
     .dashboard-charts-grid {
-        flex-wrap: wrap !important;
-    }
-
-    .dashboard-charts-grid>* {
-        flex: 1 1 100% !important;
-    }
-
-    .dashboard-stats-grid.secondary-stats>* {
-        flex: 1 1 100% !important;
+        grid-template-columns: 1fr;
     }
 
     .dashboard-chart-card {
@@ -1695,23 +1669,13 @@
     }
 
     .dashboard-stats-grid {
-        flex-wrap: wrap !important;
-        gap: var(--space-2) !important;
-    }
-
-    .dashboard-stats-grid>* {
-        flex: 1 1 calc(50% - 0.5rem) !important;
-        min-width: 140px !important;
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--space-2);
     }
 
     .dashboard-stats-grid.secondary-stats,
     .dashboard-charts-grid {
-        flex-wrap: wrap !important;
-    }
-
-    .dashboard-stats-grid.secondary-stats>*,
-    .dashboard-charts-grid>* {
-        flex: 1 1 100% !important;
+        grid-template-columns: 1fr;
     }
 
     .stat-card,
@@ -1800,12 +1764,8 @@
     }
 
     .dashboard-stats-grid {
-        gap: 6px !important;
-    }
-
-    .dashboard-stats-grid>* {
-        flex: 1 1 calc(50% - 4px) !important;
-        min-width: 100px !important;
+        grid-template-columns: 1fr;
+        gap: 6px;
     }
 
     .stat-card {
