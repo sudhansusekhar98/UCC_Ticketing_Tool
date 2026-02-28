@@ -130,7 +130,7 @@ const buildAssetQuery = (req) => {
   if (isActive !== undefined) query.isActive = isActive === 'true';
 
   if (search) {
-    // Only search on non-sensitive fields to avoid matching against encrypted ciphertext
+    // Search on non-sensitive (unencrypted) fields via regex
     query.$or = [
       { assetCode: { $regex: search, $options: 'i' } },
       { locationDescription: { $regex: search, $options: 'i' } },
@@ -142,7 +142,47 @@ const buildAssetQuery = (req) => {
     ];
   }
 
-  return { query };
+  // Return the search term separately so callers can also search encrypted fields
+  return { query, searchTerm: search || null };
+};
+
+/**
+ * Search encrypted fields (serialNumber, mac, ipAddress) by decrypting and
+ * checking against the search term. Returns an array of matching asset _id values.
+ *
+ * @param {Object} baseQuery - The base filter query (site, status, etc.) WITHOUT $or search
+ * @param {string} searchTerm - The user's search input
+ * @returns {Promise<string[]>} Array of matching asset _id strings
+ */
+const findEncryptedFieldMatches = async (baseQuery, searchTerm) => {
+  if (!searchTerm) return [];
+
+  const searchLower = searchTerm.toLowerCase();
+  const ENCRYPTED_SEARCH_FIELDS = ['serialNumber', 'mac', 'ipAddress'];
+
+  // Fetch only _id + encrypted fields (lean for performance)
+  const candidates = await Asset.find(baseQuery)
+    .select('_id serialNumber mac ipAddress')
+    .lean();
+
+  const matchingIds = [];
+  for (const asset of candidates) {
+    for (const field of ENCRYPTED_SEARCH_FIELDS) {
+      if (!asset[field]) continue;
+      try {
+        const plaintext = isEncrypted(asset[field])
+          ? decrypt(asset[field])
+          : asset[field];
+        if (plaintext && plaintext.toLowerCase().includes(searchLower)) {
+          matchingIds.push(asset._id.toString());
+          break; // one match is enough for this asset
+        }
+      } catch {
+        // skip decryption failures
+      }
+    }
+  }
+  return matchingIds;
 };
 
 // @desc    Get all assets
@@ -151,7 +191,7 @@ const buildAssetQuery = (req) => {
 export const getAssets = async (req, res, next) => {
   try {
     const { page = 1, limit = 50 } = req.query;
-    const { query, empty, error } = buildAssetQuery(req);
+    const { query, empty, error, searchTerm } = buildAssetQuery(req);
 
     if (error) {
       return res.status(403).json({ success: false, message: error });
@@ -170,8 +210,9 @@ export const getAssets = async (req, res, next) => {
     // Build a separate query for status counts that ignores the status filter
     // but respects all other filters (site, location, asset type, etc.)
     const countQuery = { ...query };
-    // Remove the status filter so we can count all statuses
+    // Remove the status filter and $or search so we can count all statuses
     delete countQuery.status;
+    delete countQuery.$or;
     // Always exclude 'Spare' from operational counts
     countQuery.status = { $nin: ['Spare', 'Not Installed', 'InTransit', 'Damaged', 'Reserved', 'In Repair'] };
 
@@ -187,13 +228,35 @@ export const getAssets = async (req, res, next) => {
       }
     }
 
+    // When there's a search term, also search encrypted fields (serialNumber, mac, ipAddress)
+    let finalQuery = query;
+    if (searchTerm) {
+      // Build base query WITHOUT the $or search to use for encrypted field scanning
+      const baseQuery = { ...query };
+      delete baseQuery.$or;
+
+      const encryptedMatchIds = await findEncryptedFieldMatches(baseQuery, searchTerm);
+
+      if (encryptedMatchIds.length > 0) {
+        // Merge: match assets found by non-encrypted regex OR by encrypted field decryption
+        const existingOr = query.$or || [];
+        finalQuery = {
+          ...query,
+          $or: [
+            ...existingOr,
+            { _id: { $in: encryptedMatchIds.map(id => new mongoose.Types.ObjectId(id)) } }
+          ]
+        };
+      }
+    }
+
     const [assets, total, counts] = await Promise.all([
-      Asset.find(query)
+      Asset.find(finalQuery)
         .populate('siteId', 'siteName siteUniqueID')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),
-      Asset.countDocuments(query),
+      Asset.countDocuments(finalQuery),
       Asset.aggregate([
         { $match: countQuery },
         { $group: { _id: '$status', count: { $sum: 1 } } }

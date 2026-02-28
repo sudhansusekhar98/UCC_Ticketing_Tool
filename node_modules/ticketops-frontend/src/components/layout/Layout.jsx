@@ -113,6 +113,21 @@ export default function Layout({ children }) {
         setSearchResults(null);
     }, [location.pathname]);
 
+    // Auto-collapse sidebar on route change
+    // On mobile (≤1024px): always close
+    // On desktop: close when navigating to detail/sub-pages (e.g. /tickets/:id)
+    useEffect(() => {
+        if (window.innerWidth <= 1024) {
+            setSidebarOpen(false);
+        } else {
+            // Detail pages: paths with 3+ segments like /tickets/abc123, /assets/xyz
+            const segments = location.pathname.split('/').filter(Boolean);
+            if (segments.length >= 2) {
+                setSidebarOpen(false);
+            }
+        }
+    }, [location.pathname]);
+
     // Debounced search
     const performSearch = useCallback(async (query) => {
         if (!query || query.trim().length < 2) {
