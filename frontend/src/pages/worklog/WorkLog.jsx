@@ -168,7 +168,7 @@ export default function WorkLog() {
         try {
             const promises = [
                 sitesApi.getDropdown(),
-                ticketsApi.getAll({ status: 'Open,In Progress,Pending', limit: 100 })
+                ticketsApi.getAll({ status: 'Open,Assigned,Acknowledged,InProgress,OnHold,Escalated,ResolutionRejected', limit: 200 })
             ];
             if (isAdmin) {
                 promises.push(usersApi.getAll({ limit: 200 }));
