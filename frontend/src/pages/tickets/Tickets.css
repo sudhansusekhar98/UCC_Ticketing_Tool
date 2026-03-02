@@ -263,19 +263,6 @@
   color: var(--primary-400);
 }
 
-/* Sticky wrapper for back-link + header */
-.ticket-detail-page>.back-link,
-.ticket-detail-page>.ticket-header {
-  position: sticky;
-  z-index: 20;
-}
-
-.ticket-detail-page>.back-link {
-  top: 0;
-  padding: var(--space-2) 0;
-  background: var(--bg-primary, var(--bg-card));
-}
-
 .ticket-header {
   display: flex;
   align-items: center;
@@ -287,8 +274,6 @@
   border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
-  position: sticky;
-  top: 32px;
 }
 
 .ticket-header::before {

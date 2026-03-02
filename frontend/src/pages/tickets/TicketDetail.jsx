@@ -425,11 +425,6 @@ export default function TicketDetail() {
 
     return (
         <div className="ticket-detail-page animate-fade-in">
-            <Link to="/tickets" className="back-link">
-                <ArrowLeft size={18} />
-                Back to Tickets
-            </Link>
-
             <div className="ticket-header">
                 <div className="ticket-header-left">
                     <div className="ticket-meta">
