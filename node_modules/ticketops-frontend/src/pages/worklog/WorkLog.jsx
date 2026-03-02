@@ -554,7 +554,7 @@ export default function WorkLog() {
                                                     <label>Site</label>
                                                     <select
                                                         value={entryForm.siteId}
-                                                        onChange={(e) => setEntryForm({ ...entryForm, siteId: e.target.value })}
+                                                        onChange={(e) => setEntryForm({ ...entryForm, siteId: e.target.value, ticketRef: '' })}
                                                     >
                                                         <option value="">None</option>
                                                         {sites.map(site => (
@@ -569,11 +569,13 @@ export default function WorkLog() {
                                                         onChange={(e) => setEntryForm({ ...entryForm, ticketRef: e.target.value })}
                                                     >
                                                         <option value="">None</option>
-                                                        {tickets.map(ticket => (
-                                                            <option key={ticket._id} value={ticket._id}>
-                                                                #{ticket.ticketNumber} - {ticket.title?.substring(0, 30)}
-                                                            </option>
-                                                        ))}
+                                                        {tickets
+                                                            .filter(ticket => !entryForm.siteId || (ticket.siteId?._id || ticket.siteId) === entryForm.siteId)
+                                                            .map(ticket => (
+                                                                <option key={ticket._id} value={ticket._id}>
+                                                                    #{ticket.ticketNumber} - {ticket.title?.substring(0, 30)}
+                                                                </option>
+                                                            ))}
                                                     </select>
                                                 </div>
                                             </div>
