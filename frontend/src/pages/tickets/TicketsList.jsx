@@ -9,6 +9,7 @@ import {
     AlertTriangle,
     Clock,
     ExternalLink,
+    Calendar,
 } from 'lucide-react';
 import { ticketsApi, lookupsApi, sitesApi, usersApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
@@ -44,6 +45,8 @@ export default function TicketsList() {
         siteId: searchParams.get('siteId') || '',
         slaStatus: searchParams.get('slaStatus') || '',
         searchTerm: searchParams.get('search') || '',
+        startDate: searchParams.get('startDate') || '',
+        endDate: searchParams.get('endDate') || '',
         page: parseInt(searchParams.get('page')) || 1,
         pageSize: 20,
     });
@@ -145,6 +148,8 @@ export default function TicketsList() {
         if (filters.siteId) params.set('siteId', filters.siteId);
         if (filters.slaStatus) params.set('slaStatus', filters.slaStatus);
         if (filters.searchTerm) params.set('search', filters.searchTerm);
+        if (filters.startDate) params.set('startDate', filters.startDate);
+        if (filters.endDate) params.set('endDate', filters.endDate);
         params.set('page', '1');
         setSearchParams(params);
         setFilters({ ...filters, page: 1 });
@@ -160,6 +165,8 @@ export default function TicketsList() {
         if (f.siteId) params.set('siteId', f.siteId);
         if (f.slaStatus) params.set('slaStatus', f.slaStatus);
         if (f.searchTerm) params.set('search', f.searchTerm);
+        if (f.startDate) params.set('startDate', f.startDate);
+        if (f.endDate) params.set('endDate', f.endDate);
         params.set('page', '1');
         setSearchParams(params);
     };
@@ -173,6 +180,8 @@ export default function TicketsList() {
             siteId: '',
             slaStatus: '',
             searchTerm: '',
+            startDate: '',
+            endDate: '',
             page: 1,
             pageSize: 20,
         });
@@ -314,6 +323,27 @@ export default function TicketsList() {
                                 </select>
                             </>
                         )}
+
+                        {/* Date Range Filters */}
+                        <div className="date-range-group">
+                            <Calendar size={14} className="date-range-icon" />
+                            <input
+                                type="date"
+                                value={filters.startDate}
+                                onChange={(e) => { const f = { ...filters, startDate: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                                className="form-input filter-date"
+                                title="Start Date"
+                            />
+                            <span className="date-range-separator">to</span>
+                            <input
+                                type="date"
+                                value={filters.endDate}
+                                onChange={(e) => { const f = { ...filters, endDate: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
+                                className="form-input filter-date"
+                                title="End Date"
+                                min={filters.startDate || undefined}
+                            />
+                        </div>
                     </div>
 
                     <div className="filter-actions-inline">

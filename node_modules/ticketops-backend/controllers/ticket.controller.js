@@ -15,7 +15,7 @@ export const getTickets = async (req, res, next) => {
     const {
       status, priority, category, siteId, assetId, assignedTo, createdBy,
       search, page = 1, limit = 50, sortBy = 'createdAt', sortOrder = 'desc',
-      isSLABreached, isEscalated, slaStatus
+      isSLABreached, isEscalated, slaStatus, startDate, endDate
     } = req.query;
 
     const query = {};
@@ -48,6 +48,17 @@ export const getTickets = async (req, res, next) => {
     if (assetId) query.assetId = assetId;
     if (assignedTo) query.assignedTo = assignedTo;
     if (createdBy) query.createdBy = createdBy;
+
+    // Date range filter on createdAt
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = new Date(new Date(startDate).setHours(0, 0, 0, 0));
+      }
+      if (endDate) {
+        query.createdAt.$lte = new Date(new Date(endDate).setHours(23, 59, 59, 999));
+      }
+    }
 
     // SLA Status filter
     if (isSLABreached === 'true') {
