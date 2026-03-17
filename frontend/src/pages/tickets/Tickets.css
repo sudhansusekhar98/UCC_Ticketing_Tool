@@ -35,8 +35,8 @@
 
 .tickets-page .search-box.small {
   flex: 1;
-  min-width: 200px;
-  max-width: 250px;
+  min-width: 140px;
+  max-width: 180px;
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -71,7 +71,7 @@
   gap: var(--space-2);
   flex: 1;
   flex-wrap: nowrap;
-  overflow-x: auto;
+  /* overflow-x: auto; */
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
@@ -85,7 +85,7 @@
   font-size: 0.75rem;
   height: 28px;
   min-height: unset;
-  max-width: 160px;
+  max-width: 125px;
   flex-shrink: 0;
   text-overflow: ellipsis;
 }
@@ -95,7 +95,7 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  margin-left: auto;
+  margin-left: 10rem;
 }
 
 .tickets-page .icon-btn-small {
@@ -147,7 +147,7 @@
   padding: 0;
   height: 24px;
   min-height: unset;
-  width: 110px;
+  width: 95px;
   cursor: pointer;
 }
 

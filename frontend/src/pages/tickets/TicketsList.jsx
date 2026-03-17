@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
     Plus,
@@ -35,6 +35,10 @@ export default function TicketsList() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { hasRole, hasRightForAnySite } = useAuthStore();
+
+    // Refs for date inputs to trigger picker programmatically
+    const startDateRef = useRef(null);
+    const endDateRef = useRef(null);
 
     // Filter states
     const [filters, setFilters] = useState({
@@ -326,20 +330,29 @@ export default function TicketsList() {
 
                         {/* Date Range Filters */}
                         <div className="date-range-group">
-                            <Calendar size={14} className="date-range-icon" />
+                            <Calendar
+                                size={14}
+                                className="date-range-icon"
+                                onClick={() => startDateRef.current?.showPicker()}
+                                style={{ cursor: 'pointer' }}
+                            />
                             <input
+                                ref={startDateRef}
                                 type="date"
                                 value={filters.startDate}
+                                onClick={(e) => e.target.showPicker()}
                                 onChange={(e) => { const f = { ...filters, startDate: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
-                                className="form-input filter-date"
+                                className="filter-date"
                                 title="Start Date"
                             />
                             <span className="date-range-separator">to</span>
                             <input
+                                ref={endDateRef}
                                 type="date"
                                 value={filters.endDate}
+                                onClick={(e) => e.target.showPicker()}
                                 onChange={(e) => { const f = { ...filters, endDate: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
-                                className="form-input filter-date"
+                                className="filter-date"
                                 title="End Date"
                                 min={filters.startDate || undefined}
                             />
