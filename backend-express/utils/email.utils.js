@@ -187,6 +187,54 @@ export const sendAccountCreationEmail = async (user, tempPassword) => {
 };
 
 /**
+ * Send email when a device is assigned to an engineer for configuration
+ */
+export const sendDeviceAssignmentEmail = async (device, assignedUser, assignedBy, project) => {
+  try {
+    const transporter = createTransporter();
+
+    const content = `
+      <p>Hello <strong>${assignedUser.fullName || assignedUser.username}</strong>,</p>
+      <p>A device has been assigned to you for configuration and testing.</p>
+
+      <table class="data-table">
+        <tr><th>Device Type</th><td>${device.deviceType || device.assetType}</td></tr>
+        <tr><th>Make/Model</th><td>${device.make} ${device.model}</td></tr>
+        <tr><th>Serial Number</th><td>${device.serialNumber || 'N/A'}</td></tr>
+        <tr><th>Project</th><td>${project?.projectName || project?.projectNumber || 'N/A'}</td></tr>
+        <tr><th>Zone</th><td>${device.zoneId?.zoneName || 'N/A'}</td></tr>
+        <tr><th>Current Status</th><td>${device.status}</td></tr>
+        <tr><th>Assigned By</th><td>${assignedBy?.fullName || 'System'}</td></tr>
+      </table>
+
+      ${device.notes ? `<p><strong>Notes:</strong></p><div class="info-box">${device.notes}</div>` : ''}
+
+      <p>Please complete the configuration and testing as soon as possible. You can view this device in your "My Assignments" section.</p>
+
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/fieldops/devices/my-assignments" class="btn" style="color: white !important; text-decoration: none;">View My Assignments</a>
+      </div>
+
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
+    `;
+
+    const subject = `Device Assigned: ${device.deviceType} - ${project?.projectNumber || 'Project'}`;
+    await transporter.sendMail({
+      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+      to: assignedUser.email,
+      subject: subject,
+      html: emailTemplate(content, 'Device Assigned'),
+    });
+
+    console.log(`Device assignment email sent to ${assignedUser.email}`);
+    await logNotification(assignedUser.email, subject, content, 'DeviceAssignment', null, 'Sent', null, assignedUser._id);
+  } catch (error) {
+    console.error('Error sending device assignment email:', error);
+    await logNotification(assignedUser.email, 'Device Assignment', 'Failed', 'DeviceAssignment', null, 'Failed', error.message, assignedUser._id);
+  }
+};
+
+/**
  * Send email when a ticket is assigned to an engineer
  */
 export const sendTicketAssignmentEmail = async (ticket, assignedUser, assignedBy) => {
@@ -898,5 +946,6 @@ export default {
   sendGeneralNotificationEmail,
   sendClientSignupAlertEmail,
   sendClientApprovalEmail,
-  sendClientRejectionEmail
+  sendClientRejectionEmail,
+  sendDeviceAssignmentEmail
 };
