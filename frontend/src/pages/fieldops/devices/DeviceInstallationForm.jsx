@@ -501,7 +501,7 @@ export default function DeviceInstallationForm() {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="glass-card">
+            <form onSubmit={handleSubmit} className="glass-card device-installation-form">
                 {/* Device Selection from Allocated Stock */}
                 <div className="form-section">
                     <h3 className="form-section-title">
@@ -684,7 +684,7 @@ export default function DeviceInstallationForm() {
                     </h3>
                     <div className="form-grid">
                         <div className="form-group">
-                            <label className="form-label">Zone</label>
+                            {/* <label className="form-label">Zone</label>
                             <select
                                 className="form-select"
                                 value={formData.zoneId}
@@ -696,7 +696,15 @@ export default function DeviceInstallationForm() {
                                         {zone.zoneName} ({zone.zoneCode})
                                     </option>
                                 ))}
-                            </select>
+                            </select> */}
+                            <label className="form-label">Location Name</label>
+                            <input
+                                type="text"
+                                className="form-input"
+                                value={formData.installationLocation.description}
+                                onChange={(e) => handleNestedChange('installationLocation', 'description', e.target.value)}
+                                placeholder="e.g., Main Gate Entry"
+                            />
                         </div>
 
                         {/* Show make/model/serial only in edit mode or when no multi-select */}
@@ -789,7 +797,7 @@ export default function DeviceInstallationForm() {
                 </div>
 
                 {/* Installation Location */}
-                <div className="form-section">
+                {/* <div className="form-section">
                     <h3 className="form-section-title">
                         <MapPin size={18} /> Installation Location
                     </h3>
@@ -840,7 +848,7 @@ export default function DeviceInstallationForm() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div> */}
 
                 {/* Cable Details */}
                 <div className="form-section">
@@ -923,7 +931,7 @@ export default function DeviceInstallationForm() {
                                 max={selectedCableAllocation?.remainingQty}
                             />
                         </div>
-                        <div className="form-group">
+                        {/* <div className="form-group">
                             <label className="form-label">Trench ID</label>
                             <input
                                 type="text"
@@ -932,7 +940,7 @@ export default function DeviceInstallationForm() {
                                 onChange={(e) => handleNestedChange('cableDetails', 'trenchId', e.target.value)}
                                 placeholder="e.g., TR-001"
                             />
-                        </div>
+                        </div> */}
                     </div>
                 </div>
 

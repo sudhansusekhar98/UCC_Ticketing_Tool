@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -18,7 +18,17 @@ import {
     Users,
     CheckCircle,
     Package,
-    UserPlus
+    UserPlus,
+    TrendingUp,
+    TrendingDown,
+    Timer,
+    Activity,
+    Layers,
+    CalendarClock,
+    Play,
+    Gauge,
+    CircleDot,
+    Zap
 } from 'lucide-react';
 import { fieldOpsApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
@@ -34,6 +44,96 @@ const statusColors = {
     Completed: 'status-badge-secondary',
     Cancelled: 'status-badge-danger'
 };
+
+/* ── Circular Donut component for Timeline Status ── */
+function TimelineDonut({ percentage, elapsed, total, remaining }) {
+    const size = 120;
+    const strokeWidth = 10;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (percentage / 100) * circumference;
+
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+                <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+                    <circle
+                        cx={size / 2} cy={size / 2} r={radius}
+                        fill="none"
+                        stroke="var(--border-light, rgba(148,163,184,0.15))"
+                        strokeWidth={strokeWidth}
+                    />
+                    <circle
+                        cx={size / 2} cy={size / 2} r={radius}
+                        fill="none"
+                        stroke="url(#donutGrad)"
+                        strokeWidth={strokeWidth}
+                        strokeDasharray={circumference}
+                        strokeDashoffset={offset}
+                        strokeLinecap="round"
+                        style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)' }}
+                    />
+                    <defs>
+                        <linearGradient id="donutGrad" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" />
+                            <stop offset="100%" stopColor="#06b6d4" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div style={{
+                    position: 'absolute', inset: 0,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+                        {percentage}%
+                    </span>
+                    <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.06em', marginTop: 2 }}>
+                        Time Used
+                    </span>
+                </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{elapsed}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: 4 }}>of {total} days</span>
+                </div>
+                <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em' }}>Elapsed</span>
+                <div style={{ borderTop: '1px solid var(--border-light, rgba(148,163,184,0.15))', paddingTop: '0.4rem', marginTop: '0.1rem' }}>
+                    <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>{remaining}</span>
+                    <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.05em', display: 'block', marginTop: 2 }}>Days Remaining</span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+/* ── Milestone progress row ── */
+function MilestoneRow({ label, weight, percentage, completed, total }) {
+    return (
+        <div style={{ padding: '0.75rem 0', borderBottom: '1px solid var(--border-light, rgba(148,163,184,0.08))' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <div>
+                    <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{label}</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 8, textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.04em' }}>Weight: {weight}%</span>
+                </div>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{percentage}%</span>
+            </div>
+            <div className="progress-bar-container" style={{ height: 6 }}>
+                <div
+                    className="progress-bar"
+                    style={{
+                        width: `${percentage}%`,
+                        background: percentage >= 75 ? 'var(--success-500, #10b981)' : percentage >= 30 ? 'var(--primary-500, #3b82f6)' : 'var(--text-muted, #94a3b8)',
+                        height: 6
+                    }}
+                />
+            </div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                {completed} / {total} Units
+            </div>
+        </div>
+    );
+}
 
 export default function ProjectDetail() {
     const { id } = useParams();
@@ -67,6 +167,15 @@ export default function ProjectDetail() {
         }
     };
 
+    // Compute devices installed avg (average per allocation if available)
+    const devicesInstalledAvg = useMemo(() => {
+        if (!dashboard?.allocations) return 0;
+        const installed = dashboard.allocations.totalInstalled || 0;
+        const allocated = dashboard.allocations.totalAllocated || 0;
+        if (allocated === 0) return installed;
+        return (installed / allocated * 100).toFixed(0);
+    }, [dashboard]);
+
     if (loading) {
         return (
             <div className="page-container">
@@ -84,6 +193,15 @@ export default function ProjectDetail() {
 
     const isAssignedPM = project.assignedPM?._id === user?._id ||
                          project.teamMembers?.some(tm => tm._id === user?._id);
+
+    const schedStatus = dashboard?.progress?.scheduleStatus;
+    const currentPhase = dashboard?.progress?.taskProgress >= 100
+        ? 'Completed'
+        : dashboard?.progress?.milestoneBreakdown?.installation < 100
+        ? 'Phase 1: Foundation & Infrastructure'
+        : dashboard?.progress?.milestoneBreakdown?.configuration < 100
+        ? 'Phase 2: Configuration & Setup'
+        : 'Phase 3: Testing & Validation';
 
     return (
         <div className="page-container animate-fade-in">
@@ -133,111 +251,135 @@ export default function ProjectDetail() {
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="stats-grid">
-                <Link
-                    to={`/fieldops/reports?projectId=${id}`}
-                    className="pm-stat-card pm-stat-card-link"
-                >
-                    <div className="pm-stat-icon primary">
-                        <BarChart3 size={24} />
+            {/* ─── Hero Stats Row ─── */}
+            <div className="pd-hero-stats">
+                {/* Efficiency / Task Progress */}
+                <Link to={`/fieldops/reports?projectId=${id}`} className="pd-hero-card">
+                    <div className="pd-hero-icon" style={{ background: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}>
+                        <Gauge size={22} />
                     </div>
-                    <div className="pm-stat-content">
-                        <h3>{dashboard?.dailyLogs?.avgProgress || 0}%</h3>
-                        <p>Overall Progress</p>
-                        <span className="pm-stat-card-hint">View Report →</span>
-                    </div>
+                    <div className="pd-hero-label">Efficiency</div>
+                    <div className="pd-hero-value">{dashboard?.progress?.taskProgress || 0}%</div>
+                    <div className="pd-hero-sublabel">Task Progress</div>
                 </Link>
 
-                {/* Devices Installed → Devices tab */}
+                {/* Deployment / Devices Installed */}
                 <button
-                    className="pm-stat-card pm-stat-card-link"
+                    className="pd-hero-card"
                     onClick={() => { setActiveTab('devices'); document.querySelector('.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
                 >
-                    <div className="pm-stat-icon success">
-                        <Camera size={24} />
+                    <div className="pd-hero-icon" style={{ background: 'rgba(6,182,212,0.12)', color: '#06b6d4' }}>
+                        <Zap size={22} />
                     </div>
-                    <div className="pm-stat-content">
-                        <h3>{dashboard?.devices?.total || 0}</h3>
-                        <p>Devices Installed</p>
-                        <span className="pm-stat-card-hint">View Devices →</span>
-                    </div>
+                    <div className="pd-hero-label">Deployment</div>
+                    <div className="pd-hero-value">{dashboard?.allocations?.totalInstalled || 0}</div>
+                    <div className="pd-hero-sublabel">Devices Installed</div>
                 </button>
 
-                {/* Daily Logs → Logs tab */}
-                <button
-                    className="pm-stat-card pm-stat-card-link"
-                    onClick={() => { setActiveTab('logs'); document.querySelector('.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
-                >
-                    <div className="pm-stat-icon info">
-                        <FileText size={24} />
+                {/* Inventory / Stock Remaining */}
+                <Link to={`/fieldops/projects/${id}/stock`} className="pd-hero-card" style={{ textDecoration: 'none' }}>
+                    <div className="pd-hero-icon" style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981' }}>
+                        <Package size={22} />
                     </div>
-                    <div className="pm-stat-content">
-                        <h3>{dashboard?.dailyLogs?.total || 0}</h3>
-                        <p>Daily Logs</p>
-                        <span className="pm-stat-card-hint">View Logs →</span>
-                    </div>
-                </button>
+                    <div className="pd-hero-label">Inventory</div>
+                    <div className="pd-hero-value">{dashboard?.allocations?.remaining || 0}</div>
+                    <div className="pd-hero-sublabel">Stock Remaining</div>
+                </Link>
 
-                {/* Open Challenges → Challenges tab */}
-                <button
-                    className="pm-stat-card pm-stat-card-link"
-                    onClick={() => { setActiveTab('challenges'); document.querySelector('.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
-                >
-                    <div className="pm-stat-icon warning">
-                        <AlertTriangle size={24} />
-                    </div>
-                    <div className="pm-stat-content">
-                        <h3>{dashboard?.challenges?.byStatus?.Open || 0}</h3>
-                        <p>Open Challenges</p>
-                        <span className="pm-stat-card-hint">View Challenges →</span>
-                    </div>
-                </button>
-
-                {/* Total Man-Hours → Vendor Work tab */}
-                <button
-                    className="pm-stat-card pm-stat-card-link"
-                    onClick={() => { setActiveTab('vendor'); document.querySelector('.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
-                >
-                    <div className="pm-stat-icon primary">
-                        <Clock size={24} />
-                    </div>
-                    <div className="pm-stat-content">
-                        <h3>{dashboard?.dailyLogs?.totalManHours || 0}</h3>
-                        <p>Total Man-Hours</p>
-                        <span className="pm-stat-card-hint">View Vendor Work →</span>
-                    </div>
-                </button>
-
-                {/* Allocated Stock → Stock tab */}
-                <button
-                    className="pm-stat-card pm-stat-card-link"
-                    onClick={() => { setActiveTab('stock'); document.querySelector('.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
-                >
-                    <div className="pm-stat-icon info">
-                        <Package size={24} />
-                    </div>
-                    <div className="pm-stat-content">
-                        <h3>{dashboard?.allocations?.remaining || 0}</h3>
-                        <p>Stock Remaining</p>
-                        <span className="pm-stat-card-hint">View Stock →</span>
-                    </div>
-                </button>
+                {/* Compact counts grid */}
+                <div className="pd-counts-grid">
+                    <button
+                        className="pd-count-cell"
+                        onClick={() => { setActiveTab('vendor'); document.querySelector('.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+                    >
+                        <span className="pd-count-value">{dashboard?.dailyLogs?.totalManHours || 0}</span>
+                        <span className="pd-count-label">Man-Hours</span>
+                    </button>
+                    <button
+                        className="pd-count-cell"
+                        onClick={() => { setActiveTab('challenges'); document.querySelector('.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+                    >
+                        <span className="pd-count-value pd-count-danger">{dashboard?.challenges?.byStatus?.Open || 0}</span>
+                        <span className="pd-count-label">Challenges</span>
+                    </button>
+                    <Link to={`/fieldops/projects/${id}/devices/assigned`} className="pd-count-cell">
+                        <span className="pd-count-value">{dashboard?.devices?.total || 0}</span>
+                        <span className="pd-count-label">Device Recs</span>
+                    </Link>
+                    <button
+                        className="pd-count-cell"
+                        onClick={() => { setActiveTab('logs'); document.querySelector('.tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+                    >
+                        <span className="pd-count-value">{dashboard?.dailyLogs?.total || 0}</span>
+                        <span className="pd-count-label">Daily Log</span>
+                    </button>
+                </div>
             </div>
 
-            {/* Progress Bar */}
-            <div className="glass-card" style={{ marginBottom: '1.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span>Project Progress</span>
-                    <span>{dashboard?.dailyLogs?.avgProgress || 0}%</span>
+            {/* ─── Project Progress + Timeline Status ─── */}
+            {dashboard?.progress && (
+            <div className="pd-progress-row">
+                {/* Left: Progress breakdown */}
+                <div className="pd-progress-card glass-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <h3 className="card-title" style={{ margin: 0, fontSize: '1.1rem' }}>Project Progress</h3>
+                    </div>
+
+                    {/* Phase indicator */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                        <Play size={14} style={{ color: 'var(--text-muted)' }} />
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{currentPhase}</span>
+                        <span className={`status-badge ${
+                            schedStatus === 'On Track' ? 'status-badge-success' :
+                            schedStatus === 'Behind Schedule' ? 'status-badge-danger' :
+                            'status-badge-info'
+                        }`} style={{ marginLeft: 'auto' }}>
+                            {schedStatus === 'On Track' && <CheckCircle size={11} />}
+                            {schedStatus === 'Behind Schedule' && <AlertTriangle size={11} />}
+                            {schedStatus?.toUpperCase() || 'N/A'}
+                        </span>
+                    </div>
+
+                    {/* Milestone rows */}
+                    <MilestoneRow
+                        label="Installation"
+                        weight={30}
+                        percentage={dashboard.progress.milestoneBreakdown?.installation || 0}
+                        completed={dashboard.progress.milestoneBreakdown?.installedCount || 0}
+                        total={dashboard.progress.milestoneBreakdown?.allocatedScope || 0}
+                    />
+                    <MilestoneRow
+                        label="Configuration"
+                        weight={30}
+                        percentage={dashboard.progress.milestoneBreakdown?.configuration || 0}
+                        completed={dashboard.progress.milestoneBreakdown?.configuredCount || 0}
+                        total={dashboard.progress.milestoneBreakdown?.allocatedScope || 0}
+                    />
+                    <MilestoneRow
+                        label="Testing & Validation"
+                        weight={40}
+                        percentage={dashboard.progress.milestoneBreakdown?.testing || 0}
+                        completed={dashboard.progress.milestoneBreakdown?.testedCount || 0}
+                        total={dashboard.progress.milestoneBreakdown?.allocatedScope || 0}
+                    />
+
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.75rem', fontStyle: 'italic' }}>
+                        Milestones based on {dashboard.progress.milestoneBreakdown?.allocatedScope || 0} allocated units.
+                    </div>
                 </div>
-                <div className="progress-bar-container">
-                    <div
-                        className="progress-bar"
-                        style={{ width: `${dashboard?.dailyLogs?.avgProgress || 0}%` }}
+
+                {/* Right: Timeline Status donut */}
+                <div className="pd-timeline-card glass-card">
+                    <h3 className="card-title" style={{ margin: '0 0 1rem', fontSize: '1.1rem' }}>Timeline Status</h3>
+                    <TimelineDonut
+                        percentage={dashboard.progress.timeProgress || 0}
+                        elapsed={dashboard.progress.elapsedDays || 0}
+                        total={dashboard.progress.contractDays || 0}
+                        remaining={dashboard.progress.remainingDays || 0}
                     />
                 </div>
             </div>
+            )}
 
             {/* Tabs */}
             <div className="glass-card">
@@ -260,7 +402,7 @@ export default function ProjectDetail() {
                         onClick={() => setActiveTab('devices')}
                     >
                         <Camera size={16} /> Devices
-                        <span className="tab-badge">{dashboard?.devices?.total || 0}</span>
+                        <span className="tab-badge">{dashboard?.allocations?.totalInstalled || 0}</span>
                     </button>
                     <button
                         className={`tab ${activeTab === 'vendor' ? 'active' : ''}`}
@@ -301,6 +443,7 @@ export default function ProjectDetail() {
                         <DevicesTab
                             projectId={id}
                             stats={dashboard?.devices || {}}
+                            allocStats={dashboard?.allocations || {}}
                         />
                     )}
                     {activeTab === 'vendor' && (
@@ -461,7 +604,17 @@ function DailyLogsTab({ projectId, logs, canAdd }) {
     );
 }
 
-function DevicesTab({ projectId, stats }) {
+function DevicesTab({ projectId, stats, allocStats }) {
+    // Stock-based counts (actual installation progress)
+    const stockInstalled = allocStats?.totalInstalled || 0;
+    const stockAllocated = allocStats?.totalAllocated || 0;
+    const stockFaulty = allocStats?.totalFaulty || 0;
+    const stockRemaining = allocStats?.remaining || 0;
+
+    // DeviceInstallation records (for configuration tracking)
+    const deviceRecords = stats?.total || 0;
+    const pendingConfig = Math.max(0, stockInstalled - deviceRecords);
+
     return (
         <div>
             <div style={{ marginBottom: '1rem', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -473,20 +626,89 @@ function DevicesTab({ projectId, stats }) {
                 </Link>
             </div>
 
-            <div className="stats-grid" style={{ marginBottom: '1rem' }}>
-                {Object.entries(stats.byStatus || {}).map(([status, count]) => (
-                    <div key={status} className="pm-stat-card">
+            {/* Stock-based installation stats */}
+            <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Installation Progress (Stock-based)</h4>
+                <div className="stats-grid">
+                    <div className="pm-stat-card">
                         <div className="pm-stat-content">
-                            <h3>{count}</h3>
-                            <p>{status}</p>
+                            <h3>{stockInstalled}</h3>
+                            <p>Installed</p>
                         </div>
                     </div>
-                ))}
+                    <div className="pm-stat-card">
+                        <div className="pm-stat-content">
+                            <h3>{stockRemaining}</h3>
+                            <p>Remaining</p>
+                        </div>
+                    </div>
+                    <div className="pm-stat-card">
+                        <div className="pm-stat-content">
+                            <h3>{stockFaulty}</h3>
+                            <p>Faulty</p>
+                        </div>
+                    </div>
+                    <div className="pm-stat-card">
+                        <div className="pm-stat-content">
+                            <h3>{stockAllocated}</h3>
+                            <p>Total Allocated</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <Link to={`/fieldops/devices?projectId=${projectId}`} className="btn btn-ghost">
-                View All Devices
-            </Link>
+            {/* Device records for configuration */}
+            <div style={{ marginBottom: '1rem' }}>
+                <h4 style={{ marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>Configuration Tracking (Device Records)</h4>
+                <div className="stats-grid">
+                    <div className="pm-stat-card">
+                        <div className="pm-stat-content">
+                            <h3>{deviceRecords}</h3>
+                            <p>Device Records</p>
+                        </div>
+                    </div>
+                    <div className="pm-stat-card">
+                        <div className="pm-stat-content">
+                            <h3>{stats?.assignedCount || 0}</h3>
+                            <p>Assigned to Engineers</p>
+                        </div>
+                    </div>
+                    {Object.entries(stats?.byStatus || {}).map(([status, count]) => (
+                        <div key={status} className="pm-stat-card">
+                            <div className="pm-stat-content">
+                                <h3>{count}</h3>
+                                <p>{status}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Pending config notice */}
+            {pendingConfig > 0 && (
+                <div className="glass-card" style={{ background: 'var(--info-bg)', border: '1px solid var(--info-color)', marginBottom: '1rem', padding: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <Package size={18} />
+                        <strong>{pendingConfig} installed devices pending configuration</strong>
+                    </div>
+                    <p style={{ marginBottom: '0.75rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                        These devices have been marked as installed in stock but don&apos;t have device records for configuration tracking.
+                        You can create device records from the allocated stock page.
+                    </p>
+                    {/* <Link to={`/fieldops/projects/${projectId}/stock`} className="btn btn-secondary btn-sm">
+                        <Package size={16} /> Go to Allocated Stock
+                    </Link> */}
+                </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+                <Link to={`/fieldops/devices?projectId=${projectId}`} className="btn btn-ghost">
+                    View All Devices
+                </Link>
+                <Link to={`/fieldops/projects/${projectId}/devices/assigned`} className="btn btn-secondary">
+                    View Assigned Devices List
+                </Link>
+            </div>
         </div>
     );
 }

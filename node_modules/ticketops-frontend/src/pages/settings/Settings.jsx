@@ -28,7 +28,7 @@ import './Settings.css';
 const settingsTabs = [
     { id: 'general', label: 'General', icon: SettingsIcon },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'sla', label: 'SLA Policies', icon: Clock },
+    { id: 'sla', label: 'Global Default SLA', icon: Clock },
     { id: 'email', label: 'Email', icon: Mail },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'appearance', label: 'Appearance', icon: Palette },
@@ -272,6 +272,36 @@ export default function Settings() {
                 }
             }
 
+            // 3. Load global SLA policies from SLAPolicy collection
+            if (isAdmin) {
+                try {
+                    const slaRes = await settingsApi.getGlobalSLA();
+                    const slaPolicies = slaRes.data.data || [];
+                    if (slaPolicies.length > 0) {
+                        const findPolicy = (priority) => slaPolicies.find(p => p.priority === priority);
+                        const p1 = findPolicy('P1');
+                        const p2 = findPolicy('P2');
+                        const p3 = findPolicy('P3');
+                        const p4 = findPolicy('P4');
+                        setSlaSettings(prev => ({
+                            ...prev,
+                            criticalResponseTime: p1?.responseTimeMinutes ?? prev.criticalResponseTime,
+                            criticalRestoreTime: p1?.restoreTimeMinutes ?? prev.criticalRestoreTime,
+                            highResponseTime: p2?.responseTimeMinutes ?? prev.highResponseTime,
+                            highRestoreTime: p2?.restoreTimeMinutes ?? prev.highRestoreTime,
+                            mediumResponseTime: p3?.responseTimeMinutes ?? prev.mediumResponseTime,
+                            mediumRestoreTime: p3?.restoreTimeMinutes ?? prev.mediumRestoreTime,
+                            lowResponseTime: p4?.responseTimeMinutes ?? prev.lowResponseTime,
+                            lowRestoreTime: p4?.restoreTimeMinutes ?? prev.lowRestoreTime,
+                            escalationL1Time: p1?.escalationLevel1Minutes ?? prev.escalationL1Time,
+                            escalationL2Time: p1?.escalationLevel2Minutes ?? prev.escalationL2Time,
+                        }));
+                    }
+                } catch (slaErr) {
+                    console.error('Failed to load global SLA policies', slaErr);
+                }
+            }
+
         } catch (error) {
             console.error('Failed to load settings', error);
             // toast.error('Failed to load settings');
@@ -374,7 +404,22 @@ export default function Settings() {
                     await settingsApi.update(payload);
                 }
             }
-            // If Admin saving other tabs (notifications, sla, email, security), update Global Settings
+            // SLA tab: save to SLAPolicy collection via dedicated endpoint
+            else if (activeTab === 'sla' && isAdmin) {
+                const policies = [
+                    { priority: 'P1', responseTimeMinutes: slaSettings.criticalResponseTime, restoreTimeMinutes: slaSettings.criticalRestoreTime },
+                    { priority: 'P2', responseTimeMinutes: slaSettings.highResponseTime, restoreTimeMinutes: slaSettings.highRestoreTime },
+                    { priority: 'P3', responseTimeMinutes: slaSettings.mediumResponseTime, restoreTimeMinutes: slaSettings.mediumRestoreTime },
+                    { priority: 'P4', responseTimeMinutes: slaSettings.lowResponseTime, restoreTimeMinutes: slaSettings.lowRestoreTime },
+                ];
+                await settingsApi.updateGlobalSLA({
+                    policies,
+                    enableAutoEscalation: slaSettings.enableAutoEscalation,
+                    escalationL1Time: slaSettings.escalationL1Time,
+                    escalationL2Time: slaSettings.escalationL2Time,
+                });
+            }
+            // If Admin saving other tabs (notifications, email, security), update Global Settings
             else if (isAdmin) {
                 const payload = buildSettingsPayload();
                 await settingsApi.update(payload);
@@ -594,11 +639,8 @@ export default function Settings() {
     const renderSLASettings = () => (
         <div className="settings-section">
             <div className="section-header">
-                <Clock size={20} />
-                <div>
-                    <h3>Response Time Targets</h3>
-                    <p>Configure SLA response time targets by priority (in minutes)</p>
-                </div>
+                <h3>Global Default SLA (Fallback)</h3>
+                <p>These are the fallback SLA targets used when a site has no custom SLA configured. To set site-specific SLA, go to Sites → Edit Site → SLA Configuration.</p>
             </div>
 
             <div className="sla-grid">

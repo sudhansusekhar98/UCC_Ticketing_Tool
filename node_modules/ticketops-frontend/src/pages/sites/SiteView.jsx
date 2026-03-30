@@ -12,7 +12,8 @@ import {
     Warehouse,
     CheckCircle2,
     XCircle,
-    Monitor
+    Monitor,
+    Clock
 } from 'lucide-react';
 import { sitesApi, assetsApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
@@ -31,13 +32,41 @@ export default function SiteView() {
     const [statusCounts, setStatusCounts] = useState({ online: 0, offline: 0, passive: 0 });
     const [loading, setLoading] = useState(true);
     const [assetsLoading, setAssetsLoading] = useState(false);
+    const [slaPolicies, setSlaPolicies] = useState([]);
+    const [slaSource, setSlaSource] = useState('global');
 
     useEffect(() => {
         if (id) {
             loadSite();
             loadAssets();
+            loadSLA();
         }
     }, [id]);
+
+    const loadSLA = async () => {
+        try {
+            const response = await sitesApi.getSLA(id);
+            setSlaPolicies(response.data.data || []);
+            setSlaSource(response.data.source || 'global');
+        } catch (error) {
+            console.error('Failed to load SLA', error);
+        }
+    };
+
+    const formatMin = (min) => {
+        if (!min && min !== 0) return '—';
+        if (min < 60) return `${min}m`;
+        const h = Math.floor(min / 60);
+        const m = min % 60;
+        return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    };
+
+    const PRIORITY_COLORS = {
+        P1: '#ef4444', P2: '#f59e0b', P3: '#3b82f6', P4: '#6b7280'
+    };
+    const PRIORITY_LABELS = {
+        P1: 'Critical', P2: 'High', P3: 'Medium', P4: 'Low'
+    };
 
     const loadSite = async () => {
         setLoading(true);
@@ -231,6 +260,49 @@ export default function SiteView() {
                                 View Technical Inventory
                             </Link>
                         </div>
+                    </div>
+
+                    {/* SLA Policies Card */}
+                    <div className="info-card glass-card">
+                        <h2 className="section-title">
+                            <Clock size={20} />
+                            SLA Policies
+                        </h2>
+                        {slaSource === 'site' ? (
+                            <div>
+                                <span className="badge badge-info" style={{ fontSize: '0.68rem', marginBottom: '0.75rem', display: 'inline-block' }}>
+                                    ✦ Custom SLA
+                                </span>
+                                <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                    {slaPolicies.map(p => (
+                                        <div key={p.priority} style={{
+                                            display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                            padding: '0.5rem 0.625rem', borderRadius: '0.5rem',
+                                            background: 'var(--bg-secondary)'
+                                        }}>
+                                            <span style={{
+                                                fontSize: '0.6rem', fontWeight: 800, color: '#fff',
+                                                background: PRIORITY_COLORS[p.priority],
+                                                padding: '1px 6px', borderRadius: '3px'
+                                            }}>{p.priority}</span>
+                                            <span style={{ fontSize: '0.72rem', fontWeight: 600, flex: 1 }}>
+                                                {PRIORITY_LABELS[p.priority]}
+                                            </span>
+                                            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                                Resp: {formatMin(p.responseTimeMinutes)}
+                                            </span>
+                                            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                                Rest: {formatMin(p.restoreTimeMinutes)}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-muted text-sm italic" style={{ padding: '0.5rem 0' }}>
+                                Using global default SLA policies
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>

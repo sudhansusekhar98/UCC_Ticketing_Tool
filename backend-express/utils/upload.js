@@ -26,19 +26,19 @@ const memoryStorage = multer.memoryStorage();
 
 // File filter for allowed types
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt|csv/;
+  const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt|csv|mp4|mov|avi|mkv|webm/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedTypes.test(file.mimetype);
 
   if (extname || mimetype) {
     return cb(null, true);
   }
-  cb(new Error('Only images, documents, and spreadsheets are allowed'));
+  cb(new Error('Only images, videos, documents, and spreadsheets are allowed'));
 };
 
 // Create multer instance based on environment
 const createUploader = (options = {}) => {
-  const { limits = { fileSize: 10 * 1024 * 1024 } } = options; // Default 10MB
+  const { limits = { fileSize: 50 * 1024 * 1024 } } = options; // Default 50MB (supports video uploads)
 
   return multer({
     storage: isVercel ? memoryStorage : diskStorage,

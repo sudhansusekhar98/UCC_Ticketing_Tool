@@ -85,16 +85,16 @@ export default function AllocatedStockTab({ projectId, allocStats }) {
                     </Link>
                 </div>
             ) : (
-                <div className="allocation-table-wrapper">
-                    <table className="table" style={{ width: '100%' }}>
+                <div className="table-responsive">
+                    <table className="data-table">
                         <thead>
                             <tr>
                                 <th>Item</th>
-                                <th style={{ textAlign: 'center' }}>Allocated</th>
-                                <th style={{ textAlign: 'center' }}>Installed</th>
-                                <th style={{ textAlign: 'center' }}>Faulty</th>
-                                <th style={{ textAlign: 'center' }}>Remaining</th>
-                                <th>Status</th>
+                                <th style={{ textAlign: 'center', width: '100px', padding: '1rem' }}>Allocated</th>
+                                <th style={{ textAlign: 'center', width: '100px', padding: '1rem' }}>Installed</th>
+                                <th style={{ textAlign: 'center', width: '100px', padding: '1rem' }}>Faulty</th>
+                                <th style={{ textAlign: 'center', width: '100px', padding: '1rem' }}>Remaining</th>
+                                <th style={{ textAlign: 'center', width: '140px', padding: '1rem' }}>Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -112,23 +112,24 @@ export default function AllocatedStockTab({ projectId, allocStats }) {
                                                 {stockItem.serialNumber && ` · S/N: ${stockItem.serialNumber}`}
                                             </div>
                                         </td>
-                                        <td style={{ textAlign: 'center', fontWeight: 600 }}>
-                                            {alloc.allocatedQty || 0}
+                                        <td style={{ textAlign: 'center', fontWeight: 600, padding: '1rem' }}>
+                                            {Number((alloc.allocatedQty || 0).toFixed(2))}
                                         </td>
-                                        <td style={{ textAlign: 'center', color: 'var(--success-400)' }}>
-                                            {alloc.installedQty || 0}
+                                        <td style={{ textAlign: 'center', color: 'var(--success-400)', padding: '1rem' }}>
+                                            {Number((alloc.installedQty || 0).toFixed(2))}
                                         </td>
-                                        <td style={{ textAlign: 'center', color: (alloc.faultyQty || 0) > 0 ? 'var(--error-400)' : 'inherit' }}>
-                                            {alloc.faultyQty || 0}
+                                        <td style={{ textAlign: 'center', color: (alloc.faultyQty || 0) > 0 ? 'var(--error-400)' : 'inherit', padding: '1rem' }}>
+                                            {Number((alloc.faultyQty || 0).toFixed(2))}
                                         </td>
                                         <td style={{
                                             textAlign: 'center',
                                             fontWeight: 600,
+                                            padding: '1rem',
                                             color: remaining > 0 ? 'var(--warning-400)' : 'var(--success-400)'
                                         }}>
-                                            {remaining}
+                                            {Number(remaining.toFixed(2))}
                                         </td>
-                                        <td>
+                                        <td style={{ textAlign: 'center', padding: '1rem' }}>
                                             <span className={`status-badge ${
                                                 alloc.status === 'FullyInstalled' ? 'status-badge-success' :
                                                 alloc.status === 'PartiallyInstalled' ? 'status-badge-warning' : 'status-badge-info'
@@ -146,7 +147,10 @@ export default function AllocatedStockTab({ projectId, allocStats }) {
             )}
 
             <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
-                <Link to={`/fieldops/projects/${projectId}/devices/new`} className="btn btn-primary">
+                <Link to={`/fieldops/projects/${projectId}/stock`} className="btn btn-primary">
+                    <Package size={18} /> View Full Stock List
+                </Link>
+                <Link to={`/fieldops/projects/${projectId}/devices/new`} className="btn btn-secondary">
                     <Plus size={18} /> Install Device
                 </Link>
                 <Link to="/stock" className="btn btn-ghost">

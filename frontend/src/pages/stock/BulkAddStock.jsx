@@ -225,8 +225,11 @@ export default function BulkAddStock() {
                                     <li>MAC Address must be unique (use NA if none)</li>
                                     <li><strong>Site Name</strong> and <strong>Asset Type</strong> are mandatory</li>
                                     <li>Serial Number is recommended</li>
+                                    <li><strong>Abbreviation</strong>: Short code for the site (e.g., HO for Head Office). If provided, it will update the site's abbreviation.</li>
+                                    <li><strong>Spare Code</strong>: Custom item code using the abbreviation nomenclature (e.g., HO-CAM-001)</li>
                                     <li>Quantity: use a number or leave empty (defaults to 1). Rows with "NA" quantity are skipped.</li>
                                     <li>Unit and Remarks are optional</li>
+                                    <li><strong>Project Number</strong> is optional. If provided (e.g., PRJ-20260101-0001), stock will be automatically allocated to that project.</li>
                                 </ul>
                             </div>
                         </div>

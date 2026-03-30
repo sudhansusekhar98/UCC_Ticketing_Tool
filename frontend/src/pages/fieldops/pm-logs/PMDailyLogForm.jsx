@@ -274,7 +274,7 @@ export default function PMDailyLogForm() {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="glass-card">
+            <form onSubmit={handleSubmit} className="glass-card pm-daily-log-form">
                 {/* Date & GPS Section */}
                 <div className="form-section">
                     <div className="form-grid">

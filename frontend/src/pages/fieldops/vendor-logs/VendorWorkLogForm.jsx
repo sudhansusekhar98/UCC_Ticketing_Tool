@@ -202,7 +202,7 @@ export default function VendorWorkLogForm() {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="glass-card">
+            <form onSubmit={handleSubmit} className="glass-card vendor-work-log-form">
                 {/* Basic Info */}
                 <div className="form-section">
                     <h3 className="form-section-title">

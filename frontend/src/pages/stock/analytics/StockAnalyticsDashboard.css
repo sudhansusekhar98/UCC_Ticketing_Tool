@@ -1,0 +1,767 @@
+/*
+   StockAnalyticsDashboard.css
+   Faithfully adapted from Stitch "StockFlow Analytics" screen.
+   Design tokens: Material Design 3 color system (primary #2b4bb9, secondary #4648d4, tertiary #006242)
+   Typography: Manrope (headlines) + Inter (body/labels)
+   Shape: 0.75rem standard, rounded-full for progress bars
+   No 1px borders — shadow-sm + tonal bg only
+*/
+
+/* ─── Container ─── */
+.sa-container {
+  background: #f7f9fb;
+  min-height: calc(100vh - 64px);
+  padding: 2rem 2rem 3rem;
+  font-family: 'Inter', sans-serif;
+  color: #191c1e;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.sa-container.sa-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sa-loading-text {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.sa-error-text {
+  color: #ba1a1a;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.sa-ho-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  background: #006242;
+  color: #ffffff;
+  font-size: 0.625rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+}
+
+.sa-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+  gap: 0.5rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.sa-empty-icon {
+  opacity: 0.3;
+}
+
+.sa-badge-pending {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.sa-badge-rejected {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* ─── Header ─── */
+.sa-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 2.5rem;
+  gap: 1rem;
+}
+
+.sa-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.875rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #191c1e;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.sa-subtitle {
+  color: #64748b;
+  margin: 0.25rem 0 0;
+  font-size: 0.9375rem;
+}
+
+.sa-header-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.sa-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sa-btn-outline {
+  background: #ffffff;
+  color: #191c1e;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.sa-btn-outline:hover {
+  background: #f8fafc;
+}
+
+.sa-btn-primary {
+  background: #2b4bb9;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(43, 75, 185, 0.2);
+}
+
+.sa-btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* ─── KPI Row ─── */
+.sa-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.sa-kpi-card {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 128px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.sa-kpi-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.1);
+}
+
+.sa-kpi-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.sa-kpi-label {
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sa-kpi-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sa-icon-blue { background: #eff6ff; color: #2563eb; }
+.sa-icon-amber { background: #fffbeb; color: #d97706; }
+.sa-icon-emerald { background: #ecfdf5; color: #059669; }
+.sa-icon-red { background: #fef2f2; color: #dc2626; }
+
+.sa-kpi-bottom {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.sa-kpi-value {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.875rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.sa-kpi-trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.sa-kpi-trend.sa-trend-up {
+  color: #006242;
+}
+
+.sa-kpi-sparkline {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 96px;
+  height: 48px;
+  opacity: 0.1;
+  color: #2563eb;
+}
+
+.sa-kpi-sparkline svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ─── Card Base ─── */
+.sa-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.sa-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.sa-card-title {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+/* ─── Bento Row 1: 2cols + 1col ─── */
+.sa-bento-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+/* ─── Stock by Location: Stacked Progress Bars ─── */
+.sa-location-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sa-loc-item {}
+
+.sa-loc-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.sa-loc-name {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #191c1e;
+}
+
+.sa-loc-count {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #191c1e;
+}
+
+.sa-progress-track {
+  height: 2rem;
+  width: 100%;
+  display: flex;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.sa-progress-fill {
+  height: 100%;
+  transition: width 0.6s ease;
+}
+
+.sa-fill-primary { background: #2b4bb9; }
+.sa-fill-secondary { background: #4648d4; }
+.sa-fill-tertiary { background: #006242; }
+
+/* ─── Legend ─── */
+.sa-legend {
+  display: flex;
+  gap: 1rem;
+}
+
+.sa-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.sa-legend-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.125rem;
+  flex-shrink: 0;
+}
+
+/* ─── Donut Chart ─── */
+.sa-mix-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sa-mix-card .sa-card-title {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.sa-donut-wrapper {
+  position: relative;
+  width: 192px;
+  height: 192px;
+  margin: 1rem 0;
+}
+
+.sa-donut {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.sa-donut circle {
+  transition: stroke-dasharray 0.8s ease, stroke-dashoffset 0.8s ease;
+}
+
+.sa-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.sa-donut-value {
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.sa-donut-label {
+  font-size: 0.625rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+
+.sa-mix-legend {
+  width: 100%;
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sa-mix-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+}
+
+.sa-mix-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #475569;
+}
+
+.sa-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.sa-mix-pct {
+  font-weight: 700;
+  color: #191c1e;
+}
+
+/* ─── Bento Row 2: 3cols + 2cols ─── */
+.sa-bento-row-2 {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
+}
+
+.sa-chart-area {
+  height: 256px;
+}
+
+/* ─── Active Transfers (Dark Card) ─── */
+.sa-transfer-card {
+  background: #0f172a !important;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 300px;
+}
+
+.sa-transfer-header {
+  position: relative;
+  z-index: 2;
+}
+
+.sa-text-white { color: #ffffff; }
+
+.sa-card-title.sa-text-white {
+  color: #ffffff;
+}
+
+.sa-transfer-sub {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  margin: 0.25rem 0 0;
+}
+
+.sa-map-visual {
+  position: absolute;
+  inset: 0;
+  opacity: 0.6;
+}
+
+.sa-pulse-dot {
+  position: absolute;
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 9999px;
+  animation: pulse-glow 2s infinite;
+}
+
+.sa-dot-1 {
+  top: 50%;
+  left: 25%;
+  background: #2b4bb9;
+  box-shadow: 0 0 15px rgba(43, 75, 185, 1);
+}
+
+.sa-dot-2 {
+  top: 33%;
+  left: 50%;
+  background: #006242;
+  box-shadow: 0 0 15px rgba(0, 98, 66, 1);
+}
+
+.sa-dot-3 {
+  bottom: 33%;
+  right: 25%;
+  background: #4648d4;
+  box-shadow: 0 0 15px rgba(70, 72, 212, 1);
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.5); }
+}
+
+.sa-map-lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sa-transfer-card-bottom {
+  position: relative;
+  z-index: 2;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffffff;
+}
+
+.sa-transfer-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sa-transfer-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  background: rgba(43, 75, 185, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+}
+
+.sa-transfer-id {
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.sa-transfer-meta {
+  font-size: 0.625rem;
+  color: #cbd5e1;
+  margin: 0;
+}
+
+/* ─── Requisition Table ─── */
+.sa-table-card {
+  margin-bottom: 0;
+}
+
+.sa-view-all {
+  color: #2b4bb9;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sa-view-all:hover {
+  text-decoration: underline;
+}
+
+.sa-table-wrap {
+  overflow-x: auto;
+}
+
+.sa-table {
+  width: 100%;
+  text-align: left;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.sa-table thead tr {
+  color: #94a3b8;
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sa-table th {
+  padding-bottom: 1rem;
+  font-weight: 600;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.sa-th-right {
+  text-align: right;
+}
+
+.sa-table-row {
+  transition: background 0.15s ease;
+}
+
+.sa-table-row:hover {
+  background: #f8fafc;
+}
+
+.sa-table-row td {
+  padding: 1rem 0;
+  border-bottom: 1px solid #f8fafc;
+  vertical-align: middle;
+}
+
+.sa-td-id {
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.sa-td-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sa-td-item-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.375rem;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.sa-td-item-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sa-td-item-cat {
+  font-size: 0.625rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.sa-td-dest {
+  color: #475569;
+}
+
+.sa-td-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sa-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #c7d2fe 0%, #e0e7ff 100%);
+  flex-shrink: 0;
+}
+
+.sa-status-badge {
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.sa-badge-approved {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.sa-badge-processing {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.sa-td-action {
+  text-align: right;
+}
+
+.sa-action-btn {
+  padding: 0.5rem;
+  color: #94a3b8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 0.375rem;
+  transition: color 0.15s ease;
+}
+
+.sa-action-btn:hover {
+  color: #2b4bb9;
+}
+
+/* ─── Animations ─── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sa-animate-in {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 1200px) {
+  .sa-bento-row-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .sa-transfer-card {
+    min-height: 240px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .sa-kpi-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .sa-bento-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .sa-container {
+    padding: 1rem;
+  }
+
+  .sa-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sa-kpi-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .sa-title {
+    font-size: 1.5rem;
+  }
+
+  .sa-table {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sa-kpi-row {
+    grid-template-columns: 1fr;
+  }
+
+  .sa-header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .sa-btn {
+    justify-content: center;
+    width: 100%;
+  }
+}

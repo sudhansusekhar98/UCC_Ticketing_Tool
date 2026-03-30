@@ -248,26 +248,43 @@ ticketSchema.pre('save', async function (next) {
   }
 
   // 3. Auto-assign SLA policy and calculate due dates
+  // Priority: Site-level SLA → Global SLAPolicy fallback
   if (!this.slaPolicyId && this.priority) {
     try {
-      const SLAPolicy = mongoose.model('SLAPolicy');
-      const slaPolicy = await SLAPolicy.findOne({
-        priority: this.priority,
-        isActive: true
-      });
+      const now = this.createdAt || new Date();
+      let slaSource = null;
 
-      if (slaPolicy) {
-        this.slaPolicyId = slaPolicy._id;
-        const now = this.createdAt || new Date();
+      // First: check for site-level SLA override
+      if (this.siteId) {
+        const Site = mongoose.model('Site');
+        const site = await Site.findById(this.siteId).select('slaPolicies').lean();
+        if (site?.slaPolicies?.length) {
+          slaSource = site.slaPolicies.find(p => p.priority === this.priority);
+        }
+      }
 
+      // Second: fallback to global SLAPolicy collection
+      if (!slaSource) {
+        const SLAPolicy = mongoose.model('SLAPolicy');
+        const globalPolicy = await SLAPolicy.findOne({
+          priority: this.priority,
+          isActive: true
+        });
+        if (globalPolicy) {
+          slaSource = globalPolicy;
+          this.slaPolicyId = globalPolicy._id;
+        }
+      }
+
+      if (slaSource) {
         if (!this.slaResponseDue) {
-          this.slaResponseDue = new Date(now.getTime() + slaPolicy.responseTimeMinutes * 60 * 1000);
+          this.slaResponseDue = new Date(now.getTime() + slaSource.responseTimeMinutes * 60 * 1000);
         }
         if (!this.slaRestoreDue) {
-          this.slaRestoreDue = new Date(now.getTime() + slaPolicy.restoreTimeMinutes * 60 * 1000);
+          this.slaRestoreDue = new Date(now.getTime() + slaSource.restoreTimeMinutes * 60 * 1000);
         }
       } else {
-        console.warn(`No active SLAPolicy found for priority: ${this.priority}`);
+        console.warn(`No SLA found (site or global) for priority: ${this.priority}`);
       }
     } catch (error) {
       console.error('Error auto-assigning SLA policy in pre-save:', error);

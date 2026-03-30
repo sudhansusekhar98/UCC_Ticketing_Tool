@@ -225,6 +225,16 @@
     flex-shrink: 0;
 }
 
+.analytics-tile {
+    background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%) !important;
+    border: 1px solid #bfdbfe !important;
+}
+
+.analytics-tile:hover {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 8px 16px -4px rgba(59, 130, 246, 0.2) !important;
+}
+
 /* Dashboard Grid */
 .dashboard-grid {
     display: grid;

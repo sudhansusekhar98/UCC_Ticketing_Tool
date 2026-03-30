@@ -1,17 +1,43 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Loader } from 'lucide-react';
+import { ArrowLeft, Save, Loader, Clock, RotateCcw, Download } from 'lucide-react';
 import { sitesApi, usersApi } from '../../services/api';
+import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import './Sites.css';
+
+const DEFAULT_SLA = [
+    { priority: 'P1', responseTimeMinutes: 15, restoreTimeMinutes: 60, escalationLevel1Minutes: 30, escalationLevel2Minutes: 45 },
+    { priority: 'P2', responseTimeMinutes: 30, restoreTimeMinutes: 240, escalationLevel1Minutes: 120, escalationLevel2Minutes: 180 },
+    { priority: 'P3', responseTimeMinutes: 60, restoreTimeMinutes: 480, escalationLevel1Minutes: 240, escalationLevel2Minutes: 360 },
+    { priority: 'P4', responseTimeMinutes: 120, restoreTimeMinutes: 1440, escalationLevel1Minutes: 720, escalationLevel2Minutes: 1080 },
+];
+
+const PRIORITY_COLORS = {
+    P1: { bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', label: 'Critical', color: '#ef4444' },
+    P2: { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', label: 'High', color: '#f59e0b' },
+    P3: { bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', label: 'Medium', color: '#3b82f6' },
+    P4: { bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', label: 'Low', color: '#6b7280' },
+};
+
+function formatMinutes(min) {
+    if (!min && min !== 0) return '—';
+    if (min < 60) return `${min}m`;
+    const h = Math.floor(min / 60);
+    const m = min % 60;
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+}
 
 export default function SiteForm() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { hasRole } = useAuthStore();
+    const isAdmin = hasRole(['Admin']);
     const isEditing = Boolean(id);
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [savingSLA, setSavingSLA] = useState(false);
     const [contacts, setContacts] = useState([]);
 
     const [formData, setFormData] = useState({
@@ -31,11 +57,17 @@ export default function SiteForm() {
     const [hasExistingHeadOffice, setHasExistingHeadOffice] = useState(false);
     const [existingHeadOfficeName, setExistingHeadOfficeName] = useState('');
 
+    // SLA state
+    const [slaPolicies, setSlaPolicies] = useState([]);
+    const [slaSource, setSlaSource] = useState('global'); // 'site' or 'global'
+    const [slaExpanded, setSlaExpanded] = useState(true);
+
     useEffect(() => {
         loadContacts();
         checkExistingHeadOffice();
         if (isEditing) {
             loadSite();
+            if (isAdmin) loadSLA();
         }
     }, [id]);
 
@@ -56,7 +88,6 @@ export default function SiteForm() {
     const loadContacts = async () => {
         try {
             const response = await usersApi.getContacts();
-            // Handle Express response format
             const contactData = response.data.data || response.data || [];
             setContacts(contactData.map(c => ({
                 ...c,
@@ -94,6 +125,35 @@ export default function SiteForm() {
         }
     };
 
+    const loadSLA = async () => {
+        try {
+            const response = await sitesApi.getSLA(id);
+            const data = response.data;
+            setSlaSource(data.source);
+
+            // Normalize: ensure all 4 priorities exist
+            const incoming = data.data || [];
+            const merged = ['P1', 'P2', 'P3', 'P4'].map(priority => {
+                const existing = incoming.find(p => p.priority === priority);
+                if (existing) {
+                    return {
+                        priority,
+                        responseTimeMinutes: existing.responseTimeMinutes ?? 0,
+                        restoreTimeMinutes: existing.restoreTimeMinutes ?? 0,
+                        escalationLevel1Minutes: existing.escalationLevel1Minutes ?? 0,
+                        escalationLevel2Minutes: existing.escalationLevel2Minutes ?? 0,
+                    };
+                }
+                const defaultSLA = DEFAULT_SLA.find(d => d.priority === priority);
+                return { ...defaultSLA };
+            });
+            setSlaPolicies(merged);
+        } catch (error) {
+            console.error('Failed to load SLA', error);
+            setSlaPolicies(DEFAULT_SLA.map(d => ({ ...d })));
+        }
+    };
+
     const handleChange = (field, value) => {
         setFormData({ ...formData, [field]: value });
     };
@@ -105,6 +165,47 @@ export default function SiteForm() {
             contactPerson: selectedName,
             contactPhone: selectedContact?.mobileNumber || ''
         });
+    };
+
+    const handleSLAChange = (priority, field, value) => {
+        setSlaPolicies(prev => prev.map(p =>
+            p.priority === priority
+                ? { ...p, [field]: parseInt(value) || 0 }
+                : p
+        ));
+    };
+
+    const handleLoadGlobalDefaults = () => {
+        setSlaPolicies(DEFAULT_SLA.map(d => ({ ...d })));
+        toast.success('Loaded global default SLA values');
+    };
+
+    const handleResetToGlobal = async () => {
+        if (!confirm('Remove site-specific SLA and revert to global defaults?')) return;
+        setSavingSLA(true);
+        try {
+            await sitesApi.updateSLA(id, { policies: [] });
+            setSlaSource('global');
+            await loadSLA();
+            toast.success('SLA reset to global defaults');
+        } catch (error) {
+            toast.error('Failed to reset SLA');
+        } finally {
+            setSavingSLA(false);
+        }
+    };
+
+    const handleSaveSLA = async () => {
+        setSavingSLA(true);
+        try {
+            await sitesApi.updateSLA(id, { policies: slaPolicies });
+            setSlaSource('site');
+            toast.success('Site SLA policies saved');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to save SLA');
+        } finally {
+            setSavingSLA(false);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -158,8 +259,9 @@ export default function SiteForm() {
                 </Link>
             </div>
 
-            <form onSubmit={handleSubmit} className="form-card glass-card">
-                <div className='asset-form-container' style={{ margin: "1rem" }}>
+            <div className={`site-form-layout ${isEditing && isAdmin ? 'with-sidebar' : ''}`}>
+                <form onSubmit={handleSubmit} className="form-card glass-card" style={{ margin: 0, maxWidth: 'none' }}>
+                    <div className='asset-form-container'>
                     <div className="form-grid">
                         <div className="form-group">
                             <label className="form-label">Site Name *</label>
@@ -333,7 +435,163 @@ export default function SiteForm() {
                         </button>
                     </div>
                 </div>
-            </form>
+                </form>
+
+                {/* ─── SLA Configuration (Admin only, edit mode) ─── */}
+                {isEditing && isAdmin && (
+                    <div className="glass-card sla-sidebar">
+                    <button
+                        type="button"
+                        onClick={() => setSlaExpanded(!slaExpanded)}
+                        style={{
+                            width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '1.25rem', fontFamily: 'inherit'
+                        }}
+                    >
+                        <div className="flex items-center gap-3">
+                            <div style={{
+                                width: 36, height: 36, borderRadius: '0.625rem',
+                                background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}>
+                                <Clock size={18} style={{ color: '#3b82f6' }} />
+                            </div>
+                            <div style={{ textAlign: 'left' }}>
+                                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>
+                                    SLA Configuration
+                                </h3>
+                                <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                                    {slaSource === 'site'
+                                        ? '✦ Custom SLA configured for this site'
+                                        : '↳ Using global default SLA (fallback)'}
+                                </p>
+                            </div>
+                        </div>
+                        <span style={{
+                            fontSize: '1.25rem', transition: 'transform 200ms',
+                            transform: slaExpanded ? 'rotate(180deg)' : 'rotate(0deg)'
+                        }}>▾</span>
+                    </button>
+
+                    {slaExpanded && (
+                        <div style={{ padding: '0 1.25rem 1.25rem' }}>
+                            {/* Action buttons */}
+                            <div className="flex gap-2" style={{ marginBottom: '1rem', flexWrap: 'wrap' }}>
+                                <button type="button" className="btn btn-ghost btn-sm" onClick={handleLoadGlobalDefaults}>
+                                    <Download size={14} /> Load Global Defaults
+                                </button>
+                                {slaSource === 'site' && (
+                                    <button type="button" className="btn btn-ghost btn-sm" onClick={handleResetToGlobal}
+                                        style={{ color: 'var(--danger-500)' }} disabled={savingSLA}>
+                                        <RotateCcw size={14} /> Reset to Global
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Priority cards grid */}
+                            <div style={{
+                                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                                gap: '0.75rem', marginBottom: '1rem'
+                            }}>
+                                {slaPolicies.map(policy => {
+                                    const pConfig = PRIORITY_COLORS[policy.priority];
+                                    return (
+                                        <div key={policy.priority} style={{
+                                            background: pConfig.bg, border: `1px solid ${pConfig.border}`,
+                                            borderRadius: '0.75rem', padding: '1rem',
+                                        }}>
+                                            <div className="flex items-center gap-2" style={{ marginBottom: '0.75rem' }}>
+                                                <span style={{
+                                                    fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase',
+                                                    letterSpacing: '0.06em', background: pConfig.color, color: '#fff',
+                                                    padding: '2px 8px', borderRadius: '4px'
+                                                }}>
+                                                    {policy.priority}
+                                                </span>
+                                                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                                                    {pConfig.label}
+                                                </span>
+                                            </div>
+
+                                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                                    <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>
+                                                        Response (min)
+                                                    </label>
+                                                    <input
+                                                        type="number" min="0" className="form-input"
+                                                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.5rem' }}
+                                                        value={policy.responseTimeMinutes}
+                                                        onChange={(e) => handleSLAChange(policy.priority, 'responseTimeMinutes', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                                    <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>
+                                                        Restore (min)
+                                                    </label>
+                                                    <input
+                                                        type="number" min="0" className="form-input"
+                                                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.5rem' }}
+                                                        value={policy.restoreTimeMinutes}
+                                                        onChange={(e) => handleSLAChange(policy.priority, 'restoreTimeMinutes', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                                    <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>
+                                                        Escalation L1 (min)
+                                                    </label>
+                                                    <input
+                                                        type="number" min="0" className="form-input"
+                                                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.5rem' }}
+                                                        value={policy.escalationLevel1Minutes}
+                                                        onChange={(e) => handleSLAChange(policy.priority, 'escalationLevel1Minutes', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                                    <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>
+                                                        Escalation L2 (min)
+                                                    </label>
+                                                    <input
+                                                        type="number" min="0" className="form-input"
+                                                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.5rem' }}
+                                                        value={policy.escalationLevel2Minutes}
+                                                        onChange={(e) => handleSLAChange(policy.priority, 'escalationLevel2Minutes', e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div style={{
+                                                fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '0.5rem',
+                                                display: 'flex', gap: '0.75rem'
+                                            }}>
+                                                <span>Resp: {formatMinutes(policy.responseTimeMinutes)}</span>
+                                                <span>Rest: {formatMinutes(policy.restoreTimeMinutes)}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Save SLA button */}
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    className="btn btn-primary"
+                                    onClick={handleSaveSLA}
+                                    disabled={savingSLA}
+                                >
+                                    {savingSLA ? (
+                                        <><Loader size={16} className="animate-spin" /> Saving SLA...</>
+                                    ) : (
+                                        <><Save size={16} /> Save SLA Configuration</>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+            </div>
         </div>
     );
 }

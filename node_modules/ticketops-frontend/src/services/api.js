@@ -74,6 +74,7 @@ api.interceptors.response.use(
             if (url.includes('/stock')) cacheStore.invalidateResource('stock');
             if (url.includes('/rma')) cacheStore.invalidateResource('rma');
             if (url.includes('/lookups')) cacheStore.invalidateResource('lookups');
+            if (url.includes('/fieldops')) cacheStore.invalidateResource('fieldops');
         }
 
         return response;
@@ -170,6 +171,8 @@ export const sitesApi = {
     delete: (id) => api.delete(`/sites/${id}`),
     getDropdown: () => api.get('/sites/dropdown'),
     getCities: () => api.get('/sites/cities'),
+    getSLA: (siteId) => api.get(`/sites/${siteId}/sla`),
+    updateSLA: (siteId, data) => api.put(`/sites/${siteId}/sla`, data),
 };
 
 // Assets API
@@ -268,6 +271,8 @@ export const settingsApi = {
     update: (settings) => api.put('/settings', settings),
     updateSingle: (category, key, value) =>
         api.patch(`/settings/${category}/${key}`, { value }),
+    getGlobalSLA: () => api.get('/settings/sla'),
+    updateGlobalSLA: (data) => api.put('/settings/sla', data),
 };
 
 // User Rights API
@@ -375,5 +380,84 @@ export const stockApi = {
     // Stock CRUD
     updateStock: (assetId, data) => api.put(`/stock/${assetId}`, data),
     deleteStock: (assetId) => api.delete(`/stock/${assetId}`),
+    // Project Stock Allocations
+    getAllocations: (params) => api.get('/stock/allocations', { params }),
+    allocateToProject: (data) => api.post('/stock/allocations', data),
+    updateAllocation: (id, data) => api.put(`/stock/allocations/${id}`, data),
+    deleteAllocation: (id) => api.delete(`/stock/allocations/${id}`),
+    getProjectAllocatedStock: (projectId) => api.get('/stock/allocations/for-device-form', { params: { projectId } }),
+    getProjectCableAllocations: (projectId, cableType) => api.get('/stock/allocations/cables', { params: { projectId, cableType } }),
+};
+
+// Field Operations API
+export const fieldOpsApi = {
+    // Projects
+    getProjects: (params) => api.get('/fieldops/projects', { params }),
+    getProjectById: (id) => api.get(`/fieldops/projects/${id}`),
+    createProject: (data) => api.post('/fieldops/projects', data),
+    updateProject: (id, data) => api.put(`/fieldops/projects/${id}`, data),
+    deleteProject: (id) => api.delete(`/fieldops/projects/${id}`),
+    getProjectDashboard: (id) => api.get(`/fieldops/projects/${id}/dashboard`),
+
+    // Project Zones
+    getProjectZones: (projectId) => api.get(`/fieldops/projects/${projectId}/zones`),
+    createProjectZone: (projectId, data) => api.post(`/fieldops/projects/${projectId}/zones`, data),
+    updateProjectZone: (id, data) => api.put(`/fieldops/zones/${id}`, data),
+    deleteProjectZone: (id) => api.delete(`/fieldops/zones/${id}`),
+
+    // PM Daily Logs
+    getPMDailyLogs: (params) => api.get('/fieldops/pm-logs', { params }),
+    getPMDailyLogById: (id) => api.get(`/fieldops/pm-logs/${id}`),
+    createPMDailyLog: (data) => api.post('/fieldops/pm-logs', data),
+    updatePMDailyLog: (id, data) => api.put(`/fieldops/pm-logs/${id}`, data),
+    lockPMDailyLog: (id) => api.post(`/fieldops/pm-logs/${id}/lock`),
+    unlockPMDailyLog: (id) => api.post(`/fieldops/pm-logs/${id}/unlock`),
+    uploadPMLogPhotos: (id, formData) => api.post(`/fieldops/pm-logs/${id}/photos`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    }),
+
+    // Device Installations
+    getDeviceInstallations: (params) => api.get('/fieldops/devices', { params }),
+    getDeviceInstallationById: (id) => api.get(`/fieldops/devices/${id}`),
+    createDeviceInstallation: (data) => api.post('/fieldops/devices', data),
+    createBulkDeviceInstallations: (data) => api.post('/fieldops/devices/bulk', data),
+    updateDeviceInstallation: (id, data) => api.put(`/fieldops/devices/${id}`, data),
+    updateDeviceStatus: (id, status) => api.patch(`/fieldops/devices/${id}/status`, { status }),
+    getDeviceSummary: (projectId) => api.get(`/fieldops/devices/project/${projectId}/summary`),
+
+    // Device Assignment
+    getDevicesAwaitingAssignment: (params) => api.get('/fieldops/devices/awaiting-assignment', { params }),
+    getMyDeviceAssignments: (params) => api.get('/fieldops/devices/my-assignments', { params }),
+    assignDevice: (deviceId, data) => api.post(`/fieldops/devices/${deviceId}/assign`, data),
+    bulkAssignDevices: (data) => api.post('/fieldops/devices/bulk-assign', data),
+    unassignDevice: (deviceId) => api.post(`/fieldops/devices/${deviceId}/unassign`),
+    skipDeviceConfiguration: (deviceId, data) => api.post(`/fieldops/devices/${deviceId}/skip-config`, data),
+
+    // Vendor Work Logs
+    getVendorWorkLogs: (params) => api.get('/fieldops/vendor-logs', { params }),
+    getVendorWorkLogById: (id) => api.get(`/fieldops/vendor-logs/${id}`),
+    createVendorWorkLog: (data) => api.post('/fieldops/vendor-logs', data),
+    updateVendorWorkLog: (id, data) => api.put(`/fieldops/vendor-logs/${id}`, data),
+    getMyVendorLogs: (params) => api.get('/fieldops/vendor-logs/my-logs', { params }),
+
+    // Challenge Logs
+    getChallengeLogs: (params) => api.get('/fieldops/challenges', { params }),
+    getChallengeLogById: (id) => api.get(`/fieldops/challenges/${id}`),
+    createChallengeLog: (data) => api.post('/fieldops/challenges', data),
+    updateChallengeLog: (id, data) => api.put(`/fieldops/challenges/${id}`, data),
+    resolveChallengeLog: (id, resolution) => api.post(`/fieldops/challenges/${id}/resolve`, { resolution }),
+    getEscalatedChallenges: () => api.get('/fieldops/challenges/escalated'),
+    addChallengeComment: (id, text) => api.post(`/fieldops/challenges/${id}/comments`, { text }),
+
+    // Reports
+    getProjectReport: (projectId, params) => api.get(`/fieldops/reports/project/${projectId}`, { params }),
+    exportProjectReportPDF: (projectId, params) => api.get(`/fieldops/reports/project/${projectId}/export/pdf`, {
+        params,
+        responseType: 'blob'
+    }),
+    exportProjectReportExcel: (projectId, params) => api.get(`/fieldops/reports/project/${projectId}/export/excel`, {
+        params,
+        responseType: 'blob'
+    }),
 };
 

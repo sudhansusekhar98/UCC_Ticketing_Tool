@@ -130,6 +130,12 @@ const assetSchema = new mongoose.Schema({
     maxlength: 500,
     trim: true
   },
+  spareCode: {
+    type: String,
+    maxlength: 100,
+    trim: true,
+    index: true
+  },
   isActive: {
     type: Boolean,
     default: true

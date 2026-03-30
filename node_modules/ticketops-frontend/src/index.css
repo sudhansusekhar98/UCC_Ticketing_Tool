@@ -378,8 +378,19 @@ h6 {
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   transition: all var(--transition-normal);
+  padding: 0.75rem;
 }
 
+.device-installation-form , .pm-daily-log-form, .challenge-log-form, .vendor-work-log-form {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  transition: all var(--transition-normal);
+  max-width: 1000px;
+}
 .glass-card:hover {
   background: var(--bg-card-hover);
   border-color: var(--border-medium);

@@ -1,4 +1,5 @@
 import Site from '../models/Site.model.js';
+import SLAPolicy from '../models/SLAPolicy.model.js';
 import DailyWorkLog from '../models/DailyWorkLog.model.js';
 
 // @desc    Get all sites
@@ -237,6 +238,133 @@ export const getCities = async (req, res, next) => {
       success: true,
       data: cities.sort()
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get SLA policies for a site
+// @route   GET /api/sites/:id/sla
+// @access  Private
+export const getSiteSLA = async (req, res, next) => {
+  try {
+    const site = await Site.findById(req.params.id).select('siteName slaPolicies');
+
+    if (!site) {
+      return res.status(404).json({
+        success: false,
+        message: 'Site not found'
+      });
+    }
+
+    // If site has custom SLA, return it
+    if (site.slaPolicies && site.slaPolicies.length > 0) {
+      return res.json({
+        success: true,
+        data: site.slaPolicies,
+        source: 'site',
+        siteName: site.siteName
+      });
+    }
+
+    // Otherwise return global defaults
+    const globalPolicies = await SLAPolicy.find({ isActive: true })
+      .select('priority policyName responseTimeMinutes restoreTimeMinutes escalationLevel1Minutes escalationLevel2Minutes escalationL1Emails escalationL2Emails')
+      .sort({ priority: 1 });
+
+    res.json({
+      success: true,
+      data: globalPolicies,
+      source: 'global',
+      siteName: site.siteName
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Update SLA policies for a site
+// @route   PUT /api/sites/:id/sla
+// @access  Private (Admin)
+export const updateSiteSLA = async (req, res, next) => {
+  try {
+    const { policies } = req.body;
+
+    if (!Array.isArray(policies)) {
+      return res.status(400).json({
+        success: false,
+        message: 'policies must be an array'
+      });
+    }
+
+    // Validate each policy entry
+    const validPriorities = ['P1', 'P2', 'P3', 'P4'];
+    const seenPriorities = new Set();
+
+    for (const policy of policies) {
+      if (!validPriorities.includes(policy.priority)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid priority: ${policy.priority}. Must be one of ${validPriorities.join(', ')}`
+        });
+      }
+      if (seenPriorities.has(policy.priority)) {
+        return res.status(400).json({
+          success: false,
+          message: `Duplicate priority: ${policy.priority}`
+        });
+      }
+      seenPriorities.add(policy.priority);
+
+      if (typeof policy.responseTimeMinutes !== 'number' || policy.responseTimeMinutes < 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid responseTimeMinutes for ${policy.priority}`
+        });
+      }
+      if (typeof policy.restoreTimeMinutes !== 'number' || policy.restoreTimeMinutes < 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid restoreTimeMinutes for ${policy.priority}`
+        });
+      }
+    }
+
+    const site = await Site.findById(req.params.id);
+    if (!site) {
+      return res.status(404).json({
+        success: false,
+        message: 'Site not found'
+      });
+    }
+
+    // If empty array, clear site SLA (revert to global)
+    site.slaPolicies = policies.map(p => ({
+      priority: p.priority,
+      responseTimeMinutes: p.responseTimeMinutes,
+      restoreTimeMinutes: p.restoreTimeMinutes,
+      escalationLevel1Minutes: p.escalationLevel1Minutes || 0,
+      escalationLevel2Minutes: p.escalationLevel2Minutes || 0,
+      escalationL1Emails: p.escalationL1Emails || '',
+      escalationL2Emails: p.escalationL2Emails || ''
+    }));
+
+    await site.save();
+
+    res.json({
+      success: true,
+      data: site.slaPolicies,
+      message: policies.length > 0
+        ? 'Site SLA policies updated successfully'
+        : 'Site SLA cleared — will use global defaults'
+    });
+
+    // Fire-and-forget: auto-track
+    DailyWorkLog.logActivity(req.user._id, {
+      category: 'SLAUpdated',
+      description: `Updated SLA policies for site ${site.siteName} (${policies.length} priorities configured)`,
+      metadata: { siteName: site.siteName, siteId: site._id, policiesCount: policies.length }
+    }).catch(() => { });
   } catch (error) {
     next(error);
   }

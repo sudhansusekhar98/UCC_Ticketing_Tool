@@ -153,6 +153,7 @@ export const uploadAttachment = async (req, res, next) => {
 
     const file = req.file;
     const isImage = file.mimetype.startsWith('image/');
+    const isVideo = file.mimetype.startsWith('video/');
 
     // Detect if using memory storage (Vercel) or disk storage (local)
     const isMemoryStorage = !!file.buffer;
@@ -162,7 +163,7 @@ export const uploadAttachment = async (req, res, next) => {
       isMemoryStorage ? file.buffer : file.path,
       {
         folder: `ticketops/tickets/${ticketId}`,
-        resourceType: isImage ? 'image' : 'auto',
+        resourceType: isVideo ? 'video' : isImage ? 'image' : 'auto',
         mimeType: file.mimetype // For buffer uploads
       }
     );
@@ -190,7 +191,7 @@ export const uploadAttachment = async (req, res, next) => {
         fileSize: file.size,
         storageType: 'FileSystem',
         filePath: file.path,
-        attachmentType: isImage ? 'image' : 'document'
+        attachmentType: isImage ? 'image' : isVideo ? 'video' : 'document'
       });
 
       // Emit socket event for real-time update
@@ -226,7 +227,7 @@ export const uploadAttachment = async (req, res, next) => {
       filePath: cloudinaryResult.publicId,
       cloudinaryUrl: cloudinaryResult.url,
       cloudinaryPublicId: cloudinaryResult.publicId,
-      attachmentType: isImage ? 'image' : 'document'
+      attachmentType: isImage ? 'image' : isVideo ? 'video' : 'document'
     });
 
     // Delete local file after successful Cloudinary upload (only for disk storage)

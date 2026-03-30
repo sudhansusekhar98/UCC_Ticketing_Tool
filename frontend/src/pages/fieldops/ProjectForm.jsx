@@ -179,7 +179,7 @@ export default function ProjectForm() {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="glass-card">
+            <form onSubmit={handleSubmit} className="glass-card project-form">
                 {/* Basic Information */}
                 <div className="form-section">
                     <h3 className="form-section-title">

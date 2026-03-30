@@ -11,6 +11,8 @@
         "frontend:build": "npm run build --workspace=frontend"
     },
     "dependencies": {
-        "@ai-sdk/anthropic": "^3.0.28"
+        "@ai-sdk/anthropic": "^3.0.28",
+        "exceljs": "^4.4.0",
+        "pdfkit": "^0.18.0"
     }
 }

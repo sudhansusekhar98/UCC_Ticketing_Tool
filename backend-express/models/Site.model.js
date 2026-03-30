@@ -62,7 +62,51 @@ const siteSchema = new mongoose.Schema({
   isHeadOffice: {
     type: Boolean,
     default: false
-  }
+  },
+  abbreviation: {
+    type: String,
+    maxlength: 20,
+    trim: true,
+    uppercase: true
+  },
+  // Per-site SLA configuration (overrides global SLAPolicy when present)
+  slaPolicies: [{
+    priority: {
+      type: String,
+      enum: ['P1', 'P2', 'P3', 'P4'],
+      required: true
+    },
+    responseTimeMinutes: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    restoreTimeMinutes: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    escalationLevel1Minutes: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    escalationLevel2Minutes: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    escalationL1Emails: {
+      type: String,
+      maxlength: 200,
+      trim: true
+    },
+    escalationL2Emails: {
+      type: String,
+      maxlength: 200,
+      trim: true
+    }
+  }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

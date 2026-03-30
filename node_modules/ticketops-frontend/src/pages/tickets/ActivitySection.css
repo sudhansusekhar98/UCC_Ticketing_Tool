@@ -380,6 +380,20 @@
     cursor: pointer;
 }
 
+.attachment-video {
+    max-width: 320px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.attachment-video video {
+    width: 100%;
+    height: auto;
+    max-height: 240px;
+    border-radius: var(--radius-md);
+    background: #000;
+}
+
 .attachment-file {
     display: flex;
     align-items: center;
@@ -476,7 +490,8 @@
     flex: 1;
     resize: none;
     min-height: 40px;
-    max-height: 120px;
+    max-height: 200px;
+    overflow-y: auto;
     padding: var(--space-2) var(--space-3);
     background: var(--bg-primary);
     border: 1px solid var(--border-light);

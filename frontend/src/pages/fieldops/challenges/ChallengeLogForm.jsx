@@ -188,7 +188,7 @@ export default function ChallengeLogForm() {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="glass-card">
+            <form onSubmit={handleSubmit} className="glass-card challenge-log-form">
                 {/* Issue Classification */}
                 <div className="form-section">
                     <h3 className="form-section-title">

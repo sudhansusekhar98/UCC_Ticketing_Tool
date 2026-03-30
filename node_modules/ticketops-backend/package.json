@@ -13,7 +13,9 @@
     "backup": "node scripts/backup.js",
     "migrate": "node scripts/migrate-from-sqlserver.js",
     "migrate:encrypt": "node scripts/encrypt-existing-assets.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --experimental-vm-modules ..\\node_modules\\jest\\bin\\jest.js --forceExit --detectOpenHandles",
+    "test:fieldops": "node --experimental-vm-modules ..\\node_modules\\jest\\bin\\jest.js --testPathPatterns __tests__/fieldops --forceExit --detectOpenHandles",
+    "test:coverage": "node --experimental-vm-modules ..\\node_modules\\jest\\bin\\jest.js --coverage --forceExit --detectOpenHandles"
   },
   "keywords": [
     "ticketing",
@@ -45,6 +47,8 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   },
   "devDependencies": {
+    "@jest/globals": "^30.3.0",
+    "jest": "^30.3.0",
     "nodemon": "^3.1.9"
   }
 }

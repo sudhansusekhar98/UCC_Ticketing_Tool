@@ -6,7 +6,9 @@ import {
   updateSite,
   deleteSite,
   getSitesDropdown,
-  getCities
+  getCities,
+  getSiteSLA,
+  updateSiteSLA
 } from '../controllers/site.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
@@ -23,6 +25,10 @@ router.get('/cities', getCities);
 router.route('/')
   .get(getSites)
   .post(authorize('Admin', 'Dispatcher'), createSite);
+
+// SLA routes (must be before /:id catch-all)
+router.get('/:id/sla', getSiteSLA);
+router.put('/:id/sla', authorize('Admin'), updateSiteSLA);
 
 router.route('/:id')
   .get(getSiteById)

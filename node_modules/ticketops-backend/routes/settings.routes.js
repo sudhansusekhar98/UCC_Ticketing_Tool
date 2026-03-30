@@ -3,13 +3,19 @@ import {
   getSettings,
   getSettingsByCategory,
   updateSettings,
-  updateSingleSetting
+  updateSingleSetting,
+  getGlobalSLA,
+  updateGlobalSLA
 } from '../controllers/settings.controller.js';
 import { protect, authorize } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
 router.use(protect);
+
+// Global SLA routes (must be before /:category catch-all)
+router.get('/sla', authorize('Admin'), getGlobalSLA);
+router.put('/sla', authorize('Admin'), updateGlobalSLA);
 
 router.route('/')
   .get(getSettings)

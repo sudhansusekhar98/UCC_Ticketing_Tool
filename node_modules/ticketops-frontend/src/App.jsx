@@ -14,7 +14,8 @@ import Layout from './components/layout/Layout';
 import Login from './pages/auth/Login';
 import ClientSignup from './pages/auth/ClientSignup';
 import ClientRegistrations from './pages/admin/ClientRegistrations';
-import Dashboard from './pages/dashboard/Dashboard';
+// import Dashboard from './pages/dashboard/Dashboard';
+import TicketingDashboard from './pages/dashboard/TicketingDashboard';
 import Reports from './pages/reports/Reports';
 import TicketsList from './pages/tickets/TicketsList';
 import TicketDetail from './pages/tickets/TicketDetail';
@@ -44,7 +45,11 @@ import TransferList from './pages/stock/TransferList';
 import StockTransferForm from './pages/stock/StockTransferForm';
 import BulkAddStock from './pages/stock/BulkAddStock';
 import MovementLogs from './pages/stock/MovementLogs';
+import StockAnalyticsDashboard from './pages/stock/analytics/StockAnalyticsDashboard';
 import WorkLog from './pages/worklog/WorkLog';
+
+// Field Operations - Coming Soon (under development)
+import ComingSoon from './pages/fieldops/ComingSoon';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles, requiredRight }) {
@@ -192,11 +197,19 @@ function App() {
           />
 
           {/* Protected Routes */}
-          <Route
+          {/* <Route
             path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          /> */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <TicketingDashboard />
               </ProtectedRoute>
             }
           />
@@ -514,6 +527,27 @@ function App() {
                 requiredRight={PERMISSIONS.MANAGE_SITE_STOCK}
               >
                 <MovementLogs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/stock/analytics"
+            element={
+              <ProtectedRoute
+                allowedRoles={['Admin', 'Supervisor', 'Dispatcher']}
+                requiredRight={PERMISSIONS.MANAGE_SITE_STOCK}
+              >
+                <StockAnalyticsDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Field Operations - Coming Soon */}
+          <Route
+            path="/fieldops/*"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <ComingSoon />
               </ProtectedRoute>
             }
           />

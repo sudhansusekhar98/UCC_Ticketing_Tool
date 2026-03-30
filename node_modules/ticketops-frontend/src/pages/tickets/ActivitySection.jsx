@@ -4,6 +4,7 @@ import {
     Paperclip,
     Image,
     FileText,
+    Film,
     X,
     Download,
     Trash2,
@@ -56,6 +57,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
     const [isInternal, setIsInternal] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState([]);
     const fileInputRef = useRef(null);
+    const textareaRef = useRef(null);
     const messagesEndRef = useRef(null);
     const { user, hasRole } = useAuthStore();
 
@@ -141,8 +143,11 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
         }
 
         const validFiles = files.filter(file => {
-            if (file.size > 10 * 1024 * 1024) {
-                toast.error(`${file.name} exceeds 10MB limit`);
+            const isVideoFile = file.type.startsWith('video/');
+            const maxSize = isVideoFile ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+            const maxLabel = isVideoFile ? '50MB' : '10MB';
+            if (file.size > maxSize) {
+                toast.error(`${file.name} exceeds ${maxLabel} limit`);
                 return false;
             }
             return true;
@@ -188,6 +193,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
             setMessage('');
             setSelectedFiles([]);
             setIsInternal(false);
+            if (textareaRef.current) textareaRef.current.style.height = 'auto';
             fetchActivities();
             toast.success('Comment added');
         } catch (error) {
@@ -203,6 +209,42 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
             handleSend();
         }
     };
+
+    const handlePaste = (e) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        const imageFiles = [];
+        for (const item of items) {
+            if (item.type.startsWith('image/')) {
+                const file = item.getAsFile();
+                if (file) {
+                    // Give pasted screenshots a meaningful name
+                    const ext = file.type.split('/')[1] || 'png';
+                    const namedFile = new File([file], `screenshot-${Date.now()}.${ext}`, { type: file.type });
+                    imageFiles.push(namedFile);
+                }
+            }
+        }
+
+        if (imageFiles.length > 0) {
+            e.preventDefault();
+            setSelectedFiles(prev => [...prev, ...imageFiles]);
+            toast.success(`${imageFiles.length} screenshot(s) pasted`);
+        }
+    };
+
+    const autoResizeTextarea = () => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+        }
+    };
+
+    useEffect(() => {
+        autoResizeTextarea();
+    }, [message]);
 
     const handleDownload = async (attachment) => {
         try {
@@ -236,6 +278,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
     };
 
     const isImage = (contentType) => contentType?.startsWith('image/');
+    const isVideo = (contentType) => contentType?.startsWith('video/');
 
     const formatFileSize = (bytes) => {
         if (bytes < 1024) return bytes + ' B';
@@ -406,6 +449,13 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                                                                 </button>
                                                             </div>
                                                         </div>
+                                                    ) : isVideo(att.contentType) ? (
+                                                        <div className="attachment-video">
+                                                            <video controls preload="metadata">
+                                                                <source src={fullUrl} type={att.contentType} />
+                                                                Your browser does not support video playback.
+                                                            </video>
+                                                        </div>
                                                     ) : (
                                                         <div className="attachment-file" onClick={() => handleDownload(att)}>
                                                             <FileText size={24} />
@@ -444,6 +494,8 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                                 <div key={index} className="selected-file">
                                     {file.type.startsWith('image/') ? (
                                         <Image size={14} />
+                                    ) : file.type.startsWith('video/') ? (
+                                        <Film size={14} />
                                     ) : (
                                         <FileText size={14} />
                                     )}
@@ -462,7 +514,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                             ref={fileInputRef}
                             onChange={handleFileSelect}
                             multiple
-                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
+                            accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv"
                             hidden
                         />
                         <button
@@ -474,9 +526,11 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                         </button>
 
                         <textarea
+                            ref={textareaRef}
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             onKeyPress={handleKeyPress}
+                            onPaste={handlePaste}
                             placeholder="Type troubleshooting steps, queries, or notes..."
                             rows={1}
                             disabled={sending}
@@ -507,7 +561,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                     </div>
 
                     <div className="input-hint">
-                        Press Enter to send • Shift+Enter for new line • Max 10MB per file
+                        Press Enter to send • Shift+Enter for new line • Paste screenshots directly • Max 10MB (50MB for videos)
                     </div>
                 </div>
             )}

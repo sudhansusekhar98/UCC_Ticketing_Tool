@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ticketing Dashboard | ServiceDesk Enterprise</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "surface-dim": "#d8dadc",
+                "outline": "#737686",
+                "on-secondary-fixed": "#07006c",
+                "on-background": "#191c1e",
+                "primary-container": "#4865d3",
+                "surface-container-low": "#f2f4f6",
+                "surface-container-highest": "#e0e3e5",
+                "inverse-surface": "#2d3133",
+                "inverse-on-surface": "#eff1f3",
+                "background": "#f7f9fb",
+                "on-secondary-fixed-variant": "#2f2ebe",
+                "on-primary": "#ffffff",
+                "on-error-container": "#93000a",
+                "on-tertiary": "#ffffff",
+                "surface-variant": "#e0e3e5",
+                "surface-tint": "#3755c3",
+                "secondary-container": "#6063ee",
+                "on-secondary-container": "#fffbff",
+                "primary": "#2b4bb9",
+                "secondary-fixed": "#e1e0ff",
+                "surface-container": "#eceef0",
+                "on-tertiary-fixed-variant": "#005236",
+                "on-surface": "#191c1e",
+                "error-container": "#ffdad6",
+                "tertiary-fixed": "#6ffbbe",
+                "on-tertiary-fixed": "#002113",
+                "on-tertiary-container": "#bdffdb",
+                "surface-bright": "#f7f9fb",
+                "outline-variant": "#c3c6d7",
+                "tertiary-container": "#007d55",
+                "on-error": "#ffffff",
+                "secondary": "#4648d4",
+                "on-surface-variant": "#434655",
+                "tertiary": "#006242",
+                "surface": "#f7f9fb",
+                "primary-fixed-dim": "#b8c4ff",
+                "on-primary-container": "#efefff",
+                "primary-fixed": "#dde1ff",
+                "surface-container-lowest": "#ffffff",
+                "on-secondary": "#ffffff",
+                "on-primary-fixed-variant": "#173bab",
+                "inverse-primary": "#b8c4ff",
+                "error": "#ba1a1a",
+                "surface-container-high": "#e6e8ea",
+                "on-primary-fixed": "#001453",
+                "secondary-fixed-dim": "#c0c1ff",
+                "tertiary-fixed-dim": "#4edea3"
+              },
+              fontFamily: {
+                "headline": ["Manrope"],
+                "body": ["Inter"],
+                "label": ["Inter"]
+              },
+              borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4 { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background antialiased selection:bg-primary/20">
+<!-- SideNavBar (Authority: JSON & Design System) -->
+<aside class="fixed left-0 top-0 h-full w-72 z-50 bg-slate-50 flex flex-col p-6 space-y-8">
+<div class="flex items-center gap-3 px-2">
+<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+<span class="material-symbols-outlined">confirmation_number</span>
+</div>
+<div>
+<div class="text-2xl font-black text-blue-700 leading-tight">ServiceDesk</div>
+<div class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Enterprise Edition</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-blue-700 bg-white rounded-xl shadow-sm scale-98 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-manrope text-sm font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-blue-600 hover:translate-x-1 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="confirmation_number">confirmation_number</span>
+<span class="font-manrope text-sm font-medium">Tickets</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-blue-600 hover:translate-x-1 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-manrope text-sm font-medium">Assets</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-blue-600 hover:translate-x-1 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-manrope text-sm font-medium">Team</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-500 hover:text-blue-600 hover:translate-x-1 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-manrope text-sm font-medium">Settings</span>
+</a>
+</nav>
+<div class="mt-auto space-y-4">
+<button class="w-full bg-primary text-white py-3 rounded-full font-bold shadow-lg shadow-primary/30 flex items-center justify-center gap-2 hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined text-lg">add_circle</span>
+                New Ticket
+            </button>
+<div class="pt-4 border-t border-slate-200/60 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 text-sm hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="contact_support">contact_support</span>
+                    Support
+                </a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-500 text-sm hover:text-error transition-colors" href="#">
+<span class="material-symbols-outlined text-xl" data-icon="logout">logout</span>
+                    Logout
+                </a>
+</div>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-72 min-h-screen">
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-288px)] z-40 bg-white/60 backdrop-blur-xl h-16 flex justify-between items-center px-8 shadow-sm shadow-slate-200/50">
+<div class="flex items-center gap-6">
+<h1 class="text-xl font-bold tracking-tight text-slate-900 font-manrope">Ticketing Dashboard</h1>
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="bg-surface-container-low border-none rounded-full py-1.5 pl-10 pr-4 text-xs w-64 focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Search tickets, assets..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full border-2 border-white"></span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-50 rounded-full transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-slate-200">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="close-up portrait of a professional male analyst in a modern office environment with soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsRm1UAeYIMH7kS6khvg3ZH6ug3vU6ZdVuMyKFuTc9eDmE3N7RnhQZmvZH7BW53cvrgfZdPxLHgkjo9ivSu9oKFNwgM7tGJ-E51AOWvO9Z0ebSOPCgHbMHv_EGKb-ipDWIRBI0H0x1q858LZugcT4hEIWVbsEiViKso5mr8x_LRm--OAUGHYLjQjsHcoucavYayS485xlIBT767XeIN83PRakwimIfHPMDmVI2toBKW3PM-5QTZ9e_YDrjGDV7Ebgy5MpDdpYfJDUT"/>
+</div>
+</div>
+</header>
+<!-- Dashboard Body -->
+<div class="pt-24 px-8 pb-12 space-y-8">
+<!-- Welcome Header -->
+<section class="flex justify-between items-end">
+<div class="space-y-1">
+<h2 class="text-3xl font-extrabold text-on-surface font-manrope tracking-tight">System Overview</h2>
+<p class="text-on-surface-variant text-sm font-body">Real-time performance monitoring and ticket distribution.</p>
+</div>
+<div class="flex gap-2">
+<div class="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-full text-xs font-semibold text-on-surface-variant">
+<span class="w-2 h-2 bg-tertiary rounded-full animate-pulse"></span>
+                        Live Updates
+                    </div>
+</div>
+</section>
+<!-- KPI Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:translate-y-[-2px]">
+<div class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-2">Total Tickets</div>
+<div class="text-3xl font-black text-primary font-manrope">57</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:translate-y-[-2px]">
+<div class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-2">Open Tickets</div>
+<div class="text-3xl font-black text-on-surface font-manrope">0</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:translate-y-[-2px]">
+<div class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-2">In Progress</div>
+<div class="text-3xl font-black text-secondary font-manrope">6</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:translate-y-[-2px]">
+<div class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-2">Escalated</div>
+<div class="text-3xl font-black text-error font-manrope">1</div>
+</div>
+<div class="bg-surface-container-lowest p-5 rounded-xl transition-all hover:translate-y-[-2px]">
+<div class="text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1">SLA Breached</div>
+<div class="text-3xl font-black text-on-surface font-manrope">0</div>
+<div class="text-[10px] text-tertiary font-semibold mt-1">0 at risk</div>
+</div>
+<div class="bg-primary text-white p-5 rounded-xl transition-all hover:translate-y-[-2px] shadow-lg shadow-primary/20">
+<div class="text-white/70 text-[10px] font-bold uppercase tracking-wider mb-1">Compliance</div>
+<div class="text-3xl font-black font-manrope">100%</div>
+<div class="text-[10px] text-white/80 font-medium mt-1">Target: 95%</div>
+</div>
+</div>
+<!-- Bento Layout: Analytics & Lists -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Left: Detailed Management Lists -->
+<div class="col-span-12 lg:col-span-4 space-y-6">
+<!-- Assets -->
+<div class="bg-surface-container-lowest p-6 rounded-xl space-y-5">
+<div class="flex justify-between items-center">
+<h3 class="font-bold font-manrope text-lg">Manage Assets</h3>
+<button class="text-primary text-xs font-bold hover:underline">View All</button>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 bg-background rounded-lg group hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">router</span>
+<span class="text-sm font-semibold font-manrope text-on-surface">BeMC-SFP-90</span>
+</div>
+<span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded-full">ONLINE</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-background rounded-lg group hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">router</span>
+<span class="text-sm font-semibold font-manrope text-on-surface">BeMC-SFP-89</span>
+</div>
+<span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded-full">ONLINE</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-background rounded-lg group hover:bg-surface-container transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-slate-400 group-hover:text-primary transition-colors">router</span>
+<span class="text-sm font-semibold font-manrope text-on-surface">BeMC-SFP-88</span>
+</div>
+<span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded-full">ONLINE</span>
+</div>
+</div>
+</div>
+<!-- Team -->
+<div class="bg-surface-container-lowest p-6 rounded-xl space-y-5">
+<div class="flex justify-between items-center">
+<h3 class="font-bold font-manrope text-lg">Manage Team</h3>
+<span class="bg-secondary/10 text-secondary px-2 py-0.5 rounded-full text-[10px] font-bold">12 Active</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="professional headshot of a smiling south asian male engineer in a light blue shirt with natural outdoor lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDgauajDEEf_m2tZElT8bxR63SfpRDB-3SmDCc02lNSi31vJEMEZehXhmBBeuSKTuHRtlY5w-rIHc9bEx8rGkxrI8UKFTsCUxX8zcYZ3NedcjrOhH_g9SIAONT90-uTkFtucIqLqFB7IKwEsyyLDLvlyh3Gyrx4ArWUF6wyUfMEj58Vo7vaveb89gxqU-BuyLPH-DFtM7Fi0t_ozUZ_9pOKti53X7pitmRVJjQDcMz0wKqoO83_pOqreY88aekph4g43m0cK9gUUHbr"/>
+<div class="flex-1">
+<div class="text-sm font-bold text-on-surface font-manrope">Ajay Kumar Nayak</div>
+<div class="text-[10px] text-slate-500">L2 Network Engineer</div>
+</div>
+<div class="w-2 h-2 bg-tertiary rounded-full shadow-sm shadow-tertiary/50"></div>
+</div>
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="close-up of a young professional male in spectacles with a friendly expression and soft studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2ieLiuUM0GbYFURyyBz5O--3QO0xwFoefKopZOm7cSbmslbjPzokmccQrTSIRj_QEtfOIb-xiCeKmf4-hgzrWuB4UG7y5wPoadAet9QVHP1fVPHl8uZfwcVoN0wr0UiIDsYYC1ila6rjT3BIUz8e42yuOVen2RMAX3PN00AM4g-08Jth4u_j5Up2idcEVz0YnKw9gwaV_vggpoPrP_zxgki3weYJdSGak98DlPPPTskwHsLBD9ugOx0yK0tX-AH643Nk4pYX5bT6o"/>
+<div class="flex-1">
+<div class="text-sm font-bold text-on-surface font-manrope">Ashirbad Mishra</div>
+<div class="text-[10px] text-slate-500">System Architect</div>
+</div>
+<div class="w-2 h-2 bg-tertiary rounded-full shadow-sm shadow-tertiary/50"></div>
+</div>
+<div class="flex items-center gap-3">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="confident professional man in business casual attire with bright office interior in the background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDNofWcgjHisLfJPzgVkNWwo7bgM4OJDiaN0sbbszyzB_0AMWPSrTwiYtU4I8Hy3lQQOm4aEJ_LZ2Wj1GQxP0QaxKF2kIMDWnu3QgVftamOnMEpPZ5THHLYckoK6r7IByhHwL9ZeLFT-nhGM46fikHY50Umu8O13dLvtRZK7PxG4Jh5dCOJ9d_tm225D9R-PT8AKgSR6cdmG-QFfo-JhmZsSWU2wJae0iuJe_QFfNULxj6OQzMQRTmmO57b5DIhH2MxSGw3F7xXjwGg"/>
+<div class="flex-1">
+<div class="text-sm font-bold text-on-surface font-manrope">Atulya Kumar Dash</div>
+<div class="text-[10px] text-slate-500">Senior Support Lead</div>
+</div>
+<div class="w-2 h-2 bg-tertiary rounded-full shadow-sm shadow-tertiary/50"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right: Analytics Section -->
+<div class="col-span-12 lg:col-span-8 space-y-6">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Priority Chart -->
+<div class="bg-surface-container-lowest p-6 rounded-xl">
+<h3 class="font-bold font-manrope text-lg mb-6">Tickets by Priority</h3>
+<div class="flex items-center justify-around">
+<div class="relative w-32 h-32">
+<!-- Donut Chart Simulated with SVG -->
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<circle cx="18" cy="18" fill="none" r="15.9" stroke="#eceef0" stroke-width="3"></circle>
+<circle cx="18" cy="18" fill="none" r="15.9" stroke="#ba1a1a" stroke-dasharray="10, 90" stroke-width="3"></circle>
+<circle cx="18" cy="18" fill="none" r="15.9" stroke="#2b4bb9" stroke-dasharray="25, 75" stroke-dashoffset="-10" stroke-width="3"></circle>
+<circle cx="18" cy="18" fill="none" r="15.9" stroke="#6063ee" stroke-dasharray="40, 60" stroke-dashoffset="-35" stroke-width="3"></circle>
+<circle cx="18" cy="18" fill="none" r="15.9" stroke="#007d55" stroke-dasharray="25, 75" stroke-dashoffset="-75" stroke-width="3"></circle>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-xl font-black text-on-surface">57</span>
+<span class="text-[8px] uppercase tracking-widest font-bold text-slate-400">Total</span>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex items-center gap-2 text-xs font-semibold">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+<span class="text-slate-500">P1 - Critical (2)</span>
+</div>
+<div class="flex items-center gap-2 text-xs font-semibold">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="text-slate-500">P2 - High (12)</span>
+</div>
+<div class="flex items-center gap-2 text-xs font-semibold">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-slate-500">P3 - Medium (28)</span>
+</div>
+<div class="flex items-center gap-2 text-xs font-semibold">
+<span class="w-2 h-2 rounded-full bg-tertiary-container"></span>
+<span class="text-slate-500">P4 - Low (15)</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Ticket Categories -->
+<div class="bg-surface-container-lowest p-6 rounded-xl">
+<h3 class="font-bold font-manrope text-lg mb-6">Categories</h3>
+<div class="space-y-4">
+<div>
+<div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1">
+<span>POWER ISSUE</span>
+<span>42%</span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[42%] rounded-full"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1">
+<span>CONNECTIVITY</span>
+<span>28%</span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[28%] rounded-full"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1">
+<span>SOFTWARE ERRORS</span>
+<span>15%</span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-[15%] rounded-full"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-[10px] font-bold text-slate-500 mb-1">
+<span>HARDWARE FAIL</span>
+<span>10%</span>
+</div>
+<div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-amber-500 w-[10%] rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Status Bars -->
+<div class="bg-surface-container-lowest p-6 rounded-xl">
+<h3 class="font-bold font-manrope text-lg mb-6">Tickets by Status</h3>
+<div class="space-y-4">
+<div class="flex items-center gap-4">
+<span class="w-24 text-[10px] font-bold text-slate-500">RESOLVED</span>
+<div class="flex-1 h-8 bg-slate-50 rounded-lg overflow-hidden flex items-center pr-4">
+<div class="h-full bg-tertiary w-[75%] rounded-r-lg transition-all duration-1000"></div>
+<span class="ml-auto text-xs font-bold text-on-surface">42</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="w-24 text-[10px] font-bold text-slate-500">IN PROGRESS</span>
+<div class="flex-1 h-8 bg-slate-50 rounded-lg overflow-hidden flex items-center pr-4">
+<div class="h-full bg-secondary w-[15%] rounded-r-lg"></div>
+<span class="ml-auto text-xs font-bold text-on-surface">6</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="w-24 text-[10px] font-bold text-slate-500">ASSIGNED</span>
+<div class="flex-1 h-8 bg-slate-50 rounded-lg overflow-hidden flex items-center pr-4">
+<div class="h-full bg-primary w-[10%] rounded-r-lg"></div>
+<span class="ml-auto text-xs font-bold text-on-surface">4</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="w-24 text-[10px] font-bold text-slate-500">ESCALATED</span>
+<div class="flex-1 h-8 bg-slate-50 rounded-lg overflow-hidden flex items-center pr-4">
+<div class="h-full bg-error w-[5%] rounded-r-lg"></div>
+<span class="ml-auto text-xs font-bold text-on-surface">1</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Manage Sites & Quick Actions -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Manage Sites -->
+<div class="col-span-12 lg:col-span-4 bg-surface-container-lowest p-6 rounded-xl">
+<div class="flex justify-between items-center mb-5">
+<h3 class="font-bold font-manrope text-lg">Manage Sites</h3>
+<span class="material-symbols-outlined text-slate-400">location_on</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 border-l-4 border-primary bg-background rounded-r-lg">
+<div class="flex flex-col">
+<span class="text-sm font-bold font-manrope text-on-surface">VLAccess Head Office</span>
+<span class="text-[10px] text-slate-500">Primary Data Hub</span>
+</div>
+<span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded-full">ACTIVE</span>
+</div>
+<div class="flex items-center justify-between p-3 border-l-4 border-slate-300 bg-background rounded-r-lg">
+<div class="flex flex-col">
+<span class="text-sm font-bold font-manrope text-on-surface">Beekay Steel Industries</span>
+<span class="text-[10px] text-slate-500">Manufacturing Unit 4</span>
+</div>
+<span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded-full">ACTIVE</span>
+</div>
+<div class="flex items-center justify-between p-3 border-l-4 border-slate-300 bg-background rounded-r-lg">
+<div class="flex flex-col">
+<span class="text-sm font-bold font-manrope text-on-surface">District Police Office</span>
+<span class="text-[10px] text-slate-500">Public Safety Branch</span>
+</div>
+<span class="px-2 py-0.5 bg-tertiary/10 text-tertiary text-[10px] font-bold rounded-full">ACTIVE</span>
+</div>
+</div>
+</div>
+<!-- Quick Action Cards -->
+<div class="col-span-12 lg:col-span-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 h-full">
+<button class="flex items-start gap-4 p-6 rounded-xl bg-gradient-to-br from-primary to-primary-container text-white shadow-xl shadow-primary/20 group hover:scale-[1.02] transition-all">
+<div class="w-12 h-12 rounded-lg bg-white/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-3xl">add_task</span>
+</div>
+<div class="text-left">
+<div class="font-bold font-manrope text-lg">Create Ticket</div>
+<div class="text-white/70 text-xs">Log a new incident or service request instantly.</div>
+</div>
+</button>
+<button class="flex items-start gap-4 p-6 rounded-xl bg-surface-container-lowest border-2 border-transparent hover:border-primary transition-all group shadow-sm shadow-slate-200/50">
+<div class="w-12 h-12 rounded-lg bg-secondary/10 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-3xl">precision_manufacturing</span>
+</div>
+<div class="text-left">
+<div class="font-bold font-manrope text-lg text-on-surface">Add Asset</div>
+<div class="text-slate-500 text-xs">Onboard new hardware or network devices to tracking.</div>
+</div>
+</button>
+<button class="flex items-start gap-4 p-6 rounded-xl bg-surface-container-lowest border-2 border-transparent hover:border-primary transition-all group shadow-sm shadow-slate-200/50">
+<div class="w-12 h-12 rounded-lg bg-tertiary/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-3xl">pending_actions</span>
+</div>
+<div class="text-left">
+<div class="font-bold font-manrope text-lg text-on-surface">Open Tickets</div>
+<div class="text-slate-500 text-xs">Review all active issues requiring immediate attention.</div>
+</div>
+</button>
+<button class="flex items-start gap-4 p-6 rounded-xl bg-surface-container-lowest border-2 border-transparent hover:border-error transition-all group shadow-sm shadow-slate-200/50">
+<div class="w-12 h-12 rounded-lg bg-error/10 flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-3xl">warning_amber</span>
+</div>
+<div class="text-left">
+<div class="font-bold font-manrope text-lg text-on-surface">SLA Breaches</div>
+<div class="text-slate-500 text-xs">Audit critical misses and service level deviations.</div>
+</div>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

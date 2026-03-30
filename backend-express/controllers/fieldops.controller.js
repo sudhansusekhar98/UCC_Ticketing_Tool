@@ -263,7 +263,8 @@ export const getProjectDashboard = async (req, res, next) => {
       challengeStats,
       vendorStats,
       recentLogs,
-      allocationStats
+      allocationStats,
+      assignedDeviceCount
     ] = await Promise.all([
       // Device installation stats by status
       DeviceInstallation.aggregate([
@@ -316,10 +317,89 @@ export const getProjectDashboard = async (req, res, next) => {
             allocationCount: { $sum: 1 }
           }
         }
-      ])
+      ]),
+      // Assigned devices count
+      DeviceInstallation.countDocuments({ 
+        projectId: project._id, 
+        assignedTo: { $exists: true, $ne: null } 
+      })
     ]);
 
     const allocStats = allocationStats[0] || { totalAllocated: 0, totalInstalled: 0, totalFaulty: 0, allocationCount: 0 };
+
+    // ── Auto-calculated project progress (stock-aware) ──
+    const totalDevices = deviceStats.reduce((sum, s) => sum + s.count, 0);
+    const byStatus = deviceStats.reduce((acc, s) => ({ ...acc, [s._id]: s.count }), {});
+
+    // Device counts by milestone stage (for configuration & testing workflow)
+    const configuredPlus = (byStatus.Configured || 0) + (byStatus.Tested || 0) + (byStatus.Deployed || 0);
+    const testedPlus = (byStatus.Tested || 0) + (byStatus.Deployed || 0);
+
+    // Installation count comes from stock allocation system (tracks actual installed qty)
+    // NOT from DeviceInstallation status counts (which may not have records for every item)
+    const stockInstalled = allocStats.totalInstalled || 0;
+
+    // Stock-aware denominator: use allocated stock quantity as the "scope"
+    // If stock is returned/reduced, allocatedQty decreases → denominator shrinks → % rises
+    // Fall back to totalDevices if no allocations exist
+    const allocatedScope = allocStats.totalAllocated > 0 ? allocStats.totalAllocated : totalDevices;
+
+    let taskProgress = 0;
+    let timeProgress = 0;
+    let scheduleStatus = 'Not Started';
+    const milestoneBreakdown = {
+      installation: 0,
+      configuration: 0,
+      testing: 0,
+      // Raw counts for frontend display
+      installedCount: Math.round(stockInstalled),
+      configuredCount: configuredPlus,
+      testedCount: testedPlus,
+      faultyCount: Math.round(allocStats.totalFaulty || 0),
+      allocatedScope: Math.round(allocatedScope),
+      totalDevices
+    };
+
+    if (allocatedScope > 0) {
+      // Installation: stock-based (actual installed qty from allocation tracking)
+      milestoneBreakdown.installation = Math.min(100, Math.round((stockInstalled / allocatedScope) * 100));
+      // Configuration & Testing: device workflow-based
+      milestoneBreakdown.configuration = Math.min(100, Math.round((configuredPlus / allocatedScope) * 100));
+      milestoneBreakdown.testing = Math.min(100, Math.round((testedPlus / allocatedScope) * 100));
+
+      // Weighted task progress: Installation=30%, Configuration=30%, Testing=40%
+      taskProgress = Math.round(
+        (milestoneBreakdown.installation * 0.30) +
+        (milestoneBreakdown.configuration * 0.30) +
+        (milestoneBreakdown.testing * 0.40)
+      );
+    }
+
+    // Time-based progress
+    const now = new Date();
+    const contractStart = new Date(project.contractStartDate);
+    const contractEnd = new Date(project.contractEndDate);
+    const totalDays = Math.max(1, Math.ceil((contractEnd - contractStart) / (1000 * 60 * 60 * 24)));
+    const elapsedDays = Math.max(0, Math.ceil((now - contractStart) / (1000 * 60 * 60 * 24)));
+    timeProgress = Math.min(100, Math.round((elapsedDays / totalDays) * 100));
+
+    if (allocatedScope === 0 && totalDevices === 0) {
+      scheduleStatus = now < contractStart ? 'Not Started' : 'No Devices';
+    } else if (taskProgress >= timeProgress) {
+      scheduleStatus = 'On Track';
+    } else {
+      scheduleStatus = 'Behind Schedule';
+    }
+
+    const progressData = {
+      taskProgress,
+      timeProgress,
+      scheduleStatus,
+      milestoneBreakdown,
+      contractDays: totalDays,
+      elapsedDays: Math.min(elapsedDays, totalDays),
+      remainingDays: Math.max(0, totalDays - elapsedDays)
+    };
 
     res.json({
       success: true,
@@ -329,11 +409,12 @@ export const getProjectDashboard = async (req, res, next) => {
           projectNumber: project.projectNumber,
           projectName: project.projectName,
           status: project.status,
-          progressPercentage: logStats[0]?.avgProgress || 0
+          progressPercentage: taskProgress
         },
         devices: {
           byStatus: deviceStats.reduce((acc, s) => ({ ...acc, [s._id]: s.count }), {}),
-          total: deviceStats.reduce((sum, s) => sum + s.count, 0)
+          total: deviceStats.reduce((sum, s) => sum + s.count, 0),
+          assignedCount: assignedDeviceCount || 0
         },
         dailyLogs: {
           total: logStats[0]?.totalLogs || 0,
@@ -350,13 +431,14 @@ export const getProjectDashboard = async (req, res, next) => {
           totalLengthMeters: vendorStats[0]?.totalLength || 0
         },
         allocations: {
-          totalAllocated: allocStats.totalAllocated,
-          totalInstalled: allocStats.totalInstalled,
-          totalFaulty: allocStats.totalFaulty,
-          remaining: allocStats.totalAllocated - allocStats.totalInstalled - allocStats.totalFaulty,
+          totalAllocated: Number((allocStats.totalAllocated || 0).toFixed(2)),
+          totalInstalled: Number((allocStats.totalInstalled || 0).toFixed(2)),
+          totalFaulty: Number((allocStats.totalFaulty || 0).toFixed(2)),
+          remaining: Number((allocStats.totalAllocated - allocStats.totalInstalled - allocStats.totalFaulty || 0).toFixed(2)),
           count: allocStats.allocationCount
         },
-        recentLogs
+        recentLogs,
+        progress: progressData
       }
     });
   } catch (error) {
@@ -769,13 +851,18 @@ export const uploadPMLogPhotos = async (req, res, next) => {
  */
 export const getDeviceInstallations = async (req, res, next) => {
   try {
-    const { page = 1, limit = 50, projectId, zoneId, deviceType, status } = req.query;
+    const { page = 1, limit = 50, projectId, zoneId, deviceType, status, isAssigned } = req.query;
     const query = {};
 
     if (projectId) query.projectId = projectId;
     if (zoneId) query.zoneId = zoneId;
     if (deviceType) query.deviceType = deviceType;
     if (status) query.status = status;
+    if (isAssigned === 'true') {
+      query.assignedTo = { $exists: true, $ne: null };
+    } else if (isAssigned === 'false') {
+      query.assignedTo = { $eq: null };
+    }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -784,6 +871,7 @@ export const getDeviceInstallations = async (req, res, next) => {
         .populate('projectId', 'projectNumber projectName')
         .populate('zoneId', 'zoneName zoneCode')
         .populate('installedBy', 'fullName')
+        .populate('assignedTo', 'fullName')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit)),

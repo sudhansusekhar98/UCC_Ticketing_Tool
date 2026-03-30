@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     Package, Search, Warehouse, ArrowLeft, MapPin, ChevronDown, ChevronUp,
-    AlertCircle, Eye, Edit, X, Download, CheckSquare, Square, Ruler, Trash2, Save
+    AlertCircle, Eye, Edit, X, Download, CheckSquare, Square, Ruler, Trash2, Save, FolderInput
 } from 'lucide-react';
 import { stockApi, sitesApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../context/authStore';
+import ProjectAllocationModal from './ProjectAllocationModal';
 import './StockCommon.css';
 import './InventoryList.css';
 
@@ -33,6 +34,9 @@ export default function InventoryList() {
     // Delete confirm state
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [deleting, setDeleting] = useState(false);
+
+    // Allocation modal state
+    const [allocateAsset, setAllocateAsset] = useState(null);
 
     const [filters, setFilters] = useState({
         siteId: '',
@@ -412,10 +416,10 @@ export default function InventoryList() {
                                     <th className="col-model">Model</th>
                                     <th className="col-mac">MAC Address</th>
                                     <th className="col-serial">Serial Number</th>
-                                    <th className="col-location">Shelf/Bin</th>
+                                    {/* <th className="col-location">Shelf/Bin</th> */}
                                     <th className="col-qty">Qty</th>
                                     <th className="col-unit">Unit</th>
-                                    <th className="col-remarks">Remarks</th>
+                                    {/* <th className="col-remarks">Remarks</th> */}
                                     <th className="col-actions">Actions</th>
                                 </tr>
                             </thead>
@@ -430,7 +434,7 @@ export default function InventoryList() {
                                             className="site-separator-row"
                                             onClick={() => toggleGroup(siteGroup.siteId)}
                                         >
-                                            <td colSpan="12">
+                                            <td colSpan="10">
                                                 <div className="separator-content">
                                                     <div className="separator-left">
                                                         {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}                                                        {siteGroup.isHeadOffice ? (
@@ -495,9 +499,9 @@ export default function InventoryList() {
                                                         {asset.serialNumber || '—'}
                                                     </span>
                                                 </td>
-                                                <td className="col-location">
+                                                {/* <td className="col-location">
                                                     <span className="location-text">{asset.stockLocation || '—'}</span>
-                                                </td>
+                                                </td> */}
                                                 <td className="col-qty">
                                                     {asset.isMeterUnit ? (
                                                         <span className="meter-qty-badge" title={`${asset.quantity} meters of wire/cable — not counted in stock total`}>
@@ -514,11 +518,11 @@ export default function InventoryList() {
                                                         asset.unit || 'Nos'
                                                     )}
                                                 </td>
-                                                <td className="col-remarks">
+                                                {/* <td className="col-remarks">
                                                     <span className="remarks-text" title={asset.remarks || asset.remark}>
                                                         {asset.remarks || asset.remark || '—'}
                                                     </span>
-                                                </td>
+                                                </td> */}
                                                 <td className="col-actions">
                                                     <div className="action-buttons-direct">
                                                         <button
@@ -536,6 +540,14 @@ export default function InventoryList() {
                                                                     title="Edit Stock Item"
                                                                 >
                                                                     <Edit size={16} />
+                                                                </button>
+                                                                <button
+                                                                    className="action-btn-direct"
+                                                                    onClick={() => setAllocateAsset(asset)}
+                                                                    title="Allocate to Project"
+                                                                    style={{ color: 'var(--info-400)' }}
+                                                                >
+                                                                    <FolderInput size={16} />
                                                                 </button>
                                                                 <button
                                                                     className="action-btn-direct delete"
@@ -767,7 +779,7 @@ export default function InventoryList() {
                                         />
                                     </div>
                                     {/* Shelf / Bin location */}
-                                    <div className="detail-item full-width">
+                                    {/* <div className="detail-item full-width">
                                         <label htmlFor="edit-stockLocation">Shelf / Bin Location</label>
                                         <input
                                             id="edit-stockLocation"
@@ -778,7 +790,7 @@ export default function InventoryList() {
                                             onChange={handleEditChange}
                                             placeholder="e.g. Rack-A / Shelf-2"
                                         />
-                                    </div>
+                                    </div> */}
                                     {/* Quantity */}
                                     <div className="detail-item">
                                         <label htmlFor="edit-quantity">Quantity</label>
@@ -812,7 +824,7 @@ export default function InventoryList() {
                                         </select>
                                     </div>
                                     {/* Remarks */}
-                                    <div className="detail-item full-width">
+                                    {/* <div className="detail-item full-width">
                                         <label htmlFor="edit-remarks">Remarks</label>
                                         <textarea
                                             id="edit-remarks"
@@ -824,7 +836,7 @@ export default function InventoryList() {
                                             placeholder="Optional notes..."
                                             style={{ resize: 'vertical', minHeight: '60px' }}
                                         />
-                                    </div>
+                                    </div> */}
                                 </div>
                             </div>
                             <div className="modal-footer">
@@ -890,6 +902,15 @@ export default function InventoryList() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* ===== Project Allocation Modal ===== */}
+            {allocateAsset && (
+                <ProjectAllocationModal
+                    asset={allocateAsset}
+                    onClose={() => setAllocateAsset(null)}
+                    onSuccess={() => fetchData()}
+                />
             )}
         </div>
     );

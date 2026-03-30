@@ -202,15 +202,10 @@
     gap: var(--space-2);
     padding: var(--space-2) var(--space-4);
     background: var(--bg-secondary);
-    border: 1px solid var(--border-light);
+    /* border: 0px solid var(--border-light); */
     border-radius: var(--radius-full);
     width: 300px;
     transition: all var(--transition-fast);
-}
-
-.search-box:focus-within {
-    border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 .search-box svg {

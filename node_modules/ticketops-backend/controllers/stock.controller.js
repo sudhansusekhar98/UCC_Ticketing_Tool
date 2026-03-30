@@ -9,6 +9,9 @@ import StockReplacement from '../models/StockReplacement.model.js';
 import RMARequest from '../models/RMARequest.model.js';
 import StockMovementLog from '../models/StockMovementLog.model.js';
 import DailyWorkLog from '../models/DailyWorkLog.model.js';
+import ProjectStockAllocation from '../models/ProjectStockAllocation.model.js';
+import Project from '../models/Project.model.js';
+import { decrypt } from '../utils/encryption.utils.js';
 import XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
@@ -1026,17 +1029,34 @@ export const bulkUpload = async (req, res, next) => {
         const sites = await Site.find({ isActive: true });
         const siteMap = new Map();
         sites.forEach(s => {
-            siteMap.set(s.siteName.toLowerCase(), s._id);
+            siteMap.set(s.siteName.toLowerCase(), {
+                _id: s._id,
+                abbreviation: s.abbreviation || ''
+            });
+        });
+        // Track sites that need abbreviation updates
+        const siteAbbreviationUpdates = new Map();
+
+        // Load active projects for project-based allocation (include linkedSiteId for validation)
+        const projects = await Project.find({ isActive: true }).select('projectNumber linkedSiteId');
+        const projectMap = new Map();
+        projects.forEach(p => {
+            projectMap.set(p.projectNumber.toLowerCase(), {
+                _id: p._id,
+                linkedSiteId: p.linkedSiteId?.toString() || null
+            });
         });
 
         const results = {
             successCount: 0,
             failCount: 0,
-            errors: []
+            errors: [],
+            allocationsCreated: 0
         };
 
         const batchSize = 50;
         const assetsToCreate = [];
+        const pendingAllocations = []; // Track assets that need project allocation
 
         const normalizeKey = key => key ? key.toString().toLowerCase().replace(/[^a-z0-9]/g, '') : '';
         const toString = (val) => (val === null || val === undefined || val === '') ? undefined : String(val).trim();
@@ -1064,6 +1084,9 @@ export const bulkUpload = async (req, res, next) => {
                 const quantityVal = toString(row['quantity']);
                 const unit = toString(row['unit']) || 'Nos';
                 const remarks = toString(row['remarks']) || toString(row['remark']);
+                const projectNumber = toString(row['projectnumber']) || toString(row['project']);
+                const abbreviation = toString(row['abbreviation']) || toString(row['abbr']);
+                const spareCode = toString(row['sparecode']) || toString(row['itemcode']);
 
                 // Handle quantity: if number, use it; if NA, ignore entry; if empty, default to 1
                 let quantity = 1;
@@ -1082,9 +1105,32 @@ export const bulkUpload = async (req, res, next) => {
                     throw new Error(`Mandatory fields missing for row ${rowNum} (Need Asset Type and Site Name)`);
                 }
 
-                const targetSiteId = siteName ? siteMap.get(siteName.toLowerCase()) : null;
-                if (!targetSiteId) {
+                const siteData = siteName ? siteMap.get(siteName.toLowerCase()) : null;
+                if (!siteData) {
                     throw new Error(`Site "${siteName || 'Unknown'}" not found or inactive`);
+                }
+                const targetSiteId = siteData._id;
+
+                // Track abbreviation update for this site if provided
+                if (abbreviation && abbreviation.toUpperCase() !== 'NA') {
+                    siteAbbreviationUpdates.set(targetSiteId.toString(), abbreviation.toUpperCase());
+                }
+
+                // Validate project if provided and check site-project relationship
+                let targetProjectId = null;
+                if (projectNumber) {
+                    const projectData = projectMap.get(projectNumber.toLowerCase());
+                    if (!projectData) {
+                        throw new Error(`Project "${projectNumber}" not found or inactive`);
+                    }
+
+                    // Validate site-project relationship
+                    // Project must be linked to the same site as the stock
+                    if (projectData.linkedSiteId && projectData.linkedSiteId !== targetSiteId.toString()) {
+                        throw new Error(`Project "${projectNumber}" is not linked to site "${siteName}". Stock site and project site must match.`);
+                    }
+
+                    targetProjectId = projectData._id;
                 }
 
                 // Auto-generate assetCode for stock items (not user-facing)
@@ -1120,12 +1166,23 @@ export const bulkUpload = async (req, res, next) => {
                     unit,
                     remarks: remarks || '',
                     remark: remarks || '', // Keep for backward compatibility
+                    spareCode: spareCode || '',
                     status: 'Spare',
                     criticality: 2
                 };
 
                 assetsToCreate.push(newAsset);
                 results.successCount++;
+
+                // Track pending project allocation
+                if (targetProjectId) {
+                    pendingAllocations.push({
+                        assetCode: finalAssetCode,
+                        projectId: targetProjectId,
+                        quantity,
+                        rowNum
+                    });
+                }
 
                 // Process in batches
                 if (assetsToCreate.length >= batchSize) {
@@ -1147,6 +1204,52 @@ export const bulkUpload = async (req, res, next) => {
             await Asset.insertMany(assetsToCreate, { ordered: false });
         }
 
+        // Create project stock allocations for assets with project numbers
+        if (pendingAllocations.length > 0) {
+            try {
+                // Get all created assets by their asset codes
+                const assetCodes = pendingAllocations.map(a => a.assetCode);
+                const createdAssets = await Asset.find({ assetCode: { $in: assetCodes } }).select('_id assetCode');
+
+                const assetCodeToId = new Map();
+                createdAssets.forEach(a => assetCodeToId.set(a.assetCode, a._id));
+
+                const allocationsToInsert = pendingAllocations
+                    .filter(alloc => assetCodeToId.has(alloc.assetCode))
+                    .map(alloc => ({
+                        projectId: alloc.projectId,
+                        stockItemId: assetCodeToId.get(alloc.assetCode),
+                        allocatedQty: alloc.quantity,
+                        allocatedBy: req.user._id,
+                        notes: `Auto-allocated via bulk upload (Row ${alloc.rowNum})`
+                    }));
+
+                if (allocationsToInsert.length > 0) {
+                    await ProjectStockAllocation.insertMany(allocationsToInsert, { ordered: false });
+                    results.allocationsCreated = allocationsToInsert.length;
+                }
+            } catch (allocError) {
+                console.error('Error creating project allocations:', allocError);
+                // Don't fail the whole upload, just log the error
+            }
+        }
+
+        // Update site abbreviations if any were provided
+        if (siteAbbreviationUpdates.size > 0) {
+            try {
+                const updatePromises = [];
+                for (const [siteId, abbr] of siteAbbreviationUpdates) {
+                    updatePromises.push(
+                        Site.findByIdAndUpdate(siteId, { abbreviation: abbr })
+                    );
+                }
+                await Promise.all(updatePromises);
+            } catch (abbrError) {
+                console.error('Error updating site abbreviations:', abbrError);
+                // Don't fail the whole upload, just log the error
+            }
+        }
+
         // Cleanup file if not on memory storage
         if (!req.file.buffer && fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
@@ -1155,7 +1258,7 @@ export const bulkUpload = async (req, res, next) => {
         res.status(200).json({
             success: results.failCount === 0,
             ...results,
-            message: `Processed ${data.length} rows. ${results.successCount} imported, ${results.failCount} failed.`
+            message: `Processed ${data.length} rows. ${results.successCount} imported, ${results.failCount} failed.${results.allocationsCreated > 0 ? ` ${results.allocationsCreated} project allocation(s) created.` : ''}`
         });
 
         // Fire-and-forget: log bulk upload activity to work log
@@ -1194,13 +1297,16 @@ export const exportStockTemplate = async (req, res, next) => {
             'Asset Type',
             'Device Type',
             'Site Name',
+            'Abbreviation',
+            'Spare Code',
             'Serial Number',
             'Make',
             'Model',
             'Stock Location',
             'Quantity',
             'Unit',
-            'Remarks'
+            'Remarks',
+            'Project Number'
         ];
 
         const sampleData = [
@@ -1209,13 +1315,16 @@ export const exportStockTemplate = async (req, res, next) => {
                 'Asset Type': 'Camera',
                 'Device Type': 'Fixed Dome',
                 'Site Name': 'Head Office',
+                'Abbreviation': 'HO',
+                'Spare Code': 'HO-CAM-001',
                 'Serial Number': 'HK12345678',
                 'Make': 'Hikvision',
                 'Model': 'DS-2CD2143G2-I',
                 'Stock Location': 'Rack A - Shelf 1',
                 'Quantity': 1,
                 'Unit': 'Nos',
-                'Remarks': 'Sample remark'
+                'Remarks': 'Sample remark',
+                'Project Number': ''
             }
         ];
 
@@ -1601,20 +1710,38 @@ export const exportSelectedAssets = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'No matching stock assets found' });
         }
 
-        const rows = assets.map(a => ({
-            'Asset Type': a.assetType || '',
-            'Device Type': a.deviceType || '',
-            'Make': a.make || '',
-            'Model': a.model || '',
-            'MAC Address': a.mac || '',
-            'Serial Number': a.serialNumber || '',
-            'Stock Location': a.stockLocation || '',
-            'Quantity': a.quantity || 1,
-            'Unit': a.unit || 'Nos',
-            'Remarks': a.remarks || a.remark || '',
-            'Site': a.siteId?.siteName || '',
-            'Head Office': a.siteId?.isHeadOffice ? 'Yes' : 'No'
-        }));
+        // Get project allocations for these assets
+        const allocations = await ProjectStockAllocation.find({
+            stockItemId: { $in: assetIds }
+        }).populate('projectId', 'projectNumber').lean();
+
+        // Create a map of asset ID to project number
+        const assetProjectMap = new Map();
+        allocations.forEach(alloc => {
+            if (alloc.projectId?.projectNumber) {
+                assetProjectMap.set(alloc.stockItemId.toString(), alloc.projectId.projectNumber);
+            }
+        });
+
+        const rows = assets.map(a => {
+            // Decrypt sensitive fields (MAC and Serial Number)
+            const decrypted = Asset.decryptSensitiveFields(a);
+            return {
+                'Asset Type': a.assetType || '',
+                'Device Type': a.deviceType || '',
+                'Make': a.make || '',
+                'Model': a.model || '',
+                'MAC Address': decrypted.mac || '',
+                'Serial Number': decrypted.serialNumber || '',
+                'Stock Location': a.stockLocation || '',
+                'Quantity': a.quantity || 1,
+                'Unit': a.unit || 'Nos',
+                'Remarks': a.remarks || a.remark || '',
+                'Site': a.siteId?.siteName || '',
+                'Head Office': a.siteId?.isHeadOffice ? 'Yes' : 'No',
+                'Project Number': assetProjectMap.get(a._id.toString()) || ''
+            };
+        });
 
         const ws = XLSX.utils.json_to_sheet(rows);
         const wb = XLSX.utils.book_new();
@@ -1631,6 +1758,378 @@ export const exportSelectedAssets = async (req, res, next) => {
             res.setHeader('Content-Disposition', 'attachment; filename=selected_assets.xlsx');
             return res.status(200).send(buffer);
         }
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ==================== PROJECT STOCK ALLOCATION CONTROLLERS ====================
+
+// @desc    Allocate stock items to a project
+// @route   POST /api/stock/allocations
+// @access  Private (Admin, Supervisor)
+export const allocateStockToProject = async (req, res, next) => {
+    try {
+        const { projectId, stockItemId, allocatedQty, notes } = req.body;
+        const user = req.user;
+
+        // Validate project
+        const project = await Project.findById(projectId);
+        if (!project || !project.isActive) {
+            return res.status(404).json({ success: false, message: 'Project not found or inactive' });
+        }
+
+        // Validate stock item
+        const stockItem = await Asset.findById(stockItemId);
+        if (!stockItem) {
+            return res.status(404).json({ success: false, message: 'Stock item not found' });
+        }
+        if (stockItem.status !== 'Spare') {
+            return res.status(400).json({ success: false, message: 'Only spare stock items can be allocated' });
+        }
+
+        // Validate site-project relationship
+        // Stock can only be allocated to a project if:
+        // 1. Project has no linkedSiteId (any stock allowed), OR
+        // 2. Stock's siteId matches project's linkedSiteId
+        if (project.linkedSiteId && stockItem.siteId?.toString() !== project.linkedSiteId?.toString()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Stock item site does not match the project site. Stock can only be allocated to projects linked to the same site.'
+            });
+        }
+
+        // Calculate already allocated qty for this stock item across all projects
+        const existingAllocations = await ProjectStockAllocation.find({
+            stockItemId,
+            status: { $ne: 'FullyInstalled' }
+        });
+        const totalAllocated = existingAllocations.reduce((sum, a) => sum + (a.allocatedQty - a.installedQty - a.faultyQty), 0);
+        const availableQty = (stockItem.quantity || 1) - totalAllocated;
+
+        if (allocatedQty > availableQty) {
+            return res.status(400).json({
+                success: false,
+                message: `Insufficient stock. Only ${availableQty} available (Total: ${stockItem.quantity || 1}, Already allocated: ${totalAllocated})`
+            });
+        }
+
+        const allocation = await ProjectStockAllocation.create({
+            projectId,
+            stockItemId,
+            allocatedQty,
+            allocatedBy: user._id,
+            notes
+        });
+
+        const populated = await ProjectStockAllocation.findById(allocation._id)
+            .populate('projectId', 'projectNumber projectName')
+            .populate('stockItemId', 'assetType deviceType make model serialNumber quantity unit')
+            .populate('allocatedBy', 'name');
+
+        res.status(201).json({
+            success: true,
+            data: populated,
+            message: `${allocatedQty} unit(s) allocated to project ${project.projectNumber}`
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get allocations for a project (or all)
+// @route   GET /api/stock/allocations
+// @access  Private
+export const getProjectAllocations = async (req, res, next) => {
+    try {
+        const { projectId, stockItemId, status, page = 1, limit = 50 } = req.query;
+        const query = {};
+
+        if (projectId) query.projectId = projectId;
+        if (stockItemId) query.stockItemId = stockItemId;
+        if (status) query.status = status;
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const [allocations, total] = await Promise.all([
+            ProjectStockAllocation.find(query)
+                .populate('projectId', 'projectNumber projectName')
+                .populate('stockItemId', 'assetType deviceType make model serialNumber macAddress quantity unit assetCode')
+                .populate('allocatedBy', 'name')
+                .populate('changeLog.changedBy', 'name')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(parseInt(limit)),
+            ProjectStockAllocation.countDocuments(query)
+        ]);
+
+        const decryptedAllocations = allocations.map(alloc => {
+            const allocObj = alloc.toObject();
+            if (allocObj.stockItemId) {
+                if (allocObj.stockItemId.serialNumber && allocObj.stockItemId.serialNumber.startsWith('enc:')) {
+                    try { allocObj.stockItemId.serialNumber = decrypt(allocObj.stockItemId.serialNumber); } catch (e) {}
+                }
+                if (allocObj.stockItemId.macAddress && allocObj.stockItemId.macAddress.startsWith('enc:')) {
+                    try { allocObj.stockItemId.macAddress = decrypt(allocObj.stockItemId.macAddress); } catch (e) {}
+                }
+            }
+            return allocObj;
+        });
+
+        res.json({
+            success: true,
+            data: decryptedAllocations,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                pages: Math.ceil(total / parseInt(limit))
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update an allocation (Admin only, with audit trail)
+// @route   PUT /api/stock/allocations/:id
+// @access  Private (Admin)
+export const updateAllocation = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { allocatedQty, notes, reason } = req.body;
+        const user = req.user;
+
+        const allocation = await ProjectStockAllocation.findById(id);
+        if (!allocation) {
+            return res.status(404).json({ success: false, message: 'Allocation not found' });
+        }
+
+        // Cannot reduce below installed qty
+        const usedQty = allocation.installedQty + allocation.faultyQty;
+        if (allocatedQty !== undefined && allocatedQty < usedQty) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot reduce allocation below used qty (${usedQty} already installed/faulty)`
+            });
+        }
+
+        // Validate new qty against available stock
+        if (allocatedQty !== undefined && allocatedQty !== allocation.allocatedQty) {
+            const stockItem = await Asset.findById(allocation.stockItemId);
+            const otherAllocations = await ProjectStockAllocation.find({
+                stockItemId: allocation.stockItemId,
+                _id: { $ne: allocation._id },
+                status: { $ne: 'FullyInstalled' }
+            });
+            const otherAllocated = otherAllocations.reduce((sum, a) => sum + (a.allocatedQty - a.installedQty - a.faultyQty), 0);
+            const available = (stockItem?.quantity || 1) - otherAllocated;
+
+            if (allocatedQty > available + usedQty) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Cannot allocate ${allocatedQty}. Only ${available} available in stock.`
+                });
+            }
+
+            // Audit trail
+            allocation.changeLog.push({
+                changedBy: user._id,
+                previousQty: allocation.allocatedQty,
+                newQty: allocatedQty,
+                reason: reason || 'Admin adjustment'
+            });
+            allocation.allocatedQty = allocatedQty;
+        }
+
+        if (notes !== undefined) allocation.notes = notes;
+
+        await allocation.save();
+
+        const populated = await ProjectStockAllocation.findById(allocation._id)
+            .populate('projectId', 'projectNumber projectName')
+            .populate('stockItemId', 'assetType deviceType make model serialNumber quantity unit')
+            .populate('allocatedBy', 'name')
+            .populate('changeLog.changedBy', 'name');
+
+        res.json({
+            success: true,
+            data: populated,
+            message: 'Allocation updated successfully'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Delete an allocation (Admin only)
+// @route   DELETE /api/stock/allocations/:id
+// @access  Private (Admin)
+export const deleteAllocation = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const allocation = await ProjectStockAllocation.findById(id);
+        if (!allocation) {
+            return res.status(404).json({ success: false, message: 'Allocation not found' });
+        }
+
+        if (allocation.installedQty > 0 || allocation.faultyQty > 0) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot delete allocation with ${allocation.installedQty} installed and ${allocation.faultyQty} faulty items. Adjust the qty instead.`
+            });
+        }
+
+        await ProjectStockAllocation.findByIdAndDelete(id);
+
+        res.json({ success: true, message: 'Allocation removed' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get project allocated stock for device selection dropdown
+// @route   GET /api/stock/allocations/for-device-form
+// @access  Private
+export const getProjectAllocatedStock = async (req, res, next) => {
+    try {
+        const { projectId } = req.query;
+        if (!projectId) {
+            return res.status(400).json({ success: false, message: 'projectId is required' });
+        }
+
+        const allocations = await ProjectStockAllocation.find({
+            projectId,
+            status: { $in: ['Allocated', 'PartiallyInstalled'] }
+        })
+            .populate('stockItemId', 'assetType deviceType make model serialNumber mac quantity unit assetCode')
+            .populate('allocatedBy', 'name')
+            .lean();
+
+        // Cable keywords for filtering out cables
+        const cableKeywords = ['cable', 'cabling', 'cat5', 'cat6', 'fiber', 'coaxial'];
+
+        // Enrich each allocation with remaining qty, decrypt sensitive fields, and filter out cables
+        const items = allocations
+            .filter(a => {
+                if (!a.stockItemId) return false; // guard against deleted stock items
+
+                // Filter out cable items
+                const assetType = (a.stockItemId.assetType || '').toLowerCase();
+                const deviceType = (a.stockItemId.deviceType || '').toLowerCase();
+                const unit = (a.stockItemId.unit || '').toLowerCase();
+
+                const isCable = cableKeywords.some(kw =>
+                    assetType.includes(kw) || deviceType.includes(kw)
+                ) || ['meters', 'mtrs', 'mtr', 'm'].includes(unit);
+
+                return !isCable; // Only include non-cable items
+            })
+            .map(a => {
+                // Decrypt sensitive fields
+                let serialNumber = a.stockItemId.serialNumber;
+                let mac = a.stockItemId.mac;
+
+                try {
+                    if (serialNumber) serialNumber = decrypt(serialNumber);
+                } catch (e) { /* use original value if decryption fails */ }
+
+                try {
+                    if (mac) mac = decrypt(mac);
+                } catch (e) { /* use original value if decryption fails */ }
+
+                return {
+                    allocationId: a._id,
+                    stockItemId: a.stockItemId._id,
+                    assetType: a.stockItemId.assetType,
+                    deviceType: a.stockItemId.deviceType,
+                    make: a.stockItemId.make,
+                    model: a.stockItemId.model,
+                    serialNumber,
+                    mac,
+                    unit: a.stockItemId.unit,
+                    assetCode: a.stockItemId.assetCode,
+                    allocatedQty: a.allocatedQty,
+                    installedQty: a.installedQty,
+                    faultyQty: a.faultyQty,
+                    remainingQty: Math.max(0, a.allocatedQty - a.installedQty - a.faultyQty),
+                    status: a.status,
+                    label: `${a.stockItemId.deviceType || a.stockItemId.assetType} — ${a.stockItemId.make || ''} ${a.stockItemId.model || ''}`.trim()
+                };
+            });
+
+        res.json({ success: true, data: items });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get project allocated cables for device cable selection
+// @route   GET /api/stock/allocations/cables
+// @access  Private
+export const getProjectCableAllocations = async (req, res, next) => {
+    try {
+        const { projectId, cableType } = req.query;
+        if (!projectId) {
+            return res.status(400).json({ success: false, message: 'projectId is required' });
+        }
+
+        // Build query to find cable-type allocations
+        const allocations = await ProjectStockAllocation.find({
+            projectId,
+            status: { $in: ['Allocated', 'PartiallyInstalled'] }
+        })
+            .populate('stockItemId', 'assetType deviceType make model serialNumber quantity unit assetCode')
+            .lean();
+
+        // Filter to only cable-related items
+        // Cables can be identified by: assetType containing 'Cable' or 'Cabling',
+        // deviceType containing cable keywords, or unit being 'Meters'/'Mtrs'/'Mtr'
+        const cableKeywords = ['cable', 'cabling', 'cat5', 'cat6', 'fiber', 'coaxial'];
+
+        const cableAllocations = allocations.filter(a => {
+            if (!a.stockItemId) return false;
+
+            const assetType = (a.stockItemId.assetType || '').toLowerCase();
+            const deviceType = (a.stockItemId.deviceType || '').toLowerCase();
+            const unit = (a.stockItemId.unit || '').toLowerCase();
+
+            // Check if it's a cable item
+            const isCable = cableKeywords.some(kw =>
+                assetType.includes(kw) || deviceType.includes(kw)
+            ) || ['meters', 'mtrs', 'mtr', 'm'].includes(unit);
+
+            if (!isCable) return false;
+
+            // If cableType filter is provided, match against deviceType
+            if (cableType) {
+                const normalizedCableType = cableType.toLowerCase();
+                return deviceType.includes(normalizedCableType) ||
+                       assetType.includes(normalizedCableType);
+            }
+
+            return true;
+        });
+
+        const items = cableAllocations.map(a => ({
+            allocationId: a._id,
+            stockItemId: a.stockItemId._id,
+            assetType: a.stockItemId.assetType,
+            deviceType: a.stockItemId.deviceType,
+            make: a.stockItemId.make,
+            model: a.stockItemId.model,
+            unit: a.stockItemId.unit,
+            assetCode: a.stockItemId.assetCode,
+            allocatedQty: a.allocatedQty,
+            installedQty: a.installedQty,
+            faultyQty: a.faultyQty,
+            remainingQty: Math.max(0, a.allocatedQty - a.installedQty - a.faultyQty),
+            status: a.status,
+            label: `${a.stockItemId.deviceType || a.stockItemId.assetType} — ${a.stockItemId.make || ''} ${a.stockItemId.model || ''}`.trim()
+        }));
+
+        res.json({ success: true, data: items });
     } catch (error) {
         next(error);
     }
