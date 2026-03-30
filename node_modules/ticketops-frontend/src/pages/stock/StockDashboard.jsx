@@ -212,7 +212,7 @@ export default function StockDashboard() {
                         </div>
                         <ChevronRight size={20} className="tile-arrow" />
                     </Link>
-                    <Link to="/stock/analytics" className="quick-action-tile analytics-tile highlight-tile">
+                    {/* <Link to="/stock/analytics" className="quick-action-tile analytics-tile highlight-tile">
                         <div className="tile-icon">
                             <BarChart3 size={24} className="text-blue-600" />
                         </div>
@@ -221,7 +221,7 @@ export default function StockDashboard() {
                             <span className="tile-desc">Inventory Intelligence</span>
                         </div>
                         <ChevronRight size={20} className="tile-arrow" />
-                    </Link>
+                    </Link> */}
                 </section>
 
                 {/* Main Content Grid */}
