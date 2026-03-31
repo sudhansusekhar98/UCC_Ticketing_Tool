@@ -8,44 +8,75 @@ import {
     Monitor,
     Users,
     MapPin,
-    ArrowRight,
-    Search,
     Bell,
     HelpCircle,
     PlusCircle,
     Wrench,
     Clock,
-    TrendingUp,
-    Play,
-    CheckCircle,
-    User,
-    Wifi,
-    WifiOff,
-    Package
+    Package,
+    Circle,
 } from 'lucide-react';
 import { ticketsApi, usersApi, assetsApi, sitesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
 import {
     PieChart, Pie, Cell, ResponsiveContainer,
-    BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend
+    BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts';
 import toast from 'react-hot-toast';
 import './TicketingDashboard.css';
 
 const PRIORITY_COLORS = {
-    P1: '#ba1a1a', // Error red
-    P2: '#2b4bb9', // Primary blue
-    P3: '#6063ee', // Secondary
-    P4: '#007d55', // Success green
+    P1: '#ba1a1a',
+    P2: '#2b4bb9',
+    P3: '#6063ee',
+    P4: '#007d55',
 };
 
 const STATUS_COLORS = {
-    'RESOLVED': '#006242',
-    'IN PROGRESS': '#4648d4',
-    'ASSIGNED': '#2b4bb9',
-    'ESCALATED': '#ba1a1a',
-    'OPEN': '#737686'
+    'CLOSED':       '#006242',
+    'IN PROGRESS':  '#4648d4',
+    'OPEN':         '#737686',
+    'ESCALATED':    '#ba1a1a',
 };
+
+function LoadingSkeleton() {
+    return (
+        <div className="td-container">
+            <div className="td-skeleton-header">
+                <div className="td-skeleton td-skeleton-title"></div>
+                <div className="td-skeleton td-skeleton-badge"></div>
+            </div>
+            <div className="td-kpi-grid">
+                {[...Array(6)].map((_, i) => (
+                    <div key={i} className="td-kpi-card td-skeleton-card">
+                        <div className="td-skeleton td-skeleton-icon"></div>
+                        <div style={{ flex: 1 }}>
+                            <div className="td-skeleton td-skeleton-label"></div>
+                            <div className="td-skeleton td-skeleton-value"></div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+            <div className="td-bento-grid">
+                <div className="td-bento-col-4">
+                    <div className="td-card td-skeleton-card" style={{ height: '200px' }}></div>
+                </div>
+                <div className="td-bento-col-8">
+                    <div className="td-card td-skeleton-card" style={{ height: '200px' }}></div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ActiveUsersBadge({ count }) {
+    return (
+        <span className="td-active-users-badge">
+            <Circle size={8} className="td-online-dot-icon" fill="currentColor" />
+            {count} online
+        </span>
+    );
+}
 
 export default function TicketingDashboard() {
     const [stats, setStats] = useState(null);
@@ -53,12 +84,30 @@ export default function TicketingDashboard() {
     const [assets, setAssets] = useState([]);
     const [sites, setSites] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    const [activeUsers, setActiveUsers] = useState([]);
+    const heartbeatRef = useRef(null);
     const { user } = useAuthStore();
+
+    const fetchActiveUsers = async () => {
+        try {
+            const res = await usersApi.getActiveUsers();
+            setActiveUsers(res.data.data || []);
+        } catch {
+            // silent – non-critical
+        }
+    };
+
+    const sendHeartbeat = async () => {
+        try {
+            await usersApi.heartbeat();
+        } catch {
+            // silent
+        }
+    };
 
     const fetchData = async (showToast = false) => {
         try {
-            if (showToast) setRefreshing(true);
+            if (showToast) toast.loading('Refreshing…', { id: 'dash-refresh' });
 
             const [statsRes, engineersRes, assetsRes, sitesRes] = await Promise.all([
                 ticketsApi.getDashboardStats(),
@@ -77,25 +126,38 @@ export default function TicketingDashboard() {
 
             setSites(sitesRes.data.data || sitesRes.data || []);
 
-            if (showToast) toast.success('Dashboard updated');
+            if (showToast) toast.success('Dashboard updated', { id: 'dash-refresh' });
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
-            if (showToast) toast.error('Failed to refresh data');
+            if (showToast) toast.error('Failed to refresh data', { id: 'dash-refresh' });
         } finally {
             setLoading(false);
-            setRefreshing(false);
         }
     };
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(() => fetchData(), 60000); // Auto-refresh every minute
-        return () => clearInterval(interval);
+        fetchActiveUsers();
+
+        // Send initial heartbeat immediately
+        sendHeartbeat();
+
+        // Heartbeat + active-users refresh every 30s
+        heartbeatRef.current = setInterval(() => {
+            sendHeartbeat();
+            fetchActiveUsers();
+        }, 30000);
+
+        // Dashboard data refresh every 60s
+        const dashInterval = setInterval(() => fetchData(), 60000);
+
+        return () => {
+            clearInterval(heartbeatRef.current);
+            clearInterval(dashInterval);
+        };
     }, []);
 
-    if (loading) {
-        return <div className="td-container"><div className="td-loading">Initializing Premium Dashboard...</div></div>;
-    }
+    if (loading) return <LoadingSkeleton />;
 
     const priorityData = stats?.ticketsByPriority?.map(p => ({
         name: p.priority,
@@ -106,10 +168,10 @@ export default function TicketingDashboard() {
     const totalTicketsAcrossPriority = priorityData.reduce((acc, curr) => acc + curr.value, 0);
 
     const statusData = [
-        { name: 'Resolved', count: stats?.resolvedTickets || 0, fill: STATUS_COLORS['RESOLVED'] },
-        { name: 'In Progress', count: stats?.inProgressTickets || 0, fill: STATUS_COLORS['IN PROGRESS'] },
-        { name: 'Assigned', count: stats?.assignedTickets || 0, fill: STATUS_COLORS['ASSIGNED'] },
-        { name: 'Escalated', count: stats?.escalatedTickets || 0, fill: STATUS_COLORS['ESCALATED'] },
+        { name: 'Closed',      count: stats?.totalClosed || 0,          fill: STATUS_COLORS['CLOSED'] },
+        { name: 'In Progress', count: stats?.inProgressTickets || 0,    fill: STATUS_COLORS['IN PROGRESS'] },
+        { name: 'Open',        count: stats?.openTickets || 0,          fill: STATUS_COLORS['OPEN'] },
+        { name: 'Escalated',   count: stats?.escalatedTickets || 0,     fill: STATUS_COLORS['ESCALATED'] },
     ];
 
     const CATEGORY_COLORS = ['#2b4bb9', '#4648d4', '#006242', '#f97316', '#ba1a1a', '#6063ee', '#737686', '#007d55'];
@@ -121,16 +183,17 @@ export default function TicketingDashboard() {
 
     return (
         <div className="td-container animate-enter">
-            {/* Top Toolbar (Floating in Layout header usually, but we can add some local breadcrumbs) */}
-
             <div className="td-header">
                 <div className="td-header-titles">
                     <h2>System Overview</h2>
                     <p>Real-time performance monitoring and ticket distribution.</p>
                 </div>
-                <div className="td-live-indicator">
-                    <span className="td-live-dot"></span>
-                    Live Updates
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    {activeUsers.length > 0 && <ActiveUsersBadge count={activeUsers.length} />}
+                    <div className="td-live-indicator">
+                        <span className="td-live-dot"></span>
+                        Live Updates
+                    </div>
                 </div>
             </div>
 
@@ -184,7 +247,7 @@ export default function TicketingDashboard() {
 
             {/* Bento Layout */}
             <div className="td-bento-grid">
-                {/* Left Column: Management */}
+                {/* Left Column */}
                 <div className="td-bento-col-4">
                     <div className="td-card fade-in delay-2" style={{ marginBottom: '2rem' }}>
                         <div className="td-card-header">
@@ -226,7 +289,7 @@ export default function TicketingDashboard() {
                                         </div>
                                         <div className="td-team-info">
                                             <div className="td-team-name">{eng.fullName}</div>
-                                            <div className="td-team-role">L2 Network Engineer</div>
+                                            <div className="td-team-role">{eng.role}</div>
                                         </div>
                                     </div>
                                     <div className="td-status-dot"></div>
@@ -236,7 +299,7 @@ export default function TicketingDashboard() {
                     </div>
                 </div>
 
-                {/* Right Column: Analytics */}
+                {/* Right Column: Charts */}
                 <div className="td-bento-col-8">
                     <div className="td-charts-grid" style={{ marginBottom: '2rem' }}>
                         <div className="td-card fade-in delay-1">
@@ -245,15 +308,7 @@ export default function TicketingDashboard() {
                                 <div style={{ width: '130px', height: '130px', position: 'relative' }}>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
-                                            <Pie
-                                                data={priorityData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={45}
-                                                outerRadius={60}
-                                                paddingAngle={5}
-                                                dataKey="value"
-                                            >
+                                            <Pie data={priorityData} cx="50%" cy="50%" innerRadius={45} outerRadius={60} paddingAngle={5} dataKey="value">
                                                 {priorityData.map((entry, index) => (
                                                     <Cell key={`cell-${index}`} fill={entry.fill} />
                                                 ))}
@@ -379,6 +434,54 @@ export default function TicketingDashboard() {
                         </Link>
                     </div>
                 </div>
+            </div>
+
+            {/* Active Users Panel */}
+            <div className="td-card td-active-users-card fade-in delay-5">
+                <div className="td-card-header">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <h3 className="td-card-title">Active Users</h3>
+                        <ActiveUsersBadge count={activeUsers.length} />
+                    </div>
+                    <Link to="/users" className="td-card-link">View All</Link>
+                </div>
+                {activeUsers.length === 0 ? (
+                    <div className="td-active-users-empty">
+                        <Users size={20} />
+                        <span>No users currently online</span>
+                    </div>
+                ) : (
+                    <div className="td-active-users-grid">
+                        {activeUsers.map(u => {
+                            const minutesAgo = Math.floor((Date.now() - new Date(u.lastActivityAt).getTime()) / 60000);
+                            const siteNames = u.assignedSites?.map(s => s.siteName).join(', ') || '—';
+                            return (
+                                <div key={u._id} className="td-active-user-item">
+                                    <div className="td-active-user-avatar">
+                                        {u.profilePicture && u.profilePicture !== 'null' ? (
+                                            <img src={u.profilePicture} alt={u.fullName} />
+                                        ) : (
+                                            <span>{u.fullName?.charAt(0) || 'U'}</span>
+                                        )}
+                                        <span className="td-online-indicator"></span>
+                                    </div>
+                                    <div className="td-active-user-info">
+                                        <div className="td-active-user-name">{u.fullName}</div>
+                                        <div className="td-active-user-meta">
+                                            <span className="td-active-user-role">{u.role}</span>
+                                            {u.assignedSites?.length > 0 && (
+                                                <span className="td-active-user-site" title={siteNames}>· {siteNames}</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="td-active-user-time">
+                                        {minutesAgo < 1 ? 'just now' : `${minutesAgo}m ago`}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
         </div>
     );

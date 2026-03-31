@@ -429,3 +429,45 @@ export const getEscalationUsers = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Heartbeat – update lastActivityAt for the logged-in user
+// @route   PUT /api/users/heartbeat
+// @access  Private
+export const heartbeat = async (req, res, next) => {
+  try {
+    await User.findByIdAndUpdate(req.user._id, { lastActivityAt: new Date() });
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get currently active users (lastActivityAt within 15 min)
+// @route   GET /api/users/active
+// @access  Private
+export const getActiveUsers = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const cutoff = new Date(Date.now() - 15 * 60 * 1000);
+
+    const query = {
+      isActive: true,
+      lastActivityAt: { $gte: cutoff }
+    };
+
+    // Non-admins only see active users from their assigned sites
+    if (user.role !== 'Admin') {
+      query.assignedSites = { $in: user.assignedSites || [] };
+    }
+
+    const activeUsers = await User.find(query)
+      .select('fullName role profilePicture lastActivityAt assignedSites')
+      .populate('assignedSites', 'siteName')
+      .sort({ lastActivityAt: -1 })
+      .lean();
+
+    res.json({ success: true, data: activeUsers, count: activeUsers.length });
+  } catch (error) {
+    next(error);
+  }
+};

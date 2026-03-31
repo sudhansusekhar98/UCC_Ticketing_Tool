@@ -160,6 +160,8 @@ export const usersApi = {
     getEngineers: () => api.get('/users/engineers'),
     getContacts: () => api.get('/users/contacts'),
     getEscalationUsers: (siteId, level) => api.get('/users/escalation-users', { params: { siteId, level } }),
+    getActiveUsers: () => api.get('/users/active'),
+    heartbeat: () => api.put('/users/heartbeat'),
 };
 
 // Sites API
