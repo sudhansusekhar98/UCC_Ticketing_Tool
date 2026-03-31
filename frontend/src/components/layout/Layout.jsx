@@ -39,7 +39,7 @@ const menuItems = [
     { path: '/worklog', icon: ClipboardList, label: 'Work Log', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer'] },
     { path: '/fieldops/projects', icon: FolderKanban, label: 'Field Ops', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },
     { path: '/stock', icon: Package, label: 'Stock', roles: ['Admin', 'Supervisor', 'Dispatcher'], rights: [PERMISSIONS.MANAGE_SITE_STOCK, PERMISSIONS.DIRECT_STOCK_REPLACEMENT] },
-    { path: '/stock/analytics', icon: BarChart3, label: 'Analytics', roles: ['Admin', 'Supervisor', 'Dispatcher'], rights: [PERMISSIONS.MANAGE_SITE_STOCK] },
+    // { path: '/stock/analytics', icon: BarChart3, label: 'Analytics', roles: ['Admin', 'Supervisor', 'Dispatcher'], rights: [PERMISSIONS.MANAGE_SITE_STOCK] },
     { path: '/users', icon: Users, label: 'Users', roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] },
     { path: '/user-rights', icon: Shield, label: 'User Rights', roles: ['Admin'] },
     { path: '/notifications/manage', icon: Bell, label: 'Notifications', roles: ['Admin'] },

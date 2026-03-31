@@ -29,7 +29,7 @@ export default function RequisitionList() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [requisitions, setRequisitions] = useState([]);
-    const [statusFilter, setStatusFilter] = useState('Pending');
+    const [statusFilter, setStatusFilter] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
     const [typeCounts, setTypeCounts] = useState({});
     const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0 });
@@ -157,13 +157,13 @@ export default function RequisitionList() {
 
                 {/* Status Tabs */}
                 <div className="status-tabs">
-                    {['Pending', 'Approved', 'InTransit', 'Fulfilled', 'Rejected'].map(status => (
+                    {['', 'Pending', 'Approved', 'InTransit', 'Fulfilled', 'Rejected'].map(status => (
                         <button
                             key={status}
                             className={`status-tab ${statusFilter === status ? 'active' : ''}`}
                             onClick={() => setStatusFilter(status)}
                         >
-                            {status === 'InTransit' ? 'In Transit' : status}
+                            {status === '' ? 'All' : status === 'InTransit' ? 'In Transit' : status}
                         </button>
                     ))}
                 </div>
@@ -306,7 +306,7 @@ export default function RequisitionList() {
                         ) : (
                             <div className="empty-state-card">
                                 <ClipboardList size={32} className="empty-icon" />
-                                <p>No {statusFilter.toLowerCase()} {typeFilter !== 'all' ? REQUISITION_TYPES[typeFilter]?.label.toLowerCase() : 'requisitions'}</p>
+                                <p>No {statusFilter ? statusFilter.toLowerCase() + ' ' : ''}{typeFilter !== 'all' ? REQUISITION_TYPES[typeFilter]?.label.toLowerCase() : 'requisitions'} found</p>
                             </div>
                         )}
                     </div>
