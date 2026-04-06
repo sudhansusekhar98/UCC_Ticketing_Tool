@@ -1,27 +1,8 @@
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 
-// Detect if running in Vercel (serverless environment)
-const isVercel = process.env.VERCEL || process.env.VERCEL_ENV;
-
-// For local development, use disk storage with uploads folder
-const diskStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadsDir = 'uploads/';
-    // Only create directory if not on Vercel
-    if (!isVercel && !fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-// For Vercel, use memory storage
+// Memory storage - files go directly to Cloudinary without touching disk
+// Works on AWS EB, Vercel, and any environment without filesystem write access
 const memoryStorage = multer.memoryStorage();
 
 // File filter for allowed types
@@ -36,12 +17,12 @@ const fileFilter = (req, file, cb) => {
   cb(new Error('Only images, videos, documents, and spreadsheets are allowed'));
 };
 
-// Create multer instance based on environment
+// Create multer instance
 const createUploader = (options = {}) => {
   const { limits = { fileSize: 50 * 1024 * 1024 } } = options; // Default 50MB (supports video uploads)
 
   return multer({
-    storage: isVercel ? memoryStorage : diskStorage,
+    storage: memoryStorage,
     limits,
     fileFilter
   });
@@ -50,25 +31,11 @@ const createUploader = (options = {}) => {
 // Default upload instance
 const upload = createUploader();
 
-// Simple upload (for bulk import) - uses proper storage based on environment
-const importDiskStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadsDir = 'uploads/';
-    if (!isVercel && !fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'import-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
+// Simple upload (for bulk import)
 const simpleUpload = multer({
-  storage: isVercel ? memoryStorage : importDiskStorage,
+  storage: memoryStorage,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB for bulk imports
 });
 
-export { upload, simpleUpload, createUploader, isVercel };
+export { upload, simpleUpload, createUploader };
 export default upload;

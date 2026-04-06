@@ -6,92 +6,82 @@ import morgan from 'morgan';
 import compression from 'compression';
 import mongoose from 'mongoose';
 import { createServer } from 'http';
+import { Server } from 'socket.io';
 import connectDB from './config/database.js';
 import { setupCronJobs } from './cron-jobs.js';
 
-// Load environment variables (only needed locally, Vercel provides them directly)
-if (process.env.VERCEL !== '1') {
-  dotenv.config();
-}
+// Load environment variables
+dotenv.config();
 
 // Initialize Express app
 const app = express();
 
-// Only create HTTP server and Socket.io in non-Vercel environments
-let httpServer;
-let io;
+// Trust proxy — required behind AWS ALB/Nginx
+app.set('trust proxy', 1);
 
-// Socket.io is only needed for local development, not in Vercel serverless
-if (process.env.VERCEL !== '1') {
-  // Dynamic import for Socket.io (only in local environment)
-  import('socket.io').then(({ Server }) => {
-    httpServer = createServer(app);
+// Create HTTP server and Socket.IO
+const httpServer = createServer(app);
 
-    // Initialize Socket.IO with flexible CORS for development
-    io = new Server(httpServer, {
-      cors: {
-        origin: [
-          'http://localhost:5173',
-          'http://localhost:5174',
-          'http://localhost:5175',
-          'http://localhost:3000',
-          process.env.CORS_ORIGIN || 'http://localhost:5173'
-        ].filter(Boolean),
-        methods: ['GET', 'POST', 'PUT', 'DELETE'],
-        credentials: true
-      },
-      // Improve connection stability
-      pingTimeout: 60000,
-      pingInterval: 25000,
-    });
+const io = new Server(httpServer, {
+  cors: {
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+      'http://localhost:3000',
+      process.env.CORS_ORIGIN || 'http://localhost:5173'
+    ].filter(Boolean),
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+  },
+  // Connection stability
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  // AWS ALB WebSocket support
+  transports: ['websocket', 'polling'],
+  allowUpgrades: true,
+});
 
-    // Socket.IO connection handling
-    io.on('connection', (socket) => {
-      console.log('Client connected:', socket.id);
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
 
-      socket.on('disconnect', () => {
-        console.log('Client disconnected:', socket.id);
-      });
-
-      // Join room for user-specific notifications
-      socket.on('join', (userId) => {
-        socket.join(`user_${userId}`);
-        console.log(`User ${userId} joined their room`);
-      });
-
-      // Join a specific ticket room for targeted updates
-      socket.on('join:ticket', (ticketId) => {
-        socket.join(`ticket_${ticketId}`);
-        console.log(`Socket ${socket.id} joined room: ticket_${ticketId}`);
-      });
-
-      // Leave a ticket room
-      socket.on('leave:ticket', (ticketId) => {
-        socket.leave(`ticket_${ticketId}`);
-        console.log(`Socket ${socket.id} left room: ticket_${ticketId}`);
-      });
-    });
-
-    // Make io accessible to routes
-    app.set('io', io);
-
-    // Start server
-    const PORT = process.env.PORT || 5000;
-    httpServer.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📡 Environment: ${process.env.NODE_ENV}`);
-      console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGIN}`);
-    });
-  }).catch(err => {
-    console.error('Failed to initialize Socket.io:', err);
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
   });
-}
 
+  // Join room for user-specific notifications
+  socket.on('join', (userId) => {
+    socket.join(`user_${userId}`);
+    console.log(`User ${userId} joined their room`);
+  });
+
+  // Join a specific ticket room for targeted updates
+  socket.on('join:ticket', (ticketId) => {
+    socket.join(`ticket_${ticketId}`);
+    console.log(`Socket ${socket.id} joined room: ticket_${ticketId}`);
+  });
+
+  // Leave a ticket room
+  socket.on('leave:ticket', (ticketId) => {
+    socket.leave(`ticket_${ticketId}`);
+    console.log(`Socket ${socket.id} left room: ticket_${ticketId}`);
+  });
+});
+
+// Make io accessible to routes
+app.set('io', io);
+
+// Connect to database and setup cron jobs
+connectDB().then(() => {
+  setupCronJobs();
+  console.log('✅ Cron jobs initialized');
+}).catch(err => console.error('❌ MongoDB connection failed for cron jobs:', err));
 
 // Database Connection Middleware (Ensures DB is connected before processing requests)
 app.use(async (req, res, next) => {
   try {
-    // Skip for root route if desired
+    // Skip for root route and health check
     if (req.path === '/' || req.path === '/api/health') return next();
 
     await connectDB();
@@ -112,12 +102,6 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Setup cron jobs in non-serverless environments
-if (process.env.VERCEL !== '1') {
-  connectDB().then(() => {
-    setupCronJobs();
-  }).catch(err => console.error('MongoDB connection failed for cron jobs:', err));
-}
 // Middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -144,15 +128,13 @@ app.use(helmet({
 const allowedOrigins = [
   'http://localhost:5173',
   'https://ticketops.vluccc.com',
-  'https://ucc-ticketing-tool.vercel.app',
-  'https://ucc-ticketing-tool-znae.vercel.app',
   // Add the CORS_ORIGIN from env (remove trailing slash if present)
   ...(process.env.CORS_ORIGIN ? [process.env.CORS_ORIGIN.replace(/\/$/, '')] : [])
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, postman)
+    // Allow requests with no origin (like mobile apps, curl, postman, ELB health checks)
     if (!origin) return callback(null, true);
 
     // Remove trailing slash from origin for comparison
@@ -176,14 +158,17 @@ if (process.env.NODE_ENV !== 'production') {
 app.use(express.json({ limit: '10mb' })); // Parse JSON bodies with size limit
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-encoded bodies
 
-// Make io accessible to routes (only if it exists)
-if (io) {
-  app.set('io', io);
-}
-
-
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
+
+// Root endpoint for ELB health check
+app.get('/', (req, res) => {
+  res.json({
+    message: 'TicketOps API - AWS Production',
+    status: 'running',
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -233,9 +218,6 @@ app.use('/api/worklogs', worklogRoutes);
 app.use('/api/client-registrations', clientRegistrationRoutes);
 app.use('/api/fieldops', fieldopsRoutes);
 
-// Static files for uploads
-app.use('/uploads', express.static('uploads'));
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({
@@ -258,7 +240,42 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Start server — AWS EB sets PORT via environment (default 8080)
+const PORT = process.env.PORT || 8080;
+httpServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🌐 CORS enabled for: ${allowedOrigins.join(', ')}`);
+  console.log(`🔌 Socket.IO ready for WebSocket connections`);
+});
 
-// Export the Express app for Vercel serverless
+// Graceful shutdown for AWS EB (receives SIGTERM on deployment/scaling)
+const gracefulShutdown = async (signal) => {
+  console.log(`\n⚠️ Received ${signal}. Starting graceful shutdown...`);
+
+  // Close Socket.IO connections
+  io.close(() => {
+    console.log('🔌 Socket.IO connections closed');
+  });
+
+  // Close HTTP server (stop accepting new connections)
+  httpServer.close(() => {
+    console.log('🛑 HTTP server closed');
+  });
+
+  // Close MongoDB connection
+  try {
+    await mongoose.connection.close();
+    console.log('💾 MongoDB connection closed');
+  } catch (err) {
+    console.error('Error closing MongoDB:', err);
+  }
+
+  console.log('✅ Graceful shutdown complete');
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
 export default app;
-

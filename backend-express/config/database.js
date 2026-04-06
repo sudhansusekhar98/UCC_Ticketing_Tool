@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-// Cache the connection for serverless environments
+// Cache the connection (prevents multiple connections in the same process)
 let cached = global.mongoose;
 
 if (!cached) {
@@ -33,20 +33,18 @@ const connectDB = async () => {
     console.log('🔄 Attempting to connect to MongoDB...');
     console.log('📍 Connection URI:', process.env.MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@') || 'NOT SET');
 
-    // Optimized settings for serverless/Vercel
     const options = {
-      // Standard connection timeouts
+      // Connection timeouts
       serverSelectionTimeoutMS: 30000,
       connectTimeoutMS: 30000,
       socketTimeoutMS: 45000,
-      // Buffer commands until connection is established (default true)
-      // This prevents "cannot call findOne before initial connection" errors
+      // Buffer commands until connection is established
       bufferCommands: true,
-      // Connection pool optimized for serverless
-      maxPoolSize: 10,
-      minPoolSize: 0,
-      maxIdleTimeMS: 10000,
-      // Use IPv4 first for DNS resolution (common fix for Vercel timeouts)
+      // Connection pool for long-running EB process
+      maxPoolSize: 20,
+      minPoolSize: 5,
+      maxIdleTimeMS: 30000,
+      // Use IPv4 first for DNS resolution
       family: 4,
       // Retry writes
       retryWrites: true,
@@ -63,44 +61,31 @@ const connectDB = async () => {
     // Handle connection events
     mongoose.connection.on("error", (err) => {
       console.error("❌ MongoDB connection error:", err);
-      // Reset cache on error
       cached.conn = null;
       cached.promise = null;
     });
 
     mongoose.connection.on("disconnected", () => {
-      console.warn("⚠️ MongoDB disconnected");
-      // Reset cache on disconnect
+      console.warn("⚠️ MongoDB disconnected. Will reconnect on next request.");
       cached.conn = null;
       cached.promise = null;
     });
 
-    // Graceful shutdown (only for non-serverless)
-    if (process.env.VERCEL !== '1') {
-      process.on("SIGINT", async () => {
-        await mongoose.connection.close();
-        console.log("MongoDB connection closed through app termination");
-        process.exit(0);
-      });
-    }
+    mongoose.connection.on("reconnected", () => {
+      console.log("🔄 MongoDB reconnected");
+    });
 
     return cached.conn;
   } catch (error) {
     console.error("❌ Error connecting to MongoDB:", error.message);
-    // Reset cache on error
     cached.promise = null;
     cached.conn = null;
 
     if (!process.env.MONGODB_URI) {
       console.error("⚠️ MONGODB_URI is not defined in environment variables!");
     }
-    // In serverless, we don't want to exit the process as it kills the function cold
-    if (process.env.VERCEL !== '1') {
-      process.exit(1);
-    }
     throw error;
   }
 };
 
 export default connectDB;
-

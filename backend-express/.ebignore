@@ -1,0 +1,62 @@
+# EB CLI ignore file (controls what gets deployed via `eb deploy`)
+
+# Dependencies (EB runs npm install)
+node_modules/
+
+# Environment files (set via EB console/CLI)
+.env
+.env.*
+!.env.aws.example
+
+# Vercel-specific files (not needed on AWS)
+api/
+vercel.json
+.vercelignore
+
+# Tests
+__tests__/
+
+# Debug scripts
+check-escalations.js
+check-user-rights.js
+check-users-debug.js
+temp_*.ps1
+
+# Local backups
+backups/
+
+# Local uploads
+uploads/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Git
+.git/
+.gitignore
+
+# Agent configs
+.agent/
+
+# Docs (optional - remove if you want docs on server)
+Docs/
+CONNECTION_OPTIONS.txt
+README.md
+
+# Zip scripts
+create-aws-bundle.ps1
+
+# Other temp/debug
+health_output.json
+health_utf8.json

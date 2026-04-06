@@ -2,6 +2,10 @@
 
 Express.js + MongoDB backend API for TicketOps with Socket.io for real-time updates.
 
+Deployment zip file for AWS EB
+cd " D:\VL Access\CODES\UCC_Ticketing_Tool - AWS\backend-express"
+powershell -ExecutionPolicy Bypass -File ".\create-aws-bundle.ps1"
+
 ## 🚀 Quick Start
 
 ### Prerequisites

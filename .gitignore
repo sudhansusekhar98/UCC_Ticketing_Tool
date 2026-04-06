@@ -35,3 +35,14 @@ yarn-error.log*
 
 # Agent folder
 .agent/
+
+# AWS Elastic Beanstalk
+*.zip
+
+# Deployment
+DEPLOYMENT_GUIDE.md
+
+# backend-express
+backend-express/.env.aws.example
+backend-express/ticketops-backend-aws-*.zip
+

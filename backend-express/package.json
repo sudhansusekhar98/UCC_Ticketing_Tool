@@ -1,9 +1,13 @@
 {
   "name": "ticketops-backend",
   "version": "1.0.0",
-  "description": "TicketOps - Express.js Backend with MongoDB",
+  "description": "TicketOps - Express.js Backend with MongoDB (AWS Elastic Beanstalk)",
   "main": "server.js",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
