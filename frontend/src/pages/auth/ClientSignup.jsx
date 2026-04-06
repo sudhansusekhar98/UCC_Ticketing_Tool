@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { User, Mail, Phone, Building2, MessageSquare, Loader, CheckCircle, ArrowLeft, Briefcase } from 'lucide-react';
 import TOpsLogo from '../../assets/TicketOps.png';
@@ -6,42 +7,45 @@ import './ClientSignup.css';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <button type="submit" className="btn btn-primary btn-lg w-full signup-btn" disabled={pending}>
+            {pending ? (
+                <><Loader size={18} className="animate-spin" /> Submitting...</>
+            ) : (
+                'Submit Request'
+            )}
+        </button>
+    );
+}
+
 export default function ClientSignup() {
-    const [form, setForm] = useState({ fullName: '', email: '', phone: '', designation: '', siteName: '', message: '' });
-    const [loading, setLoading] = useState(false);
-    const [submitted, setSubmitted] = useState(false);
-    const [error, setError] = useState('');
+    const [state, formAction] = useActionState(async (prevState, formData) => {
+        const fullName = formData.get('fullName')?.trim();
+        const email = formData.get('email')?.trim();
+        const phone = formData.get('phone')?.trim();
+        const designation = formData.get('designation')?.trim();
+        const siteName = formData.get('siteName')?.trim();
+        const message = formData.get('message')?.trim();
 
-    const handleChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-        setError('');
-    };
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        const { fullName, email, phone, designation, siteName } = form;
         if (!fullName || !email || !phone || !designation || !siteName) {
-            setError('Please fill in all required fields.');
-            return;
+            return { error: 'Please fill in all required fields.', submitted: false };
         }
 
-        setLoading(true);
         try {
             const res = await fetch(`${API_BASE}/client-registrations/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form),
+                body: JSON.stringify({ fullName, email, phone, designation, siteName, message }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Submission failed');
-            setSubmitted(true);
+            return { error: null, submitted: true };
         } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
+            return { error: err.message, submitted: false };
         }
-    };
+    }, { error: null, submitted: false });
 
     return (
         <div className="signup-page">
@@ -63,7 +67,7 @@ export default function ClientSignup() {
                         </p>
                     </div>
 
-                    {submitted ? (
+                    {state.submitted ? (
                         <div className="signup-success">
                             <div className="success-icon">
                                 <CheckCircle size={48} />
@@ -78,7 +82,7 @@ export default function ClientSignup() {
                             </Link>
                         </div>
                     ) : (
-                        <form onSubmit={handleSubmit} className="signup-form">
+                        <form action={formAction} className="signup-form">
                             <div className="signup-form-row">
                                 <div className="form-group">
                                     <label className="form-label">Full Name <span className="required">*</span></label>
@@ -89,8 +93,6 @@ export default function ClientSignup() {
                                             type="text"
                                             className="form-input"
                                             placeholder="Your full name"
-                                            value={form.fullName}
-                                            onChange={handleChange}
                                             required
                                         />
                                     </div>
@@ -104,8 +106,6 @@ export default function ClientSignup() {
                                             type="email"
                                             className="form-input"
                                             placeholder="you@example.com"
-                                            value={form.email}
-                                            onChange={handleChange}
                                             required
                                         />
                                     </div>
@@ -122,8 +122,6 @@ export default function ClientSignup() {
                                             type="tel"
                                             className="form-input"
                                             placeholder="+91 98765 43210"
-                                            value={form.phone}
-                                            onChange={handleChange}
                                             required
                                         />
                                     </div>
@@ -137,8 +135,6 @@ export default function ClientSignup() {
                                             type="text"
                                             className="form-input"
                                             placeholder="e.g. IT Manager, Facility Head"
-                                            value={form.designation}
-                                            onChange={handleChange}
                                             required
                                         />
                                     </div>
@@ -155,8 +151,6 @@ export default function ClientSignup() {
                                             type="text"
                                             className="form-input"
                                             placeholder="Name of your site / premises"
-                                            value={form.siteName}
-                                            onChange={handleChange}
                                             required
                                         />
                                     </div>
@@ -172,21 +166,13 @@ export default function ClientSignup() {
                                         className="form-input"
                                         placeholder="Any additional context for the admin..."
                                         rows={3}
-                                        value={form.message}
-                                        onChange={handleChange}
                                     />
                                 </div>
                             </div>
 
-                            {error && <div className="signup-error">{error}</div>}
+                            {state.error && <div className="signup-error">{state.error}</div>}
 
-                            <button type="submit" className="btn btn-primary btn-lg w-full signup-btn" disabled={loading}>
-                                {loading ? (
-                                    <><Loader size={18} className="animate-spin" /> Submitting...</>
-                                ) : (
-                                    'Submit Request'
-                                )}
-                            </button>
+                            <SubmitButton />
 
                             <p className="login-link-text">
                                 Already have an account? <Link to="/login">Sign In</Link>

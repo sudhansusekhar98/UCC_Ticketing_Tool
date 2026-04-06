@@ -1,35 +1,52 @@
-import { useState } from 'react';
+import { useActionState, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useFormStatus } from 'react-dom';
 import { Eye, EyeOff, Loader } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
-import toast from 'react-hot-toast';
 import TOpsLogo from '../../assets/TicketOps.png';
 import './Login.css';
 
+// Separate component so useFormStatus can read the parent form's pending state
+function LoginButton() {
+    const { pending } = useFormStatus();
+    return (
+        <button
+            type="submit"
+            className="btn btn-primary btn-lg w-full login-btn"
+            disabled={pending}
+        >
+            {pending ? (
+                <>
+                    <Loader size={20} className="animate-spin" />
+                    Signing in...
+                </>
+            ) : (
+                'Sign In'
+            )}
+        </button>
+    );
+}
+
 export default function Login() {
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const { login, isLoading, error, clearError } = useAuthStore();
+    const { login } = useAuthStore();
     const navigate = useNavigate();
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        clearError();
+    const [state, formAction] = useActionState(async (prevState, formData) => {
+        const username = formData.get('username')?.trim();
+        const password = formData.get('password');
 
         if (!username || !password) {
-            toast.error('Please enter username and password');
-            return;
+            return { error: 'Please enter username and password' };
         }
 
         const result = await login(username, password);
         if (result.success) {
-            toast.success('Welcome back!');
             navigate('/dashboard');
-        } else {
-            toast.error(result.error || 'Login failed');
+            return { error: null };
         }
-    };
+        return { error: result.error || 'Login failed' };
+    }, { error: null });
 
     return (
         <div className="login-page">
@@ -51,15 +68,14 @@ export default function Login() {
                         <p className="login-subtitle">Surveillance Maintenance Platform</p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="login-form">
+                    <form action={formAction} className="login-form">
                         <div className="form-group">
                             <label className="form-label">Username</label>
                             <input
                                 type="text"
+                                name="username"
                                 className="form-input"
                                 placeholder="Enter your username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
                                 autoComplete="username"
                             />
                         </div>
@@ -69,10 +85,9 @@ export default function Login() {
                             <div className="password-input-wrapper">
                                 <input
                                     type={showPassword ? 'text' : 'password'}
+                                    name="password"
                                     className="form-input"
                                     placeholder="Enter your password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
                                     autoComplete="current-password"
                                 />
                                 <button
@@ -85,31 +100,14 @@ export default function Login() {
                             </div>
                         </div>
 
-                        {error && (
+                        {state.error && (
                             <div className="login-error">
-                                {error}
+                                {state.error}
                             </div>
                         )}
 
-                        <button
-                            type="submit"
-                            className="btn btn-primary btn-lg w-full login-btn"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? (
-                                <>
-                                    <Loader size={20} className="animate-spin" />
-                                    Signing in...
-                                </>
-                            ) : (
-                                'Sign In'
-                            )}
-                        </button>
+                        <LoginButton />
                     </form>
-
-                    {/* <div className="login-footer">
-                        <p>Default credentials: <code>admin</code> / <code>Admin@123</code></p>
-                    </div> */}
 
                     <div className="login-client-link">
                         <span>Site customer?</span>

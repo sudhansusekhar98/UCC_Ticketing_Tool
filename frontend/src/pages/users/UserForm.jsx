@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Loader, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react';
 import { usersApi, sitesApi, lookupsApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
+import SubmitButton from '../../components/ui/SubmitButton';
 import toast from 'react-hot-toast';
 import '../sites/Sites.css';
 import './Users.css';
@@ -14,10 +15,10 @@ export default function UserForm() {
     const { user: currentUser } = useAuthStore();
 
     const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [sites, setSites] = useState([]);
     const [roles, setRoles] = useState([]);
+    const [errors, setErrors] = useState({});
 
     const [formData, setFormData] = useState({
         fullName: '',
@@ -33,8 +34,6 @@ export default function UserForm() {
         isActive: true,
     });
 
-    const [errors, setErrors] = useState({});
-
     useEffect(() => {
         loadDropdowns();
         if (isEditing) {
@@ -48,13 +47,11 @@ export default function UserForm() {
                 sitesApi.getDropdown(),
                 lookupsApi.getRoles(),
             ]);
-            // Handle Express response format
             const siteData = sitesRes.data.data || sitesRes.data || [];
             setSites(siteData.map(s => ({
                 value: s._id || s.value || s.siteId,
                 label: s.siteName || s.label
             })));
-
             const roleData = rolesRes.data.data || rolesRes.data || [];
             setRoles(roleData);
         } catch (error) {
@@ -67,7 +64,6 @@ export default function UserForm() {
         try {
             const response = await usersApi.getById(id);
             const user = response.data.data || response.data;
-            // Get siteId - could be object or string
             const siteIdValue = typeof user.siteId === 'object' ? user.siteId?._id : user.siteId;
             setFormData({
                 fullName: user.fullName,
@@ -91,19 +87,16 @@ export default function UserForm() {
     };
 
     const handleChange = (field, value) => {
-        setFormData({ ...formData, [field]: value });
-        // Clear error when field is modified
+        setFormData(prev => ({ ...prev, [field]: value }));
         if (errors[field]) {
-            setErrors({ ...errors, [field]: null });
+            setErrors(prev => ({ ...prev, [field]: null }));
         }
     };
 
     const validateForm = () => {
         const newErrors = {};
 
-        if (!formData.fullName.trim()) {
-            newErrors.fullName = 'Full name is required';
-        }
+        if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
 
         if (!formData.email.trim()) {
             newErrors.email = 'Email is required';
@@ -123,7 +116,6 @@ export default function UserForm() {
             } else if (formData.password.length < 6) {
                 newErrors.password = 'Password must be at least 6 characters';
             }
-
             if (formData.password !== formData.confirmPassword) {
                 newErrors.confirmPassword = 'Passwords do not match';
             }
@@ -131,27 +123,25 @@ export default function UserForm() {
             newErrors.confirmPassword = 'Passwords do not match';
         }
 
-        if (!formData.role) {
-            newErrors.role = 'Role is required';
-        }
+        if (!formData.role) newErrors.role = 'Role is required';
 
         if (formData.role !== 'Admin' && (!formData.assignedSites || formData.assignedSites.length === 0)) {
             newErrors.assignedSites = 'At least one site must be assigned for non-admin users';
         }
 
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
+        return newErrors;
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
-        if (!validateForm()) {
+    // useActionState replaces manual saving + server-error state
+    const [state, formAction, isPending] = useActionState(async (prevState) => {
+        const validationErrors = validateForm();
+        if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
             toast.error('Please fix the form errors');
-            return;
+            return { serverError: null };
         }
+        setErrors({});
 
-        setSaving(true);
         try {
             const payload = {
                 fullName: formData.fullName,
@@ -164,7 +154,6 @@ export default function UserForm() {
                 assignedSites: formData.assignedSites,
                 isActive: formData.isActive,
             };
-
             if (!isEditing) {
                 payload.password = formData.password;
             } else if (formData.password) {
@@ -179,13 +168,13 @@ export default function UserForm() {
                 toast.success('User created successfully');
             }
             navigate('/users');
+            return { serverError: null };
         } catch (error) {
             const message = error.response?.data?.message || 'Failed to save user';
             toast.error(message);
-        } finally {
-            setSaving(false);
+            return { serverError: message };
         }
-    };
+    }, { serverError: null });
 
     const isEditingSelf = isEditing && id === currentUser?.userId;
 
@@ -209,7 +198,7 @@ export default function UserForm() {
                 </Link>
             </div>
 
-            <form onSubmit={handleSubmit} className="form-card glass-card">
+            <form action={formAction} className="form-card glass-card">
                 <div className="form-grid">
                     {/* Full Name */}
                     <div className="form-group">
@@ -417,19 +406,10 @@ export default function UserForm() {
 
                 <div className="form-actions">
                     <Link to="/users" className="btn btn-ghost">Cancel</Link>
-                    <button type="submit" className="btn btn-primary" disabled={saving}>
-                        {saving ? (
-                            <>
-                                <Loader size={18} className="animate-spin" />
-                                Saving...
-                            </>
-                        ) : (
-                            <>
-                                <Save size={18} />
-                                {isEditing ? 'Update User' : 'Create User'}
-                            </>
-                        )}
-                    </button>
+                    <SubmitButton pendingText="Saving..." disabled={isPending}>
+                        <Save size={18} />
+                        {isEditing ? 'Update User' : 'Create User'}
+                    </SubmitButton>
                 </div>
             </form>
         </div>

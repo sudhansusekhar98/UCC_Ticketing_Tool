@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import { useActionState, useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Loader, Paperclip, X, FileText, Image } from 'lucide-react';
+import { ArrowLeft, Save, Paperclip, X, FileText, Image } from 'lucide-react';
 import { ticketsApi, assetsApi, sitesApi, lookupsApi, usersApi, activitiesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
+import SubmitButton from '../../components/ui/SubmitButton';
 import toast from 'react-hot-toast';
 import './Tickets.css';
 
@@ -14,7 +15,6 @@ export default function TicketForm() {
     const isSiteClient = hasRole('SiteClient');
 
     const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
 
     // Form data
     const [formData, setFormData] = useState({
@@ -39,7 +39,6 @@ export default function TicketForm() {
     const [engineers, setEngineers] = useState([]);
     const [allUsers, setAllUsers] = useState([]);
     const [selectedSiteId, setSelectedSiteId] = useState(() => {
-        // Auto-select site for SiteClient from their assigned sites
         if (isSiteClient && user?.assignedSites?.length > 0) {
             const firstSite = user.assignedSites[0];
             return firstSite?._id || firstSite || '';
@@ -56,7 +55,6 @@ export default function TicketForm() {
     const [attachments, setAttachments] = useState([]);
     const fileInputRef = useRef(null);
 
-    // Track if we're in initial load mode (to prevent useEffects from resetting assetId)
     const isInitialLoad = useRef(false);
 
     useEffect(() => {
@@ -67,14 +65,12 @@ export default function TicketForm() {
         }
     }, [id]);
 
-    // Auto-select site for SiteClient when sites dropdown loads (fallback)
     useEffect(() => {
         if (isSiteClient && !selectedSiteId && sites.length > 0) {
             setSelectedSiteId(sites[0].value);
         }
     }, [isSiteClient, sites]);
 
-    // Load location names and asset types when site changes
     useEffect(() => {
         if (selectedSiteId) {
             loadLocationNames(selectedSiteId);
@@ -83,7 +79,6 @@ export default function TicketForm() {
             setLocationNames([]);
             setAssetTypes([]);
         }
-        // Reset location name and dependent fields when site changes (not during initial load)
         if (!isInitialLoad.current) {
             setSelectedLocationName('');
             setSelectedAssetType('');
@@ -92,12 +87,10 @@ export default function TicketForm() {
         }
     }, [selectedSiteId]);
 
-    // Load asset types when location name changes
     useEffect(() => {
         if (selectedSiteId) {
             loadAssetTypesForSite(selectedSiteId, selectedLocationName);
         }
-        // Reset asset type and dependent fields when location changes (not during initial load)
         if (!isInitialLoad.current) {
             setSelectedAssetType('');
             setSelectedDeviceType('');
@@ -105,14 +98,12 @@ export default function TicketForm() {
         }
     }, [selectedLocationName]);
 
-    // Load device types when assetType changes
     useEffect(() => {
         if (selectedSiteId && selectedAssetType) {
             loadDeviceTypesForSite(selectedSiteId, selectedLocationName, selectedAssetType);
         } else {
             setDeviceTypes([]);
         }
-        // Only reset device type and asset when user manually changes asset type (not during initial load)
         if (!isInitialLoad.current) {
             setSelectedDeviceType('');
             setFormData(prev => ({ ...prev, assetId: '' }));
@@ -120,14 +111,11 @@ export default function TicketForm() {
     }, [selectedAssetType]);
 
     useEffect(() => {
-        // Load assets when site, locationName, assetType, or deviceType changes
         if (selectedSiteId) {
             loadAssets(selectedSiteId, selectedLocationName, selectedAssetType, selectedDeviceType);
         } else {
-            // Don't load assets if no site is selected (since site is mandatory)
             setAssets([]);
         }
-        // Only reset asset selection when user manually changes filters (not during initial load)
         if (!isInitialLoad.current) {
             setFormData(prev => ({ ...prev, assetId: '' }));
         }
@@ -139,20 +127,16 @@ export default function TicketForm() {
                 lookupsApi.getCategories(),
                 sitesApi.getDropdown(),
                 usersApi.getEngineers(),
-                usersApi.getDropdown(), // Get all active users
+                usersApi.getDropdown(),
                 lookupsApi.getAll()
             ]);
-            // Handle Express response format
             const catData = categoriesRes.data.data || categoriesRes.data || [];
             setCategories(catData);
 
-            // Set SLA Policies
             const lookupData = lookupsRes.data.data || lookupsRes.data || {};
             setSlaPolicies(lookupData.slaPolicies || []);
 
-            // Backend already filters sites based on user's assignedSites
             const siteData = sitesRes.data.data || sitesRes.data || [];
-
             setSites(siteData.map(s => ({
                 value: s._id || s.value || s.siteId,
                 label: s.siteName || s.label
@@ -177,8 +161,7 @@ export default function TicketForm() {
     const loadDeviceTypesForSite = async (siteId, locationName = '', assetType = '') => {
         try {
             const response = await assetsApi.getDeviceTypesForSite(siteId, locationName || undefined, assetType || undefined);
-            const deviceTypeData = response.data.data || response.data || [];
-            setDeviceTypes(deviceTypeData);
+            setDeviceTypes(response.data.data || response.data || []);
         } catch (error) {
             console.error('Failed to load device types', error);
             setDeviceTypes([]);
@@ -188,8 +171,7 @@ export default function TicketForm() {
     const loadAssetTypesForSite = async (siteId, locationName = '') => {
         try {
             const response = await assetsApi.getAssetTypesForSite(siteId, locationName || undefined);
-            const assetTypeData = response.data.data || response.data || [];
-            setAssetTypes(assetTypeData);
+            setAssetTypes(response.data.data || response.data || []);
         } catch (error) {
             console.error('Failed to load asset types', error);
             setAssetTypes([]);
@@ -199,8 +181,7 @@ export default function TicketForm() {
     const loadLocationNames = async (siteId) => {
         try {
             const response = await assetsApi.getLocationNames(siteId);
-            const locationData = response.data.data || response.data || [];
-            setLocationNames(locationData);
+            setLocationNames(response.data.data || response.data || []);
         } catch (error) {
             console.error('Failed to load location names', error);
             setLocationNames([]);
@@ -211,17 +192,8 @@ export default function TicketForm() {
         try {
             const response = await assetsApi.getDropdown(siteId, assetType || undefined);
             let assetData = response.data.data || response.data || [];
-
-            // Filter by location name if selected
-            if (locationName) {
-                assetData = assetData.filter(a => a.locationName === locationName);
-            }
-
-            // Filter by device type if selected
-            if (deviceType) {
-                assetData = assetData.filter(a => a.deviceType === deviceType);
-            }
-
+            if (locationName) assetData = assetData.filter(a => a.locationName === locationName);
+            if (deviceType) assetData = assetData.filter(a => a.deviceType === deviceType);
             setAssets(assetData.map(a => ({
                 value: a._id || a.value || a.assetId,
                 label: `${a.assetCode}${a.deviceType ? ` (${a.deviceType})` : a.assetType ? ` (${a.assetType})` : ''}`,
@@ -232,41 +204,32 @@ export default function TicketForm() {
         }
     };
 
-
-
-    // Calculate targets whenever impact, urgency or asset changes
     useEffect(() => {
-        const calculateSLA = async () => {
+        const calculateSLA = () => {
             const selectedAsset = assets.find(a => a.value === formData.assetId);
             const criticality = selectedAsset?.criticality || 2;
             const score = formData.impact * formData.urgency * criticality;
             const priority = getPriorityFromScore(score);
             const policy = slaPolicies.find(p => p.priority === priority);
-
             if (policy) {
                 const now = new Date();
-                const responseDue = new Date(now.getTime() + policy.responseTimeMinutes * 60 * 1000);
-                const resolutionDue = new Date(now.getTime() + policy.restoreTimeMinutes * 60 * 1000);
                 setCalculatedTargets({
-                    response: responseDue,
-                    resolution: resolutionDue
+                    response: new Date(now.getTime() + policy.responseTimeMinutes * 60 * 1000),
+                    resolution: new Date(now.getTime() + policy.restoreTimeMinutes * 60 * 1000)
                 });
             } else {
                 setCalculatedTargets({ response: null, resolution: null });
             }
         };
-
-        if (slaPolicies.length > 0) {
-            calculateSLA();
-        }
+        if (slaPolicies.length > 0) calculateSLA();
     }, [formData.impact, formData.urgency, formData.assetId, slaPolicies, assets]);
+
     const loadTicket = async () => {
         setLoading(true);
         try {
             const response = await ticketsApi.getById(id);
             const ticket = response.data.data || response.data;
 
-            // Disable editing if work has started
             const isLocked = ['InProgress', 'OnHold', 'Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status);
             if (isLocked) {
                 toast.error('Ticket cannot be edited once work has started');
@@ -274,45 +237,26 @@ export default function TicketForm() {
                 return;
             }
 
-            // Get IDs - could be objects or strings
             const assetIdValue = typeof ticket.assetId === 'object' ? ticket.assetId?._id : ticket.assetId;
             const assignedToValue = typeof ticket.assignedTo === 'object' ? ticket.assignedTo?._id : ticket.assignedTo;
-
-            // Extract siteId from the ticket itself first, then from asset as fallback
             const ticketSiteId = typeof ticket.siteId === 'object' ? ticket.siteId?._id : ticket.siteId;
-
-            // Extract site, asset type, and device type from the asset object if populated
             const asset = ticket.assetId && typeof ticket.assetId === 'object' ? ticket.assetId : null;
             const assetSiteId = asset ? (typeof asset.siteId === 'object' ? asset.siteId?._id : asset.siteId) : null;
             const effectiveSiteId = ticketSiteId || assetSiteId;
 
             if (effectiveSiteId) {
                 setSelectedSiteId(effectiveSiteId);
-                // Load location names for this site
                 await loadLocationNames(effectiveSiteId);
-                // Load asset types for this site and location
                 await loadAssetTypesForSite(effectiveSiteId, asset?.locationName || '');
             }
 
             if (asset) {
-                // Set location name from asset
-                if (asset.locationName) {
-                    setSelectedLocationName(asset.locationName);
-                }
-
-                // Set asset type from asset
+                if (asset.locationName) setSelectedLocationName(asset.locationName);
                 if (asset.assetType) {
                     setSelectedAssetType(asset.assetType);
-                    // Load device types for this asset type
                     await loadDeviceTypesForSite(effectiveSiteId, asset.locationName || '', asset.assetType);
                 }
-
-                // Set device type from asset
-                if (asset.deviceType) {
-                    setSelectedDeviceType(asset.deviceType);
-                }
-
-                // Load assets for the site and asset type to populate the dropdown
+                if (asset.deviceType) setSelectedDeviceType(asset.deviceType);
                 if (effectiveSiteId) {
                     await loadAssets(effectiveSiteId, asset.locationName || '', asset.assetType || '', asset.deviceType || '');
                 }
@@ -334,30 +278,25 @@ export default function TicketForm() {
             navigate('/tickets');
         } finally {
             setLoading(false);
-            // Reset initial load flag so subsequent changes work normally
             isInitialLoad.current = false;
         }
     };
 
     const handleChange = (field, value) => {
-        setFormData({ ...formData, [field]: value });
+        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleFileSelect = (e) => {
         const files = Array.from(e.target.files);
         const validFiles = files.filter(file => {
-            const maxSize = 10 * 1024 * 1024; // 10MB
-            if (file.size > maxSize) {
+            if (file.size > 10 * 1024 * 1024) {
                 toast.error(`${file.name} is too large. Maximum size is 10MB.`);
                 return false;
             }
             return true;
         });
         setAttachments(prev => [...prev, ...validFiles]);
-        // Reset input so same file can be selected again
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+        if (fileInputRef.current) fileInputRef.current.value = '';
     };
 
     const removeAttachment = (index) => {
@@ -365,9 +304,7 @@ export default function TicketForm() {
     };
 
     const getFileIcon = (file) => {
-        if (file.type.startsWith('image/')) {
-            return <Image size={16} />;
-        }
+        if (file.type.startsWith('image/')) return <Image size={16} />;
         return <FileText size={16} />;
     };
 
@@ -377,20 +314,17 @@ export default function TicketForm() {
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
+    // useActionState replaces manual saving state
+    const [, ticketFormAction, isPending] = useActionState(async () => {
         if (!isSiteClient && !selectedSiteId) {
             toast.error('Please select a Site');
-            return;
+            return { error: 'Please select a Site' };
         }
-
         if (!formData.title || !formData.category) {
             toast.error('Please fill in required fields');
-            return;
+            return { error: 'Please fill in required fields' };
         }
 
-        setSaving(true);
         try {
             const siteId = isSiteClient
                 ? (selectedSiteId || user?.assignedSites?.[0]?._id || user?.assignedSites?.[0])
@@ -407,50 +341,45 @@ export default function TicketForm() {
             if (isEditing) {
                 await ticketsApi.update(id, payload);
                 toast.success('Ticket updated successfully');
-            } else {
-                const response = await ticketsApi.create(payload);
-                const newTicketId = response.data.data?._id || response.data.data?.ticketId || response.data._id;
-
-                // Upload attachments if any
-                if (attachments.length > 0 && newTicketId) {
-                    toast.loading('Uploading attachments...', { id: 'upload-attachments' });
-
-                    let successCount = 0;
-                    let failCount = 0;
-
-                    for (const file of attachments) {
-                        try {
-                            await activitiesApi.uploadAttachment(newTicketId, file);
-                            successCount++;
-                        } catch (err) {
-                            console.error('Failed to upload attachment:', file.name, err);
-                            failCount++;
-                        }
-                    }
-
-                    toast.dismiss('upload-attachments');
-
-                    if (failCount > 0) {
-                        toast.success(`Ticket created. ${successCount} file(s) uploaded, ${failCount} failed.`);
-                    } else {
-                        toast.success(`Ticket created with ${successCount} attachment(s)`);
-                    }
-                } else {
-                    toast.success('Ticket created successfully');
-                }
-
-                navigate(`/tickets/${newTicketId}`);
-                return;
+                navigate(`/tickets/${id}`);
+                return { error: null };
             }
 
-            navigate(`/tickets/${id}`);
+            const response = await ticketsApi.create(payload);
+            const newTicketId = response.data.data?._id || response.data.data?.ticketId || response.data._id;
+
+            if (attachments.length > 0 && newTicketId) {
+                toast.loading('Uploading attachments...', { id: 'upload-attachments' });
+                let successCount = 0;
+                let failCount = 0;
+                for (const file of attachments) {
+                    try {
+                        await activitiesApi.uploadAttachment(newTicketId, file);
+                        successCount++;
+                    } catch (err) {
+                        console.error('Failed to upload attachment:', file.name, err);
+                        failCount++;
+                    }
+                }
+                toast.dismiss('upload-attachments');
+                if (failCount > 0) {
+                    toast.success(`Ticket created. ${successCount} file(s) uploaded, ${failCount} failed.`);
+                } else {
+                    toast.success(`Ticket created with ${successCount} attachment(s)`);
+                }
+            } else {
+                toast.success('Ticket created successfully');
+            }
+
+            navigate(`/tickets/${newTicketId}`);
+            return { error: null };
         } catch (error) {
-            console.error('Error creating ticket:', error);
-            toast.error(isEditing ? 'Failed to update ticket' : 'Failed to create ticket');
-        } finally {
-            setSaving(false);
+            console.error('Error saving ticket:', error);
+            const msg = isEditing ? 'Failed to update ticket' : 'Failed to create ticket';
+            toast.error(msg);
+            return { error: msg };
         }
-    };
+    }, { error: null });
 
     if (loading) {
         return (
@@ -476,10 +405,10 @@ export default function TicketForm() {
                 </Link>
             </div>
 
-            <form onSubmit={handleSubmit} className="form-card glass-card">
+            <form action={ticketFormAction} className="form-card glass-card">
                 <div className='asset-form-container' style={{ margin: "1rem" }}>
                     <div className="form-grid">
-                        {/* Site Selection (mandatory for non-clients, auto-selected for clients) */}
+                        {/* Site Selection */}
                         {isSiteClient ? (
                             <input type="hidden" value={user?.assignedSites?.[0]?._id || user?.assignedSites?.[0] || ''} />
                         ) : (
@@ -499,10 +428,9 @@ export default function TicketForm() {
                             </div>
                         )}
 
-                        {/* Location, Asset Type, Device Type, Asset Selection - Hidden for SiteClient */}
+                        {/* Location, Asset Type, Device Type, Asset — Hidden for SiteClient */}
                         {!isSiteClient && (
                             <>
-                                {/* Location Name Selection (filter for assets) */}
                                 <div className="form-group">
                                     <label className="form-label">Location Name</label>
                                     <select
@@ -512,11 +440,7 @@ export default function TicketForm() {
                                         disabled={!selectedSiteId || locationNames.length === 0}
                                     >
                                         <option value="">
-                                            {!selectedSiteId
-                                                ? 'Select Site first'
-                                                : locationNames.length === 0
-                                                    ? 'No locations available'
-                                                    : 'All Locations'}
+                                            {!selectedSiteId ? 'Select Site first' : locationNames.length === 0 ? 'No locations available' : 'All Locations'}
                                         </option>
                                         {locationNames.map((loc) => (
                                             <option key={loc.value} value={loc.value}>{loc.label}</option>
@@ -524,7 +448,6 @@ export default function TicketForm() {
                                     </select>
                                 </div>
 
-                                {/* Asset Type Selection (filter for assets) */}
                                 <div className="form-group">
                                     <label className="form-label">Asset Type</label>
                                     <select
@@ -534,11 +457,7 @@ export default function TicketForm() {
                                         disabled={!selectedSiteId || assetTypes.length === 0}
                                     >
                                         <option value="">
-                                            {!selectedSiteId
-                                                ? 'Select Site first'
-                                                : assetTypes.length === 0
-                                                    ? 'No asset types available'
-                                                    : 'All Asset Types'}
+                                            {!selectedSiteId ? 'Select Site first' : assetTypes.length === 0 ? 'No asset types available' : 'All Asset Types'}
                                         </option>
                                         {assetTypes.map((type) => (
                                             <option key={type.value} value={type.value}>{type.label}</option>
@@ -546,7 +465,6 @@ export default function TicketForm() {
                                     </select>
                                 </div>
 
-                                {/* Device Type Selection (filter for assets) */}
                                 <div className="form-group">
                                     <label className="form-label">Device Type</label>
                                     <select
@@ -556,11 +474,7 @@ export default function TicketForm() {
                                         disabled={!selectedAssetType || deviceTypes.length === 0}
                                     >
                                         <option value="">
-                                            {!selectedAssetType
-                                                ? 'Select Asset Type first'
-                                                : deviceTypes.length === 0
-                                                    ? 'No device types available'
-                                                    : 'All Device Types'}
+                                            {!selectedAssetType ? 'Select Asset Type first' : deviceTypes.length === 0 ? 'No device types available' : 'All Device Types'}
                                         </option>
                                         {deviceTypes.map((dt) => (
                                             <option key={dt.value} value={dt.value}>{dt.label}</option>
@@ -568,7 +482,6 @@ export default function TicketForm() {
                                     </select>
                                 </div>
 
-                                {/* Asset Selection */}
                                 <div className="form-group">
                                     <label className="form-label">Asset</label>
                                     <select
@@ -578,12 +491,7 @@ export default function TicketForm() {
                                         disabled={!selectedSiteId}
                                     >
                                         <option value="">
-                                            {!selectedSiteId
-                                                ? 'Select Site first'
-                                                : assets.length === 0
-                                                    ? 'No assets available'
-                                                    : 'Select Asset (optional)'
-                                            }
+                                            {!selectedSiteId ? 'Select Site first' : assets.length === 0 ? 'No assets available' : 'Select Asset (optional)'}
                                         </option>
                                         {assets.map((asset) => (
                                             <option key={asset.value} value={asset.value}>{asset.label}</option>
@@ -646,10 +554,9 @@ export default function TicketForm() {
                             />
                         </div>
 
-                        {/* Impact & Urgency - Hidden for SiteClient */}
+                        {/* Impact & Urgency */}
                         {!isSiteClient && (
                             <>
-                                {/* Impact */}
                                 <div className="form-group">
                                     <label className="form-label">Impact (1-5)</label>
                                     <select
@@ -665,7 +572,6 @@ export default function TicketForm() {
                                     </select>
                                 </div>
 
-                                {/* Urgency */}
                                 <div className="form-group">
                                     <label className="form-label">Urgency (1-5)</label>
                                     <select
@@ -683,7 +589,7 @@ export default function TicketForm() {
                             </>
                         )}
 
-                        {/* Assign To (only for new tickets) - Only Admin can change default assignment */}
+                        {/* Assign To */}
                         {!isEditing && hasRole('Admin') && (
                             <div className="form-group">
                                 <label className="form-label">Assign To (optional)</label>
@@ -719,7 +625,7 @@ export default function TicketForm() {
                             </div>
                         )}
 
-                        {/* Tags - Hidden for SiteClient */}
+                        {/* Tags */}
                         {!isSiteClient && (
                             <div className="form-group">
                                 <label className="form-label">Tags</label>
@@ -733,7 +639,7 @@ export default function TicketForm() {
                             </div>
                         )}
 
-                        {/* File Attachments (only for new tickets) */}
+                        {/* File Attachments */}
                         {!isEditing && (
                             <div className="form-group full-width">
                                 <label className="form-label">
@@ -764,42 +670,24 @@ export default function TicketForm() {
 
                                     {attachments.length > 0 && (
                                         <div className="attachments-list" style={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '8px',
-                                            padding: '12px',
-                                            backgroundColor: 'var(--surface-alt)',
-                                            borderRadius: '8px'
+                                            display: 'flex', flexDirection: 'column', gap: '8px',
+                                            padding: '12px', backgroundColor: 'var(--surface-alt)', borderRadius: '8px'
                                         }}>
                                             {attachments.map((file, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="attachment-item"
-                                                    style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'space-between',
-                                                        padding: '8px 12px',
-                                                        backgroundColor: 'var(--surface)',
-                                                        borderRadius: '6px',
-                                                        border: '1px solid var(--border)'
-                                                    }}
-                                                >
+                                                <div key={index} className="attachment-item" style={{
+                                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                                    padding: '8px 12px', backgroundColor: 'var(--surface)',
+                                                    borderRadius: '6px', border: '1px solid var(--border)'
+                                                }}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
                                                         {getFileIcon(file)}
                                                         <span style={{
-                                                            overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            whiteSpace: 'nowrap',
-                                                            fontSize: '14px'
+                                                            overflow: 'hidden', textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap', fontSize: '14px'
                                                         }}>
                                                             {file.name}
                                                         </span>
-                                                        <span style={{
-                                                            fontSize: '12px',
-                                                            color: 'var(--text-muted)',
-                                                            whiteSpace: 'nowrap'
-                                                        }}>
+                                                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                                                             ({formatFileSize(file.size)})
                                                         </span>
                                                     </div>
@@ -807,13 +695,8 @@ export default function TicketForm() {
                                                         type="button"
                                                         onClick={() => removeAttachment(index)}
                                                         style={{
-                                                            background: 'none',
-                                                            border: 'none',
-                                                            cursor: 'pointer',
-                                                            padding: '4px',
-                                                            color: 'var(--danger)',
-                                                            display: 'flex',
-                                                            alignItems: 'center'
+                                                            background: 'none', border: 'none', cursor: 'pointer',
+                                                            padding: '4px', color: 'var(--danger)', display: 'flex', alignItems: 'center'
                                                         }}
                                                         title="Remove file"
                                                     >
@@ -828,7 +711,7 @@ export default function TicketForm() {
                         )}
                     </div>
 
-                    {/* Priority Preview - Hidden for SiteClient */}
+                    {/* Priority Preview */}
                     {!isSiteClient && (
                         <>
                             <div className="priority-preview">
@@ -843,14 +726,9 @@ export default function TicketForm() {
 
                             {calculatedTargets.response && (
                                 <div className="sla-preview-grid" style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                                    gap: '1rem',
-                                    marginTop: '1rem',
-                                    padding: '1rem',
-                                    backgroundColor: 'var(--surface-alt)',
-                                    borderRadius: '8px',
-                                    border: '1px solid var(--border)'
+                                    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                                    gap: '1rem', marginTop: '1rem', padding: '1rem',
+                                    backgroundColor: 'var(--surface-alt)', borderRadius: '8px', border: '1px solid var(--border)'
                                 }}>
                                     <div className="sla-preview-item">
                                         <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
@@ -875,19 +753,13 @@ export default function TicketForm() {
 
                     <div className="form-actions">
                         <Link to="/tickets" className="btn btn-ghost">Cancel</Link>
-                        <button type="submit" className="btn btn-primary" disabled={saving}>
-                            {saving ? (
-                                <>
-                                    <Loader size={18} className="animate-spin" />
-                                    {isEditing ? 'Saving...' : 'Creating...'}
-                                </>
-                            ) : (
-                                <>
-                                    <Save size={18} />
-                                    {isEditing ? 'Save Changes' : 'Create Ticket'}
-                                </>
-                            )}
-                        </button>
+                        <SubmitButton
+                            pendingText={isEditing ? 'Saving...' : 'Creating...'}
+                            disabled={isPending}
+                        >
+                            <Save size={18} />
+                            {isEditing ? 'Save Changes' : 'Create Ticket'}
+                        </SubmitButton>
                     </div>
                 </div>
             </form>

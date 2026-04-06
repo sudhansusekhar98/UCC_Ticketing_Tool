@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useActionState, useTransition, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Loader, Clock, RotateCcw, Download } from 'lucide-react';
+import { ArrowLeft, Save, Clock, RotateCcw, Download } from 'lucide-react';
 import { sitesApi, usersApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
+import SubmitButton from '../../components/ui/SubmitButton';
 import toast from 'react-hot-toast';
 import './Sites.css';
 
@@ -36,8 +37,6 @@ export default function SiteForm() {
     const isEditing = Boolean(id);
 
     const [loading, setLoading] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [savingSLA, setSavingSLA] = useState(false);
     const [contacts, setContacts] = useState([]);
 
     const [formData, setFormData] = useState({
@@ -57,10 +56,12 @@ export default function SiteForm() {
     const [hasExistingHeadOffice, setHasExistingHeadOffice] = useState(false);
     const [existingHeadOfficeName, setExistingHeadOfficeName] = useState('');
 
-    // SLA state
     const [slaPolicies, setSlaPolicies] = useState([]);
-    const [slaSource, setSlaSource] = useState('global'); // 'site' or 'global'
+    const [slaSource, setSlaSource] = useState('global');
     const [slaExpanded, setSlaExpanded] = useState(true);
+
+    // useTransition for SLA save — replaces manual savingSLA state
+    const [isSLAPending, startSLATransition] = useTransition();
 
     useEffect(() => {
         loadContacts();
@@ -89,10 +90,7 @@ export default function SiteForm() {
         try {
             const response = await usersApi.getContacts();
             const contactData = response.data.data || response.data || [];
-            setContacts(contactData.map(c => ({
-                ...c,
-                userId: c._id || c.userId
-            })));
+            setContacts(contactData.map(c => ({ ...c, userId: c._id || c.userId })));
         } catch (error) {
             console.error('Failed to load contacts', error);
         }
@@ -130,8 +128,6 @@ export default function SiteForm() {
             const response = await sitesApi.getSLA(id);
             const data = response.data;
             setSlaSource(data.source);
-
-            // Normalize: ensure all 4 priorities exist
             const incoming = data.data || [];
             const merged = ['P1', 'P2', 'P3', 'P4'].map(priority => {
                 const existing = incoming.find(p => p.priority === priority);
@@ -144,8 +140,7 @@ export default function SiteForm() {
                         escalationLevel2Minutes: existing.escalationLevel2Minutes ?? 0,
                     };
                 }
-                const defaultSLA = DEFAULT_SLA.find(d => d.priority === priority);
-                return { ...defaultSLA };
+                return { ...DEFAULT_SLA.find(d => d.priority === priority) };
             });
             setSlaPolicies(merged);
         } catch (error) {
@@ -155,23 +150,21 @@ export default function SiteForm() {
     };
 
     const handleChange = (field, value) => {
-        setFormData({ ...formData, [field]: value });
+        setFormData(prev => ({ ...prev, [field]: value }));
     };
 
     const handleContactPersonChange = (selectedName) => {
         const selectedContact = contacts.find(c => c.fullName === selectedName);
-        setFormData({
-            ...formData,
+        setFormData(prev => ({
+            ...prev,
             contactPerson: selectedName,
             contactPhone: selectedContact?.mobileNumber || ''
-        });
+        }));
     };
 
     const handleSLAChange = (priority, field, value) => {
         setSlaPolicies(prev => prev.map(p =>
-            p.priority === priority
-                ? { ...p, [field]: parseInt(value) || 0 }
-                : p
+            p.priority === priority ? { ...p, [field]: parseInt(value) || 0 } : p
         ));
     };
 
@@ -180,50 +173,45 @@ export default function SiteForm() {
         toast.success('Loaded global default SLA values');
     };
 
-    const handleResetToGlobal = async () => {
+    // useTransition replaces setSavingSLA — handles both reset and save
+    const handleResetToGlobal = () => {
         if (!confirm('Remove site-specific SLA and revert to global defaults?')) return;
-        setSavingSLA(true);
-        try {
-            await sitesApi.updateSLA(id, { policies: [] });
-            setSlaSource('global');
-            await loadSLA();
-            toast.success('SLA reset to global defaults');
-        } catch (error) {
-            toast.error('Failed to reset SLA');
-        } finally {
-            setSavingSLA(false);
-        }
+        startSLATransition(async () => {
+            try {
+                await sitesApi.updateSLA(id, { policies: [] });
+                setSlaSource('global');
+                await loadSLA();
+                toast.success('SLA reset to global defaults');
+            } catch (error) {
+                toast.error('Failed to reset SLA');
+            }
+        });
     };
 
-    const handleSaveSLA = async () => {
-        setSavingSLA(true);
-        try {
-            await sitesApi.updateSLA(id, { policies: slaPolicies });
-            setSlaSource('site');
-            toast.success('Site SLA policies saved');
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to save SLA');
-        } finally {
-            setSavingSLA(false);
-        }
+    const handleSaveSLA = () => {
+        startSLATransition(async () => {
+            try {
+                await sitesApi.updateSLA(id, { policies: slaPolicies });
+                setSlaSource('site');
+                toast.success('Site SLA policies saved');
+            } catch (error) {
+                toast.error(error.response?.data?.message || 'Failed to save SLA');
+            }
+        });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-
+    // useActionState replaces manual saving state for the main site form
+    const [, siteFormAction, isPending] = useActionState(async (prevState) => {
         if (!formData.siteName || !formData.city) {
             toast.error('Please fill in required fields');
-            return;
+            return { error: 'Validation failed' };
         }
-
-        setSaving(true);
         try {
             const payload = {
                 ...formData,
                 latitude: formData.latitude ? parseFloat(formData.latitude) : null,
                 longitude: formData.longitude ? parseFloat(formData.longitude) : null,
             };
-
             if (isEditing) {
                 await sitesApi.update(id, payload);
                 toast.success('Site updated successfully');
@@ -232,12 +220,12 @@ export default function SiteForm() {
                 toast.success('Site created successfully');
             }
             navigate('/sites');
+            return { error: null };
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to save site');
-        } finally {
-            setSaving(false);
+            return { error: error.response?.data?.message || 'Failed to save site' };
         }
-    };
+    }, { error: null });
 
     if (loading) {
         return (
@@ -260,7 +248,7 @@ export default function SiteForm() {
             </div>
 
             <div className={`site-form-layout ${isEditing && isAdmin ? 'with-sidebar' : ''}`}>
-                <form onSubmit={handleSubmit} className="form-card glass-card" style={{ margin: 0, maxWidth: 'none' }}>
+                <form action={siteFormAction} className="form-card glass-card" style={{ margin: 0, maxWidth: 'none' }}>
                     <div className='asset-form-container'>
                     <div className="form-grid">
                         <div className="form-group">
@@ -420,19 +408,10 @@ export default function SiteForm() {
 
                     <div className="form-actions">
                         <Link to="/sites" className="btn btn-ghost">Cancel</Link>
-                        <button type="submit" className="btn btn-primary" disabled={saving}>
-                            {saving ? (
-                                <>
-                                    <Loader size={18} className="animate-spin" />
-                                    Saving...
-                                </>
-                            ) : (
-                                <>
-                                    <Save size={18} />
-                                    {isEditing ? 'Update Site' : 'Create Site'}
-                                </>
-                            )}
-                        </button>
+                        <SubmitButton pendingText="Saving..." disabled={isPending}>
+                            <Save size={18} />
+                            {isEditing ? 'Update Site' : 'Create Site'}
+                        </SubmitButton>
                     </div>
                 </div>
                 </form>
@@ -475,20 +454,18 @@ export default function SiteForm() {
 
                     {slaExpanded && (
                         <div style={{ padding: '0 1.25rem 1.25rem' }}>
-                            {/* Action buttons */}
                             <div className="flex gap-2" style={{ marginBottom: '1rem', flexWrap: 'wrap' }}>
                                 <button type="button" className="btn btn-ghost btn-sm" onClick={handleLoadGlobalDefaults}>
                                     <Download size={14} /> Load Global Defaults
                                 </button>
                                 {slaSource === 'site' && (
                                     <button type="button" className="btn btn-ghost btn-sm" onClick={handleResetToGlobal}
-                                        style={{ color: 'var(--danger-500)' }} disabled={savingSLA}>
+                                        style={{ color: 'var(--danger-500)' }} disabled={isSLAPending}>
                                         <RotateCcw size={14} /> Reset to Global
                                     </button>
                                 )}
                             </div>
 
-                            {/* Priority cards grid */}
                             <div style={{
                                 display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
                                 gap: '0.75rem', marginBottom: '1rem'
@@ -572,16 +549,15 @@ export default function SiteForm() {
                                 })}
                             </div>
 
-                            {/* Save SLA button */}
                             <div className="flex justify-end">
                                 <button
                                     type="button"
                                     className="btn btn-primary"
                                     onClick={handleSaveSLA}
-                                    disabled={savingSLA}
+                                    disabled={isSLAPending}
                                 >
-                                    {savingSLA ? (
-                                        <><Loader size={16} className="animate-spin" /> Saving SLA...</>
+                                    {isSLAPending ? (
+                                        <><Save size={16} className="animate-spin" /> Saving SLA...</>
                                     ) : (
                                         <><Save size={16} /> Save SLA Configuration</>
                                     )}
