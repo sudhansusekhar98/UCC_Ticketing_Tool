@@ -289,18 +289,21 @@ export const createTicket = async (req, res, next) => {
       ticketData.category = ticketData.category || 'General';
     }
 
-    // All new tickets start as 'Open' — status transitions to Assigned/Acknowledged later
-    ticketData.status = 'Open';
-
-    // Record assignment info if provided, but keep status as Open until acknowledged
+    // Record assignment info and set initial status accordingly
     if (req.user.role !== 'SiteClient') {
       if (ticketData.assignedTo) {
         ticketData.assignedOn = new Date();
+        ticketData.status = 'Assigned';
       } else if (req.user.role !== 'Admin') {
         // Non-admin, non-SiteClient with no assignee: assign to self
         ticketData.assignedTo = req.user._id;
         ticketData.assignedOn = new Date();
+        ticketData.status = 'Assigned';
+      } else {
+        ticketData.status = 'Open';
       }
+    } else {
+      ticketData.status = 'Open';
     }
 
     const ticket = await Ticket.create(ticketData);

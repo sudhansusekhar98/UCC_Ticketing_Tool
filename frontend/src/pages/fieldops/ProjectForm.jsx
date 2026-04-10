@@ -8,7 +8,10 @@ import {
     User,
     Building,
     FileText,
-    Users
+    Users,
+    ClipboardList,
+    Package,
+    Loader
 } from 'lucide-react';
 import { fieldOpsApi, usersApi, sitesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
@@ -28,6 +31,12 @@ export default function ProjectForm() {
     const [users, setUsers] = useState([]);
     const [sites, setSites] = useState([]);
 
+    // Survey integration state
+    const [surveys, setSurveys] = useState([]);
+    const [surveyRequirements, setSurveyRequirements] = useState([]);
+    const [loadingSurveys, setLoadingSurveys] = useState(false);
+    const [loadingRequirements, setLoadingRequirements] = useState(false);
+
     const [formData, setFormData] = useState({
         projectName: '',
         clientName: '',
@@ -46,6 +55,9 @@ export default function ProjectForm() {
         teamMembers: [],
         assignedVendors: [],
         linkedSiteId: '',
+        linkedSurveyId: '',
+        linkedSurveyName: '',
+        surveyDeviceRequirements: [],
         tags: []
     });
 
@@ -58,14 +70,28 @@ export default function ProjectForm() {
 
     const loadDropdownData = async () => {
         try {
-            const [usersRes, sitesRes] = await Promise.all([
+            const promises = [
                 usersApi.getAll({ limit: 500, isActive: true }),
                 sitesApi.getAll({ limit: 500, isActive: true })
-            ]);
-            setUsers(usersRes.data.data || []);
-            setSites(sitesRes.data.data || []);
+            ];
+
+            // Load surveys for Admin/Supervisor
+            if (hasRole(['Admin', 'Supervisor'])) {
+                setLoadingSurveys(true);
+                promises.push(fieldOpsApi.getSurveys({ limit: 100 }));
+            }
+
+            const results = await Promise.all(promises);
+            setUsers(results[0].data.data || []);
+            setSites(results[1].data.data || []);
+
+            if (results[2]) {
+                setSurveys(results[2].data.data || []);
+            }
         } catch (error) {
             console.error('Failed to load dropdown data:', error);
+        } finally {
+            setLoadingSurveys(false);
         }
     };
 
@@ -81,10 +107,17 @@ export default function ProjectForm() {
                 teamMembers: project.teamMembers?.map(u => u._id || u) || [],
                 assignedVendors: project.assignedVendors?.map(u => u._id || u) || [],
                 linkedSiteId: project.linkedSiteId?._id || project.linkedSiteId || '',
+                linkedSurveyId: project.linkedSurveyId || '',
+                linkedSurveyName: project.linkedSurveyName || '',
+                surveyDeviceRequirements: project.surveyDeviceRequirements || [],
                 latitude: project.latitude || '',
                 longitude: project.longitude || '',
                 contractValue: project.contractValue || ''
             });
+            // Populate requirements display from saved data
+            if (project.surveyDeviceRequirements?.length > 0) {
+                setSurveyRequirements(project.surveyDeviceRequirements);
+            }
         } catch (error) {
             toast.error('Failed to load project');
             navigate('/fieldops/projects');
@@ -103,6 +136,37 @@ export default function ProjectForm() {
             ? current.filter(v => v !== value)
             : [...current, value];
         handleChange(field, updated);
+    };
+
+    const handleSurveyChange = async (surveyId) => {
+        const selected = surveys.find(s => String(s.surveyId) === String(surveyId));
+        handleChange('linkedSurveyId', surveyId);
+        handleChange('linkedSurveyName', selected?.surveyName || '');
+
+        if (surveyId) {
+            setLoadingRequirements(true);
+            try {
+                const res = await fieldOpsApi.getSurveyRequirements(surveyId);
+                const requirements = res.data.data || [];
+                setSurveyRequirements(requirements);
+                handleChange('surveyDeviceRequirements', requirements);
+
+                // Auto-fill client name from survey if empty
+                if (selected?.clientName && !formData.clientName) {
+                    handleChange('clientName', selected.clientName);
+                }
+            } catch (error) {
+                toast.error('Failed to load survey device requirements');
+                setSurveyRequirements([]);
+                handleChange('surveyDeviceRequirements', []);
+            } finally {
+                setLoadingRequirements(false);
+            }
+        } else {
+            setSurveyRequirements([]);
+            handleChange('surveyDeviceRequirements', []);
+            handleChange('linkedSurveyName', '');
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -180,6 +244,87 @@ export default function ProjectForm() {
             </div>
 
             <form onSubmit={handleSubmit} className="glass-card project-form">
+                {/* Survey Linkage */}
+                <div className="form-section">
+                    <h3 className="form-section-title">
+                        <ClipboardList size={18} /> Survey Linkage
+                    </h3>
+                    <div className="form-grid">
+                        <div className="form-group full-width">
+                            <label className="form-label">Select Survey</label>
+                            {loadingSurveys ? (
+                                <div className="form-input" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-secondary)' }}>
+                                    <Loader size={16} className="spinning" /> Loading surveys...
+                                </div>
+                            ) : (
+                                <select
+                                    className="form-select"
+                                    value={formData.linkedSurveyId}
+                                    onChange={(e) => handleSurveyChange(e.target.value)}
+                                >
+                                    <option value="">-- Select Survey (Optional) --</option>
+                                    {surveys.map(survey => (
+                                        <option key={survey.surveyId} value={survey.surveyId}>
+                                            {survey.surveyName} {survey.clientName ? `- ${survey.clientName}` : ''} {survey.regionName ? `(${survey.regionName})` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                            <small style={{ color: 'var(--text-secondary)', marginTop: '0.25rem', display: 'block' }}>
+                                Link a completed survey to auto-populate device requirements
+                            </small>
+                        </div>
+                    </div>
+
+                    {/* Device Requirements Table */}
+                    {loadingRequirements && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '1rem', color: 'var(--text-secondary)' }}>
+                            <Loader size={16} className="spinning" /> Loading device requirements...
+                        </div>
+                    )}
+
+                    {!loadingRequirements && surveyRequirements.length > 0 && (
+                        <div style={{ marginTop: '1rem' }}>
+                            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                                <Package size={16} /> Survey Device Requirements
+                            </h4>
+                            <div style={{
+                                background: 'var(--info-50, #eff6ff)',
+                                border: '1px solid var(--info-200, #bfdbfe)',
+                                borderRadius: '0.5rem',
+                                padding: '0.625rem 0.875rem',
+                                marginBottom: '0.75rem',
+                                fontSize: '0.8125rem',
+                                color: 'var(--info-700, #1d4ed8)'
+                            }}>
+                                These device counts are from the approved survey and will be saved with the project.
+                            </div>
+                            <div className="table-responsive">
+                                <table className="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Device Name</th>
+                                            <th>Type</th>
+                                            <th style={{ textAlign: 'center' }}>Existing Qty</th>
+                                            <th style={{ textAlign: 'center' }}>Required Qty</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {surveyRequirements.map((item, idx) => (
+                                            <tr key={item.itemId || idx}>
+                                                <td>{item.itemName}</td>
+                                                <td>{item.itemTypeName}</td>
+                                                <td style={{ textAlign: 'center' }}>{item.totalExisting}</td>
+                                                <td style={{ textAlign: 'center', fontWeight: 600 }}>{item.totalRequired}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 {/* Basic Information */}
                 <div className="form-section">
                     <h3 className="form-section-title">

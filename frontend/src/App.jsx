@@ -48,8 +48,23 @@ import MovementLogs from './pages/stock/MovementLogs';
 import StockAnalyticsDashboard from './pages/stock/analytics/StockAnalyticsDashboard';
 import WorkLog from './pages/worklog/WorkLog';
 
-// Field Operations - Coming Soon (under development)
-import ComingSoon from './pages/fieldops/ComingSoon';
+// Field Operations
+import Projects from './pages/fieldops/Projects';
+import ProjectForm from './pages/fieldops/ProjectForm';
+import ProjectDetail from './pages/fieldops/ProjectDetail';
+import PMDailyLogForm from './pages/fieldops/pm-logs/PMDailyLogForm';
+import PMDailyLogView from './pages/fieldops/pm-logs/PMDailyLogView';
+import DeviceInstallationForm from './pages/fieldops/devices/DeviceInstallationForm';
+import DeviceInstallationList from './pages/fieldops/devices/DeviceInstallationList';
+import DeviceAssignmentList from './pages/fieldops/devices/DeviceAssignmentList';
+import ProjectAssignedDevicesList from './pages/fieldops/devices/ProjectAssignedDevicesList';
+import MyDeviceAssignments from './pages/fieldops/devices/MyDeviceAssignments';
+import VendorWorkLogForm from './pages/fieldops/vendor-logs/VendorWorkLogForm';
+import VendorWorkLogList from './pages/fieldops/vendor-logs/VendorWorkLogList';
+import ChallengeLogForm from './pages/fieldops/challenges/ChallengeLogForm';
+import ChallengeLogList from './pages/fieldops/challenges/ChallengeLogList';
+import ProjectAllocatedStockList from './pages/fieldops/ProjectAllocatedStockList';
+import ProjectReports from './pages/fieldops/reports/ProjectReports';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles, requiredRight }) {
@@ -542,12 +557,164 @@ function App() {
             }
           />
 
-          {/* Field Operations - Coming Soon */}
+          {/* Field Operations */}
           <Route
-            path="/fieldops/*"
+            path="/fieldops/projects"
             element={
               <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
-                <ComingSoon />
+                <Projects />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/new"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <ProjectForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:id"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <ProjectDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:id/edit"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <ProjectForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:projectId/daily-log"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <PMDailyLogForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/pm-logs"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <PMDailyLogView />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/pm-logs/:logId"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <PMDailyLogView />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/pm-logs/:logId/edit"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <PMDailyLogForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:projectId/devices/new"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <DeviceInstallationForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/devices"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <DeviceInstallationList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/devices/assignment"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <DeviceAssignmentList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:projectId/devices/assigned"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <ProjectAssignedDevicesList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/devices/my-assignments"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <MyDeviceAssignments />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:projectId/vendor-logs/new"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <VendorWorkLogForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/vendor-logs"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <VendorWorkLogList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:projectId/challenges/new"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <ChallengeLogForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:projectId/challenges/:challengeId/edit"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <ChallengeLogForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/challenges"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <ChallengeLogList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:id/stock"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <ProjectAllocatedStockList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/reports"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+                <ProjectReports />
               </ProtectedRoute>
             }
           />

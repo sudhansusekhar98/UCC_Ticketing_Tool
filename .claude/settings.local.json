@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'D:/VL Access/CODES/UCC_Ticketing_Tool - AWS/backend' -type f \\\\\\(-name *fieldops* -o -name *survey* \\\\\\))"
+    ]
+  }
+}

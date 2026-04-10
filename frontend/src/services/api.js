@@ -393,6 +393,10 @@ export const stockApi = {
 
 // Field Operations API
 export const fieldOpsApi = {
+    // Survey Integration
+    getSurveys: (params) => api.get('/fieldops/surveys', { params }),
+    getSurveyRequirements: (surveyId) => api.get(`/fieldops/surveys/${surveyId}/requirements`),
+
     // Projects
     getProjects: (params) => api.get('/fieldops/projects', { params }),
     getProjectById: (id) => api.get(`/fieldops/projects/${id}`),

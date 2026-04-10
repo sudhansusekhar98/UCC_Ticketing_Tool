@@ -98,6 +98,25 @@ const projectSchema = new mongoose.Schema({
     ref: 'Site'
   },
 
+  // Linked Survey from external Survey application
+  linkedSurveyId: {
+    type: String,
+    trim: true,
+    index: true
+  },
+  linkedSurveyName: {
+    type: String,
+    trim: true,
+    maxlength: 300
+  },
+  surveyDeviceRequirements: [{
+    itemId: String,
+    itemName: String,
+    itemTypeName: String,
+    totalExisting: Number,
+    totalRequired: Number
+  }],
+
   // Metadata
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

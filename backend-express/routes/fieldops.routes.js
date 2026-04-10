@@ -56,11 +56,29 @@ import {
 } from '../controllers/fieldops.controller.js';
 import { protect, authorize, allowAccess } from '../middleware/auth.middleware.js';
 import { upload } from '../utils/upload.js';
+import {
+  getAvailableSurveys,
+  getSurveyDeviceRequirements
+} from '../controllers/survey.controller.js';
 
 const router = express.Router();
 
 // Apply authentication to all routes
 router.use(protect);
+
+// ==================== SURVEY INTEGRATION (PROXY) ====================
+
+// GET /api/fieldops/surveys - List available (completed) surveys
+router.get('/surveys',
+  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  getAvailableSurveys
+);
+
+// GET /api/fieldops/surveys/:surveyId/requirements - Get device counts
+router.get('/surveys/:surveyId/requirements',
+  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  getSurveyDeviceRequirements
+);
 
 // ==================== PROJECTS ====================
 

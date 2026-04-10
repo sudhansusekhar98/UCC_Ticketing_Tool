@@ -507,6 +507,12 @@ function OverviewTab({ project }) {
                             </span>
                         </div>
                     )}
+                    {project.linkedSurveyName && (
+                        <div className="info-item">
+                            <span className="label">Linked Survey</span>
+                            <span className="value">{project.linkedSurveyName}</span>
+                        </div>
+                    )}
                 </div>
                 <div className="info-section">
                     <h4>Location</h4>
@@ -541,6 +547,34 @@ function OverviewTab({ project }) {
                     )}
                 </div>
             </div>
+
+            {project.surveyDeviceRequirements?.length > 0 && (
+                <div className="info-section" style={{ marginTop: '1.5rem' }}>
+                    <h4>Survey Device Requirements</h4>
+                    <div className="table-responsive">
+                        <table className="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Device Name</th>
+                                    <th>Type</th>
+                                    <th style={{ textAlign: 'center' }}>Existing Qty</th>
+                                    <th style={{ textAlign: 'center' }}>Required Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {project.surveyDeviceRequirements.map((item, idx) => (
+                                    <tr key={item.itemId || idx}>
+                                        <td>{item.itemName}</td>
+                                        <td>{item.itemTypeName}</td>
+                                        <td style={{ textAlign: 'center' }}>{item.totalExisting}</td>
+                                        <td style={{ textAlign: 'center', fontWeight: 600 }}>{item.totalRequired}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
