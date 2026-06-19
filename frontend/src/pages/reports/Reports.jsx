@@ -5,7 +5,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     PieChart, Pie, Cell, LineChart, Line, AreaChart, Area
 } from 'recharts';
-import { FileDown, Activity, AlertCircle, CheckCircle, Package, RefreshCw, RotateCcw, Monitor, Users, HardDrive, FileText, ChevronDown, Download, Building2, UserCheck } from 'lucide-react';
+import { FileDown, Activity, AlertCircle, CheckCircle, Package, RefreshCw, RotateCcw, Monitor, Users, HardDrive, FileText, ChevronDown, Download, Building2, UserCheck, Globe } from 'lucide-react';
 import './Reports.css';
 import toast from 'react-hot-toast';
 
@@ -65,6 +65,7 @@ export default function Reports() {
     const [exportSiteId, setExportSiteId] = useState('all');
     const [sites, setSites] = useState([]);
     const [exporting, setExporting] = useState(false);
+    const [exportingHtml, setExportingHtml] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -198,6 +199,52 @@ export default function Reports() {
         }
     };
 
+    const handleHtmlExport = async () => {
+        setExportingHtml(true);
+        try {
+            let response;
+            let filename;
+            const exportParams = {
+                siteId: exportSiteId,
+                startDate: filters.startDate,
+                endDate: filters.endDate
+            };
+
+            const htmlApiMap = {
+                tickets: { fn: reportingApi.exportTicketsHtml, name: 'tickets_report' },
+                employees: { fn: reportingApi.exportEmployeesHtml, name: 'employee_status_report' },
+                assets: { fn: reportingApi.exportAssetsHtml, name: 'asset_status_report' },
+                rma: { fn: reportingApi.exportRMAHtml, name: 'rma_report' },
+                'spare-stock': { fn: reportingApi.exportSpareStockHtml, name: 'spare_stock_report' },
+                'work-activity': { fn: reportingApi.exportWorkActivityHtml, name: 'work_activity_report' },
+                'user-activities': { fn: reportingApi.exportUserActivitiesHtml, name: 'user_activities_report' },
+            };
+
+            const entry = htmlApiMap[selectedReportType];
+            if (!entry) { toast.error('HTML export not available for this report type'); return; }
+
+            response = await entry.fn(exportParams);
+            filename = `${entry.name}_${new Date().toISOString().slice(0, 10)}.html`;
+
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/html' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+            toast.success('Interactive HTML report downloaded! Open in browser to view charts.');
+            setShowExportPanel(false);
+        } catch (error) {
+            console.error('HTML export failed:', error);
+            toast.error('Failed to generate HTML report');
+        } finally {
+            setExportingHtml(false);
+        }
+    };
+
     if (loading && !ticketStats) {
         return <div className="loading-container"><div className="spinner"></div></div>;
     }
@@ -295,9 +342,27 @@ export default function Reports() {
                                 Cancel
                             </button>
                             <button
+                                className="btn btn-html-report"
+                                onClick={handleHtmlExport}
+                                disabled={exportingHtml || exporting}
+                                title="Download interactive HTML report with charts — open in browser"
+                            >
+                                {exportingHtml ? (
+                                    <>
+                                        <span className="btn-spinner"></span>
+                                        Generating...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Globe size={16} />
+                                        HTML Report
+                                    </>
+                                )}
+                            </button>
+                            <button
                                 className="btn btn-primary export-btn"
                                 onClick={handleExport}
-                                disabled={exporting}
+                                disabled={exporting || exportingHtml}
                             >
                                 {exporting ? (
                                     <>
@@ -307,7 +372,7 @@ export default function Reports() {
                                 ) : (
                                     <>
                                         <Download size={18} />
-                                        Download {selectedReport?.label}
+                                        Excel Export
                                     </>
                                 )}
                             </button>

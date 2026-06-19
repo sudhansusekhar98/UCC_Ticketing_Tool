@@ -138,7 +138,8 @@ const buildAssetQuery = (req) => {
       { make: { $regex: search, $options: 'i' } },
       { model: { $regex: search, $options: 'i' } },
       { assetType: { $regex: search, $options: 'i' } },
-      { deviceType: { $regex: search, $options: 'i' } }
+      { deviceType: { $regex: search, $options: 'i' } },
+      { remarks: { $regex: search, $options: 'i' } }
     ];
   }
 

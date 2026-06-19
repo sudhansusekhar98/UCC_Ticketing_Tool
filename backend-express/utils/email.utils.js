@@ -209,7 +209,7 @@ export const sendDeviceAssignmentEmail = async (device, assignedUser, assignedBy
 
       ${device.notes ? `<p><strong>Notes:</strong></p><div class="info-box">${device.notes}</div>` : ''}
 
-      <p>Please complete the configuration and testing as soon as possible. You can view this device in your "My Assignments" section.</p>
+      <p>Please log in to the system to complete the configuration. Once finished, <strong>mark the device as tested and configured</strong> so it can be deployed as an operational asset.</p>
 
       <div style="text-align: center;">
         <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/fieldops/devices/my-assignments" class="btn" style="color: white !important; text-decoration: none;">View My Assignments</a>
@@ -929,6 +929,41 @@ export const sendClientRejectionEmail = async (registration) => {
     await logNotification(registration.email, subject, content, 'Account', null, 'Sent');
   } catch (error) {
     console.error('Error sending client rejection email:', error);
+  }
+};
+
+export const sendActivityAssignmentEmail = async (activity, project, users) => {
+  if (!users?.length) return;
+  const validUsers = users.filter(u => u?.email);
+  if (!validUsers.length) return;
+
+  const taskList = (activity.tasks || []).slice(0, 10)
+    .map(t => `  - ${t.title}${t.plannedEnd ? ` (due ${new Date(t.plannedEnd).toLocaleDateString()})` : ''}`)
+    .join('\n');
+
+  for (const user of validUsers) {
+    try {
+      const transporter = createTransporter();
+      await transporter.sendMail({
+        from: `"${process.env.SMTP_FROM_NAME || 'TicketOps'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+        to: user.email,
+        subject: `Activity Assigned: ${activity.title} — ${project.projectName}`,
+        html: emailTemplate(`
+          <h2 style="margin:0 0 1rem">You have been assigned to an activity</h2>
+          <table style="width:100%;border-collapse:collapse;font-size:0.95rem">
+            <tr><td style="padding:0.4rem 0.6rem;font-weight:600;width:130px">Activity</td><td style="padding:0.4rem 0.6rem">${activity.activityNumber} — ${activity.title}</td></tr>
+            <tr style="background:rgba(0,0,0,0.03)"><td style="padding:0.4rem 0.6rem;font-weight:600">Project</td><td style="padding:0.4rem 0.6rem">${project.projectName} (${project.projectNumber})</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;font-weight:600">Type</td><td style="padding:0.4rem 0.6rem">${activity.type}</td></tr>
+            <tr style="background:rgba(0,0,0,0.03)"><td style="padding:0.4rem 0.6rem;font-weight:600">Priority</td><td style="padding:0.4rem 0.6rem">${activity.priority}</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;font-weight:600">Planned</td><td style="padding:0.4rem 0.6rem">${activity.plannedStart ? new Date(activity.plannedStart).toLocaleDateString() : 'TBD'} → ${activity.plannedEnd ? new Date(activity.plannedEnd).toLocaleDateString() : 'TBD'}</td></tr>
+          </table>
+          ${taskList ? `<h3 style="margin:1.2rem 0 0.5rem">Tasks</h3><pre style="background:#f4f7fa;padding:0.75rem;border-radius:6px;font-size:0.85rem">${taskList}</pre>` : ''}
+          <p style="margin-top:1.2rem">Log in to TicketOps to view the full activity details and track progress.</p>
+        `, `Activity Assigned: ${activity.title}`),
+      });
+    } catch (err) {
+      console.error('Activity assignment email failed for', user.email, err.message);
+    }
   }
 };
 

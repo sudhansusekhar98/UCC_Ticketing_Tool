@@ -6,8 +6,10 @@ import DeviceInstallation, { DeviceTypes, InstallationStatuses } from '../models
 import VendorWorkLog, { LabourTypes, TrenchStatuses } from '../models/VendorWorkLog.model.js';
 import ChallengeLog, { IssueTypes, Severities, ResolutionStatuses } from '../models/ChallengeLog.model.js';
 import ProjectStockAllocation from '../models/ProjectStockAllocation.model.js';
+import SurveyDeviceMapping from '../models/SurveyDeviceMapping.model.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
 import { sendDeviceAssignmentEmail } from '../utils/email.utils.js';
+import { getSurveyRequirements } from '../utils/surveyApi.js';
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -17,6 +19,9 @@ import { sendDeviceAssignmentEmail } from '../utils/email.utils.js';
 const canAccessProject = (user, project) => {
   // Admin and Supervisor have full access
   if (['Admin', 'Supervisor'].includes(user.role)) return true;
+
+  // Users with PROJECT_MANAGEMENT_PORTAL right (global) have full access
+  if (user.rights?.globalRights?.includes('PROJECT_MANAGEMENT_PORTAL')) return true;
 
   // Check if user is assigned PM
   if (project.assignedPM && project.assignedPM.toString() === user._id.toString()) return true;
@@ -81,8 +86,9 @@ export const getProjects = async (req, res, next) => {
       query.contractEndDate = { $lte: new Date(endDate) };
     }
 
-    // For non-admin/supervisor users, only show their assigned projects
-    if (!['Admin', 'Supervisor'].includes(req.user.role)) {
+    // For non-admin/supervisor users without the portal right, only show their assigned projects
+    const hasPortalRight = req.user.rights?.globalRights?.includes('PROJECT_MANAGEMENT_PORTAL');
+    if (!['Admin', 'Supervisor'].includes(req.user.role) && !hasPortalRight) {
       query.$or = [
         { assignedPM: req.user._id },
         { teamMembers: req.user._id },
@@ -304,7 +310,8 @@ export const getProjectDashboard = async (req, res, next) => {
       PMDailyLog.find({ projectId: project._id })
         .sort({ logDate: -1 })
         .limit(5)
-        .populate('submittedBy', 'fullName'),
+        .populate('submittedBy', 'fullName')
+        .lean(),
       // Stock allocation stats
       ProjectStockAllocation.aggregate([
         { $match: { projectId: project._id } },
@@ -1021,10 +1028,39 @@ export const createDeviceInstallation = async (req, res, next) => {
       .populate('projectId', 'projectNumber projectName')
       .populate('zoneId', 'zoneName zoneCode');
 
+    // Check for over-deployment against survey requirements
+    const warnings = [];
+    if (deviceData.projectId) {
+      try {
+        const project = await Project.findById(deviceData.projectId).select('surveyDeviceRequirements').lean();
+        if (project?.surveyDeviceRequirements?.length > 0) {
+          const mappings = await SurveyDeviceMapping.find({ internalDeviceType: deviceData.deviceType }).lean();
+          const matchingSurveyItems = project.surveyDeviceRequirements.filter(req =>
+            mappings.some(m => m.surveyItemName === req.itemName && (!m.surveyItemTypeName || m.surveyItemTypeName === req.itemTypeName))
+          );
+
+          if (matchingSurveyItems.length > 0) {
+            const totalRequired = matchingSurveyItems.reduce((sum, item) => sum + ((item.totalRequired || 0) - (item.totalExisting || 0)), 0);
+            const deployed = await DeviceInstallation.aggregate([
+              { $match: { projectId: new mongoose.Types.ObjectId(deviceData.projectId), deviceType: deviceData.deviceType } },
+              { $group: { _id: null, total: { $sum: '$quantity' } } }
+            ]);
+            const totalDeployed = deployed[0]?.total || 0;
+            if (totalDeployed > totalRequired) {
+              warnings.push(`${deviceData.deviceType}: ${totalDeployed} deployed exceeds survey requirement of ${totalRequired}`);
+            }
+          }
+        }
+      } catch (e) {
+        // Non-critical — don't fail the creation
+      }
+    }
+
     res.status(201).json({
       success: true,
       data: populatedDevice,
-      message: 'Device installation logged successfully'
+      message: 'Device installation logged successfully',
+      ...(warnings.length > 0 && { warnings })
     });
   } catch (error) {
     next(error);
@@ -1257,8 +1293,18 @@ export const updateDeviceStatus = async (req, res, next) => {
     } else if (status === 'Tested') {
       updateData.testedBy = req.user._id;
       updateData.testedAt = new Date();
-    } else if (status === 'Deployed') {
-      // DEPLOYED: Device tested and confirmed OK
+    } else if (status === 'Faulty') {
+      // Handle faulty device - increment faultyQty on allocation
+      if (device.allocationId) {
+        await ProjectStockAllocation.findByIdAndUpdate(
+          device.allocationId._id || device.allocationId,
+          { $inc: { faultyQty: device.quantity || 1 } }
+        );
+      }
+    }
+
+    // Auto-convert to Operational Asset when the device is being configured
+    if (['Configured', 'Tested', 'Deployed'].includes(status)) {
       // 1. Convert to operational Asset
       // 2. Update original stock item to remove "Spare" status
       if (!device.convertedToAsset) {
@@ -1316,14 +1362,6 @@ export const updateDeviceStatus = async (req, res, next) => {
           console.error('Error creating asset from device:', assetError);
           // Continue - don't fail the status update even if asset creation fails
         }
-      }
-    } else if (status === 'Faulty') {
-      // Handle faulty device - increment faultyQty on allocation
-      if (device.allocationId) {
-        await ProjectStockAllocation.findByIdAndUpdate(
-          device.allocationId._id || device.allocationId,
-          { $inc: { faultyQty: device.quantity || 1 } }
-        );
       }
     }
 
@@ -2311,6 +2349,352 @@ export const unassignDevice = async (req, res, next) => {
       data: device,
       message: 'Device unassigned successfully'
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==================== SURVEY RECONCILIATION CONTROLLERS ====================
+
+/**
+ * @desc    Get reconciliation report: survey requirements vs actual device installations
+ * @route   GET /api/fieldops/projects/:projectId/reconciliation
+ * @access  Private
+ */
+export const getReconciliation = async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+
+    const project = await Project.findById(projectId)
+      .select('surveyDeviceRequirements linkedSurveyId linkedSurveyName')
+      .lean();
+
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    const surveyReqs = project.surveyDeviceRequirements || [];
+    if (surveyReqs.length === 0) {
+      return res.json({
+        success: true,
+        data: { items: [], unmappedSurveyItems: [], unmappedDeviceTypes: [], summary: { totalSurveyItems: 0, matched: 0, under: 0, over: 0, unmapped: 0 } }
+      });
+    }
+
+    // Load all mappings
+    const allMappings = await SurveyDeviceMapping.find().lean();
+
+    // Aggregate installed devices by deviceType and status
+    const deviceAgg = await DeviceInstallation.aggregate([
+      { $match: { projectId: new mongoose.Types.ObjectId(projectId) } },
+      {
+        $group: {
+          _id: { deviceType: '$deviceType', status: '$status' },
+          totalQty: { $sum: '$quantity' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Build a map: deviceType -> { total, byStatus }
+    const deviceMap = {};
+    for (const row of deviceAgg) {
+      const dt = row._id.deviceType;
+      if (!deviceMap[dt]) deviceMap[dt] = { total: 0, byStatus: {} };
+      deviceMap[dt].total += row.totalQty;
+      deviceMap[dt].byStatus[row._id.status] = (deviceMap[dt].byStatus[row._id.status] || 0) + row.totalQty;
+    }
+
+    // Track which device types are accounted for by survey items
+    const accountedDeviceTypes = new Set();
+
+    const items = [];
+    let matched = 0, under = 0, over = 0, unmapped = 0;
+
+    for (const req of surveyReqs) {
+      // Find mapping for this survey item
+      const mapping = allMappings.find(m =>
+        m.surveyItemName === req.itemName &&
+        (!m.surveyItemTypeName || m.surveyItemTypeName === req.itemTypeName)
+      );
+
+      const surveyRequired = req.totalRequired || 0;
+      const surveyExisting = req.totalExisting || 0;
+      const netRequired = Math.max(0, surveyRequired - surveyExisting);
+
+      if (!mapping) {
+        items.push({
+          surveyItemName: req.itemName,
+          surveyItemTypeName: req.itemTypeName,
+          internalDeviceType: null,
+          surveyRequired,
+          surveyExisting,
+          netRequired,
+          deployed: 0,
+          deployedByStatus: {},
+          variance: -netRequired,
+          status: 'Unmapped'
+        });
+        unmapped++;
+        continue;
+      }
+
+      const dt = mapping.internalDeviceType;
+      accountedDeviceTypes.add(dt);
+      const deployed = deviceMap[dt]?.total || 0;
+      const deployedByStatus = deviceMap[dt]?.byStatus || {};
+      const variance = deployed - netRequired;
+
+      let status;
+      if (variance === 0) { status = 'Match'; matched++; }
+      else if (variance < 0) { status = 'Under'; under++; }
+      else { status = 'Over'; over++; }
+
+      items.push({
+        surveyItemName: req.itemName,
+        surveyItemTypeName: req.itemTypeName,
+        internalDeviceType: dt,
+        surveyRequired,
+        surveyExisting,
+        netRequired,
+        deployed,
+        deployedByStatus,
+        variance,
+        status
+      });
+    }
+
+    // Find device types installed but not in survey
+    const unmappedDeviceTypes = Object.entries(deviceMap)
+      .filter(([dt]) => !accountedDeviceTypes.has(dt))
+      .map(([dt, data]) => ({ deviceType: dt, totalQty: data.total, byStatus: data.byStatus }));
+
+    // Find survey items with no mapping
+    const unmappedSurveyItems = items.filter(i => i.status === 'Unmapped');
+
+    res.json({
+      success: true,
+      data: {
+        items,
+        unmappedSurveyItems,
+        unmappedDeviceTypes,
+        summary: {
+          totalSurveyItems: surveyReqs.length,
+          matched,
+          under,
+          over,
+          unmapped
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get device installations for a project grouped by device type (for reconciliation drill-down)
+ * @route   GET /api/fieldops/projects/:projectId/reconciliation/devices
+ * @access  Private
+ */
+export const getReconciliationDevices = async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+    const { deviceType } = req.query;
+
+    const query = { projectId: new mongoose.Types.ObjectId(projectId) };
+    if (deviceType) query.deviceType = deviceType;
+
+    const devices = await DeviceInstallation.find(query)
+      .populate('zoneId', 'zoneName zoneCode')
+      .populate('installedBy', 'fullName')
+      .select('deviceType serialNumber quantity status installationLocation zoneId installedBy installedAt createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({ success: true, data: devices });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Re-sync survey device requirements from external survey API
+ * @route   POST /api/fieldops/projects/:projectId/resync-survey
+ * @access  Private (Admin/Supervisor)
+ */
+export const resyncSurveyRequirements = async (req, res, next) => {
+  try {
+    const { projectId } = req.params;
+
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+    if (!project.linkedSurveyId) {
+      return res.status(400).json({ success: false, message: 'Project has no linked survey' });
+    }
+
+    const result = await getSurveyRequirements(project.linkedSurveyId);
+    const requirements = result.data || [];
+
+    project.surveyDeviceRequirements = requirements;
+    await project.save();
+
+    res.json({
+      success: true,
+      data: requirements,
+      message: `Survey requirements re-synced. ${requirements.length} items loaded.`
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==================== SURVEY DEVICE MAPPING CONTROLLERS ====================
+
+/**
+ * @desc    List all survey-to-device-type mappings
+ * @route   GET /api/fieldops/device-mappings
+ * @access  Private
+ */
+export const getDeviceMappings = async (req, res, next) => {
+  try {
+    const mappings = await SurveyDeviceMapping.find()
+      .populate('createdBy', 'fullName')
+      .sort({ surveyItemName: 1 })
+      .lean();
+
+    res.json({ success: true, data: mappings });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Create a survey-to-device-type mapping
+ * @route   POST /api/fieldops/device-mappings
+ * @access  Private (Admin/Supervisor)
+ */
+export const createDeviceMapping = async (req, res, next) => {
+  try {
+    const { surveyItemName, surveyItemTypeName, internalDeviceType } = req.body;
+
+    const mapping = await SurveyDeviceMapping.create({
+      surveyItemName,
+      surveyItemTypeName,
+      internalDeviceType,
+      createdBy: req.user._id
+    });
+
+    res.status(201).json({
+      success: true,
+      data: mapping,
+      message: 'Device mapping created successfully'
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'A mapping for this survey item name and type already exists'
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * @desc    Update a survey-to-device-type mapping
+ * @route   PUT /api/fieldops/device-mappings/:id
+ * @access  Private (Admin/Supervisor)
+ */
+export const updateDeviceMapping = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { surveyItemName, surveyItemTypeName, internalDeviceType } = req.body;
+
+    const mapping = await SurveyDeviceMapping.findByIdAndUpdate(
+      id,
+      { surveyItemName, surveyItemTypeName, internalDeviceType },
+      { new: true, runValidators: true }
+    );
+
+    if (!mapping) {
+      return res.status(404).json({ success: false, message: 'Mapping not found' });
+    }
+
+    res.json({
+      success: true,
+      data: mapping,
+      message: 'Device mapping updated successfully'
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: 'A mapping for this survey item name and type already exists'
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete a survey-to-device-type mapping
+ * @route   DELETE /api/fieldops/device-mappings/:id
+ * @access  Private (Admin/Supervisor)
+ */
+export const deleteDeviceMapping = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const mapping = await SurveyDeviceMapping.findByIdAndDelete(id);
+
+    if (!mapping) {
+      return res.status(404).json({ success: false, message: 'Mapping not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'Device mapping deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Get all unmapped survey item names across projects (for auto-suggest)
+ * @route   GET /api/fieldops/device-mappings/unmapped-items
+ * @access  Private (Admin/Supervisor)
+ */
+export const getUnmappedSurveyItems = async (req, res, next) => {
+  try {
+    // Get all unique survey item names from projects
+    const projects = await Project.find(
+      { 'surveyDeviceRequirements.0': { $exists: true } },
+      { surveyDeviceRequirements: 1 }
+    ).lean();
+
+    const surveyItems = new Map();
+    for (const p of projects) {
+      for (const req of p.surveyDeviceRequirements) {
+        const key = `${req.itemName}||${req.itemTypeName || ''}`;
+        if (!surveyItems.has(key)) {
+          surveyItems.set(key, { itemName: req.itemName, itemTypeName: req.itemTypeName });
+        }
+      }
+    }
+
+    // Get existing mappings
+    const mappings = await SurveyDeviceMapping.find().lean();
+    const mappedKeys = new Set(mappings.map(m => `${m.surveyItemName}||${m.surveyItemTypeName || ''}`));
+
+    // Filter to unmapped items only
+    const unmapped = [...surveyItems.values()].filter(item =>
+      !mappedKeys.has(`${item.itemName}||${item.itemTypeName || ''}`)
+    );
+
+    res.json({ success: true, data: unmapped });
   } catch (error) {
     next(error);
   }

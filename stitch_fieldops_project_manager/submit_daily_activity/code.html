@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Submit Daily Progress - TicketOps</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#ffdbcc",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb695",
+                    "secondary": "#712ae2",
+                    "background": "#f8f9fc",
+                    "surface-container-low": "#f2f3f6",
+                    "surface-variant": "#e1e2e5",
+                    "on-tertiary-fixed": "#351000",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "error-container": "#ffdad6",
+                    "outline-variant": "#c7c4d8",
+                    "on-surface": "#191c1e",
+                    "inverse-surface": "#2e3133",
+                    "on-surface-variant": "#464555",
+                    "tertiary": "#7e3000",
+                    "surface-bright": "#f8f9fc",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "tertiary-container": "#a44100",
+                    "primary-fixed": "#e2dfff",
+                    "on-background": "#191c1e",
+                    "inverse-primary": "#c3c0ff",
+                    "on-secondary-fixed": "#25005a",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed": "#0f0069",
+                    "on-secondary-fixed-variant": "#5a00c6",
+                    "surface-dim": "#d9dadd",
+                    "surface-container-lowest": "#ffffff",
+                    "primary": "#3525cd",
+                    "secondary-container": "#8a4cfc",
+                    "on-tertiary-fixed-variant": "#7b2f00",
+                    "surface-tint": "#4d44e3",
+                    "on-error-container": "#93000a",
+                    "surface-container": "#edeef1",
+                    "on-error": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-container": "#ffd2be",
+                    "surface-container-high": "#e7e8eb",
+                    "surface-container-highest": "#e1e2e5",
+                    "surface": "#f8f9fc",
+                    "secondary-fixed-dim": "#d2bbff",
+                    "on-secondary": "#ffffff",
+                    "secondary-fixed": "#eaddff",
+                    "outline": "#777587",
+                    "inverse-on-surface": "#f0f1f4",
+                    "on-secondary-container": "#fffbff",
+                    "on-primary-container": "#dad7ff",
+                    "primary-container": "#4f46e5"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {},
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["JetBrains Mono"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9fc; color: #191c1e; }
+        .font-mono-tech { font-family: 'JetBrains Mono', monospace; }
+        .bg-gradient-primary { background: linear-gradient(135deg, #3525cd 0%, #712ae2 100%); }
+        .glass-panel { background: rgba(248, 249, 252, 0.8); backdrop-filter: blur(12px); }
+        .shadow-ambient { box-shadow: 0px 10px 30px rgba(53, 37, 205, 0.06); }
+        
+        /* Hide scrollbar for clean aesthetic */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e1e2e5; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-background text-on-surface h-screen flex overflow-hidden">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-64 z-40 bg-surface-container-low flex flex-col gap-2 p-6 shadow-ambient">
+<div class="mb-8">
+<h1 class="text-lg font-black text-primary tracking-tighter">TicketOps</h1>
+<p class="text-xs text-on-surface-variant font-medium tracking-tight">The Precision Engine</p>
+</div>
+<button class="w-full mb-6 bg-gradient-primary text-on-primary py-3 rounded-md font-medium text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined" style="font-size: 18px;">add</span>
+            New Project
+        </button>
+<div class="flex-1 flex flex-col gap-1 overflow-y-auto">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-lowest/60 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">folder_open</span>
+<span class="font-mono-tech text-sm">Projects</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-lowest/60 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">assignment</span>
+<span class="font-mono-tech text-sm">Activities</span>
+</a>
+<!-- Active Tab -->
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-surface-container-lowest text-primary font-bold shadow-sm translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px; font-variation-settings: 'FILL' 1;">history_edu</span>
+<span class="font-mono-tech text-sm">Daily Logs</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-lowest/60 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">analytics</span>
+<span class="font-mono-tech text-sm">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-container-lowest/60 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" style="font-size: 20px;">terminal</span>
+<span class="font-mono-tech text-sm">Global Ops</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-64 flex-1 h-full overflow-y-auto bg-background relative">
+<!-- TopAppBar (Minimal for content area) -->
+<header class="sticky top-0 z-30 glass-panel border-b-0 h-16 px-8 flex justify-between items-center shadow-ambient">
+<div class="flex items-center gap-4">
+<span class="font-mono-tech text-xs text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">LOG-782A</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img alt="Manager profile" class="w-8 h-8 rounded-full ml-2 ring-2 ring-surface-container-low" data-alt="Close up portrait of a professional male manager with short hair, wearing a dark blue shirt, against a soft neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDn0xlWERJlPoRIacwfJL4O2lpAgqNOWWQbHU2IzBIXoaTrIpSxaQzJrOFdEL4186KHFFGZtr5YJP4_JWQVJrlt57Ua4GzG6ROKC95pkEFKB2c4rtkGOrqLzfvknE2orNK13zC-fkOV8E20jVZZIInyNbRJ8wvcIjqlV1htLewS7rEtwvUkGtC8WpfJE4EMU9AA8KBKI-3HDM9NM1nc-qcAXA9lzdxO_F2X2j104-XHI5ipQ6K7jEe5aPt21SyuyOz9a8Xk75KhTq32"/>
+</div>
+</header>
+<div class="p-8 max-w-5xl mx-auto pb-32">
+<!-- Page Header -->
+<div class="mb-10 flex justify-between items-end">
+<div>
+<h2 class="text-3xl font-bold tracking-tight text-on-surface mb-2">Submit Daily Progress</h2>
+<div class="flex items-center gap-3">
+<span class="font-mono-tech text-sm text-primary font-medium">PRJ-NORTH-WING-01</span>
+<span class="text-sm text-on-surface-variant">North Wing Expansion</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest px-4 py-2 rounded-lg shadow-ambient flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant" style="font-size: 20px;">calendar_today</span>
+<input class="bg-transparent border-none text-sm font-medium text-on-surface focus:ring-0 p-0 font-mono-tech" type="date" value="2023-10-24"/>
+</div>
+</div>
+<form class="space-y-8">
+<!-- Progress Update Section -->
+<section class="bg-surface-container-low rounded-xl p-6">
+<h3 class="text-lg font-semibold tracking-tight text-on-surface mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">checklist</span>
+                        Progress Update
+                    </h3>
+<div class="space-y-4">
+<!-- Activity Item 1 -->
+<div class="bg-surface-container-lowest rounded-lg p-4 flex items-center justify-between shadow-sm hover:bg-surface-variant transition-colors group">
+<div class="flex items-center gap-4">
+<input checked="" class="w-5 h-5 text-primary bg-surface-container-highest border-none rounded focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-container-lowest cursor-pointer" type="checkbox"/>
+<div>
+<div class="font-medium text-on-surface text-sm">Wiring North Wing - Sector A</div>
+<div class="font-mono-tech text-xs text-on-surface-variant mt-1">ACT-001 • Electrical</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="text-xs text-on-surface-variant">Prev: 45%</span>
+<div class="relative w-24">
+<input class="w-full bg-surface-container-highest border-none border-b-2 border-transparent focus:border-primary text-sm font-mono-tech text-right pr-6 py-1.5 rounded-t-md focus:ring-0 transition-colors" max="100" min="0" placeholder="0" type="number" value="60"/>
+<span class="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-mono-tech text-on-surface-variant">%</span>
+</div>
+<span class="material-symbols-outlined text-primary text-sm bg-primary-container/20 px-1.5 py-0.5 rounded font-bold">plus_one</span>
+</div>
+</div>
+<!-- Activity Item 2 -->
+<div class="bg-surface-container-lowest rounded-lg p-4 flex items-center justify-between shadow-sm hover:bg-surface-variant transition-colors group">
+<div class="flex items-center gap-4">
+<input class="w-5 h-5 text-primary bg-surface-container-highest border-none rounded focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-container-lowest cursor-pointer" type="checkbox"/>
+<div>
+<div class="font-medium text-on-surface text-sm">NVR Setup &amp; Configuration</div>
+<div class="font-mono-tech text-xs text-on-surface-variant mt-1">ACT-004 • Security</div>
+</div>
+</div>
+<div class="flex items-center gap-3 opacity-50 group-hover:opacity-100 transition-opacity">
+<span class="text-xs text-on-surface-variant">Prev: 0%</span>
+<div class="relative w-24">
+<input class="w-full bg-surface-container-highest border-none border-b-2 border-transparent focus:border-primary text-sm font-mono-tech text-right pr-6 py-1.5 rounded-t-md focus:ring-0 transition-colors" max="100" min="0" placeholder="0" type="number"/>
+<span class="absolute right-2 top-1/2 -translate-y-1/2 text-sm font-mono-tech text-on-surface-variant">%</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+</form>
+</div>
+</main>
+</body></html>

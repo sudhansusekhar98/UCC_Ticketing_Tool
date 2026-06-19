@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TicketOps - Project Budget</title>
+<!-- Google Fonts: Inter & JetBrains Mono -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Design System Tailwind Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#f8f9fc",
+                        "surface-container": "#edeef1",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "error-container": "#ffdad6",
+                        "tertiary": "#7e3000",
+                        "on-secondary-fixed": "#25005a",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-highest": "#e1e2e5",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#464555",
+                        "on-surface": "#191c1e",
+                        "on-secondary-container": "#fffbff",
+                        "on-tertiary-container": "#ffd2be",
+                        "secondary": "#712ae2",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#3525cd",
+                        "inverse-primary": "#c3c0ff",
+                        "secondary-fixed": "#eaddff",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f8f9fc",
+                        "tertiary-fixed-dim": "#ffb695",
+                        "secondary-container": "#8a4cfc",
+                        "surface-container-high": "#e7e8eb",
+                        "secondary-fixed-dim": "#d2bbff",
+                        "on-primary-container": "#dad7ff",
+                        "primary-container": "#4f46e5",
+                        "surface-container-low": "#f2f3f6",
+                        "surface-dim": "#d9dadd",
+                        "outline-variant": "#c7c4d8",
+                        "on-tertiary-fixed": "#351000",
+                        "on-tertiary-fixed-variant": "#7b2f00",
+                        "surface-tint": "#4d44e3",
+                        "inverse-surface": "#2e3133",
+                        "surface-variant": "#e1e2e5",
+                        "on-background": "#191c1e",
+                        "on-primary-fixed": "#0f0069",
+                        "inverse-on-surface": "#f0f1f4",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#5a00c6",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "outline": "#777587",
+                        "tertiary-fixed": "#ffdbcc",
+                        "tertiary-container": "#a44100",
+                        "primary-fixed": "#e2dfff",
+                        "background": "#f8f9fc"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono"]
+                    },
+                    "boxShadow": {
+                        "ambient": "0px 10px 30px rgba(53,37,205,0.06)"
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        /* Tabular nums for technical fonts */
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body h-screen flex overflow-hidden">
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-0 h-full w-64 z-40 bg-surface-container-low hidden md:flex flex-col gap-2 p-6 h-screen">
+<!-- Header -->
+<div class="mb-8 pl-2">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-on-primary font-bold shadow-ambient">T</div>
+<div>
+<h1 class="text-lg font-black text-primary tracking-tighter">TicketOps</h1>
+<p class="text-xs text-on-surface-variant font-medium tracking-tight">The Precision Engine</p>
+</div>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex flex-col gap-2 flex-1 mt-4">
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-xl group-hover:text-primary transition-colors">folder_open</span>
+<span class="font-mono text-sm font-medium tracking-tight">Projects</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-xl group-hover:text-primary transition-colors">groups</span>
+<span class="font-mono text-sm font-medium tracking-tight">Team Allocation</span>
+</a>
+<!-- Active (Budget Tracker matches primary intent) -->
+<a class="flex items-center gap-3 px-4 py-3 bg-surface-container-lowest text-primary font-bold rounded-lg shadow-ambient translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined fill text-xl">payments</span>
+<span class="font-mono text-sm tracking-tight">Budget Tracker</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-xl group-hover:text-primary transition-colors">shutter_speed</span>
+<span class="font-mono text-sm font-medium tracking-tight">Site Surveys</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-highest transition-all duration-200 rounded-lg group" href="#">
+<span class="material-symbols-outlined text-xl group-hover:text-primary transition-colors">terminal</span>
+<span class="font-mono text-sm font-medium tracking-tight">Global Ops</span>
+</a>
+</div>
+<!-- CTA -->
+<div class="mt-auto pt-4">
+<button class="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-primary to-secondary text-on-primary font-medium tracking-tight shadow-ambient flex justify-center items-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                New Project
+            </button>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col md:ml-64 relative min-w-0">
+<!-- TopNavBar -->
+<header class="docked full-width top-0 z-50 bg-background shadow-ambient flex justify-between items-center w-full px-8 h-16 shrink-0">
+<!-- Mobile Menu Trigger (hidden on md) -->
+<button class="md:hidden text-on-surface-variant p-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<!-- Contextual Breadcrumb/Title (Optional based on design system, skipping text to maintain clean top bar as per JSON structure which focuses on actions) -->
+<div class="hidden md:block flex-1"></div>
+<!-- Right Actions -->
+<div class="flex items-center gap-4">
+<!-- Search (on_right) -->
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="bg-surface-container-low text-sm font-body rounded-full py-2 pl-9 pr-4 w-48 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-on-surface-variant text-on-surface border-0" placeholder="Search..." type="text"/>
+</div>
+<!-- Trailing Icons -->
+<div class="flex items-center gap-1">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors scale-95 active:scale-90 rounded-full hover:bg-surface-container-highest">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors scale-95 active:scale-90 rounded-full hover:bg-surface-container-highest">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors scale-95 active:scale-90 rounded-full hover:bg-surface-container-highest">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+<!-- Profile -->
+<button class="w-8 h-8 rounded-full overflow-hidden ml-2 shadow-ambient scale-95 active:scale-90 transition-all border-2 border-surface-container-lowest">
+<img alt="Manager profile" class="w-full h-full object-cover" data-alt="Professional headshot of a confident manager with a warm smile, well-lit studio background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC1rMHiceeIxjkIOfiLrYq3scvIz12wWXrbMzHzpP7jXXGMY4nZJr0TQitzDQt1RJHpECsI3zjQt9_mIoL_4vokE5DL7owDt2H5yButFXYTwQM_6w0PNi0YcHAfwDMgFHZzFo8TxHLSIphcfPdgV-3J7p82ZD8_2Xb_gPEvzs2L1tkF4c0vEKNVqnVnCBsB6jruuern7VLo6XFuIEV_ZluWks9PieiQghW6Ea6tJm95rfvDywGEeZRQlhi_2jZHsx-1Rw4unoOsofAe"/>
+</button>
+</div>
+</header>
+<!-- Page Content Canvas -->
+<main class="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12 pb-24">
+<!-- Editorial Header (Asymmetric Spacing) -->
+<div class="mb-12 pt-4 pr-12">
+<div class="flex items-center gap-3 mb-3">
+<span class="font-mono text-xs uppercase tracking-widest text-on-surface-variant font-bold">PRJ-2024-89X</span>
+<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container uppercase tracking-wider">Active</span>
+</div>
+<h2 class="text-4xl md:text-5xl font-headline font-bold tracking-tight text-on-surface leading-tight">
+                    Project Budget <br/><span class="text-on-surface-variant font-medium">&amp; Procurement</span>
+</h2>
+</div>
+<!-- Bento Grid: Summary Cards -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+<!-- Total Budget (Gradient emphasis) -->
+<div class="bg-gradient-to-br from-primary to-secondary rounded-xl p-6 shadow-ambient flex flex-col justify-between relative overflow-hidden h-48">
+<!-- Glassmorphism overlay for technical texture -->
+<div class="absolute inset-0 bg-surface/10 backdrop-blur-[2px]"></div>
+<div class="relative z-10 flex justify-between items-start">
+<span class="font-body text-sm font-medium text-on-primary/80">Total Allocation</span>
+<span class="material-symbols-outlined text-on-primary/60">account_balance</span>
+</div>
+<div class="relative z-10 mt-auto">
+<div class="font-mono text-4xl font-bold text-on-primary tabular-nums tracking-tight">$1,250,000</div>
+<div class="font-mono text-xs text-on-primary/70 mt-1">FY-2024 APPROVED</div>
+</div>
+</div>
+<!-- Amount Spent -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient flex flex-col justify-between h-48">
+<div class="flex justify-between items-start">
+<span class="font-body text-sm font-medium text-on-surface-variant">Amount Spent</span>
+<div class="p-1.5 rounded-lg bg-error-container/50 text-error">
+<span class="material-symbols-outlined text-[20px]">trending_up</span>
+</div>
+</div>
+<div class="mt-auto">
+<div class="font-mono text-3xl font-bold text-on-surface tabular-nums tracking-tight">$845,230</div>
+<div class="flex items-center gap-2 mt-2">
+<div class="flex-1 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-error rounded-full" style="width: 67%"></div>
+</div>
+<span class="font-mono text-xs text-on-surface-variant">67%</span>
+</div>
+</div>
+</div>
+<!-- Pending POs -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-ambient flex flex-col justify-between h-48">
+<div class="flex justify-between items-start">
+<span class="font-body text-sm font-medium text-on-surface-variant">Pending POs</span>
+<div class="p-1.5 rounded-lg bg-tertiary-container/20 text-tertiary">
+<span class="material-symbols-outlined text-[20px]">pending_actions</span>
+</div>
+</div>
+<div class="mt-auto">
+<div class="font-mono text-3xl font-bold text-on-surface tabular-nums tracking-tight">14</div>
+<div class="font-mono text-sm text-on-surface-variant mt-1 tabular-nums border-l-2 border-tertiary pl-2">$112,400 <span class="font-body text-xs opacity-70">Awaiting approval</span></div>
+</div>
+</div>
+</div>
+<!-- Lower Section Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Purchase Orders Table (Spans 2 cols) -->
+<div class="lg:col-span-2 bg-surface-container-low rounded-xl p-8">
+<div class="flex justify-between items-end mb-8">
+<div>
+<h3 class="text-xl font-headline font-bold tracking-tight text-on-surface">Recent Procurement</h3>
+<p class="text-sm text-on-surface-variant mt-1">Tracking physical assets and vendor payouts.</p>
+</div>
+<button class="text-primary text-sm font-medium hover:text-secondary transition-colors flex items-center gap-1">
+                            View All <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+<!-- List without dividers -->
+<div class="flex flex-col gap-3">
+<!-- List Item 1 -->
+<div class="bg-surface-container-lowest rounded-lg p-4 flex items-center justify-between hover:bg-surface-container-highest transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded bg-surface-container-highest flex items-center justify-center text-on-surface-variant group-hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[20px]">router</span>
+</div>
+<div>
+<div class="font-mono text-sm font-bold text-on-surface">PO-992-A4</div>
+<div class="text-xs text-on-surface-variant font-medium mt-0.5">Cisco Systems Inc.</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-mono text-sm font-bold text-on-surface tabular-nums">$45,000.00</div>
+<div class="mt-1">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-primary-container text-on-primary-container uppercase tracking-wider">Fulfilled</span>
+</div>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="bg-surface-container-lowest rounded-lg p-4 flex items-center justify-between hover:bg-surface-container-highest transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded bg-surface-container-highest flex items-center justify-center text-on-surface-variant group-hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[20px]">construction</span>
+</div>
+<div>
+<div class="font-mono text-sm font-bold text-on-surface">PO-995-B1</div>
+<div class="text-xs text-on-surface-variant font-medium mt-0.5">Apex Construction</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-mono text-sm font-bold text-on-surface tabular-nums">$128,500.00</div>
+<div class="mt-1">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-tertiary-container text-on-tertiary-container uppercase tracking-wider">Pending</span>
+</div>
+</div>
+</div>
+<!-- List Item 3 -->
+<div class="bg-surface-container-lowest rounded-lg p-4 flex items-center justify-between hover:bg-surface-container-highest transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded bg-surface-container-highest flex items-center justify-center text-on-surface-variant group-hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-[20px]">cable</span>
+</div>
+<div>
+<div class="font-mono text-sm font-bold text-on-surface">PO-998-C9</div>
+<div class="text-xs text-on-surface-variant font-medium mt-0.5">FiberLink Solutions</div>
+</div>
+</div>
+<div class="text-right">
+<div class="font-mono text-sm font-bold text-on-surface tabular-nums">$12,450.00</div>
+<div class="mt-1">
+<span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-high text-on-surface-variant uppercase tracking-wider">Draft</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Budget Utilization Chart Area (Visual interpretation using layout) -->
+<div class="lg:col-span-1 flex flex-col gap-6">
+<div class="bg-surface-container-lowest rounded-xl p-8 shadow-ambient flex-1">
+<h3 class="text-lg font-headline font-bold tracking-tight text-on-surface mb-6">Utilization by Phase</h3>
+<!-- Layered Bar visualization -->
+<div class="flex flex-col gap-5">
+<div>
+<div class="flex justify-between text-sm mb-2">
+<span class="font-medium text-on-surface">Phase 1: Foundation</span>
+<span class="font-mono text-on-surface-variant tabular-nums">95%</span>
+</div>
+<div class="h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-on-surface rounded-full" style="width: 95%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-2">
+<span class="font-medium text-on-surface">Phase 2: Installation</span>
+<span class="font-mono text-on-surface-variant tabular-nums">42%</span>
+</div>
+<div class="h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 42%"></div>
+</div>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-2">
+<span class="font-medium text-on-surface">Phase 3: Testing</span>
+<span class="font-mono text-on-surface-variant tabular-nums">0%</span>
+</div>
+<div class="h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-outline-variant/30 rounded-full" style="width: 0%"></div>
+</div>
+</div>
+</div>
+<!-- Technical Readout Area -->
+<div class="mt-8 pt-6 border-t border-outline-variant/15 border-dashed">
+<div class="font-mono text-xs text-on-surface-variant mb-1">BURN RATE</div>
+<div class="font-mono text-xl font-bold text-on-surface tabular-nums">$42.5k / mo</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

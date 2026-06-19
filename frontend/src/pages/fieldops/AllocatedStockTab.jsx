@@ -14,9 +14,14 @@ export default function AllocatedStockTab({ projectId, allocStats }) {
 
     const loadAllocations = async () => {
         try {
-            const res = await stockApi.getAllocations({ projectId });
+            const res = await stockApi.getAllocations({ projectId, limit: 100 }); // Apply safe limit to avoid timeouts
             setAllocations(res.data.data || []);
-        } catch {
+            
+            if (res.data?.pagination?.total > 100) {
+                toast.error('Only showing recent 100 allocations. Go to "View All" for full list.');
+            }
+        } catch (error) {
+            console.error('Failed to load project allocations:', error);
             toast.error('Failed to load allocations');
         } finally {
             setLoading(false);
@@ -113,13 +118,13 @@ export default function AllocatedStockTab({ projectId, allocStats }) {
                                             </div>
                                         </td>
                                         <td style={{ textAlign: 'center', fontWeight: 600, padding: '1rem' }}>
-                                            {Number((alloc.allocatedQty || 0).toFixed(2))}
+                                            {Math.round(alloc.allocatedQty || 0)}
                                         </td>
                                         <td style={{ textAlign: 'center', color: 'var(--success-400)', padding: '1rem' }}>
-                                            {Number((alloc.installedQty || 0).toFixed(2))}
+                                            {Math.round(alloc.installedQty || 0)}
                                         </td>
                                         <td style={{ textAlign: 'center', color: (alloc.faultyQty || 0) > 0 ? 'var(--error-400)' : 'inherit', padding: '1rem' }}>
-                                            {Number((alloc.faultyQty || 0).toFixed(2))}
+                                            {Math.round(alloc.faultyQty || 0)}
                                         </td>
                                         <td style={{
                                             textAlign: 'center',
@@ -127,7 +132,7 @@ export default function AllocatedStockTab({ projectId, allocStats }) {
                                             padding: '1rem',
                                             color: remaining > 0 ? 'var(--warning-400)' : 'var(--success-400)'
                                         }}>
-                                            {Number(remaining.toFixed(2))}
+                                            {Math.round(remaining)}
                                         </td>
                                         <td style={{ textAlign: 'center', padding: '1rem' }}>
                                             <span className={`status-badge ${

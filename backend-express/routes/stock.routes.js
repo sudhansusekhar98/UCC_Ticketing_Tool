@@ -31,7 +31,8 @@ import {
     updateAllocation,
     deleteAllocation,
     getProjectAllocatedStock,
-    getProjectCableAllocations
+    getProjectCableAllocations,
+    exportStockSummary
 } from '../controllers/stock.controller.js';
 import { protect, allowAccess } from '../middleware/auth.middleware.js';
 import { simpleUpload } from '../utils/upload.js';
@@ -52,6 +53,7 @@ router.get('/asset-types', getStockAssetTypes);
 router.get('/device-types', getStockDeviceTypes);
 router.get('/models', getStockModels);
 router.post('/export-selected', exportSelectedAssets);
+router.get('/export-summary', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), exportStockSummary);
 
 // Project Stock Allocation routes
 router.post('/allocations', allowAccess({ roles: ['Admin', 'Supervisor'] }), allocateStockToProject);

@@ -226,6 +226,7 @@ export const ticketsApi = {
     reopen: (id, reason) => api.post(`/tickets/${id}/reopen`, { reason }),
     getAuditTrail: (id) => api.get(`/tickets/${id}/audit`),
     getDashboardStats: (params) => api.get('/tickets/dashboard/stats', { params }),
+    getTrends: (params = {}) => api.get('/tickets/dashboard/trends', { params }),
 };
 
 // Lookups API
@@ -337,6 +338,7 @@ export const reportingApi = {
     getSLAPerformance: (params) => api.get('/reporting/sla', { params }),
     getAssetStats: (params) => api.get('/reporting/assets', { params }),
     getRMAStats: (params) => api.get('/reporting/rma', { params }),
+    // Excel exports
     exportReport: (params) => api.get('/reporting/export', { params, responseType: 'blob' }),
     exportEmployeeStatus: (params) => api.get('/reporting/export/employees', { params, responseType: 'blob' }),
     exportAssetStatus: (params) => api.get('/reporting/export/assets', { params, responseType: 'blob' }),
@@ -344,6 +346,14 @@ export const reportingApi = {
     exportSpareStock: (params) => api.get('/reporting/export/spare-stock', { params, responseType: 'blob' }),
     exportWorkActivity: (params) => api.get('/reporting/export/work-activity', { params, responseType: 'blob' }),
     exportUserActivities: (params) => api.get('/reporting/export/user-activities', { params, responseType: 'blob' }),
+    // HTML interactive reports
+    exportTicketsHtml: (params) => api.get('/reporting/export/html/tickets', { params, responseType: 'blob' }),
+    exportEmployeesHtml: (params) => api.get('/reporting/export/html/employees', { params, responseType: 'blob' }),
+    exportAssetsHtml: (params) => api.get('/reporting/export/html/assets', { params, responseType: 'blob' }),
+    exportRMAHtml: (params) => api.get('/reporting/export/html/rma', { params, responseType: 'blob' }),
+    exportSpareStockHtml: (params) => api.get('/reporting/export/html/spare-stock', { params, responseType: 'blob' }),
+    exportWorkActivityHtml: (params) => api.get('/reporting/export/html/work-activity', { params, responseType: 'blob' }),
+    exportUserActivitiesHtml: (params) => api.get('/reporting/export/html/user-activities', { params, responseType: 'blob' }),
 };
 
 // Stock API
@@ -379,6 +389,7 @@ export const stockApi = {
     getStockModels: (assetType, deviceType) => api.get('/stock/models', { params: { assetType, deviceType } }),
     // Export selected inventory assets
     exportSelectedAssets: (assetIds, format = 'xlsx') => api.post('/stock/export-selected', { assetIds, format }, { responseType: 'blob' }),
+    exportStockSummary: (params) => api.get('/stock/export-summary', { params, responseType: 'blob' }),
     // Stock CRUD
     updateStock: (assetId, data) => api.put(`/stock/${assetId}`, data),
     deleteStock: (assetId) => api.delete(`/stock/${assetId}`),
@@ -454,6 +465,32 @@ export const fieldOpsApi = {
     resolveChallengeLog: (id, resolution) => api.post(`/fieldops/challenges/${id}/resolve`, { resolution }),
     getEscalatedChallenges: () => api.get('/fieldops/challenges/escalated'),
     addChallengeComment: (id, text) => api.post(`/fieldops/challenges/${id}/comments`, { text }),
+
+    // Survey Reconciliation
+    getReconciliation: (projectId) => api.get(`/fieldops/projects/${projectId}/reconciliation`),
+    getReconciliationDevices: (projectId, params) => api.get(`/fieldops/projects/${projectId}/reconciliation/devices`, { params }),
+    resyncSurveyRequirements: (projectId) => api.post(`/fieldops/projects/${projectId}/resync-survey`),
+
+    // Device Mappings
+    getDeviceMappings: () => api.get('/fieldops/device-mappings'),
+    createDeviceMapping: (data) => api.post('/fieldops/device-mappings', data),
+    updateDeviceMapping: (id, data) => api.put(`/fieldops/device-mappings/${id}`, data),
+    deleteDeviceMapping: (id) => api.delete(`/fieldops/device-mappings/${id}`),
+    getUnmappedSurveyItems: () => api.get('/fieldops/device-mappings/unmapped-items'),
+
+    // Activities
+    getProjectActivities: (projectId, params) => api.get(`/fieldops/projects/${projectId}/activities`, { params }),
+    getActivityById: (id) => api.get(`/fieldops/activities/${id}`),
+    createActivity: (projectId, data) => api.post(`/fieldops/projects/${projectId}/activities`, data),
+    updateActivity: (id, data) => api.put(`/fieldops/activities/${id}`, data),
+    updateActivityStatus: (id, status) => api.patch(`/fieldops/activities/${id}/status`, { status }),
+    deleteActivity: (id) => api.delete(`/fieldops/activities/${id}`),
+    addActivityTask: (id, title) => api.post(`/fieldops/activities/${id}/tasks`, { title }),
+    updateActivityTask: (id, taskId, data) => api.patch(`/fieldops/activities/${id}/tasks/${taskId}`, data),
+    deleteActivityTask: (id, taskId) => api.delete(`/fieldops/activities/${id}/tasks/${taskId}`),
+    getActivityTaskSuggestions: (type) => api.get('/fieldops/activities/task-suggestions', { params: { type } }),
+    getDailyLogPrefill: (projectId) => api.get(`/fieldops/projects/${projectId}/daily-log/prefill`),
+    getMyActivities: () => api.get('/fieldops/activities/my-activities'),
 
     // Reports
     getProjectReport: (projectId, params) => api.get(`/fieldops/reports/project/${projectId}`, { params }),

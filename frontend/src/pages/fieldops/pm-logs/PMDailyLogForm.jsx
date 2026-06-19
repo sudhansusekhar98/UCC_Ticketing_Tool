@@ -23,7 +23,7 @@ import '../fieldops.css';
 export default function PMDailyLogForm() {
     const { projectId, logId } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuthStore();
+    useAuthStore();
     const fileInputRef = useRef(null);
     const isEditing = Boolean(logId);
 
@@ -49,6 +49,8 @@ export default function PMDailyLogForm() {
     const [selectedFiles, setSelectedFiles] = useState([]);
     const [newTask, setNewTask] = useState('');
     const [existingPhotos, setExistingPhotos] = useState([]);
+    const [openActivities, setOpenActivities] = useState([]);
+    const [activityEntries, setActivityEntries] = useState([]);
 
     useEffect(() => {
         loadData();
@@ -85,7 +87,27 @@ export default function PMDailyLogForm() {
                     submissionLocation: log.submissionLocation || null
                 });
                 setExistingPhotos(log.photos || []);
+                if (log.activityEntries?.length > 0) {
+                    setActivityEntries(log.activityEntries.map(entry => ({
+                        activityId: entry.activityId,
+                        activityTitle: entry.activityTitle || '',
+                        tasksWorked: (entry.tasksWorked || []).map(tw => ({
+                            taskId: tw.taskId,
+                            taskTitle: tw.taskTitle || '',
+                            completed: tw.completed || false,
+                            delayReason: tw.delayReason || ''
+                        })),
+                        progressNote: entry.progressNote || ''
+                    })));
+                }
             }
+
+            // Load open activities for prefill (non-blocking)
+            try {
+                const prefillRes = await fieldOpsApi.getDailyLogPrefill(projectId);
+                setOpenActivities(prefillRes.data.data || []);
+            } catch { /* non-blocking */ }
+
         } catch (error) {
             toast.error('Failed to load data');
             console.error(error);
@@ -156,6 +178,59 @@ export default function PMDailyLogForm() {
         }));
     };
 
+    // ── Activity helpers ──
+    const isTaskOverdue = (task, logDate) =>
+        task.plannedEnd && new Date(task.plannedEnd) < new Date(logDate);
+
+    const isActivitySelected = (activityId) =>
+        activityEntries.some(e => e.activityId === activityId);
+
+    const toggleActivitySelection = (activity) => {
+        if (isActivitySelected(activity._id)) {
+            setActivityEntries(prev => prev.filter(e => e.activityId !== activity._id));
+        } else {
+            setActivityEntries(prev => [...prev, {
+                activityId: activity._id,
+                activityTitle: activity.title,
+                tasksWorked: (activity.tasks || []).map(t => ({
+                    taskId: t._id,
+                    taskTitle: t.title,
+                    completed: false,
+                    delayReason: ''
+                })),
+                progressNote: ''
+            }]);
+        }
+    };
+
+    const toggleActivityTask = (activityId, taskId) => {
+        setActivityEntries(prev => prev.map(entry =>
+            entry.activityId !== activityId ? entry : {
+                ...entry,
+                tasksWorked: entry.tasksWorked.map(tw =>
+                    tw.taskId !== taskId ? tw : { ...tw, completed: !tw.completed }
+                )
+            }
+        ));
+    };
+
+    const setActivityTaskDelayReason = (activityId, taskId, reason) => {
+        setActivityEntries(prev => prev.map(entry =>
+            entry.activityId !== activityId ? entry : {
+                ...entry,
+                tasksWorked: entry.tasksWorked.map(tw =>
+                    tw.taskId !== taskId ? tw : { ...tw, delayReason: reason }
+                )
+            }
+        ));
+    };
+
+    const setActivityProgressNote = (activityId, note) => {
+        setActivityEntries(prev => prev.map(entry =>
+            entry.activityId !== activityId ? entry : { ...entry, progressNote: note }
+        ));
+    };
+
     const handleFileSelect = (e) => {
         const files = Array.from(e.target.files);
         if (selectedFiles.length + files.length > 10) {
@@ -191,6 +266,19 @@ export default function PMDailyLogForm() {
             return;
         }
 
+        // Validate overdue task delay reasons
+        const hasOverdueWithoutReason = activityEntries.some(entry => {
+            const activity = openActivities.find(a => a._id === entry.activityId);
+            return entry.tasksWorked.some(tw => {
+                const task = activity?.tasks?.find(t => t._id === tw.taskId);
+                return isTaskOverdue(task, formData.logDate) && !tw.completed && !tw.delayReason?.trim();
+            });
+        });
+        if (hasOverdueWithoutReason) {
+            toast.error('Provide delay reasons for all overdue incomplete tasks');
+            return;
+        }
+
         // Capture GPS if not already captured
         if (!formData.submissionLocation && navigator.geolocation) {
             toast('Capturing your location...', { icon: '📍' });
@@ -214,10 +302,11 @@ export default function PMDailyLogForm() {
         setSaving(true);
         try {
             let logResponse;
+            const payload = { ...formData, activityEntries };
             if (isEditing) {
-                logResponse = await fieldOpsApi.updatePMDailyLog(logId, formData);
+                logResponse = await fieldOpsApi.updatePMDailyLog(logId, payload);
             } else {
-                logResponse = await fieldOpsApi.createPMDailyLog(formData);
+                logResponse = await fieldOpsApi.createPMDailyLog(payload);
             }
 
             const savedLogId = logResponse.data.data._id || logId;
@@ -366,6 +455,114 @@ export default function PMDailyLogForm() {
                             <Plus size={18} />
                         </button>
                     </div>
+                </div>
+
+                {/* Activities Worked Today */}
+                <div className="form-section">
+                    <h3 className="form-section-title">
+                        Activities Worked Today
+                        {activityEntries.length > 0 && (
+                            <span className="task-progress">{activityEntries.length} selected</span>
+                        )}
+                    </h3>
+                    {openActivities.length === 0 ? (
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.5rem 0' }}>
+                            No open activities for this project.{' '}
+                            <Link to={`/fieldops/projects/${projectId}/activities`} style={{ color: 'var(--primary-400,#60a5fa)' }}>
+                                Create activities first →
+                            </Link>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                            {openActivities.map(activity => {
+                                const selected = isActivitySelected(activity._id);
+                                const entry = activityEntries.find(e => e.activityId === activity._id);
+                                return (
+                                    <div key={activity._id} style={{
+                                        border: `1px solid ${selected ? 'rgba(59,130,246,0.3)' : 'var(--border-light,rgba(148,163,184,0.14))'}`,
+                                        borderRadius: 8,
+                                        overflow: 'hidden'
+                                    }}>
+                                        {/* Activity header row */}
+                                        <div
+                                            style={{
+                                                display: 'flex', alignItems: 'center', gap: '0.625rem',
+                                                padding: '0.6rem 0.875rem',
+                                                background: selected ? 'rgba(59,130,246,0.05)' : 'transparent',
+                                                cursor: 'pointer'
+                                            }}
+                                            onClick={() => toggleActivitySelection(activity)}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={selected}
+                                                onChange={() => toggleActivitySelection(activity)}
+                                                onClick={e => e.stopPropagation()}
+                                                style={{ accentColor: 'var(--primary-400,#60a5fa)', width: 15, height: 15, flexShrink: 0 }}
+                                            />
+                                            <span style={{ fontWeight: 600, fontSize: '0.875rem', flex: 1 }}>{activity.title}</span>
+                                            <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '0.1rem 0.4rem', borderRadius: 20, background: 'rgba(59,130,246,0.1)', color: 'var(--primary-400,#60a5fa)' }}>
+                                                {activity.type}
+                                            </span>
+                                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                                {(activity.tasks || []).length} tasks
+                                            </span>
+                                        </div>
+
+                                        {/* Task list (expanded when selected) */}
+                                        {selected && entry && (
+                                            <div style={{ padding: '0.5rem 0.875rem 0.75rem', borderTop: '1px solid var(--border-light,rgba(148,163,184,0.1))' }}>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                                    {entry.tasksWorked.map(tw => {
+                                                        const actTask = activity.tasks?.find(t => t._id === tw.taskId);
+                                                        const overdue = isTaskOverdue(actTask, formData.logDate);
+                                                        return (
+                                                            <div key={tw.taskId}>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={tw.completed}
+                                                                        onChange={() => toggleActivityTask(activity._id, tw.taskId)}
+                                                                        style={{ accentColor: 'var(--success-500,#10b981)', width: 14, height: 14, flexShrink: 0 }}
+                                                                    />
+                                                                    <span style={{ fontSize: '0.82rem', flex: 1, color: tw.completed ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: tw.completed ? 'line-through' : 'none' }}>
+                                                                        {tw.taskTitle}
+                                                                    </span>
+                                                                    {overdue && !tw.completed && (
+                                                                        <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '0.1rem 0.35rem', borderRadius: 20 }}>
+                                                                            OVERDUE
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {overdue && !tw.completed && (
+                                                                    <input
+                                                                        type="text"
+                                                                        className="form-input"
+                                                                        style={{ marginTop: '0.3rem', marginLeft: '1.5rem', fontSize: '0.78rem', padding: '0.3rem 0.5rem', borderColor: !tw.delayReason?.trim() ? '#ef4444' : undefined }}
+                                                                        placeholder="Delay reason (required) *"
+                                                                        value={tw.delayReason}
+                                                                        onChange={e => setActivityTaskDelayReason(activity._id, tw.taskId, e.target.value)}
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <textarea
+                                                    className="form-textarea"
+                                                    style={{ marginTop: '0.5rem', fontSize: '0.8rem', rows: 2, minHeight: 48 }}
+                                                    placeholder="Activity progress note (optional)…"
+                                                    value={entry.progressNote}
+                                                    onChange={e => setActivityProgressNote(activity._id, e.target.value)}
+                                                    rows={2}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
 
                 {/* Progress & Manpower */}

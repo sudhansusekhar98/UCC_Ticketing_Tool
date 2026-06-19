@@ -25,6 +25,7 @@ import {
   downloadAttachment,
   deleteAttachment
 } from '../controllers/activity.controller.js';
+import { getTicketTrends } from '../controllers/optimized/getDashboardStatsOptimized.js';
 import { protect, allowAccess } from '../middleware/auth.middleware.js';
 import { upload } from '../utils/upload.js';
 
@@ -35,6 +36,7 @@ router.use(protect);
 
 // Dashboard stats (before other routes)
 router.get('/dashboard/stats', getDashboardStats);
+router.get('/dashboard/trends', getTicketTrends);
 
 // CRUD routes
 router.route('/')

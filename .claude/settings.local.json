@@ -1,7 +1,57 @@
 {
   "permissions": {
     "allow": [
-      "Bash(find 'D:/VL Access/CODES/UCC_Ticketing_Tool - AWS/backend' -type f \\\\\\(-name *fieldops* -o -name *survey* \\\\\\))"
+      "Bash(find 'D:/VL Access/CODES/UCC_Ticketing_Tool - AWS/backend' -type f \\\\\\(-name *fieldops* -o -name *survey* \\\\\\))",
+      "Bash(npx vite:*)",
+      "Bash(node --check models/Activity.model.js)",
+      "Bash(node --check controllers/projectActivity.controller.js)",
+      "Bash(node --check routes/fieldops.routes.js)",
+      "Bash(node --check constants/activityTaskTemplates.js)",
+      "Bash(node --check models/DeviceInstallation.model.js)",
+      "Bash(git *)",
+      "Bash(powershell -File \".specify/scripts/powershell/setup-plan.ps1\" -Json -Arguments \"I want the projects section glass-card class section where all the overview daily task vendor allocated stock etc section there those needs to be in separated view page so that the user can access in unique page not just scrolling down everytime to do some tasks\")",
+      "Bash(powershell -File \".specify/scripts/powershell/setup-plan.ps1\" -Json)",
+      "Bash(powershell -File \".specify/scripts/powershell/setup-tasks.ps1\" -Json)",
+      "Bash(powershell -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json -RequireTasks -IncludeTasks)",
+      "PowerShell(Get-Content *)",
+      "PowerShell(cd \"D:\\\\VL Access\\\\CODES\\\\UCC_Ticketing_Tool - AWS\"; powershell -File \".specify/scripts/powershell/setup-plan.ps1\" -Json 2>&1)",
+      "PowerShell(New-Item *)",
+      "PowerShell(cd \"D:\\\\VL Access\\\\CODES\\\\UCC_Ticketing_Tool - AWS\"; powershell -File \".specify/scripts/powershell/setup-tasks.ps1\" -Json 2>&1)",
+      "PowerShell(cd \"D:\\\\VL Access\\\\CODES\\\\UCC_Ticketing_Tool - AWS\"; powershell -File \".specify/scripts/powershell/check-prerequisites.ps1\" -Json -RequireTasks -IncludeTasks 2>&1)",
+      "Bash(Get-ChildItem -Path \"D:\\\\VL Access\\\\CODES\\\\UCC_Ticketing_Tool - AWS\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(npm run *)",
+      "Bash(npx eslint *)",
+      "Bash(powershell -Command \"Get-Content '.specify\\\\extensions.yml'\")",
+      "Bash(npm install *)",
+      "Bash(node --input-type=module --eval \"import\\('./controllers/optimized/getDashboardStatsOptimized.js'\\).then\\(m => { console.log\\('exports:', Object.keys\\(m\\).join\\(', '\\)\\); }\\).catch\\(e => console.error\\(e.message\\)\\);\")",
+      "Bash(Remove-Item -Recurse -Force node_modules -ErrorAction SilentlyContinue)",
+      "Bash(Remove-Item -Force package-lock.json -ErrorAction SilentlyContinue)",
+      "PowerShell(Start-Service *)",
+      "PowerShell(Get-Command *)",
+      "Bash(node -e \"import\\('./controllers/reporting.controller.js'\\).then\\(\\(\\) => console.log\\('OK'\\)\\).catch\\(e => console.error\\(e.message\\)\\)\")",
+      "Bash(node --input-type=module -e \"import\\('./controllers/reporting.controller.js'\\).then\\(\\(\\) => console.log\\('OK'\\)\\).catch\\(e => console.error\\(e.message\\)\\)\")",
+      "Bash(node -e \"import\\('./utils/excelStyler.js'\\).then\\(m => console.log\\('exports:', Object.keys\\(m\\)\\)\\).catch\\(e => console.error\\('FAIL:', e.message\\)\\)\")",
+      "Bash(node -e \"import\\('./controllers/reporting.controller.js'\\).then\\(m => console.log\\('exports:', Object.keys\\(m\\)\\)\\).catch\\(e => console.error\\('FAIL:', e.message\\)\\)\")",
+      "Bash(node --check controllers/reporting.controller.js)",
+      "Bash(node --check utils/excelStyler.js)",
+      "Bash(node --check controllers/stock.controller.js)",
+      "Bash(node --check utils/reportHtmlGenerator.js)",
+      "Bash(node --check routes/stock.routes.js)",
+      "Bash(node -e \"import\\('./controllers/stock.controller.js'\\).then\\(m => { if \\(m.exportStockSummary\\) console.log\\('exportStockSummary: OK'\\); else console.log\\('MISSING'\\); }\\).catch\\(e => console.error\\('FAIL:', e.message\\)\\)\")",
+      "Bash(node --check backend-express/server.js)",
+      "PowerShell(try { \\(Get-Command ssh -ErrorAction Stop\\).Source } catch { \"NOT FOUND\" })",
+      "PowerShell(try { \\(Get-Command ssh-keygen -ErrorAction Stop\\).Source } catch { \"NOT FOUND\" })",
+      "PowerShell(Test-Path *)",
+      "Bash(gh secret *)",
+      "PowerShell(\\(Get-Command gh -ErrorAction SilentlyContinue\\).Source)",
+      "PowerShell(winget install *)",
+      "PowerShell(try { \\(Get-Command choco -ErrorAction Stop\\).Source } catch { \"choco NOT FOUND\" }; try { \\(Get-Command scoop -ErrorAction Stop\\).Source } catch { \"scoop NOT FOUND\" }; try { \\(Get-Command winget -ErrorAction Stop\\).Source } catch { \"winget NOT FOUND\" })",
+      "PowerShell(choco install *)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "code-review-graph"
+  ]
 }

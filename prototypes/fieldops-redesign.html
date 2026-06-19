@@ -1,0 +1,1353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Field Ops — Redesign Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+/* =========================================================
+   Design tokens — SaaS light theme with dark-mode ready
+   ========================================================= */
+:root{
+  --bg: #f7f8fb;
+  --surface: #ffffff;
+  --surface-2: #fafbfd;
+  --border: #eceef3;
+  --border-strong: #dfe2ea;
+  --text: #0f172a;
+  --text-muted: #64748b;
+  --text-soft: #94a3b8;
+
+  --brand: #4f46e5;          /* indigo-600 */
+  --brand-600: #4338ca;
+  --brand-50: #eef2ff;
+  --brand-100: #e0e7ff;
+
+  --success: #059669;
+  --success-50: #ecfdf5;
+  --warning: #d97706;
+  --warning-50: #fffbeb;
+  --danger: #dc2626;
+  --danger-50: #fef2f2;
+  --info: #0284c7;
+  --info-50: #f0f9ff;
+  --violet: #7c3aed;
+  --violet-50: #f5f3ff;
+
+  --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
+  --shadow: 0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-md: 0 4px 12px rgba(15,23,42,.06), 0 2px 4px rgba(15,23,42,.04);
+  --shadow-lg: 0 12px 32px -8px rgba(15,23,42,.12);
+
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --sidebar-w: 248px;
+  --topbar-h: 60px;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+
+/* ============ Layout ============ */
+.app{display:grid;grid-template-columns: var(--sidebar-w) 1fr; min-height:100vh}
+
+/* ============ Sidebar ============ */
+.sidebar{
+  background: var(--surface);
+  border-right:1px solid var(--border);
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+.brand{
+  display:flex;align-items:center;gap:10px;
+  padding: 18px 20px; border-bottom:1px solid var(--border);
+}
+.brand-mark{
+  width:32px;height:32px;border-radius:9px;
+  background: linear-gradient(135deg,#4f46e5,#7c3aed);
+  display:grid;place-items:center;color:white;
+  box-shadow: 0 6px 16px -6px rgba(79,70,229,.5);
+}
+.brand-name{font-weight:700;font-size:15px;letter-spacing:-.01em}
+.brand-sub{font-size:11px;color:var(--text-muted);margin-top:-2px}
+
+.workspace-switch{
+  margin: 12px;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  display:flex;align-items:center;gap:10px;
+  background: var(--surface-2);
+  cursor:pointer;
+}
+.workspace-switch:hover{border-color:var(--border-strong)}
+.ws-avatar{width:28px;height:28px;border-radius:7px;background:#111827;color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+.ws-name{font-weight:600;font-size:13px}
+.ws-plan{font-size:11px;color:var(--text-muted)}
+
+.nav-section-label{
+  padding: 14px 20px 6px;
+  font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-soft);font-weight:600;
+}
+.nav{display:flex;flex-direction:column;padding: 0 10px;gap:1px}
+.nav a{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 12px;border-radius:8px;font-size:13.5px;color:var(--text-muted);
+  font-weight:500;position:relative;
+}
+.nav a:hover{background:var(--surface-2);color:var(--text)}
+.nav a.active{background:var(--brand-50);color:var(--brand);font-weight:600}
+.nav a .count{
+  margin-left:auto;font-size:11px;padding:2px 7px;border-radius:999px;
+  background:var(--border);color:var(--text-muted)
+}
+.nav a.active .count{background:var(--brand-100);color:var(--brand)}
+.nav a svg{width:16px;height:16px;opacity:.85}
+
+.sidebar-footer{margin-top:auto;padding:14px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;display:grid;place-items:center;font-weight:700;font-size:12px}
+.me-name{font-size:13px;font-weight:600}
+.me-role{font-size:11px;color:var(--text-muted)}
+
+/* ============ Topbar + Main ============ */
+.main{min-width:0;display:flex;flex-direction:column}
+.topbar{
+  height:var(--topbar-h);
+  position:sticky;top:0;z-index:10;
+  background: rgba(255,255,255,.85);
+  backdrop-filter: saturate(1.2) blur(10px);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:14px;padding: 0 24px;
+}
+.crumbs{display:flex;align-items:center;gap:6px;color:var(--text-muted);font-size:13px}
+.crumbs .sep{color:var(--text-soft)}
+.crumbs .now{color:var(--text);font-weight:600}
+.topbar-spacer{flex:1}
+.topbar .search{
+  position:relative;width: 320px;
+}
+.topbar .search input{
+  width:100%;height:36px;padding: 0 14px 0 36px;
+  border:1px solid var(--border);border-radius:10px;background:var(--surface-2);outline:none;
+  transition: .15s;
+}
+.topbar .search input:focus{border-color: var(--brand);background:white;box-shadow:0 0 0 3px rgba(79,70,229,.12)}
+.topbar .search svg{position:absolute;left:11px;top:10px;color:var(--text-soft)}
+.kbd{position:absolute;right:8px;top:7px;font-size:11px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 6px;font-family:'JetBrains Mono',monospace}
+.icon-btn{
+  width:36px;height:36px;border-radius:10px;display:grid;place-items:center;
+  color:var(--text-muted);border:1px solid transparent;
+}
+.icon-btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--border)}
+.notif-dot{position:relative}
+.notif-dot::after{content:"";position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:#ef4444;border:2px solid white}
+
+/* ============ Page content ============ */
+.page{padding: 24px 28px 48px; max-width: 1400px;margin:0 auto;width:100%}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom: 22px}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0}
+.page-sub{color:var(--text-muted);font-size:13.5px;margin-top:4px}
+.page-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  height:36px;padding:0 14px;border-radius:9px;
+  font-weight:600;font-size:13px;border:1px solid transparent;
+  transition:.15s;white-space:nowrap;
+}
+.btn svg{width:15px;height:15px}
+.btn-primary{background:var(--brand);color:white}
+.btn-primary:hover{background:var(--brand-600)}
+.btn-ghost{color:var(--text-muted)}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text)}
+.btn-outline{border-color:var(--border-strong);background:white;color:var(--text)}
+.btn-outline:hover{border-color:#9ca3af;background:var(--surface-2)}
+.btn-sm{height:30px;padding:0 10px;font-size:12.5px;border-radius:8px}
+
+/* KPI cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:16px 18px;position:relative;overflow:hidden;transition:.15s;
+}
+.kpi:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm)}
+.kpi-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.kpi-label{font-size:12px;color:var(--text-muted);font-weight:500;letter-spacing:.01em}
+.kpi-icon{width:32px;height:32px;border-radius:8px;display:grid;place-items:center}
+.kpi-value{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.1}
+.kpi-delta{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;margin-top:8px}
+.kpi-delta.up{color:var(--success)}
+.kpi-delta.down{color:var(--danger)}
+.kpi-spark{height:28px;margin-top:8px}
+
+/* Generic card */
+.card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  overflow:hidden;
+}
+.card-head{
+  padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+}
+.card-title{font-size:14px;font-weight:600;margin:0}
+.card-body{padding:18px}
+
+/* Filters bar */
+.filters{
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+  padding: 12px 14px;background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-lg);margin-bottom:14px;
+}
+.filters .search{position:relative;flex:1;min-width:260px}
+.filters .search input{
+  width:100%;height:36px;padding:0 12px 0 36px;border:1px solid var(--border);
+  background:var(--surface-2);border-radius:9px;outline:none;
+}
+.filters .search input:focus{border-color:var(--brand);background:white;box-shadow:0 0 0 3px rgba(79,70,229,.1)}
+.filters .search svg{position:absolute;left:11px;top:10px;color:var(--text-soft)}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;
+  height:34px;padding: 0 12px;
+  border:1px solid var(--border);border-radius:9px;background:var(--surface-2);
+  font-size:13px;color:var(--text);font-weight:500;cursor:pointer;
+}
+.chip:hover{border-color:var(--border-strong)}
+.chip.active{background:var(--brand-50);color:var(--brand);border-color:#c7d2fe}
+.chip svg{width:14px;height:14px;opacity:.8}
+
+.segment{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px}
+.segment button{
+  padding:5px 11px;font-size:12.5px;border-radius:6px;color:var(--text-muted);font-weight:500;
+}
+.segment button.on{background:white;color:var(--text);box-shadow:var(--shadow-sm);font-weight:600}
+
+/* Table */
+.table-wrap{overflow:auto}
+.table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+.table thead th{
+  text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.04em;
+  color:var(--text-muted);text-transform:uppercase;
+  padding:11px 16px;background:var(--surface-2);
+  border-bottom:1px solid var(--border);position:sticky;top:0;
+}
+.table tbody td{padding:14px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+.table tbody tr:hover{background:var(--surface-2)}
+.table tbody tr:last-child td{border-bottom:0}
+.table .pid{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-muted)}
+.table .pname{font-weight:600;color:var(--text)}
+.table .pdesc{font-size:12px;color:var(--text-muted);margin-top:2px}
+.cell-inline{display:flex;align-items:center;gap:8px}
+
+/* Badges */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:600;
+  border:1px solid transparent;
+}
+.badge .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge-success{background:var(--success-50);color:var(--success)}
+.badge-warning{background:var(--warning-50);color:var(--warning)}
+.badge-danger{background:var(--danger-50);color:var(--danger)}
+.badge-info{background:var(--info-50);color:var(--info)}
+.badge-violet{background:var(--violet-50);color:var(--violet)}
+.badge-neutral{background:var(--surface-2);color:var(--text-muted);border-color:var(--border)}
+
+/* Avatars group */
+.avatars{display:inline-flex}
+.avatars .a{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;color:white;border:2px solid white;margin-left:-6px}
+.avatars .a:first-child{margin-left:0}
+
+/* Progress */
+.progress{height:6px;background:var(--border);border-radius:99px;overflow:hidden}
+.progress > span{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#4f46e5,#7c3aed)}
+.progress.thin{height:4px}
+.progress.green > span{background:linear-gradient(90deg,#10b981,#059669)}
+.progress.amber > span{background:linear-gradient(90deg,#f59e0b,#d97706)}
+
+/* Pagination */
+.pag{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--border);font-size:13px;color:var(--text-muted)}
+.pag .controls{display:flex;gap:4px}
+.pag button{width:30px;height:30px;border-radius:8px;color:var(--text-muted);border:1px solid var(--border);background:white}
+.pag button:hover:not(:disabled){border-color:var(--border-strong);color:var(--text)}
+.pag button:disabled{opacity:.4;cursor:not-allowed}
+.pag button.on{background:var(--brand);color:white;border-color:var(--brand)}
+
+/* ===== Project Detail ===== */
+.detail-hero{
+  background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 50%, #fdf4ff 100%);
+  border:1px solid var(--border);border-radius:var(--radius-xl);
+  padding:22px 24px;margin-bottom:18px;position:relative;overflow:hidden;
+}
+.detail-hero::before{
+  content:"";position:absolute;inset:0;
+  background: radial-gradient(600px 200px at 90% -20%, rgba(124,58,237,.15), transparent 60%);
+  pointer-events:none;
+}
+.hero-row{display:flex;justify-content:space-between;gap:24px;position:relative}
+.hero-title{display:flex;align-items:center;gap:12px;margin:4px 0 6px}
+.hero-title h1{font-size:22px;font-weight:700;letter-spacing:-.01em;margin:0}
+.hero-meta{display:flex;flex-wrap:wrap;gap: 14px 22px;margin-top:10px;color:var(--text-muted);font-size:13px}
+.hero-meta .m{display:inline-flex;align-items:center;gap:6px}
+.hero-meta svg{width:14px;height:14px;opacity:.8}
+
+/* Tabs */
+.tabs{
+  display:flex;gap:4px;border-bottom:1px solid var(--border);
+  margin:18px 0 18px;overflow-x:auto;
+}
+.tab{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:10px 14px;border-bottom:2px solid transparent;margin-bottom:-1px;
+  font-size:13.5px;color:var(--text-muted);font-weight:500;white-space:nowrap;
+  border-radius:6px 6px 0 0;
+}
+.tab:hover{color:var(--text);background:var(--surface-2)}
+.tab.active{color:var(--brand);border-bottom-color:var(--brand);font-weight:600}
+.tab svg{width:15px;height:15px}
+.tab .count{
+  font-size:11px;padding:1px 7px;border-radius:999px;
+  background:var(--border);color:var(--text-muted);font-weight:600;
+}
+.tab.active .count{background:var(--brand-100);color:var(--brand)}
+
+/* Split grids */
+.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+/* Info rows */
+.info-row{display:grid;grid-template-columns:140px 1fr;gap:10px;padding:10px 0;border-bottom:1px dashed var(--border)}
+.info-row:last-child{border-bottom:0}
+.info-row .k{color:var(--text-muted);font-size:12.5px}
+.info-row .v{font-size:13.5px}
+
+/* Log cards (timeline) */
+.timeline{position:relative;padding-left:26px}
+.timeline::before{content:"";position:absolute;left:10px;top:6px;bottom:6px;width:2px;background:var(--border)}
+.log-item{position:relative;padding:10px 0 18px}
+.log-item::before{content:"";position:absolute;left:-21px;top:14px;width:12px;height:12px;border-radius:50%;background:white;border:2px solid var(--brand)}
+.log-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.log-num{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--text-muted)}
+.log-date{font-weight:600;font-size:13.5px}
+.log-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;transition:.15s;cursor:pointer;
+}
+.log-card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-sm)}
+.log-sum{color:var(--text);font-size:13px;margin:6px 0 10px}
+.log-stats{display:flex;gap:14px;flex-wrap:wrap;color:var(--text-muted);font-size:12px}
+.log-stats .s{display:inline-flex;align-items:center;gap:5px}
+.log-stats svg{width:13px;height:13px}
+
+/* Devices grid */
+.device-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.device-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:14px;display:flex;flex-direction:column;gap:8px;
+}
+.device-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.device-icon{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;background:var(--brand-50);color:var(--brand)}
+.device-name{font-weight:600;font-size:13.5px}
+.device-sub{font-size:12px;color:var(--text-muted)}
+.device-meta{display:flex;gap:12px;color:var(--text-muted);font-size:11.5px}
+
+/* Right rail */
+.rail .card + .card{margin-top:14px}
+.team-list{display:flex;flex-direction:column;gap:10px}
+.team-item{display:flex;align-items:center;gap:10px}
+.team-avatar{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:white;font-weight:700;font-size:12px}
+.team-name{font-size:13.5px;font-weight:600}
+.team-role{font-size:11.5px;color:var(--text-muted)}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;gap:16px}
+.donut{width:128px;height:128px;flex-shrink:0;position:relative}
+.donut svg{transform:rotate(-90deg)}
+.donut .center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut .pct{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.donut .lbl{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-top:2px}
+.donut-meta{display:flex;flex-direction:column;gap:8px;font-size:13px}
+.donut-meta .row{display:flex;justify-content:space-between;gap:20px}
+.donut-meta .k{color:var(--text-muted)}
+.donut-meta .v{font-weight:600}
+
+/* Activity strip */
+.activity{display:flex;flex-direction:column;gap:10px}
+.act-item{display:flex;gap:10px;font-size:13px;color:var(--text)}
+.act-dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex-shrink:0}
+.act-time{color:var(--text-soft);font-size:11.5px;margin-top:2px}
+
+/* Empty */
+.empty{padding:40px 20px;text-align:center;color:var(--text-muted)}
+.empty svg{width:40px;height:40px;opacity:.4;margin-bottom:10px}
+
+/* Chart */
+.chart{height:220px;width:100%}
+
+/* View switcher for page-level views */
+.view{display:none}
+.view.on{display:block}
+
+/* Screen label chip shown in corners */
+.screen-label{
+  position:fixed;left:12px;bottom:12px;z-index:20;
+  background:rgba(15,23,42,.9);color:white;font-size:11px;font-weight:600;
+  padding:6px 10px;border-radius:8px;backdrop-filter:blur(6px);
+  font-family:'JetBrains Mono',monospace;
+  display:flex;align-items:center;gap:8px;
+}
+.screen-label .switcher{display:flex;gap:4px}
+.screen-label button{
+  background:rgba(255,255,255,.1);color:white;padding:3px 8px;border-radius:5px;
+  font-size:10.5px;font-weight:600;
+}
+.screen-label button.on{background:white;color:#0f172a}
+
+/* Simple responsive */
+@media (max-width: 1100px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .grid-2{grid-template-columns:1fr}
+}
+@media (max-width: 820px){
+  .app{grid-template-columns: 1fr}
+  .sidebar{display:none}
+  .grid-3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- =============== SIDEBAR =============== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"><i data-lucide="layers"></i></div>
+      <div>
+        <div class="brand-name">TicketOps</div>
+        <div class="brand-sub">Field Operations</div>
+      </div>
+    </div>
+
+    <div class="workspace-switch">
+      <div class="ws-avatar">VL</div>
+      <div style="flex:1;min-width:0">
+        <div class="ws-name">VLAccess</div>
+        <div class="ws-plan">Enterprise · Production</div>
+      </div>
+      <i data-lucide="chevrons-up-down" style="width:14px;height:14px;color:var(--text-soft)"></i>
+    </div>
+
+    <div class="nav-section-label">Workspace</div>
+    <nav class="nav">
+      <a href="#"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+      <a href="#"><i data-lucide="ticket"></i> Tickets <span class="count">142</span></a>
+      <a href="#"><i data-lucide="box"></i> Assets</a>
+      <a href="#"><i data-lucide="map-pin"></i> Sites</a>
+    </nav>
+
+    <div class="nav-section-label">Field Operations</div>
+    <nav class="nav">
+      <a href="#" class="active" data-screen="projects"><i data-lucide="folder-kanban"></i> Projects <span class="count">24</span></a>
+      <a href="#" data-screen="detail"><i data-lucide="file-text"></i> Project Detail</a>
+      <a href="#"><i data-lucide="clipboard-list"></i> Daily Logs</a>
+      <a href="#"><i data-lucide="camera"></i> Device Installations</a>
+      <a href="#"><i data-lucide="truck"></i> Vendor Work</a>
+      <a href="#"><i data-lucide="alert-triangle"></i> Challenges <span class="count">7</span></a>
+      <a href="#" data-screen="reports"><i data-lucide="bar-chart-3"></i> Reports</a>
+    </nav>
+
+    <div class="nav-section-label">Settings</div>
+    <nav class="nav">
+      <a href="#"><i data-lucide="users"></i> Team</a>
+      <a href="#"><i data-lucide="sliders"></i> Preferences</a>
+      <a href="#"><i data-lucide="life-buoy"></i> Help & Docs</a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="avatar">SP</div>
+      <div style="flex:1;min-width:0">
+        <div class="me-name">Sudhansu P.</div>
+        <div class="me-role">Project Manager</div>
+      </div>
+      <button class="icon-btn" title="Log out"><i data-lucide="log-out"></i></button>
+    </div>
+  </aside>
+
+  <!-- =============== MAIN =============== -->
+  <main class="main">
+    <div class="topbar">
+      <div class="crumbs">
+        <span>Field Ops</span>
+        <span class="sep">/</span>
+        <span class="now" id="crumb-current">Projects</span>
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="search">
+        <i data-lucide="search"></i>
+        <input placeholder="Search projects, logs, devices..." />
+        <span class="kbd">⌘K</span>
+      </div>
+      <button class="icon-btn" title="Help"><i data-lucide="circle-help"></i></button>
+      <button class="icon-btn notif-dot" title="Notifications"><i data-lucide="bell"></i></button>
+      <div class="avatar" title="Sudhansu">SP</div>
+    </div>
+
+    <!-- ============ VIEW: PROJECTS LIST ============ -->
+    <section class="view on" id="view-projects">
+      <div class="page">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Projects</h1>
+            <div class="page-sub">Track installation projects, progress, and field team activity in one place.</div>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-outline"><i data-lucide="download"></i> Export</button>
+            <button class="btn btn-outline"><i data-lucide="filter"></i> Saved views</button>
+            <button class="btn btn-primary"><i data-lucide="plus"></i> New Project</button>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="kpi-top">
+              <span class="kpi-label">Active Projects</span>
+              <div class="kpi-icon" style="background:var(--brand-50);color:var(--brand)"><i data-lucide="activity"></i></div>
+            </div>
+            <div class="kpi-value">18</div>
+            <div class="kpi-delta up"><i data-lucide="trending-up"></i> +3 this month</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-top">
+              <span class="kpi-label">Devices Installed</span>
+              <div class="kpi-icon" style="background:var(--success-50);color:var(--success)"><i data-lucide="camera"></i></div>
+            </div>
+            <div class="kpi-value">1,247</div>
+            <div class="kpi-delta up"><i data-lucide="trending-up"></i> +128 this week</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-top">
+              <span class="kpi-label">Open Challenges</span>
+              <div class="kpi-icon" style="background:var(--warning-50);color:var(--warning)"><i data-lucide="alert-triangle"></i></div>
+            </div>
+            <div class="kpi-value">7</div>
+            <div class="kpi-delta down"><i data-lucide="trending-down"></i> 2 critical</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-top">
+              <span class="kpi-label">Avg Completion</span>
+              <div class="kpi-icon" style="background:var(--violet-50);color:var(--violet)"><i data-lucide="gauge"></i></div>
+            </div>
+            <div class="kpi-value">62%</div>
+            <div class="progress" style="margin-top:10px"><span style="width:62%"></span></div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+          <div class="search">
+            <i data-lucide="search"></i>
+            <input placeholder="Search by name, client or project number…" />
+          </div>
+          <button class="chip active"><span class="dot" style="width:6px;height:6px;border-radius:50%;background:var(--brand);display:inline-block"></span> All <span style="color:var(--text-muted);margin-left:4px">24</span></button>
+          <button class="chip">Active <span style="color:var(--text-muted);margin-left:4px">18</span></button>
+          <button class="chip">Planning <span style="color:var(--text-muted);margin-left:4px">3</span></button>
+          <button class="chip">On Hold <span style="color:var(--text-muted);margin-left:4px">2</span></button>
+          <button class="chip">Completed <span style="color:var(--text-muted);margin-left:4px">1</span></button>
+
+          <div style="flex:1"></div>
+
+          <div class="segment">
+            <button class="on"><i data-lucide="list" style="width:14px;height:14px;vertical-align:-2px"></i> List</button>
+            <button><i data-lucide="layout-grid" style="width:14px;height:14px;vertical-align:-2px"></i> Board</button>
+            <button><i data-lucide="map" style="width:14px;height:14px;vertical-align:-2px"></i> Map</button>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="card">
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th style="width:30px"><input type="checkbox"/></th>
+                  <th>Project</th>
+                  <th>Client</th>
+                  <th>Progress</th>
+                  <th>Team</th>
+                  <th>Timeline</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="projects-rows"><!-- populated by JS --></tbody>
+            </table>
+          </div>
+          <div class="pag">
+            <div>Showing <b>1–8</b> of 24 projects</div>
+            <div class="controls">
+              <button disabled><i data-lucide="chevron-left" style="width:14px;height:14px"></i></button>
+              <button class="on">1</button>
+              <button>2</button>
+              <button>3</button>
+              <button><i data-lucide="chevron-right" style="width:14px;height:14px"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW: PROJECT DETAIL ============ -->
+    <section class="view" id="view-detail">
+      <div class="page">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;color:var(--text-muted);font-size:13px">
+          <button class="btn btn-ghost btn-sm"><i data-lucide="arrow-left"></i> Back to Projects</button>
+        </div>
+
+        <!-- HERO -->
+        <div class="detail-hero">
+          <div class="hero-row">
+            <div style="min-width:0">
+              <div style="display:flex;gap:10px;align-items:center">
+                <span class="pid" style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text-muted)">PRJ-20260415-0018</span>
+                <span class="badge badge-success"><span class="dot"></span> Active</span>
+                <span class="badge badge-violet">High Priority</span>
+              </div>
+              <div class="hero-title">
+                <h1>Meenakshi Mall — CCTV Installation Phase 2</h1>
+              </div>
+              <div style="color:var(--text-muted);font-size:13px;max-width:700px">
+                Full-site surveillance upgrade covering 4 floors, perimeter, and basement parking. Includes 120 IP cameras, 6 NVRs, structured cabling, and access control integration.
+              </div>
+              <div class="hero-meta">
+                <span class="m"><i data-lucide="building-2"></i> Meenakshi Retail Group</span>
+                <span class="m"><i data-lucide="map-pin"></i> Madurai, Tamil Nadu</span>
+                <span class="m"><i data-lucide="calendar"></i> Mar 12 – Jun 30, 2026</span>
+                <span class="m"><i data-lucide="circle-dollar-sign"></i> ₹ 48,20,000</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+              <div style="display:flex;gap:8px">
+                <button class="btn btn-outline"><i data-lucide="share-2"></i> Share</button>
+                <button class="btn btn-outline"><i data-lucide="edit-3"></i> Edit</button>
+                <button class="btn btn-primary"><i data-lucide="plus"></i> Submit Daily Log</button>
+              </div>
+              <div style="display:flex;gap:14px;margin-top:6px;align-items:center">
+                <div style="text-align:right">
+                  <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600">Overall Progress</div>
+                  <div style="font-size:18px;font-weight:700;letter-spacing:-.01em">68%</div>
+                </div>
+                <div class="donut" style="width:72px;height:72px">
+                  <svg width="72" height="72" viewBox="0 0 72 72">
+                    <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(79,70,229,.15)" stroke-width="8"/>
+                    <circle cx="36" cy="36" r="30" fill="none" stroke="url(#gHero)" stroke-width="8"
+                            stroke-dasharray="188.5" stroke-dashoffset="60.3" stroke-linecap="round"/>
+                    <defs>
+                      <linearGradient id="gHero" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stop-color="#4f46e5"/><stop offset="100%" stop-color="#7c3aed"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI row (compact) -->
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="kpi-top"><span class="kpi-label">Devices Installed</span><div class="kpi-icon" style="background:var(--brand-50);color:var(--brand)"><i data-lucide="camera"></i></div></div>
+            <div class="kpi-value">82 <span style="font-size:14px;color:var(--text-muted);font-weight:500">/ 120</span></div>
+            <div class="progress" style="margin-top:10px"><span style="width:68%"></span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-top"><span class="kpi-label">Cable Laid</span><div class="kpi-icon" style="background:var(--info-50);color:var(--info)"><i data-lucide="cable"></i></div></div>
+            <div class="kpi-value">2,140 m</div>
+            <div class="kpi-delta up"><i data-lucide="trending-up"></i> +180m this week</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-top"><span class="kpi-label">Man Hours (30d)</span><div class="kpi-icon" style="background:var(--success-50);color:var(--success)"><i data-lucide="clock"></i></div></div>
+            <div class="kpi-value">1,842</div>
+            <div class="kpi-delta up"><i data-lucide="users"></i> 12 avg workers/day</div>
+          </div>
+          <div class="kpi">
+            <div class="kpi-top"><span class="kpi-label">Open Challenges</span><div class="kpi-icon" style="background:var(--warning-50);color:var(--warning)"><i data-lucide="alert-triangle"></i></div></div>
+            <div class="kpi-value">3</div>
+            <div class="kpi-delta down" style="color:var(--warning)"><i data-lucide="flag"></i> 1 escalated</div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" id="detail-tabs">
+          <button class="tab active" data-tab="overview"><i data-lucide="layout-dashboard"></i> Overview</button>
+          <button class="tab" data-tab="logs"><i data-lucide="clipboard-list"></i> Daily Logs <span class="count">24</span></button>
+          <button class="tab" data-tab="devices"><i data-lucide="camera"></i> Devices <span class="count">82</span></button>
+          <button class="tab" data-tab="vendor"><i data-lucide="truck"></i> Vendor Work <span class="count">18</span></button>
+          <button class="tab" data-tab="challenges"><i data-lucide="alert-triangle"></i> Challenges <span class="count">3</span></button>
+          <button class="tab" data-tab="stock"><i data-lucide="package"></i> Stock <span class="count">14</span></button>
+          <button class="tab" data-tab="recon"><i data-lucide="bar-chart-3"></i> Survey vs Actual</button>
+        </div>
+
+        <!-- Tab: Overview -->
+        <div class="tab-pane on" data-pane="overview">
+          <div class="grid-2">
+            <div style="display:flex;flex-direction:column;gap:14px">
+              <!-- Timeline card -->
+              <div class="card">
+                <div class="card-head">
+                  <h3 class="card-title">Schedule & Timeline</h3>
+                  <div class="segment"><button class="on">Week</button><button>Month</button><button>All</button></div>
+                </div>
+                <div class="card-body">
+                  <div class="donut-wrap">
+                    <div class="donut">
+                      <svg width="128" height="128" viewBox="0 0 128 128">
+                        <circle cx="64" cy="64" r="54" fill="none" stroke="rgba(16,185,129,.15)" stroke-width="10"/>
+                        <circle cx="64" cy="64" r="54" fill="none" stroke="url(#g2)" stroke-width="10"
+                                stroke-dasharray="339.3" stroke-dashoffset="108.6" stroke-linecap="round"/>
+                        <defs>
+                          <linearGradient id="g2" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#06b6d4"/>
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div class="center"><div class="pct">68%</div><div class="lbl">Time Used</div></div>
+                    </div>
+                    <div class="donut-meta" style="flex:1">
+                      <div class="row"><span class="k">Elapsed</span><span class="v">74 days</span></div>
+                      <div class="row"><span class="k">Remaining</span><span class="v">35 days</span></div>
+                      <div class="row"><span class="k">Total</span><span class="v">109 days</span></div>
+                      <div class="row"><span class="k">Est. Finish</span><span class="v" style="color:var(--success)">Jun 25, 2026 · 5 days early</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Burndown chart card -->
+              <div class="card">
+                <div class="card-head">
+                  <h3 class="card-title">Installation Progress vs. Plan</h3>
+                  <div style="display:flex;gap:14px;font-size:12px;color:var(--text-muted)">
+                    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#4f46e5;vertical-align:middle"></span> Actual</span>
+                    <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#cbd5e1;vertical-align:middle"></span> Plan</span>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <svg class="chart" viewBox="0 0 600 220" preserveAspectRatio="none">
+                    <!-- grid -->
+                    <g stroke="#eef0f5" stroke-width="1">
+                      <line x1="0" y1="40" x2="600" y2="40"/><line x1="0" y1="90" x2="600" y2="90"/>
+                      <line x1="0" y1="140" x2="600" y2="140"/><line x1="0" y1="190" x2="600" y2="190"/>
+                    </g>
+                    <!-- plan -->
+                    <polyline fill="none" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4 4"
+                      points="10,200 75,175 140,150 205,125 270,100 335,78 400,56 465,40 530,26 590,15"/>
+                    <!-- actual -->
+                    <defs>
+                      <linearGradient id="areaG" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stop-color="rgba(79,70,229,.35)"/>
+                        <stop offset="100%" stop-color="rgba(79,70,229,0)"/>
+                      </linearGradient>
+                    </defs>
+                    <path d="M10,205 L75,190 L140,170 L205,150 L270,125 L335,105 L400,85 L465,68 L530,55 L590,48 L590,220 L10,220 Z" fill="url(#areaG)"/>
+                    <polyline fill="none" stroke="#4f46e5" stroke-width="2.5"
+                      points="10,205 75,190 140,170 205,150 270,125 335,105 400,85 465,68 530,55 590,48"/>
+                    <!-- dots -->
+                    <g fill="#4f46e5">
+                      <circle cx="400" cy="85" r="3.5"/><circle cx="465" cy="68" r="3.5"/>
+                      <circle cx="530" cy="55" r="3.5"/><circle cx="590" cy="48" r="4.5" stroke="white" stroke-width="2"/>
+                    </g>
+                  </svg>
+                  <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px">
+                    <span>Mar 12</span><span>Mar 26</span><span>Apr 9</span><span>Apr 23</span><span>May 7</span><span>May 21</span><span>Jun 4</span><span>Jun 18</span><span>Jun 30</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recent activity -->
+              <div class="card">
+                <div class="card-head">
+                  <h3 class="card-title">Recent Activity</h3>
+                  <button class="btn btn-ghost btn-sm">View all <i data-lucide="arrow-right"></i></button>
+                </div>
+                <div class="card-body activity">
+                  <div class="act-item"><div class="act-dot" style="background:var(--success)"></div>
+                    <div><div><b>Ramesh K.</b> installed <b>IP-CAM-42</b> at 2nd Floor East Wing</div><div class="act-time">12 min ago</div></div></div>
+                  <div class="act-item"><div class="act-dot" style="background:var(--info)"></div>
+                    <div><div><b>Vendor team</b> completed cable pull on Block B trench</div><div class="act-time">1 hr ago</div></div></div>
+                  <div class="act-item"><div class="act-dot" style="background:var(--warning)"></div>
+                    <div><div><b>Priya S.</b> raised a challenge: <b>Core drilling permission pending</b></div><div class="act-time">3 hrs ago</div></div></div>
+                  <div class="act-item"><div class="act-dot" style="background:var(--brand)"></div>
+                    <div><div>Daily log <b>LOG-20260421-005</b> submitted — <b>4% progress</b></div><div class="act-time">Yesterday, 7:12 PM</div></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right rail -->
+            <div class="rail">
+              <div class="card">
+                <div class="card-head"><h3 class="card-title">Project Team</h3><button class="btn btn-ghost btn-sm"><i data-lucide="user-plus"></i></button></div>
+                <div class="card-body team-list">
+                  <div class="team-item">
+                    <div class="team-avatar" style="background:linear-gradient(135deg,#4f46e5,#7c3aed)">RK</div>
+                    <div style="flex:1"><div class="team-name">Rakesh Kumar</div><div class="team-role">Project Manager</div></div>
+                    <span class="badge badge-violet">Lead</span>
+                  </div>
+                  <div class="team-item">
+                    <div class="team-avatar" style="background:linear-gradient(135deg,#10b981,#06b6d4)">PS</div>
+                    <div style="flex:1"><div class="team-name">Priya Sharma</div><div class="team-role">Site Supervisor</div></div>
+                  </div>
+                  <div class="team-item">
+                    <div class="team-avatar" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">AM</div>
+                    <div style="flex:1"><div class="team-name">Arun Mehta</div><div class="team-role">L2 Engineer</div></div>
+                  </div>
+                  <div class="team-item">
+                    <div class="team-avatar" style="background:linear-gradient(135deg,#0284c7,#0ea5e9)">NJ</div>
+                    <div style="flex:1"><div class="team-name">Nisha Joshi</div><div class="team-role">L1 Engineer</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><h3 class="card-title">Quick Facts</h3></div>
+                <div class="card-body">
+                  <div class="info-row"><span class="k">Site</span><span class="v">Meenakshi Mall — Main Block</span></div>
+                  <div class="info-row"><span class="k">Linked Survey</span><span class="v">SVY-2025-1128</span></div>
+                  <div class="info-row"><span class="k">Zones</span><span class="v">6 active zones</span></div>
+                  <div class="info-row"><span class="k">GPS</span><span class="v" style="font-family:'JetBrains Mono',monospace;font-size:12.5px">9.9252°N, 78.1198°E</span></div>
+                  <div class="info-row"><span class="k">Contract Value</span><span class="v">₹ 48,20,000</span></div>
+                  <div class="info-row"><span class="k">PO Number</span><span class="v">PO-MRG-4421</span></div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-head"><h3 class="card-title">Upcoming Milestones</h3></div>
+                <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+                  <div style="display:flex;gap:10px;align-items:flex-start">
+                    <div style="width:36px;text-align:center;padding:6px 0;background:var(--brand-50);border-radius:8px;color:var(--brand)"><div style="font-size:10px;font-weight:700">APR</div><div style="font-size:16px;font-weight:800;line-height:1">28</div></div>
+                    <div style="flex:1"><div style="font-weight:600;font-size:13.5px">NVR Rack Commissioning</div><div style="font-size:12px;color:var(--text-muted)">2nd Floor server room · 3 days</div></div>
+                  </div>
+                  <div style="display:flex;gap:10px;align-items:flex-start">
+                    <div style="width:36px;text-align:center;padding:6px 0;background:var(--surface-2);border-radius:8px;color:var(--text)"><div style="font-size:10px;font-weight:700">MAY</div><div style="font-size:16px;font-weight:800;line-height:1">05</div></div>
+                    <div style="flex:1"><div style="font-weight:600;font-size:13.5px">Perimeter cameras go-live</div><div style="font-size:12px;color:var(--text-muted)">36 cameras · PTZ configuration</div></div>
+                  </div>
+                  <div style="display:flex;gap:10px;align-items:flex-start">
+                    <div style="width:36px;text-align:center;padding:6px 0;background:var(--surface-2);border-radius:8px;color:var(--text)"><div style="font-size:10px;font-weight:700">MAY</div><div style="font-size:16px;font-weight:800;line-height:1">22</div></div>
+                    <div style="flex:1"><div style="font-weight:600;font-size:13.5px">Client UAT walkthrough</div><div style="font-size:12px;color:var(--text-muted)">Meenakshi Retail stakeholders</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Daily Logs -->
+        <div class="tab-pane" data-pane="logs" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div style="display:flex;gap:8px">
+              <button class="chip active">All</button>
+              <button class="chip">This week</button>
+              <button class="chip">This month</button>
+              <button class="chip">Locked</button>
+            </div>
+            <button class="btn btn-primary"><i data-lucide="plus"></i> Submit Daily Log</button>
+          </div>
+
+          <div class="card">
+            <div class="card-body">
+              <div class="timeline">
+                <!-- Log 1 -->
+                <div class="log-item">
+                  <div class="log-card">
+                    <div class="log-head">
+                      <span class="log-date">Mon, Apr 21 · 2026</span>
+                      <span class="log-num">LOG-20260421-005</span>
+                      <span class="badge badge-success"><span class="dot"></span> Submitted</span>
+                      <span class="badge badge-neutral"><i data-lucide="lock" style="width:10px;height:10px"></i> Locked</span>
+                      <div style="margin-left:auto;color:var(--text-muted);font-size:12px">Submitted by <b style="color:var(--text)">Rakesh Kumar</b></div>
+                    </div>
+                    <p class="log-sum">Cable pulling completed on 2F North wing. Ran 380m of Cat6 from IDF-2 to camera points 41–52. Trench backfilling finalized near Block B entrance.</p>
+                    <div class="log-stats">
+                      <span class="s"><i data-lucide="bar-chart-3"></i> +4% progress</span>
+                      <span class="s"><i data-lucide="clock"></i> 68 man-hours</span>
+                      <span class="s"><i data-lucide="users"></i> 14 workers</span>
+                      <span class="s"><i data-lucide="image"></i> 18 photos</span>
+                      <span class="s"><i data-lucide="map-pin"></i> GPS captured</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Log 2 -->
+                <div class="log-item">
+                  <div class="log-card">
+                    <div class="log-head">
+                      <span class="log-date">Sun, Apr 20 · 2026</span>
+                      <span class="log-num">LOG-20260420-004</span>
+                      <span class="badge badge-success"><span class="dot"></span> Submitted</span>
+                      <span class="badge badge-neutral"><i data-lucide="lock" style="width:10px;height:10px"></i> Locked</span>
+                      <div style="margin-left:auto;color:var(--text-muted);font-size:12px">Submitted by <b style="color:var(--text)">Rakesh Kumar</b></div>
+                    </div>
+                    <p class="log-sum">Installed and configured 8 IP cameras on 2F East wing. NVR-2 uplink tested at 1Gbps. Client walkthrough scheduled Thursday.</p>
+                    <div class="log-stats">
+                      <span class="s"><i data-lucide="bar-chart-3"></i> +3% progress</span>
+                      <span class="s"><i data-lucide="clock"></i> 58 man-hours</span>
+                      <span class="s"><i data-lucide="users"></i> 12 workers</span>
+                      <span class="s"><i data-lucide="image"></i> 22 photos</span>
+                    </div>
+                  </div>
+                </div>
+                <!-- Log 3 -->
+                <div class="log-item">
+                  <div class="log-card">
+                    <div class="log-head">
+                      <span class="log-date">Sat, Apr 19 · 2026</span>
+                      <span class="log-num">LOG-20260419-003</span>
+                      <span class="badge badge-warning"><span class="dot"></span> Draft</span>
+                      <div style="margin-left:auto;color:var(--text-muted);font-size:12px">Draft by <b style="color:var(--text)">Priya Sharma</b></div>
+                    </div>
+                    <p class="log-sum">Basement parking rough-in wiring. Delay due to core drilling permission. Vendor team on standby till Monday.</p>
+                    <div class="log-stats">
+                      <span class="s"><i data-lucide="bar-chart-3"></i> +0% progress</span>
+                      <span class="s"><i data-lucide="clock"></i> 22 man-hours</span>
+                      <span class="s"><i data-lucide="users"></i> 6 workers</span>
+                      <span class="s"><i data-lucide="alert-triangle" style="color:var(--warning)"></i> 1 challenge raised</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Devices -->
+        <div class="tab-pane" data-pane="devices" style="display:none">
+          <div class="filters" style="margin-top:0">
+            <div class="search"><i data-lucide="search"></i><input placeholder="Search by device ID, IP, location…"/></div>
+            <button class="chip active">All · 82</button>
+            <button class="chip">IP Camera · 68</button>
+            <button class="chip">NVR · 4</button>
+            <button class="chip">PTZ · 8</button>
+            <button class="chip">Other · 2</button>
+            <div style="flex:1"></div>
+            <button class="btn btn-outline"><i data-lucide="file-down"></i> Export CSV</button>
+            <button class="btn btn-primary"><i data-lucide="plus"></i> Log Installation</button>
+          </div>
+
+          <div class="device-grid" id="device-grid"></div>
+        </div>
+
+        <!-- Tab: Vendor -->
+        <div class="tab-pane" data-pane="vendor" style="display:none">
+          <div class="card">
+            <div class="card-head">
+              <h3 class="card-title">Vendor Work Logs</h3>
+              <button class="btn btn-primary"><i data-lucide="plus"></i> New Vendor Log</button>
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>Date</th><th>Work Type</th><th>Vendor</th><th>Area</th><th>Distance</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                  <tr><td>Apr 21, 2026</td><td><span class="cell-inline"><i data-lucide="cable" style="width:14px;height:14px;color:var(--info)"></i> Cable Laying</span></td><td>Southern Networks</td><td>Block B Trench</td><td>120 m</td><td><span class="badge badge-success"><span class="dot"></span> Completed</span></td><td><button class="btn btn-ghost btn-sm"><i data-lucide="chevron-right"></i></button></td></tr>
+                  <tr><td>Apr 20, 2026</td><td><span class="cell-inline"><i data-lucide="construction" style="width:14px;height:14px;color:var(--warning)"></i> Road Digging</span></td><td>Southern Networks</td><td>Basement Ramp</td><td>45 m</td><td><span class="badge badge-warning"><span class="dot"></span> In Progress</span></td><td><button class="btn btn-ghost btn-sm"><i data-lucide="chevron-right"></i></button></td></tr>
+                  <tr><td>Apr 18, 2026</td><td><span class="cell-inline"><i data-lucide="shovel" style="width:14px;height:14px;color:var(--text-muted)"></i> Trench Backfill</span></td><td>Priya Infra</td><td>Block A Entry</td><td>80 m</td><td><span class="badge badge-success"><span class="dot"></span> Completed</span></td><td><button class="btn btn-ghost btn-sm"><i data-lucide="chevron-right"></i></button></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Challenges -->
+        <div class="tab-pane" data-pane="challenges" style="display:none">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div class="card" style="border-left:3px solid var(--danger)">
+              <div class="card-body" style="display:flex;gap:14px">
+                <div style="width:40px;height:40px;border-radius:10px;background:var(--danger-50);color:var(--danger);display:grid;place-items:center;flex-shrink:0"><i data-lucide="alert-octagon"></i></div>
+                <div style="flex:1">
+                  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                    <span class="badge badge-danger"><span class="dot"></span> Critical</span>
+                    <span class="badge badge-violet">Escalated to Admin</span>
+                    <span style="color:var(--text-muted);font-size:12px">CHL-20260419-001 · 2 days ago</span>
+                  </div>
+                  <h4 style="margin:6px 0 4px;font-size:15px">Core drilling permission pending from mall management</h4>
+                  <p style="margin:0;color:var(--text-muted);font-size:13px">Blocking cable pull to basement parking. Requested escalation to client estate office. 6 workers on standby.</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                  <div class="avatars">
+                    <div class="a" style="background:#4f46e5">PS</div><div class="a" style="background:#0284c7">RK</div>
+                  </div>
+                  <button class="btn btn-outline btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="border-left:3px solid var(--warning)">
+              <div class="card-body" style="display:flex;gap:14px">
+                <div style="width:40px;height:40px;border-radius:10px;background:var(--warning-50);color:var(--warning);display:grid;place-items:center;flex-shrink:0"><i data-lucide="alert-triangle"></i></div>
+                <div style="flex:1">
+                  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                    <span class="badge badge-warning"><span class="dot"></span> High</span>
+                    <span style="color:var(--text-muted);font-size:12px">CHL-20260420-002 · yesterday</span>
+                  </div>
+                  <h4 style="margin:6px 0 4px;font-size:15px">PTZ camera mounting brackets short by 4 units</h4>
+                  <p style="margin:0;color:var(--text-muted);font-size:13px">Stock discrepancy during install. Requested from warehouse — ETA 2 days.</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                  <div class="avatars"><div class="a" style="background:#f59e0b">AM</div></div>
+                  <button class="btn btn-outline btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="border-left:3px solid var(--info)">
+              <div class="card-body" style="display:flex;gap:14px">
+                <div style="width:40px;height:40px;border-radius:10px;background:var(--info-50);color:var(--info);display:grid;place-items:center;flex-shrink:0"><i data-lucide="info"></i></div>
+                <div style="flex:1">
+                  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                    <span class="badge badge-info"><span class="dot"></span> Low</span>
+                    <span style="color:var(--text-muted);font-size:12px">CHL-20260421-003 · today</span>
+                  </div>
+                  <h4 style="margin:6px 0 4px;font-size:15px">Vendor requesting working time extension</h4>
+                  <p style="margin:0;color:var(--text-muted);font-size:13px">Southern Networks wants to extend shift hours to Sundays until May 10 to cover trenching work.</p>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                  <div class="avatars"><div class="a" style="background:#10b981">NJ</div></div>
+                  <button class="btn btn-outline btn-sm">View</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Stock -->
+        <div class="tab-pane" data-pane="stock" style="display:none">
+          <div class="card">
+            <div class="card-head">
+              <h3 class="card-title">Allocated Stock</h3>
+              <div style="color:var(--text-muted);font-size:12.5px"><b style="color:var(--text)">14</b> SKUs · <b style="color:var(--text)">68%</b> consumed</div>
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>Item</th><th>Allocated</th><th>Installed</th><th>Remaining</th><th>Utilization</th><th>Last Activity</th></tr></thead>
+                <tbody>
+                  <tr><td><b>Hikvision DS-2CD2143 IP Camera</b><div class="pdesc">4MP · PoE</div></td><td>120</td><td>82</td><td>38</td><td style="min-width:160px"><div class="progress"><span style="width:68%"></span></div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">68%</div></td><td><span style="color:var(--text-muted);font-size:12px">2h ago</span></td></tr>
+                  <tr><td><b>Hikvision NVR 32-Channel</b></td><td>6</td><td>4</td><td>2</td><td><div class="progress green"><span style="width:67%"></span></div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">67%</div></td><td><span style="color:var(--text-muted);font-size:12px">1d ago</span></td></tr>
+                  <tr><td><b>Cat6 UTP Cable (305m box)</b></td><td>12</td><td>7</td><td>5</td><td><div class="progress amber"><span style="width:58%"></span></div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">58%</div></td><td><span style="color:var(--text-muted);font-size:12px">4h ago</span></td></tr>
+                  <tr><td><b>PTZ Wall Mount Bracket</b></td><td>8</td><td>4</td><td style="color:var(--danger);font-weight:600">4 <span style="font-weight:500;font-size:11px">(short)</span></td><td><div class="progress"><span style="width:50%"></span></div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">50%</div></td><td><span style="color:var(--text-muted);font-size:12px">yesterday</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Recon -->
+        <div class="tab-pane" data-pane="recon" style="display:none">
+          <div class="card">
+            <div class="card-head">
+              <h3 class="card-title">Survey vs Actual — Device Reconciliation</h3>
+              <button class="btn btn-outline btn-sm"><i data-lucide="file-down"></i> Export</button>
+            </div>
+            <div class="table-wrap">
+              <table class="table">
+                <thead><tr><th>Device</th><th>Type</th><th>Survey</th><th>Actual</th><th>Variance</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td><b>IP Camera 4MP</b></td><td>Camera</td><td>118</td><td>120</td><td style="color:var(--success);font-weight:600">+2</td><td><span class="badge badge-success"><span class="dot"></span> On Track</span></td></tr>
+                  <tr><td><b>NVR 32CH</b></td><td>Recorder</td><td>6</td><td>6</td><td>0</td><td><span class="badge badge-success"><span class="dot"></span> Matched</span></td></tr>
+                  <tr><td><b>PTZ Dome</b></td><td>Camera</td><td>12</td><td>8</td><td style="color:var(--danger);font-weight:600">−4</td><td><span class="badge badge-danger"><span class="dot"></span> Short</span></td></tr>
+                  <tr><td><b>Cat6 Cable (m)</b></td><td>Cable</td><td>3,200</td><td>3,420</td><td style="color:var(--warning);font-weight:600">+220</td><td><span class="badge badge-warning"><span class="dot"></span> Over Spec</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ============ VIEW: REPORTS ============ -->
+    <section class="view" id="view-reports">
+      <div class="page">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Reports & Analytics</h1>
+            <div class="page-sub">Aggregate insights across all field operations projects.</div>
+          </div>
+          <div class="page-actions">
+            <div class="segment"><button class="on">Last 30 days</button><button>Quarter</button><button>YTD</button></div>
+            <button class="btn btn-outline"><i data-lucide="file-down"></i> Export PDF</button>
+            <button class="btn btn-primary"><i data-lucide="share-2"></i> Share</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi"><div class="kpi-top"><span class="kpi-label">Total Projects</span><div class="kpi-icon" style="background:var(--brand-50);color:var(--brand)"><i data-lucide="folder-kanban"></i></div></div><div class="kpi-value">24</div><div class="kpi-delta up"><i data-lucide="trending-up"></i> 4 new</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="kpi-label">On-Time Delivery</span><div class="kpi-icon" style="background:var(--success-50);color:var(--success)"><i data-lucide="target"></i></div></div><div class="kpi-value">91%</div><div class="kpi-delta up"><i data-lucide="trending-up"></i> +4% vs last period</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="kpi-label">Avg Challenge Resolution</span><div class="kpi-icon" style="background:var(--warning-50);color:var(--warning)"><i data-lucide="timer"></i></div></div><div class="kpi-value">1.8d</div><div class="kpi-delta up"><i data-lucide="trending-down" style="color:var(--success)"></i> 0.6d faster</div></div>
+          <div class="kpi"><div class="kpi-top"><span class="kpi-label">Total Manhours</span><div class="kpi-icon" style="background:var(--violet-50);color:var(--violet)"><i data-lucide="hard-hat"></i></div></div><div class="kpi-value">18.4k</div><div class="kpi-delta up"><i data-lucide="users"></i> 84 active staff</div></div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:16px">
+          <div class="card">
+            <div class="card-head"><h3 class="card-title">Devices Installed — Last 30 Days</h3></div>
+            <div class="card-body">
+              <svg class="chart" viewBox="0 0 600 220" preserveAspectRatio="none">
+                <g stroke="#eef0f5" stroke-width="1">
+                  <line x1="0" y1="40" x2="600" y2="40"/><line x1="0" y1="100" x2="600" y2="100"/><line x1="0" y1="160" x2="600" y2="160"/>
+                </g>
+                <!-- bars -->
+                <g fill="url(#barG)">
+                  <rect x="10" y="150" width="14" height="60" rx="3"/>
+                  <rect x="30" y="120" width="14" height="90" rx="3"/>
+                  <rect x="50" y="130" width="14" height="80" rx="3"/>
+                  <rect x="70" y="100" width="14" height="110" rx="3"/>
+                  <rect x="90" y="110" width="14" height="100" rx="3"/>
+                  <rect x="110" y="80" width="14" height="130" rx="3"/>
+                  <rect x="130" y="90" width="14" height="120" rx="3"/>
+                  <rect x="150" y="60" width="14" height="150" rx="3"/>
+                  <rect x="170" y="70" width="14" height="140" rx="3"/>
+                  <rect x="190" y="40" width="14" height="170" rx="3"/>
+                  <rect x="210" y="55" width="14" height="155" rx="3"/>
+                  <rect x="230" y="65" width="14" height="145" rx="3"/>
+                  <rect x="250" y="45" width="14" height="165" rx="3"/>
+                  <rect x="270" y="35" width="14" height="175" rx="3"/>
+                  <rect x="290" y="50" width="14" height="160" rx="3"/>
+                  <rect x="310" y="30" width="14" height="180" rx="3"/>
+                  <rect x="330" y="40" width="14" height="170" rx="3"/>
+                  <rect x="350" y="20" width="14" height="190" rx="3"/>
+                  <rect x="370" y="32" width="14" height="178" rx="3"/>
+                  <rect x="390" y="45" width="14" height="165" rx="3"/>
+                  <rect x="410" y="25" width="14" height="185" rx="3"/>
+                  <rect x="430" y="35" width="14" height="175" rx="3"/>
+                  <rect x="450" y="50" width="14" height="160" rx="3"/>
+                  <rect x="470" y="18" width="14" height="192" rx="3"/>
+                  <rect x="490" y="28" width="14" height="182" rx="3"/>
+                  <rect x="510" y="40" width="14" height="170" rx="3"/>
+                  <rect x="530" y="15" width="14" height="195" rx="3"/>
+                  <rect x="550" y="25" width="14" height="185" rx="3"/>
+                  <rect x="570" y="10" width="14" height="200" rx="3"/>
+                </g>
+                <defs>
+                  <linearGradient id="barG" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stop-color="#7c3aed"/><stop offset="100%" stop-color="#4f46e5"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3 class="card-title">Projects by Status</h3></div>
+            <div class="card-body" style="display:flex;gap:16px;align-items:center">
+              <div class="donut">
+                <svg width="128" height="128" viewBox="0 0 128 128">
+                  <circle cx="64" cy="64" r="54" fill="none" stroke="var(--border)" stroke-width="14"/>
+                  <circle cx="64" cy="64" r="54" fill="none" stroke="#10b981" stroke-width="14" stroke-dasharray="339.3" stroke-dashoffset="85" />
+                  <circle cx="64" cy="64" r="54" fill="none" stroke="#4f46e5" stroke-width="14" stroke-dasharray="339.3" stroke-dashoffset="220" transform="rotate(90 64 64)"/>
+                  <circle cx="64" cy="64" r="54" fill="none" stroke="#f59e0b" stroke-width="14" stroke-dasharray="339.3" stroke-dashoffset="310" transform="rotate(200 64 64)"/>
+                </svg>
+                <div class="center"><div class="pct">24</div><div class="lbl">Projects</div></div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:10px;font-size:13px">
+                <div style="display:flex;justify-content:space-between"><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#10b981;margin-right:8px;vertical-align:middle"></span>Active</span><b>18</b></div>
+                <div style="display:flex;justify-content:space-between"><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#4f46e5;margin-right:8px;vertical-align:middle"></span>Planning</span><b>3</b></div>
+                <div style="display:flex;justify-content:space-between"><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#f59e0b;margin-right:8px;vertical-align:middle"></span>On Hold</span><b>2</b></div>
+                <div style="display:flex;justify-content:space-between"><span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--border-strong);margin-right:8px;vertical-align:middle"></span>Completed</span><b>1</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3 class="card-title">Top Performing Projects</h3></div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead><tr><th>Project</th><th>Progress</th><th>On-time Ratio</th><th>Challenges</th><th>Team</th><th>Health</th></tr></thead>
+              <tbody>
+                <tr><td><b>Meenakshi Mall — Phase 2</b><div class="pdesc">Madurai · CCTV</div></td>
+                  <td style="min-width:160px"><div class="progress"><span style="width:68%"></span></div></td>
+                  <td>96%</td><td>3</td>
+                  <td><div class="avatars"><div class="a" style="background:#4f46e5">RK</div><div class="a" style="background:#10b981">PS</div><div class="a" style="background:#f59e0b">AM</div></div></td>
+                  <td><span class="badge badge-success"><span class="dot"></span> Healthy</span></td></tr>
+                <tr><td><b>Infosys Pune DC Upgrade</b><div class="pdesc">Pune · Access Ctrl</div></td>
+                  <td style="min-width:160px"><div class="progress green"><span style="width:84%"></span></div></td>
+                  <td>100%</td><td>0</td>
+                  <td><div class="avatars"><div class="a" style="background:#0284c7">VN</div><div class="a" style="background:#7c3aed">SK</div></div></td>
+                  <td><span class="badge badge-success"><span class="dot"></span> Healthy</span></td></tr>
+                <tr><td><b>Greenfield Warehouse — Ph1</b><div class="pdesc">Bhiwandi · Surveillance</div></td>
+                  <td style="min-width:160px"><div class="progress amber"><span style="width:42%"></span></div></td>
+                  <td>78%</td><td>5</td>
+                  <td><div class="avatars"><div class="a" style="background:#ef4444">MG</div><div class="a" style="background:#06b6d4">TN</div></div></td>
+                  <td><span class="badge badge-warning"><span class="dot"></span> At Risk</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Floating screen switcher -->
+<div class="screen-label">
+  Prototype — Field Ops Redesign
+  <div class="switcher">
+    <button class="on" data-goto="projects">Projects</button>
+    <button data-goto="detail">Detail</button>
+    <button data-goto="reports">Reports</button>
+  </div>
+</div>
+
+<script>
+// ============ Demo data ============
+const projects = [
+  {id:'PRJ-20260415-0018', name:'Meenakshi Mall — CCTV Installation Phase 2', desc:'4 floors · 120 cameras · 6 NVRs', client:'Meenakshi Retail Group', city:'Madurai', progress:68, team:['RK','PS','AM','NJ'], start:'Mar 12', end:'Jun 30', status:'Active', health:'success'},
+  {id:'PRJ-20260402-0017', name:'Infosys Pune DC Upgrade', desc:'Access Control · Biometric integration', client:'Infosys Ltd', city:'Pune', progress:84, team:['VN','SK'], start:'Feb 20', end:'May 15', status:'Active', health:'success'},
+  {id:'PRJ-20260328-0015', name:'Greenfield Warehouse — Phase 1', desc:'Perimeter surveillance · IoT', client:'Greenfield Logistics', city:'Bhiwandi', progress:42, team:['MG','TN','RR'], start:'Mar 01', end:'Jul 10', status:'Active', health:'warning'},
+  {id:'PRJ-20260315-0012', name:'Hyatt Bangalore Retrofit', desc:'Hospitality CCTV refresh', client:'Hyatt Hotels', city:'Bangalore', progress:24, team:['AK','LP'], start:'Mar 15', end:'Aug 20', status:'Planning', health:'info'},
+  {id:'PRJ-20260220-0009', name:'Kochi Metro Station 7', desc:'PTZ + LPR integration', client:'Kochi Metro Rail Ltd', city:'Kochi', progress:55, team:['DR','MS','JV'], start:'Feb 01', end:'May 30', status:'Active', health:'success'},
+  {id:'PRJ-20260210-0008', name:'DLF Cyber Hub Block A', desc:'Fire alarm + surveillance', client:'DLF Ltd', city:'Gurgaon', progress:12, team:['PN'], start:'Feb 10', end:'Aug 30', status:'On Hold', health:'warning'},
+  {id:'PRJ-20260115-0005', name:'SBI Regional HQ Kolkata', desc:'Bank-grade AC + CCTV', client:'State Bank of India', city:'Kolkata', progress:91, team:['AC','BD','HK'], start:'Jan 15', end:'Apr 30', status:'Active', health:'success'},
+  {id:'PRJ-20251220-0003', name:'Tata Motors Sanand Plant', desc:'Industrial surveillance upgrade', client:'Tata Motors', city:'Sanand', progress:100, team:['KV','NP'], start:'Dec 20', end:'Mar 10', status:'Completed', health:'neutral'}
+];
+
+const avatarColors = {
+  RK:'#4f46e5', PS:'#10b981', AM:'#f59e0b', NJ:'#0284c7',
+  VN:'#7c3aed', SK:'#06b6d4',
+  MG:'#ef4444', TN:'#14b8a6', RR:'#d946ef',
+  AK:'#f97316', LP:'#3b82f6',
+  DR:'#ec4899', MS:'#8b5cf6', JV:'#22c55e',
+  PN:'#64748b',
+  AC:'#0ea5e9', BD:'#a855f7', HK:'#eab308',
+  KV:'#84cc16', NP:'#f43f5e'
+};
+
+const statusBadge = {
+  Active: 'badge-success',
+  Planning: 'badge-info',
+  'On Hold': 'badge-warning',
+  Completed: 'badge-neutral'
+};
+
+function renderProjects(){
+  const tbody = document.getElementById('projects-rows');
+  tbody.innerHTML = projects.map(p => `
+    <tr style="cursor:pointer" onclick="show('detail')">
+      <td onclick="event.stopPropagation()"><input type="checkbox"/></td>
+      <td>
+        <div class="pid">${p.id}</div>
+        <div class="pname">${p.name}</div>
+        <div class="pdesc">${p.desc}</div>
+      </td>
+      <td>
+        <div style="font-weight:600">${p.client}</div>
+        <div class="pdesc"><i data-lucide="map-pin" style="width:11px;height:11px;vertical-align:-1px"></i> ${p.city}</div>
+      </td>
+      <td style="min-width:160px">
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-muted);margin-bottom:5px"><span>${p.progress}%</span><span>${p.progress===100?'Done':''}</span></div>
+        <div class="progress ${p.progress>=80?'green':p.progress<40?'amber':''}"><span style="width:${p.progress}%"></span></div>
+      </td>
+      <td><div class="avatars">${p.team.slice(0,3).map(t=>`<div class="a" style="background:${avatarColors[t]||'#4f46e5'}">${t}</div>`).join('')}${p.team.length>3?`<div class="a" style="background:#cbd5e1;color:#334155">+${p.team.length-3}</div>`:''}</div></td>
+      <td><span style="font-size:12.5px">${p.start} – ${p.end}</span></td>
+      <td><span class="badge ${statusBadge[p.status]}"><span class="dot"></span> ${p.status}</span></td>
+      <td onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm"><i data-lucide="more-horizontal"></i></button>
+      </td>
+    </tr>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function renderDevices(){
+  const grid = document.getElementById('device-grid');
+  const types = [
+    {n:'CAM-2F-E-41', t:'IP Camera · 4MP', loc:'2F East Wing · Zone 3', ip:'192.168.12.41', st:'Online', icon:'camera', color:'var(--success)'},
+    {n:'CAM-2F-E-42', t:'IP Camera · 4MP', loc:'2F East Wing · Zone 3', ip:'192.168.12.42', st:'Online', icon:'camera', color:'var(--success)'},
+    {n:'PTZ-PER-01', t:'PTZ Dome · 360°', loc:'Perimeter · Main Gate', ip:'192.168.12.71', st:'Online', icon:'camera', color:'var(--success)'},
+    {n:'PTZ-PER-02', t:'PTZ Dome · 360°', loc:'Perimeter · Back Gate', ip:'192.168.12.72', st:'Offline', icon:'camera', color:'var(--danger)'},
+    {n:'NVR-02', t:'NVR · 32CH', loc:'2F Server Room', ip:'192.168.10.2', st:'Online', icon:'hard-drive', color:'var(--success)'},
+    {n:'NVR-01', t:'NVR · 32CH', loc:'GF Server Room', ip:'192.168.10.1', st:'Online', icon:'hard-drive', color:'var(--success)'},
+    {n:'CAM-B1-P-07', t:'IP Camera · 4MP', loc:'Basement · P1 Ramp', ip:'192.168.13.7', st:'Commissioning', icon:'camera', color:'var(--warning)'},
+    {n:'CAM-GF-L-12', t:'IP Camera · 4MP', loc:'GF Lobby · Zone 1', ip:'192.168.11.12', st:'Online', icon:'camera', color:'var(--success)'}
+  ];
+  const stBadge = { Online:'badge-success', Offline:'badge-danger', Commissioning:'badge-warning' };
+  grid.innerHTML = types.map(d => `
+    <div class="device-card">
+      <div class="device-head">
+        <div style="display:flex;gap:10px">
+          <div class="device-icon"><i data-lucide="${d.icon}"></i></div>
+          <div>
+            <div class="device-name">${d.n}</div>
+            <div class="device-sub">${d.t}</div>
+          </div>
+        </div>
+        <span class="badge ${stBadge[d.st]}"><span class="dot"></span> ${d.st}</span>
+      </div>
+      <div style="color:var(--text);font-size:12.5px;display:flex;align-items:center;gap:6px"><i data-lucide="map-pin" style="width:13px;height:13px;color:var(--text-soft)"></i> ${d.loc}</div>
+      <div class="device-meta">
+        <span><i data-lucide="globe" style="width:12px;height:12px;vertical-align:-1px"></i> ${d.ip}</span>
+        <span><i data-lucide="cable" style="width:12px;height:12px;vertical-align:-1px"></i> 45m Cat6</span>
+      </div>
+    </div>
+  `).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+// ============ Navigation (screens + tabs) ============
+function show(name){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('on'));
+  document.getElementById('view-'+name).classList.add('on');
+  document.getElementById('crumb-current').textContent = name[0].toUpperCase() + name.slice(1);
+  document.querySelectorAll('.sidebar .nav a').forEach(a => {
+    a.classList.toggle('active', a.dataset.screen === name);
+  });
+  document.querySelectorAll('.screen-label button').forEach(b => {
+    b.classList.toggle('on', b.dataset.goto === name);
+  });
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+document.querySelectorAll('.sidebar .nav a').forEach(a => {
+  if (a.dataset.screen) a.addEventListener('click', e => { e.preventDefault(); show(a.dataset.screen); });
+});
+document.querySelectorAll('.screen-label button').forEach(b => {
+  b.addEventListener('click', () => show(b.dataset.goto));
+});
+
+// Tabs on detail
+document.querySelectorAll('#detail-tabs .tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('#detail-tabs .tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    const pane = t.dataset.tab;
+    document.querySelectorAll('.tab-pane').forEach(p => {
+      p.style.display = p.dataset.pane === pane ? '' : 'none';
+    });
+    if (pane === 'devices') renderDevices();
+  });
+});
+
+// Init
+renderProjects();
+if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>

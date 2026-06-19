@@ -111,6 +111,16 @@ export default function ProjectAssignedDevicesList() {
         }
     };
 
+    const handleUpdateStatus = async (deviceId, newStatus) => {
+        try {
+            await fieldOpsApi.updateDeviceStatus(deviceId, newStatus);
+            toast.success(`Status updated to ${newStatus}`);
+            fetchDevices();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to update status');
+        }
+    };
+
     const filteredDevices = devices.filter(device => {
         if (!searchTerm) return true;
         const search = searchTerm.toLowerCase();
@@ -283,6 +293,33 @@ export default function ProjectAssignedDevicesList() {
                                                 </td>
                                                 <td>
                                                     <div className="action-buttons">
+                                                        {device.status === 'Installed' && (
+                                                            <button
+                                                                onClick={() => handleUpdateStatus(device._id, 'Configured')}
+                                                                className="btn btn-primary btn-sm"
+                                                                title="Mark Configured"
+                                                            >
+                                                                <Wifi size={16} />
+                                                            </button>
+                                                        )}
+                                                        {device.status === 'Configured' && (
+                                                            <button
+                                                                onClick={() => handleUpdateStatus(device._id, 'Tested')}
+                                                                className="btn btn-success btn-sm"
+                                                                title="Mark Tested"
+                                                            >
+                                                                <CheckCircle size={16} />
+                                                            </button>
+                                                        )}
+                                                        {device.status === 'Tested' && (
+                                                            <button
+                                                                onClick={() => handleUpdateStatus(device._id, 'Deployed')}
+                                                                className="btn btn-success btn-sm"
+                                                                title="Deploy to Asset"
+                                                            >
+                                                                <CheckCircle size={16} />
+                                                            </button>
+                                                        )}
                                                         <Link
                                                             to={`/fieldops/projects/${device.projectId?._id || device.projectId}/devices/${device._id}/edit`}
                                                             className="btn btn-ghost btn-sm"

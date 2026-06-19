@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TicketOps - Projects List</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#ffdbcc",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb695",
+                    "secondary": "#712ae2",
+                    "background": "#f8f9fc",
+                    "surface-container-low": "#f2f3f6",
+                    "surface-variant": "#e1e2e5",
+                    "on-tertiary-fixed": "#351000",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "error-container": "#ffdad6",
+                    "outline-variant": "#c7c4d8",
+                    "on-surface": "#191c1e",
+                    "inverse-surface": "#2e3133",
+                    "on-surface-variant": "#464555",
+                    "tertiary": "#7e3000",
+                    "surface-bright": "#f8f9fc",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "tertiary-container": "#a44100",
+                    "primary-fixed": "#e2dfff",
+                    "on-background": "#191c1e",
+                    "inverse-primary": "#c3c0ff",
+                    "on-secondary-fixed": "#25005a",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed": "#0f0069",
+                    "on-secondary-fixed-variant": "#5a00c6",
+                    "surface-dim": "#d9dadd",
+                    "surface-container-lowest": "#ffffff",
+                    "primary": "#3525cd",
+                    "secondary-container": "#8a4cfc",
+                    "on-tertiary-fixed-variant": "#7b2f00",
+                    "surface-tint": "#4d44e3",
+                    "on-error-container": "#93000a",
+                    "surface-container": "#edeef1",
+                    "on-error": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-container": "#ffd2be",
+                    "surface-container-high": "#e7e8eb",
+                    "surface-container-highest": "#e1e2e5",
+                    "surface": "#f8f9fc",
+                    "secondary-fixed-dim": "#d2bbff",
+                    "on-secondary": "#ffffff",
+                    "secondary-fixed": "#eaddff",
+                    "outline": "#777587",
+                    "inverse-on-surface": "#f0f1f4",
+                    "on-secondary-container": "#fffbff",
+                    "on-primary-container": "#dad7ff",
+                    "primary-container": "#4f46e5"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["Inter"],
+                    "mono": ["JetBrains Mono", "monospace"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-panel {
+            background-color: rgba(248, 249, 252, 0.8);
+            backdrop-filter: blur(12px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Hide scrollbar for clean look but allow scrolling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e1e2e5; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #c7c4d8; }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body overflow-hidden flex h-screen">
+<!-- Shared Component: SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-64 z-40 bg-[#f2f3f6] dark:bg-slate-900 flex flex-col gap-2 p-6 shadow-none">
+<!-- Header -->
+<div class="flex items-center gap-3 mb-8 px-2">
+<div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-secondary flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-white text-sm filled-icon" data-icon="hub">hub</span>
+</div>
+<div>
+<h1 class="text-lg font-black text-indigo-700 dark:text-indigo-400 font-headline tracking-tighter leading-none">TicketOps</h1>
+<p class="text-[10px] uppercase tracking-widest text-on-surface-variant font-mono mt-1 opacity-70">The Precision Engine</p>
+</div>
+</div>
+<!-- CTA -->
+<button class="w-full mb-6 bg-gradient-to-r from-primary to-secondary text-on-primary rounded-lg py-3 px-4 flex items-center justify-center gap-2 font-medium tracking-tight shadow-[0px_10px_30px_rgba(53,37,205,0.15)] hover:shadow-[0px_15px_40px_rgba(53,37,205,0.25)] transition-all scale-95 active:scale-90">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+            New Project
+        </button>
+<!-- Navigation -->
+<nav class="flex-1 flex flex-col gap-1.5 font-['Inter'] text-sm tracking-tight font-medium">
+<!-- Active Tab: Projects -->
+<a class="bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-bold rounded-lg shadow-sm flex items-center gap-3 px-4 py-3 translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined text-[20px] filled-icon" data-icon="folder_open">folder_open</span>
+<span class="font-['JetBrains_Mono'] text-xs">Projects</span>
+</a>
+<!-- Inactive Tabs -->
+<a class="text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-200 flex items-center gap-3 px-4 py-3 rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="assignment">assignment</span>
+<span class="font-['JetBrains_Mono'] text-xs">Activities</span>
+</a>
+<a class="text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-200 flex items-center gap-3 px-4 py-3 rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="history_edu">history_edu</span>
+<span class="font-['JetBrains_Mono'] text-xs">Daily Logs</span>
+</a>
+<a class="text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-200 flex items-center gap-3 px-4 py-3 rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="analytics">analytics</span>
+<span class="font-['JetBrains_Mono'] text-xs">Reports</span>
+</a>
+<a class="text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-200 flex items-center gap-3 px-4 py-3 rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]" data-icon="terminal">terminal</span>
+<span class="font-['JetBrains_Mono'] text-xs">Global Ops</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-64 flex flex-col h-full relative">
+<!-- Shared Component: TopNavBar -->
+<header class="flex justify-between items-center w-full px-8 h-16 bg-[#f8f9fc] dark:bg-slate-950 docked full-width top-0 z-50 shadow-[0px_10px_30px_rgba(53,37,205,0.06)] sticky">
+<!-- Left side empty (branding is in sidenav) or breadcrumbs -->
+<div class="flex items-center gap-2 text-sm text-slate-500 font-['Inter'] tracking-tight font-medium">
+<span class="material-symbols-outlined text-[18px]">home</span>
+<span class="text-surface-variant px-1">/</span>
+<span class="text-indigo-700 font-bold">Projects</span>
+</div>
+<!-- Right side actions -->
+<div class="flex items-center gap-5">
+<!-- Search (on right) -->
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[18px]">search</span>
+<input class="bg-surface-container-highest border-none text-sm font-['Inter'] rounded-md pl-9 pr-4 py-2 w-64 focus:ring-0 focus:border-b-2 focus:border-primary transition-all text-on-surface placeholder:text-slate-500 outline-none" placeholder="Search operations..." type="text"/>
+</div>
+<!-- Trailing Icons -->
+<div class="flex items-center gap-2 text-indigo-700 dark:text-indigo-400">
+<button class="p-2 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors scale-95 active:scale-90 transition-all rounded-full hover:bg-surface-container-low flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors scale-95 active:scale-90 transition-all rounded-full hover:bg-surface-container-low flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<button class="p-2 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors scale-95 active:scale-90 transition-all rounded-full hover:bg-surface-container-low flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+<!-- Profile Image -->
+<div class="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm ml-2 shrink-0">
+<img alt="Manager profile" class="w-full h-full object-cover" data-alt="close up headshot portrait of professional business manager in blue shirt bright lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA9QAkk3yfHMcMHJN6PpLuheWB5k_9mMl1-wLMZjDLTvkVrlqLCWyvS__ijCERFnY0LbVgO5vyKUl_UMJ06EyPahhgdM3WKJrIsJ9o8TNv2alMpkB3a2Qsyqn_7oKxdBsn1WLxiJzhuhZPd2oz_nMBo--csV3sExP92GvdJtpu8pqgnhZnEPkGXn_UTqi_ef43S-OVL21fgiCd_t02V3ICK8uDBjALFXCJHzryTsv74itTnqYvkR9tnBv397BvlpAgUkOT2IK6dECM7"/>
+</div>
+</div>
+</header>
+<!-- Scrollable Dashboard Content -->
+<div class="flex-1 overflow-y-auto px-10 py-8 scroll-smooth">
+<!-- Page Header & KPIs -->
+<div class="flex flex-col xl:flex-row gap-8 mb-10 items-end">
+<div class="flex-1">
+<h2 class="text-4xl font-headline font-extrabold tracking-tight text-on-surface mb-2">Active Operations</h2>
+<p class="text-on-surface-variant font-mono text-sm uppercase tracking-widest opacity-80">Global Fleet Tracking · Q3 2023</p>
+</div>
+<!-- KPI Bento Cluster -->
+<div class="flex gap-4 w-full xl:w-auto">
+<!-- KPI 1 -->
+<div class="bg-surface-container-lowest rounded-lg p-5 min-w-[200px] shadow-[0px_10px_30px_rgba(53,37,205,0.04)] flex flex-col justify-between border border-outline-variant/15">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant font-mono text-[10px] uppercase tracking-wider font-bold">Total Active Projects</span>
+<span class="material-symbols-outlined text-primary text-[18px]">cell_tower</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline font-bold text-3xl text-on-surface">142</span>
+<span class="text-xs font-mono text-[#008a54] bg-[#e6f4ea] px-1.5 py-0.5 rounded">+12%</span>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-surface-container-lowest rounded-lg p-5 min-w-[200px] shadow-[0px_10px_30px_rgba(53,37,205,0.04)] flex flex-col justify-between border border-outline-variant/15">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant font-mono text-[10px] uppercase tracking-wider font-bold">On-Time Completion</span>
+<span class="material-symbols-outlined text-primary text-[18px]">timer</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline font-bold text-3xl text-on-surface">94.8<span class="text-xl">%</span></span>
+<span class="text-xs font-mono text-on-surface-variant">-0.2%</span>
+</div>
+</div>
+<!-- KPI 3 -->
+<div class="bg-surface-container-lowest rounded-lg p-5 min-w-[200px] shadow-[0px_10px_30px_rgba(53,37,205,0.04)] flex flex-col justify-between border border-outline-variant/15 relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/5 z-0"></div>
+<div class="relative z-10">
+<div class="flex items-center justify-between mb-4">
+<span class="text-on-surface-variant font-mono text-[10px] uppercase tracking-wider font-bold">Total Man-Hours</span>
+<span class="material-symbols-outlined text-secondary text-[18px]">engineering</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-headline font-bold text-3xl text-on-surface">18,450</span>
+<span class="text-xs font-mono text-on-surface-variant">This Month</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Filters Area -->
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-3">
+<span class="text-sm font-mono text-on-surface-variant opacity-70">FILTER BY:</span>
+<button class="bg-on-surface text-background px-4 py-1.5 rounded-full text-xs font-bold font-headline tracking-wide hover:shadow-[0px_8px_20px_rgba(25,28,30,0.15)] transition-all">All Active</button>
+<button class="bg-surface-container-lowest text-on-surface-variant px-4 py-1.5 rounded-full text-xs font-medium font-headline tracking-wide hover:bg-surface-variant transition-all border border-outline-variant/15">Planning</button>
+<button class="bg-surface-container-lowest text-on-surface-variant px-4 py-1.5 rounded-full text-xs font-medium font-headline tracking-wide hover:bg-surface-variant transition-all border border-outline-variant/15">Completed</button>
+<button class="bg-surface-container-lowest text-on-surface-variant px-4 py-1.5 rounded-full text-xs font-medium font-headline tracking-wide hover:bg-surface-variant transition-all border border-outline-variant/15">On Hold</button>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors bg-surface-container-lowest rounded-md shadow-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="filter_list">filter_list</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors bg-surface-container-lowest rounded-md shadow-sm">
+<span class="material-symbols-outlined text-[20px]" data-icon="view_column">view_column</span>
+</button>
+</div>
+</div>
+<!-- Data List Container (No borders, tonal layering) -->
+<div class="bg-surface-container-low rounded-xl p-6 min-h-[500px]">
+<!-- Table Header (Pseudo) -->
+<div class="grid grid-cols-12 gap-4 px-4 py-3 mb-2 text-xs font-mono text-on-surface-variant font-bold tracking-wider uppercase opacity-80">
+<div class="col-span-1">ID</div>
+<div class="col-span-3">Project &amp; Location</div>
+<div class="col-span-2">Client</div>
+<div class="col-span-2">Progress</div>
+<div class="col-span-1">Team</div>
+<div class="col-span-2">Timeline</div>
+<div class="col-span-1 text-right">Status</div>
+</div>
+<!-- List Items (No dividers, spaced with mb-3) -->
+<!-- Item 1 -->
+<div class="bg-surface-container-lowest rounded-lg p-4 mb-3 flex items-center grid grid-cols-12 gap-4 shadow-[0px_4px_12px_rgba(53,37,205,0.02)] hover:shadow-[0px_8px_24px_rgba(53,37,205,0.06)] hover:-translate-y-0.5 transition-all cursor-pointer border border-outline-variant/10 group">
+<div class="col-span-1 font-mono text-sm text-on-surface-variant">
+                        PRJ-0842
+                    </div>
+<div class="col-span-3 pr-4">
+<div class="font-headline font-bold text-on-surface truncate group-hover:text-primary transition-colors">Alpha Sector Upgrade</div>
+<div class="text-xs text-on-surface-variant font-medium flex items-center gap-1 mt-0.5 truncate">
+<span class="material-symbols-outlined text-[14px] opacity-60">location_on</span>
+                            Denver, CO - Site 4B
+                        </div>
+</div>
+<div class="col-span-2 flex items-center gap-2">
+<div class="w-6 h-6 rounded bg-surface-variant flex items-center justify-center text-[10px] font-bold text-on-surface-variant">NX</div>
+<span class="text-sm font-medium text-on-surface">Nexus Corp</span>
+</div>
+<div class="col-span-2 flex items-center gap-3 pr-6">
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: 68%;"></div>
+</div>
+<span class="font-mono text-xs text-on-surface-variant font-bold">68%</span>
+</div>
+<div class="col-span-1 flex items-center">
+<div class="flex -space-x-2">
+<img alt="Team member" class="w-7 h-7 rounded-full border-2 border-surface-container-lowest" data-alt="portrait of a young woman professional looking confident" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVoc73eXPYFHC-CSmcTciIi20K313leEFX_3NNY7bfXezygoX6kEDoB9iY9pjwswr-QTGdLwC60Jdaho8OugYO3MsBWl8wSniB6JPcQvdYHpSZJKMvKJuYpk4iKIxiC5VN_4W8K_7VndVQTxwtlDCS9jywfQiddq5HVhQRe9sC3tcvx7x97gGou9E4pZ_wt80I7-p0mZfTUrbVsyWATgytvN15EnNXbBHYDdk1rQTai4IJ9pjzxs8cxaFSSEYeXdouQkOqiRI2Cgd5"/>
+<img alt="Team member" class="w-7 h-7 rounded-full border-2 border-surface-container-lowest" data-alt="portrait of a male engineer in bright outdoor lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBappVQj608VS5RBSCjkUE5F0nvBDUUaUSASIdjio34suG5t1LKHrDuNFHsGmBExb3jghqc58RszA7Ta4ex6XOmN5lrlf-n3mYNIFXB0jqSjbR9q_rOG2DltO0oORQr1RHHRY32iVP9wQLqfkUMKsoCaPzokBBxVRo0gal_YfxLdO5DWa1KTJ3oJc4kjE2yxK0LniBvMF01c6zS_qYNfiBYu_P-Hm8OIIB_sjRS42LnUxhz0dJay74YmBhz-HZKXH3eFmRWKVIpWlzh"/>
+<div class="w-7 h-7 rounded-full border-2 border-surface-container-lowest bg-surface-variant flex items-center justify-center text-[10px] font-bold text-on-surface-variant">+3</div>
+</div>
+</div>
+<div class="col-span-2 flex flex-col justify-center">
+<span class="text-sm font-medium text-on-surface">Oct 12 - Nov 30</span>
+<span class="text-[10px] font-mono text-on-surface-variant uppercase">34 Days Left</span>
+</div>
+<div class="col-span-1 flex justify-end">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-primary-container text-on-primary-container font-mono tracking-wide">
+                            ACTIVE
+                        </span>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-surface-container-lowest rounded-lg p-4 mb-3 flex items-center grid grid-cols-12 gap-4 shadow-[0px_4px_12px_rgba(53,37,205,0.02)] hover:shadow-[0px_8px_24px_rgba(53,37,205,0.06)] hover:-translate-y-0.5 transition-all cursor-pointer border border-outline-variant/10 group">
+<div class="col-span-1 font-mono text-sm text-on-surface-variant">
+                        PRJ-0839
+                    </div>
+<div class="col-span-3 pr-4">
+<div class="font-headline font-bold text-on-surface truncate group-hover:text-primary transition-colors">Fiber Backbone Ext.</div>
+<div class="text-xs text-on-surface-variant font-medium flex items-center gap-1 mt-0.5 truncate">
+<span class="material-symbols-outlined text-[14px] opacity-60">location_on</span>
+                            Austin, TX - Metro North
+                        </div>
+</div>
+<div class="col-span-2 flex items-center gap-2">
+<div class="w-6 h-6 rounded bg-surface-variant flex items-center justify-center text-[10px] font-bold text-on-surface-variant">VT</div>
+<span class="text-sm font-medium text-on-surface">Vantage Tel</span>
+</div>
+<div class="col-span-2 flex items-center gap-3 pr-6">
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-secondary rounded-full" style="width: 15%;"></div>
+</div>
+<span class="font-mono text-xs text-on-surface-variant font-bold">15%</span>
+</div>
+<div class="col-span-1 flex items-center">
+<div class="flex -space-x-2">
+<img alt="Team member" class="w-7 h-7 rounded-full border-2 border-surface-container-lowest" data-alt="professional woman in hardhat smiling warmly" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBI76M4Z17z42SMd3P52-IdUkXFzIGWa4Fu1U--ImAwx2kqViJXcEauQObNAmoGJhP-9-VCHFQp36OE6QXCGViIA7AaqV3arkexoM_aVUCQlf9LqM_ohPZgfXuoDvyhcfXk0J_nABT-6dCmu6Lxy9bnffzwN5LBOXBKE94TJdu5rboynj0iQXaCJu3oIa6h-VHayXthWniZKXeT_z_VLmSFS6IedBcl_m01WJ-eJJAWBHl4QbyrAo8INIJVvgIFxCmMRgVqPq8EeA2I"/>
+<div class="w-7 h-7 rounded-full border-2 border-surface-container-lowest bg-surface-variant flex items-center justify-center text-[10px] font-bold text-on-surface-variant">+1</div>
+</div>
+</div>
+<div class="col-span-2 flex flex-col justify-center">
+<span class="text-sm font-medium text-on-surface">Nov 01 - Dec 15</span>
+<span class="text-[10px] font-mono text-on-surface-variant uppercase">Starts Soon</span>
+</div>
+<div class="col-span-1 flex justify-end">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-surface-variant text-on-surface font-mono tracking-wide">
+                            PLANNING
+                        </span>
+</div>
+</div>
+<!-- Item 3 (On Hold) -->
+<div class="bg-surface-container-lowest rounded-lg p-4 mb-3 flex items-center grid grid-cols-12 gap-4 shadow-[0px_4px_12px_rgba(53,37,205,0.02)] hover:shadow-[0px_8px_24px_rgba(53,37,205,0.06)] hover:-translate-y-0.5 transition-all cursor-pointer border border-outline-variant/10 group opacity-80">
+<div class="col-span-1 font-mono text-sm text-on-surface-variant">
+                        PRJ-0811
+                    </div>
+<div class="col-span-3 pr-4">
+<div class="font-headline font-bold text-on-surface truncate group-hover:text-primary transition-colors">Tower Foundation G7</div>
+<div class="text-xs text-on-surface-variant font-medium flex items-center gap-1 mt-0.5 truncate">
+<span class="material-symbols-outlined text-[14px] opacity-60">location_on</span>
+                            Rural Rte 9, NV
+                        </div>
+</div>
+<div class="col-span-2 flex items-center gap-2">
+<div class="w-6 h-6 rounded bg-surface-variant flex items-center justify-center text-[10px] font-bold text-on-surface-variant">SL</div>
+<span class="text-sm font-medium text-on-surface">SolCom</span>
+</div>
+<div class="col-span-2 flex items-center gap-3 pr-6">
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-outline-variant rounded-full" style="width: 42%;"></div>
+</div>
+<span class="font-mono text-xs text-on-surface-variant font-bold">42%</span>
+</div>
+<div class="col-span-1 flex items-center">
+<div class="flex -space-x-2">
+<img alt="Team member" class="w-7 h-7 rounded-full border-2 border-surface-container-lowest grayscale" data-alt="close up of a man looking thoughtful in industrial setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBC9RwBCLuhBoXe_wFMVQggxQd1m0m5y1ZZlaY3BvU_ITvZQy9N6FfNLm_bhoGJLmQ-A5nc8kwtvphzIRhDFclUXbiI0wzZHlnJM5B2ra3aw34vcUjYtDSjaBIiHLGfISf_61-4F7BtarYA9zCyXwwYfl4GHtzhp6suCl1yjexg8sS1nwP0OM_uFzr5W5PoJN8aGbAbCfIz97fkXPHvF3ZJ52tqFrslnXlEXX-17rdNHojxrUulQWElNiTqh9bhTUE_N__z2cPe3rUk"/>
+</div>
+</div>
+<div class="col-span-2 flex flex-col justify-center">
+<span class="text-sm font-medium text-on-surface">Sep 15 - TBD</span>
+<span class="text-[10px] font-mono text-tertiary-container uppercase font-bold">Permit Delay</span>
+</div>
+<div class="col-span-1 flex justify-end">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-tertiary-container text-on-tertiary font-mono tracking-wide">
+                            ON HOLD
+                        </span>
+</div>
+</div>
+<!-- Item 4 (Completed) -->
+<div class="bg-surface-container-lowest rounded-lg p-4 mb-3 flex items-center grid grid-cols-12 gap-4 shadow-[0px_4px_12px_rgba(53,37,205,0.02)] hover:shadow-[0px_8px_24px_rgba(53,37,205,0.06)] hover:-translate-y-0.5 transition-all cursor-pointer border border-outline-variant/10 group">
+<div class="col-span-1 font-mono text-sm text-on-surface-variant">
+                        PRJ-0802
+                    </div>
+<div class="col-span-3 pr-4">
+<div class="font-headline font-bold text-on-surface truncate group-hover:text-primary transition-colors">Substation Retrofit</div>
+<div class="text-xs text-on-surface-variant font-medium flex items-center gap-1 mt-0.5 truncate">
+<span class="material-symbols-outlined text-[14px] opacity-60">location_on</span>
+                            Seattle, WA - Dist 2
+                        </div>
+</div>
+<div class="col-span-2 flex items-center gap-2">
+<div class="w-6 h-6 rounded bg-surface-variant flex items-center justify-center text-[10px] font-bold text-on-surface-variant">PN</div>
+<span class="text-sm font-medium text-on-surface">PacNet</span>
+</div>
+<div class="col-span-2 flex items-center gap-3 pr-6">
+<div class="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-[#008a54] rounded-full" style="width: 100%;"></div>
+</div>
+<span class="font-mono text-xs text-[#008a54] font-bold">100%</span>
+</div>
+<div class="col-span-1 flex items-center">
+<div class="flex -space-x-2">
+<img alt="Team member" class="w-7 h-7 rounded-full border-2 border-surface-container-lowest" data-alt="portrait of smiling woman with short hair against neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLBOehqrisSGLN7eUkziMZb2hFGvw6ymYtNKg9cCfK-Dkfab6yJBFiNE2pRg6trXADWdU06V6QHBt3ArYx8u2c8CSTs7gyG28XBPBbm0bHTNNgPcDtEl15D3u5UCjaCObY1m2Fd2QpjkW7OhcpQTgjkzDhOeYT7SvNGYI7Kq0Blhz3WZOaOkPYzW5ux4BBtK954O4s8s4MvQBZFcBKfDwfg4woA4H_jT9oiaVrFHElwEEU7XUNjZlEnBj6xSNC_sHQcflQ3IoznPyM"/>
+<img alt="Team member" class="w-7 h-7 rounded-full border-2 border-surface-container-lowest" data-alt="portrait of man wearing glasses looking directly at camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAvDnrbxW4SI3Tr6oFPIZsVHkCYne3-q8xyrZZ-8mzs6-hBScvu9O3MKduQphRP6JT72W9phY4Eodu6kjMzUpWo7wReuGIYufxLNBbrVx_9Hh0glYbD8XZn22q9k4e7r4xNsXuHcuWKQOUfHSRAQCsgIRa9uTxeE38Yff0lDCXNpwPYeQWMKjlOQ29XNDQjZ4LBZGzYyJ-EwfYTRItdF7xNmObJtvdnF-oPlS-YpZT3CwL2FKjmcbzF2StawHDbZjuiqJpyCwEKGrgC"/>
+</div>
+</div>
+<div class="col-span-2 flex flex-col justify-center">
+<span class="text-sm font-medium text-on-surface">Aug 01 - Oct 10</span>
+<span class="text-[10px] font-mono text-[#008a54] uppercase font-bold">Closed</span>
+</div>
+<div class="col-span-1 flex justify-end">
+<span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-[#e6f4ea] text-[#008a54] font-mono tracking-wide border border-[#008a54]/20">
+                            COMPLETED
+                        </span>
+</div>
+</div>
+</div>
+<!-- Bottom Spacer -->
+<div class="h-12"></div>
+</div>
+</main>
+</body></html>

@@ -216,7 +216,8 @@ function getRoles() {
     { value: 'Dispatcher', label: 'Dispatcher' },
     { value: 'L1Engineer', label: 'L1 Engineer' },
     { value: 'L2Engineer', label: 'L2 Engineer' },
-    { value: 'ClientViewer', label: 'Client Viewer' }
+    { value: 'ClientViewer', label: 'Client Viewer' },
+    { value: 'Vendor',       label: 'Vendor' }
   ];
 }
 

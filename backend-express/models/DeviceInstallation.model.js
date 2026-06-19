@@ -10,6 +10,10 @@ const deviceInstallationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'ProjectZone'
   },
+  activityId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Activity'
+  },
 
   // Device Details
   assetType: {
@@ -46,7 +50,11 @@ const deviceInstallationSchema = new mongoose.Schema({
   quantity: {
     type: Number,
     default: 1,
-    min: 1
+    min: 1,
+    validate: {
+      validator: Number.isInteger,
+      message: '{VALUE} is not an integer value'
+    }
   },
 
   // Installation Location
@@ -90,7 +98,11 @@ const deviceInstallationSchema = new mongoose.Schema({
   cableDetails: {
     lengthMeters: {
       type: Number,
-      min: 0
+      min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: '{VALUE} is not an integer value'
+      }
     },
     cableType: {
       type: String,
@@ -114,7 +126,11 @@ const deviceInstallationSchema = new mongoose.Schema({
     },
     nvrChannel: {
       type: Number,
-      min: 1
+      min: 1,
+      validate: {
+        validator: Number.isInteger,
+        message: '{VALUE} is not an integer value'
+      }
     },
     subnet: {
       type: String,
@@ -265,6 +281,7 @@ deviceInstallationSchema.index({ 'networkDetails.ipAddress': 1 });
 deviceInstallationSchema.index({ createdAt: -1 });
 deviceInstallationSchema.index({ assignedTo: 1 });
 deviceInstallationSchema.index({ projectId: 1, status: 1, assignedTo: 1 });
+deviceInstallationSchema.index({ activityId: 1 });
 
 // Constants
 export const DeviceTypes = {

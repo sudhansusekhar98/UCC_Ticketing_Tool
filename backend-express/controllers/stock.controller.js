@@ -15,6 +15,8 @@ import { decrypt } from '../utils/encryption.utils.js';
 import XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
+import { buildStockSummaryExcel } from '../utils/excelStyler.js';
+import { generateStockSummaryReport } from '../utils/reportHtmlGenerator.js';
 
 // Helper: Check if user has a specific right for a site
 const hasRightForSite = (user, rightName, siteId) => {
@@ -1849,22 +1851,25 @@ export const getProjectAllocations = async (req, res, next) => {
         if (stockItemId) query.stockItemId = stockItemId;
         if (status) query.status = status;
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const limitNum = Math.min(parseInt(limit) || 50, 1000); // hard limit to prevent timeouts
+        const skip = (parseInt(page) - 1) * limitNum;
 
         const [allocations, total] = await Promise.all([
             ProjectStockAllocation.find(query)
+                .select('-changeLog')
                 .populate('projectId', 'projectNumber projectName')
                 .populate('stockItemId', 'assetType deviceType make model serialNumber macAddress quantity unit assetCode')
-                .populate('allocatedBy', 'name')
-                .populate('changeLog.changedBy', 'name')
+                .populate('allocatedBy', 'fullName')
                 .sort({ createdAt: -1 })
                 .skip(skip)
-                .limit(parseInt(limit)),
-            ProjectStockAllocation.countDocuments(query)
+                .limit(limitNum)
+                .lean()
+                .maxTimeMS(15000),
+            ProjectStockAllocation.countDocuments(query).maxTimeMS(5000)
         ]);
 
         const decryptedAllocations = allocations.map(alloc => {
-            const allocObj = alloc.toObject();
+            const allocObj = alloc;
             if (allocObj.stockItemId) {
                 if (allocObj.stockItemId.serialNumber && allocObj.stockItemId.serialNumber.startsWith('enc:')) {
                     try { allocObj.stockItemId.serialNumber = decrypt(allocObj.stockItemId.serialNumber); } catch (e) {}
@@ -2131,6 +2136,72 @@ export const getProjectCableAllocations = async (req, res, next) => {
 
         res.json({ success: true, data: items });
     } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Export inventory stock summary (grouped by deviceType, make, model)
+// @route   GET /api/stock/export-summary
+// @access  Private (Admin, Supervisor, or MANAGE_SITE_STOCK right)
+export const exportStockSummary = async (req, res, next) => {
+    try {
+        const { siteId, format = 'xlsx' } = req.query;
+        const user = req.user;
+
+        const matchQuery = { status: 'Spare' };
+
+        if (siteId && siteId !== 'all') {
+            matchQuery.siteId = new mongoose.Types.ObjectId(siteId);
+        } else if (user.role !== 'Admin') {
+            matchQuery.siteId = { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) };
+        }
+
+        const pipeline = [
+            { $match: matchQuery },
+            {
+                $group: {
+                    _id: {
+                        deviceType: { $ifNull: ['$deviceType', 'Unspecified'] },
+                        make:       { $ifNull: ['$make', 'Unspecified'] },
+                        model:      { $ifNull: ['$model', 'Unspecified'] },
+                    },
+                    quantity: { $sum: { $ifNull: ['$quantity', 1] } },
+                }
+            },
+            { $sort: { '_id.deviceType': 1, '_id.make': 1, '_id.model': 1 } },
+            {
+                $project: {
+                    _id: 0,
+                    deviceType: '$_id.deviceType',
+                    make:       '$_id.make',
+                    model:      '$_id.model',
+                    quantity:   1,
+                }
+            },
+        ];
+
+        const summaryRows = await Asset.aggregate(pipeline);
+
+        let siteLabel = 'All Sites';
+        if (siteId && siteId !== 'all') {
+            const site = await Site.findById(siteId).select('siteName').lean();
+            if (site) siteLabel = site.siteName;
+        }
+
+        if (format === 'html') {
+            const html = generateStockSummaryReport({ summaryRows, siteLabel });
+            res.setHeader('Content-Disposition', `attachment; filename="stock_summary_${new Date().toISOString().slice(0, 10)}.html"`);
+            res.setHeader('Content-Type', 'text/html; charset=utf-8');
+            return res.send(html);
+        }
+
+        const buffer = await buildStockSummaryExcel(summaryRows, siteLabel);
+        const filename = `stock_summary_${new Date().toISOString().slice(0, 10)}.xlsx`;
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.send(buffer);
+    } catch (error) {
+        console.error('Stock summary export error:', error);
         next(error);
     }
 };

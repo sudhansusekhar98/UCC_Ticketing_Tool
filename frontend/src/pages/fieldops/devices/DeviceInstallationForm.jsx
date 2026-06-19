@@ -378,7 +378,7 @@ export default function DeviceInstallationForm() {
                     // Only include cableDetails if cable type is selected
                     if (formData.cableDetails.type && formData.cableAllocationId) {
                         devicePayload.cableDetails = {
-                            lengthMeters: formData.cableDetails.length ? parseFloat(formData.cableDetails.length) / selectedItems.length : undefined,
+                            lengthMeters: formData.cableDetails.length ? Math.round(parseFloat(formData.cableDetails.length) / selectedItems.length) : undefined,
                             cableType: formData.cableDetails.type,
                             trenchId: formData.cableDetails.trenchId || undefined
                         };
@@ -396,6 +396,10 @@ export default function DeviceInstallationForm() {
                     if (errorCount > 0) {
                         console.error('Device creation errors:', response.data.errors);
                         toast.error(`${errorCount} device(s) failed to create. Check console for details.`);
+                    }
+                    // Show over-deployment warnings if any
+                    if (response.data.warnings?.length > 0) {
+                        response.data.warnings.forEach(w => toast(w, { icon: '\u26A0\uFE0F', duration: 6000 }));
                     }
                     navigate(`/fieldops/projects/${projectId}`);
                 } else {
@@ -445,7 +449,7 @@ export default function DeviceInstallationForm() {
                 quantity: parseInt(formData.quantity) || 1,
                 cableDetails: {
                     ...formData.cableDetails,
-                    length: formData.cableDetails.length ? parseFloat(formData.cableDetails.length) : undefined
+                    length: formData.cableDetails.length ? Math.round(parseFloat(formData.cableDetails.length)) : undefined
                 },
                 installationLocation: {
                     ...formData.installationLocation,
@@ -458,8 +462,12 @@ export default function DeviceInstallationForm() {
                 await fieldOpsApi.updateDeviceInstallation(deviceId, payload);
                 toast.success('Device updated successfully');
             } else {
-                await fieldOpsApi.createDeviceInstallation(payload);
+                const res = await fieldOpsApi.createDeviceInstallation(payload);
                 toast.success('Device added successfully');
+                // Show over-deployment warnings if any
+                if (res.data.warnings?.length > 0) {
+                    res.data.warnings.forEach(w => toast(w, { icon: '\u26A0\uFE0F', duration: 6000 }));
+                }
             }
             navigate(`/fieldops/projects/${projectId}`);
         } catch (error) {
@@ -924,7 +932,8 @@ export default function DeviceInstallationForm() {
                             </label>
                             <input
                                 type="number"
-                                step="0.1"
+                                step="1"
+                                min="0"
                                 className="form-input"
                                 value={formData.cableDetails.length}
                                 onChange={(e) => handleNestedChange('cableDetails', 'length', e.target.value)}

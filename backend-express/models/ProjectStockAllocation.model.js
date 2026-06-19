@@ -14,17 +14,29 @@ const projectStockAllocationSchema = new mongoose.Schema({
   allocatedQty: {
     type: Number,
     required: [true, 'Allocated quantity is required'],
-    min: [1, 'Allocated quantity must be at least 1']
+    min: [1, 'Allocated quantity must be at least 1'],
+    validate: {
+      validator: Number.isInteger,
+      message: '{VALUE} is not an integer value'
+    }
   },
   installedQty: {
     type: Number,
     default: 0,
-    min: 0
+    min: 0,
+    validate: {
+      validator: Number.isInteger,
+      message: '{VALUE} is not an integer value'
+    }
   },
   faultyQty: {
     type: Number,
     default: 0,
-    min: 0
+    min: 0,
+    validate: {
+      validator: Number.isInteger,
+      message: '{VALUE} is not an integer value'
+    }
   },
   status: {
     type: String,

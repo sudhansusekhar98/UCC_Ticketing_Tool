@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TicketOps - Create New Project</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#f8f9fc",
+                        "surface-container": "#edeef1",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "error-container": "#ffdad6",
+                        "tertiary": "#7e3000",
+                        "on-secondary-fixed": "#25005a",
+                        "on-error": "#ffffff",
+                        "error": "#ba1a1a",
+                        "surface-container-highest": "#e1e2e5",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "on-surface-variant": "#464555",
+                        "on-surface": "#191c1e",
+                        "on-secondary-container": "#fffbff",
+                        "on-tertiary-container": "#ffd2be",
+                        "secondary": "#712ae2",
+                        "surface-container-lowest": "#ffffff",
+                        "primary": "#3525cd",
+                        "inverse-primary": "#c3c0ff",
+                        "secondary-fixed": "#eaddff",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f8f9fc",
+                        "tertiary-fixed-dim": "#ffb695",
+                        "secondary-container": "#8a4cfc",
+                        "surface-container-high": "#e7e8eb",
+                        "secondary-fixed-dim": "#d2bbff",
+                        "on-primary-container": "#dad7ff",
+                        "primary-container": "#4f46e5",
+                        "surface-container-low": "#f2f3f6",
+                        "surface-dim": "#d9dadd",
+                        "outline-variant": "#c7c4d8",
+                        "on-tertiary-fixed": "#351000",
+                        "on-tertiary-fixed-variant": "#7b2f00",
+                        "surface-tint": "#4d44e3",
+                        "inverse-surface": "#2e3133",
+                        "surface-variant": "#e1e2e5",
+                        "on-background": "#191c1e",
+                        "on-primary-fixed": "#0f0069",
+                        "inverse-on-surface": "#f0f1f4",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#5a00c6",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "outline": "#777587",
+                        "tertiary-fixed": "#ffdbcc",
+                        "tertiary-container": "#a44100",
+                        "primary-fixed": "#e2dfff",
+                        "background": "#f8f9fc"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"],
+                        "mono": ["JetBrains Mono", "monospace"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .glass-panel { background: rgba(248, 249, 252, 0.8); backdrop-filter: blur(12px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background text-on-surface flex h-screen overflow-hidden antialiased">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-64 z-40 bg-[#f2f3f6] dark:bg-slate-900 flex flex-col gap-2 p-6 h-screen border-none shadow-none">
+<div class="mb-8 px-2">
+<h1 class="text-lg font-black text-indigo-700 dark:text-indigo-400 tracking-tight">TicketOps</h1>
+<p class="font-mono text-xs text-on-surface-variant mt-1 tracking-tight">The Precision Engine</p>
+</div>
+<button class="w-full bg-gradient-to-r from-primary to-secondary text-on-primary rounded-md py-3 px-4 font-semibold text-sm mb-6 shadow-[0px_10px_30px_rgba(53,37,205,0.06)] hover:opacity-90 transition-opacity">
+            New Project
+        </button>
+<nav class="flex-1 flex flex-col gap-1">
+<!-- Active Tab -->
+<a class="flex items-center gap-3 px-4 py-3 bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-bold rounded-lg shadow-sm font-['Inter'] text-sm tracking-tight font-medium hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-200 translate-x-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">folder_open</span>
+<span class="font-mono text-xs tracking-tight">Projects</span>
+</a>
+<!-- Inactive Tabs -->
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 rounded-lg font-['Inter'] text-sm tracking-tight font-medium hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-mono text-xs tracking-tight">Team Allocation</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 rounded-lg font-['Inter'] text-sm tracking-tight font-medium hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="font-mono text-xs tracking-tight">Budget Tracker</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 rounded-lg font-['Inter'] text-sm tracking-tight font-medium hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">shutter_speed</span>
+<span class="font-mono text-xs tracking-tight">Site Surveys</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 rounded-lg font-['Inter'] text-sm tracking-tight font-medium hover:bg-white/60 dark:hover:bg-slate-800/60 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">terminal</span>
+<span class="font-mono text-xs tracking-tight">Global Ops</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="flex-1 ml-64 flex flex-col h-full bg-background relative">
+<!-- TopNavBar -->
+<header class="w-full h-16 px-8 flex justify-between items-center bg-[#f8f9fc] dark:bg-slate-950 font-['Inter'] tracking-tight font-medium shadow-[0px_10px_30px_rgba(53,37,205,0.06)] sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<!-- Search on right, leaving left empty or for breadcrumbs -->
+<h2 class="text-xl font-bold tracking-tighter text-on-surface">Setup Scope</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative hidden md:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">search</span>
+<input class="bg-[#f2f3f6] dark:bg-slate-900 border-none rounded-full pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-indigo-700 w-64 text-slate-500" placeholder="Search operations..." type="text"/>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors scale-95 active:scale-90">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors scale-95 active:scale-90">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors scale-95 active:scale-90">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-surface-container-high overflow-hidden shadow-sm border-none ml-2">
+<img alt="Manager profile" class="w-full h-full object-cover" data-alt="Close up portrait of a professional man in a bright modern office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAaHO5YqWzGAJ21uudc4Suomj63QB98u-h9t9uX-zbMZ-1PKEigN5-crZtVUDH5PVIu4BAQXMDM6akt4KgOElKWapei0X52Jb12CmRqurmsXZW8syzThE3FyslggVnpE9kN6tD3ruhcdD4ewkXT1_c18wALDyop3rvw7XEEQqtdYI2yejfRPkYLY1og1xw30siVr4v1ObobIHK3jeUqABfNACY6kW5ggVgRxYfFs22pNZ3wPuzLRVoN35Za59uNmXRhVTrWkdcLX4E2"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="flex-1 overflow-y-auto p-10 pb-24">
+<!-- Stepper -->
+<div class="mb-12 flex items-center max-w-4xl">
+<!-- Step 1 (Active) -->
+<div class="flex flex-col gap-2 relative z-10">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-mono text-sm font-bold shadow-[0px_10px_30px_rgba(53,37,205,0.2)]">01</div>
+<span class="font-bold text-on-surface tracking-tight">Project Scope</span>
+</div>
+</div>
+<div class="flex-1 h-px bg-surface-container-highest mx-4"></div>
+<!-- Step 2 -->
+<div class="flex flex-col gap-2 opacity-50">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-mono text-sm">02</div>
+<span class="font-medium text-on-surface-variant tracking-tight">Client &amp; Sites</span>
+</div>
+</div>
+<div class="flex-1 h-px bg-surface-container-highest mx-4"></div>
+<!-- Step 3 -->
+<div class="flex flex-col gap-2 opacity-50">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-mono text-sm">03</div>
+<span class="font-medium text-on-surface-variant tracking-tight">Resource Allocation</span>
+</div>
+</div>
+<div class="flex-1 h-px bg-surface-container-highest mx-4"></div>
+<!-- Step 4 -->
+<div class="flex flex-col gap-2 opacity-50">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center font-mono text-sm">04</div>
+<span class="font-medium text-on-surface-variant tracking-tight">Device Specs</span>
+</div>
+</div>
+</div>
+<!-- Form Layout (Bento Style) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-6xl">
+<!-- Left Column (Main Details) -->
+<div class="lg:col-span-8 flex flex-col gap-8">
+<!-- Core Identifiers -->
+<div class="bg-surface-container-lowest rounded-lg p-8 shadow-sm">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-lg font-bold tracking-tight text-on-surface">Core Identifiers</h3>
+<span class="font-mono text-xs px-2 py-1 bg-surface-container-high rounded text-on-surface-variant">ID: PRJ-GEN-AUTO</span>
+</div>
+<div class="flex flex-col gap-6">
+<!-- Input Style: Technical Instrument -->
+<div class="relative">
+<label class="block text-xs font-bold text-on-surface-variant mb-2 tracking-wide uppercase">Project Nomenclature</label>
+<input class="w-full bg-surface-container-highest border-0 border-b-2 border-transparent focus:border-primary focus:ring-0 px-4 py-3 text-on-surface font-medium transition-colors rounded-t-md" placeholder="e.g. Alpha Site Surveillance Upgrade" type="text"/>
+</div>
+<div>
+<label class="block text-xs font-bold text-on-surface-variant mb-4 tracking-wide uppercase">Technical Domain</label>
+<div class="grid grid-cols-2 gap-4">
+<!-- Radio Card 1 (Selected) -->
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="domain" type="radio"/>
+<div class="bg-surface-container-low p-4 rounded-lg peer-checked:bg-primary-fixed peer-checked:ring-2 peer-checked:ring-primary transition-all">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-primary">videocam</span>
+<span class="font-bold text-on-surface text-sm">CCTV / Visual</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Camera installations, NVR setups, and visual monitoring networks.</p>
+</div>
+</label>
+<!-- Radio Card 2 -->
+<label class="cursor-pointer">
+<input class="peer sr-only" name="domain" type="radio"/>
+<div class="bg-surface-container-low p-4 rounded-lg hover:bg-surface-container-high transition-all">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-on-surface-variant">vpn_key</span>
+<span class="font-bold text-on-surface text-sm">Access Control</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Biometrics, keycard readers, and perimeter security systems.</p>
+</div>
+</label>
+<!-- Radio Card 3 -->
+<label class="cursor-pointer">
+<input class="peer sr-only" name="domain" type="radio"/>
+<div class="bg-surface-container-low p-4 rounded-lg hover:bg-surface-container-high transition-all">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-on-surface-variant">router</span>
+<span class="font-bold text-on-surface text-sm">Network Infra</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Cabling, switch configurations, and network architecture.</p>
+</div>
+</label>
+<!-- Radio Card 4 -->
+<label class="cursor-pointer">
+<input class="peer sr-only" name="domain" type="radio"/>
+<div class="bg-surface-container-low p-4 rounded-lg hover:bg-surface-container-high transition-all">
+<div class="flex items-center gap-3 mb-2">
+<span class="material-symbols-outlined text-on-surface-variant">cable</span>
+<span class="font-bold text-on-surface text-sm">Hybrid / Mixed</span>
+</div>
+<p class="text-xs text-on-surface-variant leading-relaxed">Multi-disciplinary deployments requiring cross-functional teams.</p>
+</div>
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (Meta & Status) -->
+<div class="lg:col-span-4 flex flex-col gap-8">
+<!-- Operational Priority -->
+<div class="bg-surface-container-lowest rounded-lg p-6 shadow-sm">
+<h3 class="text-sm font-bold tracking-tight text-on-surface mb-4">Operational Priority</h3>
+<div class="flex flex-col gap-3">
+<label class="flex items-center justify-between p-3 bg-surface-container-low rounded-md cursor-pointer hover:bg-surface-container-high">
+<div class="flex items-center gap-3">
+<input class="text-primary focus:ring-primary h-4 w-4 border-outline-variant bg-surface-container-lowest" name="priority" type="radio"/>
+<span class="text-sm font-medium text-on-surface">Standard Protocol</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-sm">low_priority</span>
+</label>
+<label class="flex items-center justify-between p-3 bg-surface-container-low rounded-md cursor-pointer hover:bg-surface-container-high">
+<div class="flex items-center gap-3">
+<input checked="" class="text-primary focus:ring-primary h-4 w-4 border-outline-variant bg-surface-container-lowest" name="priority" type="radio"/>
+<span class="text-sm font-medium text-on-surface">Elevated</span>
+</div>
+<span class="material-symbols-outlined text-primary text-sm">sync_alt</span>
+</label>
+<label class="flex items-center justify-between p-3 bg-error-container/30 rounded-md cursor-pointer border border-error-container">
+<div class="flex items-center gap-3">
+<input class="text-error focus:ring-error h-4 w-4 border-outline-variant bg-surface-container-lowest" name="priority" type="radio"/>
+<span class="text-sm font-bold text-error">Critical Action</span>
+</div>
+<span class="material-symbols-outlined text-error text-sm">warning</span>
+</label>
+</div>
+</div>
+<!-- Deployment Window -->
+<div class="bg-surface-container-lowest rounded-lg p-6 shadow-sm">
+<h3 class="text-sm font-bold tracking-tight text-on-surface mb-4">Deployment Window</h3>
+<div class="flex flex-col gap-4">
+<div>
+<label class="block text-xs font-bold text-on-surface-variant mb-2 tracking-wide uppercase">Commencement</label>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-0 border-b-2 border-transparent focus:border-primary focus:ring-0 px-4 py-2.5 text-on-surface font-mono text-sm transition-colors rounded-t-md" type="date"/>
+</div>
+</div>
+<div>
+<label class="block text-xs font-bold text-on-surface-variant mb-2 tracking-wide uppercase">Target Completion</label>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-0 border-b-2 border-transparent focus:border-primary focus:ring-0 px-4 py-2.5 text-on-surface font-mono text-sm transition-colors rounded-t-md" type="date"/>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Action Footer -->
+<div class="absolute bottom-0 left-0 w-full glass-panel border-t border-white/20 p-6 flex justify-end gap-4 z-20">
+<button class="px-6 py-2.5 text-sm font-bold text-on-surface-variant hover:text-primary transition-colors">
+                Cancel Draft
+            </button>
+<button class="px-8 py-2.5 bg-gradient-to-r from-primary to-secondary text-on-primary rounded-md text-sm font-bold shadow-[0px_10px_30px_rgba(53,37,205,0.2)] hover:opacity-90 transition-opacity flex items-center gap-2">
+                Save &amp; Continue <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</main>
+</body></html>

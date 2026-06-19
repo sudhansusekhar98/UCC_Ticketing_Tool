@@ -18,6 +18,7 @@ export default function UserForm() {
     const [showPassword, setShowPassword] = useState(false);
     const [sites, setSites] = useState([]);
     const [roles, setRoles] = useState([]);
+    const [allUsers, setAllUsers] = useState([]);
     const [errors, setErrors] = useState({});
 
     const [formData, setFormData] = useState({
@@ -29,6 +30,7 @@ export default function UserForm() {
         role: 'L1Engineer',
         mobileNumber: '',
         designation: '',
+        reportsTo: '',
         siteId: '',
         assignedSites: [],
         isActive: true,
@@ -43,10 +45,12 @@ export default function UserForm() {
 
     const loadDropdowns = async () => {
         try {
-            const [sitesRes, rolesRes] = await Promise.all([
+            const [sitesRes, rolesRes, usersRes] = await Promise.all([
                 sitesApi.getDropdown(),
                 lookupsApi.getRoles(),
+                usersApi.getAll({ isActive: true, limit: 500 }),
             ]);
+            setAllUsers(usersRes.data.data || []);
             const siteData = sitesRes.data.data || sitesRes.data || [];
             setSites(siteData.map(s => ({
                 value: s._id || s.value || s.siteId,
@@ -74,6 +78,7 @@ export default function UserForm() {
                 role: user.role,
                 mobileNumber: user.mobileNumber || '',
                 designation: user.designation || '',
+                reportsTo: user.reportsTo?._id || user.reportsTo || '',
                 siteId: siteIdValue || '',
                 assignedSites: user.assignedSites?.map(s => typeof s === 'object' ? s._id : s) || [],
                 isActive: user.isActive,
@@ -125,7 +130,7 @@ export default function UserForm() {
 
         if (!formData.role) newErrors.role = 'Role is required';
 
-        if (formData.role !== 'Admin' && (!formData.assignedSites || formData.assignedSites.length === 0)) {
+        if (!['Admin', 'Vendor'].includes(formData.role) && (!formData.assignedSites || formData.assignedSites.length === 0)) {
             newErrors.assignedSites = 'At least one site must be assigned for non-admin users';
         }
 
@@ -150,6 +155,7 @@ export default function UserForm() {
                 role: formData.role,
                 mobileNumber: formData.mobileNumber || null,
                 designation: formData.designation || null,
+                reportsTo: formData.reportsTo || null,
                 siteId: formData.siteId || null,
                 assignedSites: formData.assignedSites,
                 isActive: formData.isActive,
@@ -319,6 +325,30 @@ export default function UserForm() {
                         />
                     </div>
 
+                    {/* Reports To */}
+                    {formData.role !== 'Vendor' && (
+                        <div className="form-group">
+                            <label className="form-label">Reports To</label>
+                            <select
+                                className="form-select"
+                                value={formData.reportsTo}
+                                onChange={(e) => handleChange('reportsTo', e.target.value)}
+                            >
+                                <option value="">-- No Manager (Root node) --</option>
+                                {allUsers
+                                    .filter(u => u.role !== 'Vendor' && (u._id || u.userId) !== id)
+                                    .sort((a, b) => a.fullName.localeCompare(b.fullName))
+                                    .map(u => (
+                                        <option key={u._id || u.userId} value={u._id || u.userId}>
+                                            {u.fullName} ({u.role})
+                                        </option>
+                                    ))
+                                }
+                            </select>
+                            <span className="form-hint">The manager this employee reports to</span>
+                        </div>
+                    )}
+
                     {/* Multi-Site Selection */}
                     <div className="sites-selection-container">
                         <div className="flex justify-between items-center">
@@ -400,6 +430,9 @@ export default function UserForm() {
                         </div>
                         <div className="role-desc">
                             <strong>Client Viewer:</strong> View-only access to tickets and assets
+                        </div>
+                        <div className="role-desc">
+                            <strong>Vendor:</strong> External contractor — used in vendor work logs; limited system access
                         </div>
                     </div>
                 </div>

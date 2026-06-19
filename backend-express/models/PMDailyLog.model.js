@@ -1,5 +1,19 @@
 import mongoose from 'mongoose';
 
+const taskWorkEntrySchema = new mongoose.Schema({
+  taskId:      { type: mongoose.Schema.Types.ObjectId, required: true },
+  taskTitle:   { type: String, maxlength: 200 },
+  completed:   { type: Boolean, default: false },
+  delayReason: { type: String, maxlength: 500 }
+}, { _id: true, timestamps: false });
+
+const activityEntrySchema = new mongoose.Schema({
+  activityId:    { type: mongoose.Schema.Types.ObjectId, ref: 'Activity', required: true },
+  activityTitle: { type: String, maxlength: 200 },
+  tasksWorked:   [taskWorkEntrySchema],
+  progressNote:  { type: String, maxlength: 500 }
+}, { _id: true, timestamps: false });
+
 const pmDailyLogSchema = new mongoose.Schema({
   logNumber: {
     type: String,
@@ -148,7 +162,10 @@ const pmDailyLogSchema = new mongoose.Schema({
   nextDayPlan: {
     type: String,
     maxlength: 2000
-  }
+  },
+
+  // Activity-linked entries from daily log submission
+  activityEntries: [activityEntrySchema]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
@@ -163,6 +180,7 @@ pmDailyLogSchema.index({ projectId: 1, logDate: -1 });
 pmDailyLogSchema.index({ isLocked: 1 });
 pmDailyLogSchema.index({ createdAt: -1 });
 pmDailyLogSchema.index({ logNumber: 1 });
+pmDailyLogSchema.index({ 'activityEntries.activityId': 1 });
 
 // Compound unique index to prevent duplicate logs for same project/date/PM
 pmDailyLogSchema.index(

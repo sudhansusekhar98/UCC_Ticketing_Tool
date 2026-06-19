@@ -21,7 +21,8 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $zipName = "ticketops-backend-aws-$timestamp.zip"
 $sourceDir = $PSScriptRoot
-$outputPath = Join-Path $OutputDir $zipName
+$resolvedOutputDir = if ($OutputDir -eq ".") { $sourceDir } else { (Resolve-Path $OutputDir).Path }
+$outputPath = Join-Path $resolvedOutputDir $zipName
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
