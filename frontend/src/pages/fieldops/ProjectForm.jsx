@@ -225,13 +225,18 @@ export default function ProjectForm() {
         );
     }
 
-    // Filter users by role for PM selection
+    // Filter users by role for PM selection (exclude client roles)
     const pmCandidates = users.filter(u =>
-        ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'].includes(u.role)
+        ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer', 'Dispatcher'].includes(u.role)
+    );
+
+    // Filter out client roles from team members
+    const teamCandidates = users.filter(u =>
+        !['SiteClient', 'ClientViewer'].includes(u.role)
     );
 
     return (
-        <div className="page-container animate-fade-in">
+        <div className="page-container project-form-page animate-fade-in">
             <div className="page-header">
                 <div className="header-left">
                     <Link to="/fieldops/projects" className="btn btn-ghost">
@@ -265,7 +270,7 @@ export default function ProjectForm() {
                                     <option value="">-- Select Survey (Optional) --</option>
                                     {surveys.map(survey => (
                                         <option key={survey.surveyId} value={survey.surveyId}>
-                                            {survey.surveyName} {survey.clientName ? `- ${survey.clientName}` : ''} {survey.regionName ? `(${survey.regionName})` : ''}
+                                            {survey.surveyName} {survey.regionName ? `(${survey.regionName})` : ''}
                                         </option>
                                     ))}
                                 </select>
@@ -331,7 +336,7 @@ export default function ProjectForm() {
                         <FileText size={18} /> Basic Information
                     </h3>
                     <div className="form-grid">
-                        <div className="form-group">
+                        <div className="form-group full-width">
                             <label className="form-label">Project Name *</label>
                             <input
                                 type="text"
@@ -339,17 +344,6 @@ export default function ProjectForm() {
                                 value={formData.projectName}
                                 onChange={(e) => handleChange('projectName', e.target.value)}
                                 placeholder="Enter project name"
-                                required
-                            />
-                        </div>
-                        <div className="form-group">
-                            <label className="form-label">Client Name *</label>
-                            <input
-                                type="text"
-                                className="form-input"
-                                value={formData.clientName}
-                                onChange={(e) => handleChange('clientName', e.target.value)}
-                                placeholder="Enter client name"
                                 required
                             />
                         </div>
@@ -530,14 +524,14 @@ export default function ProjectForm() {
                         <div className="form-group">
                             <label className="form-label">Team Members (Optional)</label>
                             <div className="checkbox-list">
-                                {users.slice(0, 20).map(user => (
+                                {teamCandidates.map(user => (
                                     <label key={user._id} className="checkbox-item">
                                         <input
                                             type="checkbox"
                                             checked={formData.teamMembers.includes(user._id)}
                                             onChange={() => handleMultiSelect('teamMembers', user._id)}
                                         />
-                                        {user.fullName || user.username}
+                                        {user.fullName || user.username} ({user.role})
                                     </label>
                                 ))}
                             </div>

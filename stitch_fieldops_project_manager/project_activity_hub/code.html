@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Activity Hub - Meenakshi Mall</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-fixed": "#ffdbcc",
+                    "on-primary": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb695",
+                    "secondary": "#712ae2",
+                    "background": "#f8f9fc",
+                    "surface-container-low": "#f2f3f6",
+                    "surface-variant": "#e1e2e5",
+                    "on-tertiary-fixed": "#351000",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "error-container": "#ffdad6",
+                    "outline-variant": "#c7c4d8",
+                    "on-surface": "#191c1e",
+                    "inverse-surface": "#2e3133",
+                    "on-surface-variant": "#464555",
+                    "tertiary": "#7e3000",
+                    "surface-bright": "#f8f9fc",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "tertiary-container": "#a44100",
+                    "primary-fixed": "#e2dfff",
+                    "on-background": "#191c1e",
+                    "inverse-primary": "#c3c0ff",
+                    "on-secondary-fixed": "#25005a",
+                    "error": "#ba1a1a",
+                    "on-primary-fixed": "#0f0069",
+                    "on-secondary-fixed-variant": "#5a00c6",
+                    "surface-dim": "#d9dadd",
+                    "surface-container-lowest": "#ffffff",
+                    "primary": "#3525cd",
+                    "secondary-container": "#8a4cfc",
+                    "on-tertiary-fixed-variant": "#7b2f00",
+                    "surface-tint": "#4d44e3",
+                    "on-error-container": "#93000a",
+                    "surface-container": "#edeef1",
+                    "on-error": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-container": "#ffd2be",
+                    "surface-container-high": "#e7e8eb",
+                    "surface-container-highest": "#e1e2e5",
+                    "surface": "#f8f9fc",
+                    "secondary-fixed-dim": "#d2bbff",
+                    "on-secondary": "#ffffff",
+                    "secondary-fixed": "#eaddff",
+                    "outline": "#777587",
+                    "inverse-on-surface": "#f0f1f4",
+                    "on-secondary-container": "#fffbff",
+                    "on-primary-container": "#dad7ff",
+                    "primary-container": "#4f46e5"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {},
+            "fontFamily": {
+                    "headline": ["Inter"],
+                    "body": ["Inter"],
+                    "label": ["JetBrains Mono"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-mono-tech { font-family: 'JetBrains Mono', monospace; }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, theme('colors.primary'), theme('colors.secondary'));
+        }
+        
+        .glass-panel {
+            background: rgba(248, 249, 252, 0.8);
+            backdrop-filter: blur(12px);
+        }
+        
+        .technical-shadow {
+            box-shadow: 0px 10px 30px rgba(53, 37, 205, 0.06);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex font-body">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col gap-2 p-6 h-screen bg-[#f2f3f6] dark:bg-slate-900 fixed left-0 top-0 h-full w-64 z-40">
+<div class="mb-8">
+<h1 class="text-lg font-black text-indigo-700 dark:text-indigo-400 font-headline tracking-tight">TicketOps</h1>
+<p class="text-xs text-on-surface-variant font-mono-tech mt-1">The Precision Engine</p>
+</div>
+<button class="mb-6 w-full py-3 px-4 rounded-md hero-gradient text-on-primary font-medium tracking-wide flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-sm">add</span>
+            New Project
+        </button>
+<div class="flex-1 flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">folder_open</span>
+<span class="font-['JetBrains_Mono'] text-sm tracking-tight font-medium">Projects</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 font-bold shadow-sm translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined text-lg">assignment</span>
+<span class="font-['JetBrains_Mono'] text-sm tracking-tight font-medium">Activities</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">history_edu</span>
+<span class="font-['JetBrains_Mono'] text-sm tracking-tight font-medium">Daily Logs</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">analytics</span>
+<span class="font-['JetBrains_Mono'] text-sm tracking-tight font-medium">Reports</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-white/40 dark:hover:bg-slate-800/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined text-lg">terminal</span>
+<span class="font-['JetBrains_Mono'] text-sm tracking-tight font-medium">Global Ops</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-64 flex flex-col min-h-screen">
+<!-- TopNavBar (Mobile only for main nav, but used here as header) -->
+<header class="flex justify-between items-center w-full px-8 h-16 bg-[#f8f9fc] dark:bg-slate-950 docked full-width top-0 z-50 shadow-[0px_10px_30px_rgba(53,37,205,0.06)] md:hidden">
+<div class="text-xl font-black tracking-tighter text-indigo-700 dark:text-indigo-400 font-headline">TicketOps</div>
+<div class="flex gap-4">
+<button class="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors scale-95 active:scale-90"><span class="material-symbols-outlined">notifications</span></button>
+<button class="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors scale-95 active:scale-90"><span class="material-symbols-outlined">help</span></button>
+<button class="text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition-colors scale-95 active:scale-90"><span class="material-symbols-outlined">settings</span></button>
+<img alt="Manager profile" class="w-8 h-8 rounded-full ml-2 object-cover" data-alt="professional headshot of a man with short hair wearing a dark blue shirt, neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAV3n4q6XgtgBQQptskAmTWm5zORzXgW8uMfyHvwblLYGTyZ2ULxFKN7TwvwPwa9GazWr4MfZ5FUw5FIBlAyaL-zfoxfo_ZejdofOfrNPoKyGASVTjd6epRJSAHE0qikdP25w4kCRiWsqh6e4IKFeFy1brwNBUhPdskRvFASVwaa5YfXHznlnEbPeUEdtanOIHGui1Wq46HkRyFBiYdeV4tKTWg0lZ4zT9yqZokhxSHHNwbS4IM85FP9uJoGIdbsLL0BcSV738uO1a2"/>
+</div>
+</header>
+<!-- Top Right Actions (Web) -->
+<div class="hidden md:flex justify-end items-center w-full px-8 h-16 bg-background">
+<div class="flex gap-4 items-center">
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">search</span></button>
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<div class="w-px h-6 bg-surface-variant mx-2"></div>
+<img alt="Manager profile" class="w-8 h-8 rounded-full object-cover" data-alt="professional headshot of a man with short hair wearing a dark blue shirt, neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZV4yy8QiVepwU2BTBl-_x80N0NgqmboDeREFZvDOQ3_CBqn09CXc0skQXlwEKlAQqIwUfHJZAQi58YQTEvgmcJunCC_s8NbgaRWQJKCmhCBDEiJMusL_Jvz1n2w2zhbUyaY_NKvemetW56QRQCUGf2NhiT_IeMZWDgnH7nM5oGPDm1EPK_a3m5r3ayXoi09Jq0DnCdS9mooA5IKTKrxkZr7qNr_7GzickD8mYTfIcAVb1mEct4F8ruiYqgy_w7pGXIEotO-qXDhxd"/>
+</div>
+</div>
+<div class="p-8 pt-4 flex-1 flex flex-col max-w-7xl mx-auto w-full">
+<!-- Hero Section: Project Metadata -->
+<section class="relative rounded-xl overflow-hidden mb-8 hero-gradient text-on-primary technical-shadow">
+<div class="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&amp;fit=crop&amp;q=80')] bg-cover bg-center" data-alt="abstract architectural pattern showing server racks or technical cabling in dark moody lighting"></div>
+<div class="relative p-8 md:p-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-3">
+<span class="px-2 py-1 bg-on-primary/20 backdrop-blur-sm rounded text-xs font-mono-tech tracking-wider">PRJ-2984-MM</span>
+<span class="px-2 py-1 bg-surface-container-lowest text-primary rounded-md text-xs font-bold uppercase tracking-wider shadow-sm">Active</span>
+</div>
+<h1 class="text-4xl md:text-5xl font-extrabold font-headline tracking-tighter mb-2">Meenakshi Mall</h1>
+<p class="text-primary-fixed text-lg font-medium">CCTV Network Installation Phase II</p>
+</div>
+<div class="flex gap-6 text-sm glass-panel p-4 rounded-lg">
+<div>
+<p class="text-primary-fixed-dim text-xs uppercase tracking-wider mb-1">Client</p>
+<p class="font-bold">Meenakshi Group</p>
+</div>
+<div>
+<p class="text-primary-fixed-dim text-xs uppercase tracking-wider mb-1">Priority</p>
+<p class="font-bold text-tertiary-container flex items-center gap-1"><span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">warning</span> High</p>
+</div>
+<div>
+<p class="text-primary-fixed-dim text-xs uppercase tracking-wider mb-1">Budget Allocation</p>
+<p class="font-mono-tech font-bold">$124,500.00</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Tabbed Navigation -->
+<nav class="flex gap-8 mb-8 pb-4 relative">
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors py-2 text-sm" href="#">Overview</a>
+<a class="text-primary font-bold py-2 text-sm relative" href="#">
+                    Activity Hub
+                    <div class="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full"></div>
+</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors py-2 text-sm" href="#">Team</a>
+<a class="text-on-surface-variant font-medium hover:text-primary transition-colors py-2 text-sm" href="#">Daily Logs</a>
+</nav>
+<!-- Activity Hub Content -->
+<div class="flex-1 flex flex-col">
+<!-- Action Bar -->
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-2xl font-bold font-headline tracking-tight text-on-surface">Task Board</h2>
+<button class="bg-surface-container-high text-primary px-4 py-2 rounded-md font-medium text-sm flex items-center gap-2 hover:bg-surface-variant transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+                        Add Activity
+                    </button>
+</div>
+<!-- Kanban Board (Bento-ish Grid layout) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-1">
+<!-- Column 1: Foundation/Wiring -->
+<div class="flex flex-col gap-4 bg-surface-container-low rounded-xl p-4">
+<div class="flex justify-between items-center mb-2 px-2">
+<h3 class="font-bold text-sm text-on-surface uppercase tracking-wider">Foundation/Wiring</h3>
+<span class="bg-surface-variant text-on-surface-variant text-xs font-mono-tech px-2 py-0.5 rounded-full">3</span>
+</div>
+<!-- Card -->
+<div class="bg-surface-container-lowest rounded-lg p-4 technical-shadow hover:bg-surface-bright transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[10px] font-mono-tech text-on-surface-variant">TSK-001</span>
+<span class="bg-primary-container text-on-primary-container text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">In Progress</span>
+</div>
+<h4 class="font-semibold text-on-surface mb-4 group-hover:text-primary transition-colors">Run Cat6 through Main Atrium Conduits</h4>
+<div class="flex justify-between items-center mt-auto">
+<div class="flex -space-x-2">
+<img alt="Tech" class="w-6 h-6 rounded-full border-2 border-surface-container-lowest" data-alt="headshot of young male technician with short hair" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDtRK2YTLidH7lfbJNQ99uBnfquDCOlXBFGXnt_Ql1itWJBUxB55KccrZNal1VJRHs2q-QhFGJ5ApR8GCwy8Ecf3Mop35PLfNv_-PoGD4dZRngbMIx80rrkNE8kE0B7swu1uSX5xbrk4TEevHX6iVeyg4EvrvWgg1Dr9kpU8PEGpvUwaeAOfzYyz1wMjv0UGXVKzcMwvnCoUIxnu_wjU9GYlwi6mJaF1DAd0bFh9CQKKcGWODHRpGdYeh7Z52HoeAxLbLkW0_D37w2y"/>
+<img alt="Tech" class="w-6 h-6 rounded-full border-2 border-surface-container-lowest" data-alt="headshot of young female technician with dark hair tied back" src="https://lh3.googleusercontent.com/aida-public/AB6AXuATzaDkCseisUqc1QAig2dkZx1UPWEgdg2bN5PB4QwC_hL6_HAr4GsU6Tbw0cjpb5oZnvqB1f18_myBaKKqplEcpAzRzPdLPX9IIn8wtfHCO3oKe_NfNSicc3wzBhrLKT_ZWRRek6rl5CnC0juNtosmCTSh5TivD4-wwT-S-NE7TthAb93UX0M1oooCEvKgWL5Pq_T6LvS6hdopbg6faHxFSF1cvdiHFw3hH5a8oHuGbhCqneyCB0og9xPKFZkCm0K4nIp0mgi0Cg3v"/>
+</div>
+<span class="flex items-center text-xs text-on-surface-variant font-medium gap-1"><span class="material-symbols-outlined text-sm text-tertiary-container" style="font-variation-settings: 'FILL' 1;">flag</span> High</span>
+</div>
+</div>
+<!-- Card -->
+<div class="bg-surface-container-lowest rounded-lg p-4 technical-shadow hover:bg-surface-bright transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[10px] font-mono-tech text-on-surface-variant">TSK-004</span>
+<span class="bg-surface-variant text-on-surface-variant text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">To Do</span>
+</div>
+<h4 class="font-semibold text-on-surface mb-4 group-hover:text-primary transition-colors">Install Power Drops for IDF Closets</h4>
+<div class="flex justify-between items-center mt-auto">
+<div class="flex -space-x-2">
+<div class="w-6 h-6 rounded-full bg-surface-container-high border-2 border-surface-container-lowest flex items-center justify-center text-[10px] font-bold text-on-surface-variant">UN</div>
+</div>
+<span class="flex items-center text-xs text-on-surface-variant font-medium gap-1"><span class="material-symbols-outlined text-sm text-outline">flag</span> Med</span>
+</div>
+</div>
+</div>
+<!-- Column 2: Hardware Install -->
+<div class="flex flex-col gap-4 bg-surface-container-low rounded-xl p-4">
+<div class="flex justify-between items-center mb-2 px-2">
+<h3 class="font-bold text-sm text-on-surface uppercase tracking-wider">Hardware Install</h3>
+<span class="bg-surface-variant text-on-surface-variant text-xs font-mono-tech px-2 py-0.5 rounded-full">2</span>
+</div>
+<!-- Card -->
+<div class="bg-surface-container-lowest rounded-lg p-4 technical-shadow hover:bg-surface-bright transition-colors cursor-pointer group">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[10px] font-mono-tech text-on-surface-variant">TSK-012</span>
+<span class="bg-secondary-container text-on-secondary-container text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">Review</span>
+</div>
+<h4 class="font-semibold text-on-surface mb-4 group-hover:text-primary transition-colors">Mount PTZ Cameras in Parking Garage Level 1</h4>
+<div class="flex justify-between items-center mt-auto">
+<div class="flex -space-x-2">
+<img alt="Tech" class="w-6 h-6 rounded-full border-2 border-surface-container-lowest" data-alt="headshot of older male technician with grey beard" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCV9L95_cYTG46HFplGGH3sHVu6YDoBQfFD3F8wWBYhEknAvph0NmVrVi8oZ2atOf5T66sNVHj3hXDumMwDny757TKRY4MXMxVES-TjdAuK3koeO-29Zy1JDWWveFeiZQnUHqDP8aTFBTaudmiTqn-nvUEAnRgZpJ6QMqYl9DVtZ8d0RbzDQEcJ2flRxpyTjcLPgMv5zPB7xQ_0ku3eOGwtvQBorm2Smv50vCH7uFYIzt9lcOKOA4D3_PNuVDTIxVj3a5fvmXn78AnV"/>
+</div>
+<span class="flex items-center text-xs text-on-surface-variant font-medium gap-1"><span class="material-symbols-outlined text-sm text-tertiary-container" style="font-variation-settings: 'FILL' 1;">flag</span> High</span>
+</div>
+</div>
+</div>
+<!-- Column 3: Software/Testing -->
+<div class="flex flex-col gap-4 bg-surface-container-low rounded-xl p-4">
+<div class="flex justify-between items-center mb-2 px-2">
+<h3 class="font-bold text-sm text-on-surface uppercase tracking-wider">Software/Testing</h3>
+<span class="bg-surface-variant text-on-surface-variant text-xs font-mono-tech px-2 py-0.5 rounded-full">1</span>
+</div>
+<!-- Card -->
+<div class="bg-surface-container-lowest rounded-lg p-4 technical-shadow hover:bg-surface-bright transition-colors cursor-pointer group border-l-4 border-emerald-500">
+<div class="flex justify-between items-start mb-3">
+<span class="text-[10px] font-mono-tech text-on-surface-variant">TSK-008</span>
+<span class="bg-surface-container-high text-on-surface text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider">Done</span>
+</div>
+<h4 class="font-semibold text-on-surface mb-4 line-through opacity-70">Initial NVR Configuration &amp; IP Assignment</h4>
+<div class="flex justify-between items-center mt-auto opacity-70">
+<div class="flex -space-x-2">
+<img alt="Tech" class="w-6 h-6 rounded-full border-2 border-surface-container-lowest" data-alt="headshot of female software engineer wearing glasses" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD3IUnhy_Qfvv_iJYzngQgN8-i6eJyH1SBaoLHaRVYguj81JJm2WLN19KHCKdRSUtsoQlqCAESs6z_t6WG9SXEEovEigPvE6e8dSEnfm4SPZih-byEeg2331lHRuHRW4Y1ibLEH5LqQO0hdjaYDIrhJdAEqp-UgBxBZUE1hSGU4mJ0honlV5QXmSpV9zGIIxPCYDLJcGbJ4_sV_t23isih2AU0hlL8LaALJ21jVRQVQTG3Ppq0ehSvy43LqkGOzWp_yqoRWuL_9-WLF"/>
+</div>
+<span class="flex items-center text-xs text-on-surface-variant font-medium gap-1"><span class="material-symbols-outlined text-sm text-outline">flag</span> Low</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

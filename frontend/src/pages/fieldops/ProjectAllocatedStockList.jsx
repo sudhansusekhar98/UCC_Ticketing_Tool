@@ -42,9 +42,14 @@ export default function ProjectAllocatedStockList() {
     const loadAllocations = async () => {
         setLoading(true);
         try {
-            const res = await stockApi.getAllocations({ projectId: id, limit: 1000 });
+            const res = await stockApi.getAllocations({ projectId: id, limit: 200 }); // Safely limited to avoid timeout
             setAllocations(res.data.data || []);
-        } catch {
+            
+            if (res.data?.pagination?.total > 200) {
+                toast.error('Only showing first 200 allocations. Use backend pagination for full view.');
+            }
+        } catch (error) {
+            console.error('Failed to load project allocations:', error);
             toast.error('Failed to load allocations');
         } finally {
             setLoading(false);
@@ -107,7 +112,7 @@ export default function ProjectAllocatedStockList() {
                         <Package size={24} />
                     </div>
                     <div className="pm-stat-content">
-                        <h3>{Number(totalAllocated.toFixed(2))}</h3>
+                        <h3>{Math.round(totalAllocated)}</h3>
                         <p>Total Allocated</p>
                     </div>
                 </div>
@@ -116,7 +121,7 @@ export default function ProjectAllocatedStockList() {
                         <Package size={24} />
                     </div>
                     <div className="pm-stat-content">
-                        <h3>{Number(totalInstalled.toFixed(2))}</h3>
+                        <h3>{Math.round(totalInstalled)}</h3>
                         <p>Installed</p>
                     </div>
                 </div>
@@ -125,7 +130,7 @@ export default function ProjectAllocatedStockList() {
                         <Package size={24} />
                     </div>
                     <div className="pm-stat-content">
-                        <h3>{Number(remaining.toFixed(2))}</h3>
+                        <h3>{Math.round(remaining)}</h3>
                         <p>Remaining</p>
                     </div>
                 </div>
@@ -134,7 +139,7 @@ export default function ProjectAllocatedStockList() {
                         <AlertCircle size={24} />
                     </div>
                     <div className="pm-stat-content">
-                        <h3>{Number(totalFaulty.toFixed(2))}</h3>
+                        <h3>{Math.round(totalFaulty)}</h3>
                         <p>Faulty</p>
                     </div>
                 </div>
@@ -228,13 +233,13 @@ export default function ProjectAllocatedStockList() {
                                                 </div>
                                             </td>
                                             <td style={{ textAlign: 'center', fontWeight: 600, padding: '1rem' }}>
-                                                {Number((alloc.allocatedQty || 0).toFixed(2))}
+                                                {Math.round(alloc.allocatedQty || 0)}
                                             </td>
                                             <td style={{ textAlign: 'center', color: 'var(--success-400)', padding: '1rem' }}>
-                                                {Number((alloc.installedQty || 0).toFixed(2))}
+                                                {Math.round(alloc.installedQty || 0)}
                                             </td>
                                             <td style={{ textAlign: 'center', color: (alloc.faultyQty || 0) > 0 ? 'var(--error-400)' : 'inherit', padding: '1rem' }}>
-                                                {Number((alloc.faultyQty || 0).toFixed(2))}
+                                                {Math.round(alloc.faultyQty || 0)}
                                             </td>
                                             <td style={{
                                                 textAlign: 'center',
@@ -242,7 +247,7 @@ export default function ProjectAllocatedStockList() {
                                                 padding: '1rem',
                                                 color: itemRemaining > 0 ? 'var(--warning-400)' : 'var(--success-400)'
                                             }}>
-                                                {Number(itemRemaining.toFixed(2))}
+                                                {Math.round(itemRemaining)}
                                             </td>
                                             <td style={{ textAlign: 'center', padding: '1rem' }}>
                                                 <span className={`status-badge ${alloc.status === 'FullyInstalled' ? 'status-badge-success' :

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     Package, Search, Warehouse, ArrowLeft, MapPin, ChevronDown, ChevronUp,
-    AlertCircle, Eye, Edit, X, Download, CheckSquare, Square, Ruler, Trash2, Save, FolderInput
+    AlertCircle, Eye, Edit, X, Download, CheckSquare, Square, Ruler, Trash2, Save, FolderInput, FileBarChart
 } from 'lucide-react';
 import { stockApi, sitesApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -25,6 +25,7 @@ export default function InventoryList() {
     const [viewAsset, setViewAsset] = useState(null);
     const [selectedAssets, setSelectedAssets] = useState(new Set());
     const [exporting, setExporting] = useState(false);
+    const [exportingSummary, setExportingSummary] = useState(false);
 
     // Edit modal state
     const [editAsset, setEditAsset] = useState(null);
@@ -181,6 +182,32 @@ export default function InventoryList() {
         }
     };
 
+    const handleExportSummary = async (format = 'xlsx') => {
+        try {
+            setExportingSummary(true);
+            const response = await stockApi.exportStockSummary({
+                siteId: filters.siteId || undefined,
+                format,
+            });
+            const ext = format === 'html' ? 'html' : 'xlsx';
+            const mimeType = format === 'html' ? 'text/html' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `stock_summary_${new Date().toISOString().slice(0, 10)}.${ext}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+            toast.success('Summary report downloaded successfully');
+        } catch (err) {
+            console.error('Summary export failed:', err);
+            toast.error('Failed to download summary report');
+        } finally {
+            setExportingSummary(false);
+        }
+    };
+
     // ---- Edit handlers ----
     const openEdit = (asset) => {
         setEditAsset(asset);
@@ -320,6 +347,28 @@ export default function InventoryList() {
                                     title="Clear selection"
                                 >
                                     <X size={16} />
+                                </button>
+                            </div>
+                        )}
+                        {canManageStock && (
+                            <div className="export-controls" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <button
+                                    className="btn btn-primary"
+                                    onClick={() => handleExportSummary('xlsx')}
+                                    disabled={exportingSummary}
+                                    title="Download inventory summary as Excel"
+                                >
+                                    <FileBarChart size={16} />
+                                    {exportingSummary ? 'Generating...' : 'Summary Report'}
+                                </button>
+                                <button
+                                    className="btn btn-secondary btn-ghost"
+                                    onClick={() => handleExportSummary('html')}
+                                    disabled={exportingSummary}
+                                    title="Download inventory summary as printable HTML (PDF via print)"
+                                >
+                                    <Download size={16} />
+                                    PDF
                                 </button>
                             </div>
                         )}

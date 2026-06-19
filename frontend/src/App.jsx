@@ -16,6 +16,7 @@ import ClientSignup from './pages/auth/ClientSignup';
 import ClientRegistrations from './pages/admin/ClientRegistrations';
 // import Dashboard from './pages/dashboard/Dashboard';
 import TicketingDashboard from './pages/dashboard/TicketingDashboard';
+// import AnalyticsDashboard from './pages/dashboard/analytics/AnalyticsDashboard';
 import Reports from './pages/reports/Reports';
 import TicketsList from './pages/tickets/TicketsList';
 import TicketDetail from './pages/tickets/TicketDetail';
@@ -29,6 +30,7 @@ import AssetView from './pages/assets/AssetView';
 import RMARecords from './pages/assets/RMARecords';
 import UsersList from './pages/users/UsersList';
 import UserForm from './pages/users/UserForm';
+import OrgChart from './pages/users/OrgChart';
 import UserRights from './pages/admin/UserRights';
 import Settings from './pages/settings/Settings';
 import Profile from './pages/profile/Profile';
@@ -63,8 +65,21 @@ import VendorWorkLogForm from './pages/fieldops/vendor-logs/VendorWorkLogForm';
 import VendorWorkLogList from './pages/fieldops/vendor-logs/VendorWorkLogList';
 import ChallengeLogForm from './pages/fieldops/challenges/ChallengeLogForm';
 import ChallengeLogList from './pages/fieldops/challenges/ChallengeLogList';
+import ChallengeDetail from './pages/fieldops/challenges/ChallengeDetail';
 import ProjectAllocatedStockList from './pages/fieldops/ProjectAllocatedStockList';
 import ProjectReports from './pages/fieldops/reports/ProjectReports';
+import SurveyReconciliation from './pages/fieldops/SurveyReconciliation';
+import DeviceMappingConfig from './pages/fieldops/DeviceMappingConfig';
+import SurveyExplorer from './pages/fieldops/SurveyExplorer';
+import ProjectOverviewSection from './pages/fieldops/sections/ProjectOverviewSection';
+import ProjectDailyLogsSection from './pages/fieldops/sections/ProjectDailyLogsSection';
+import ProjectDevicesSection from './pages/fieldops/sections/ProjectDevicesSection';
+import ProjectVendorWorkSection from './pages/fieldops/sections/ProjectVendorWorkSection';
+import ProjectChallengesSection from './pages/fieldops/sections/ProjectChallengesSection';
+import ProjectActivitiesSection from './pages/fieldops/sections/ProjectActivitiesSection';
+import ActivityForm from './pages/fieldops/activities/ActivityForm';
+import ActivityDetail from './pages/fieldops/activities/ActivityDetail';
+import MyActivities from './pages/fieldops/MyActivities';
 
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles, requiredRight }) {
@@ -228,6 +243,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <AnalyticsDashboard />
+              </ProtectedRoute>
+            }
+          /> */}
 
           {/* Reports */}
           <Route
@@ -359,8 +382,16 @@ function App() {
           <Route
             path="/users"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <UsersList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users/org-chart"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <OrgChart />
               </ProtectedRoute>
             }
           />
@@ -559,9 +590,17 @@ function App() {
 
           {/* Field Operations */}
           <Route
+            path="/fieldops/surveys"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <SurveyExplorer />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/fieldops/projects"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <Projects />
               </ProtectedRoute>
             }
@@ -569,7 +608,7 @@ function App() {
           <Route
             path="/fieldops/projects/new"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <ProjectForm />
               </ProtectedRoute>
             }
@@ -577,7 +616,7 @@ function App() {
           <Route
             path="/fieldops/projects/:id"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <ProjectDetail />
               </ProtectedRoute>
             }
@@ -585,15 +624,95 @@ function App() {
           <Route
             path="/fieldops/projects/:id/edit"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <ProjectForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:id/overview"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <ProjectOverviewSection />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:id/daily-logs"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <ProjectDailyLogsSection />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:id/devices"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <ProjectDevicesSection />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:id/vendor-work"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <ProjectVendorWorkSection />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:id/challenges"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <ProjectChallengesSection />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:id/activities"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <ProjectActivitiesSection />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:id/activities/new"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <ActivityForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/my-activities"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <MyActivities />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/activities/:activityId"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <ActivityDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/activities/:activityId/edit"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <ActivityForm />
               </ProtectedRoute>
             }
           />
           <Route
             path="/fieldops/projects/:projectId/daily-log"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <PMDailyLogForm />
               </ProtectedRoute>
             }
@@ -601,7 +720,7 @@ function App() {
           <Route
             path="/fieldops/pm-logs"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <PMDailyLogView />
               </ProtectedRoute>
             }
@@ -609,7 +728,7 @@ function App() {
           <Route
             path="/fieldops/pm-logs/:logId"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <PMDailyLogView />
               </ProtectedRoute>
             }
@@ -617,7 +736,7 @@ function App() {
           <Route
             path="/fieldops/pm-logs/:logId/edit"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <PMDailyLogForm />
               </ProtectedRoute>
             }
@@ -625,7 +744,7 @@ function App() {
           <Route
             path="/fieldops/projects/:projectId/devices/new"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <DeviceInstallationForm />
               </ProtectedRoute>
             }
@@ -633,7 +752,7 @@ function App() {
           <Route
             path="/fieldops/devices"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <DeviceInstallationList />
               </ProtectedRoute>
             }
@@ -649,7 +768,7 @@ function App() {
           <Route
             path="/fieldops/projects/:projectId/devices/assigned"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <ProjectAssignedDevicesList />
               </ProtectedRoute>
             }
@@ -657,7 +776,7 @@ function App() {
           <Route
             path="/fieldops/devices/my-assignments"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <MyDeviceAssignments />
               </ProtectedRoute>
             }
@@ -665,7 +784,7 @@ function App() {
           <Route
             path="/fieldops/projects/:projectId/vendor-logs/new"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <VendorWorkLogForm />
               </ProtectedRoute>
             }
@@ -673,7 +792,7 @@ function App() {
           <Route
             path="/fieldops/vendor-logs"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <VendorWorkLogList />
               </ProtectedRoute>
             }
@@ -681,15 +800,23 @@ function App() {
           <Route
             path="/fieldops/projects/:projectId/challenges/new"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <ChallengeLogForm />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:projectId/challenges/:challengeId"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <ChallengeDetail />
               </ProtectedRoute>
             }
           />
           <Route
             path="/fieldops/projects/:projectId/challenges/:challengeId/edit"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <ChallengeLogForm />
               </ProtectedRoute>
             }
@@ -697,23 +824,39 @@ function App() {
           <Route
             path="/fieldops/challenges"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <ChallengeLogList />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/fieldops/projects/:id/stock"
+            path="/fieldops/projects/:projectId/stock"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <ProjectAllocatedStockList />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/projects/:projectId/reconciliation"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
+                <SurveyReconciliation />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/fieldops/settings/device-mappings"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']}>
+                <DeviceMappingConfig />
               </ProtectedRoute>
             }
           />
           <Route
             path="/fieldops/reports"
             element={
-              <ProtectedRoute allowedRoles={['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']}>
+              <ProtectedRoute allowedRoles={['Admin', 'Supervisor']} requiredRight={PERMISSIONS.PROJECT_MANAGEMENT_PORTAL}>
                 <ProjectReports />
               </ProtectedRoute>
             }

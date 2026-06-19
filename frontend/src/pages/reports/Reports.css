@@ -341,6 +341,36 @@
     animation: spin 1s linear infinite;
 }
 
+/* HTML Report Button */
+.btn-html-report {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: linear-gradient(135deg, #059669 0%, #0d9488 100%);
+    color: #fff;
+    border: none;
+    box-shadow: 0 2px 8px rgba(5, 150, 105, 0.3);
+    white-space: nowrap;
+}
+
+.btn-html-report:hover:not(:disabled) {
+    background: linear-gradient(135deg, #047857 0%, #0f766e 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4);
+}
+
+.btn-html-report:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* Stats Grid */
 .stats-grid {
     display: grid;

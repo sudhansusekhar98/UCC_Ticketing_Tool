@@ -67,7 +67,9 @@ export default function ChallengeLogForm() {
                 fieldOpsApi.getProjectZones(projectId)
             ]);
             setProject(projectRes.data.data);
-            setUsers(usersRes.data.data || []);
+            // Exclude client roles from assignable users
+            const allUsers = usersRes.data.data || [];
+            setUsers(allUsers.filter(u => !['SiteClient', 'ClientViewer'].includes(u.role)));
             setZones(zonesRes.data.data || []);
 
             if (isEditing) {

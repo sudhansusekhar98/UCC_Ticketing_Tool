@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     required: [true, 'Role is required'],
-    enum: ['Dispatcher', 'L1Engineer', 'L2Engineer', 'Supervisor', 'Admin', 'ClientViewer', 'SiteClient'],
+    enum: ['Dispatcher', 'L1Engineer', 'L2Engineer', 'Supervisor', 'Admin', 'ClientViewer', 'SiteClient', 'Vendor'],
     default: 'L1Engineer'
   },
   mobileNumber: {
@@ -87,6 +87,11 @@ const userSchema = new mongoose.Schema({
   cloudinaryId: {
     type: String,
     default: null
+  },
+  reportsTo: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
   }
 }, {
   timestamps: true, // Automatically adds createdAt and updatedAt
@@ -97,6 +102,7 @@ const userSchema = new mongoose.Schema({
 // Indexes for better query performance (email and username already have unique indexes)
 userSchema.index({ role: 1 });
 userSchema.index({ isActive: 1 });
+userSchema.index({ reportsTo: 1 });
 
 // Virtual: user is online if lastActivityAt is within 15 minutes
 userSchema.virtual('isOnline').get(function () {
@@ -134,7 +140,8 @@ export const UserRoles = {
   SUPERVISOR: 'Supervisor',
   ADMIN: 'Admin',
   CLIENT_VIEWER: 'ClientViewer',
-  SITE_CLIENT: 'SiteClient'
+  SITE_CLIENT: 'SiteClient',
+  VENDOR: 'Vendor'
 };
 
 export default mongoose.model('User', userSchema);

@@ -37,7 +37,7 @@ const notificationSchema = new mongoose.Schema({
   },
   targetRoles: [{
     type: String,
-    enum: ['Dispatcher', 'L1Engineer', 'L2Engineer', 'Supervisor', 'Admin', 'ClientViewer']
+    enum: ['Dispatcher', 'L1Engineer', 'L2Engineer', 'Supervisor', 'Admin', 'ClientViewer', 'SiteClient', 'Vendor']
   }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,

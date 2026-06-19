@@ -9,7 +9,7 @@ import { sendAccountCreationEmail, sendPasswordResetEmail } from '../utils/email
 // @access  Private (Admin)
 export const getUsers = async (req, res, next) => {
   try {
-    const { role, siteId, isActive, search, page = 1, limit = 50 } = req.query;
+    const { role, roleNotIn, siteId, isActive, search, page = 1, limit = 50 } = req.query;
 
     const query = {};
     const user = req.user;
@@ -27,6 +27,7 @@ export const getUsers = async (req, res, next) => {
     }
 
     if (role) query.role = role;
+    if (roleNotIn) query.role = { $nin: roleNotIn.split(',').map(r => r.trim()) };
     if (siteId) query.siteId = siteId;
     if (isActive !== undefined) query.isActive = isActive === 'true';
     if (search) {

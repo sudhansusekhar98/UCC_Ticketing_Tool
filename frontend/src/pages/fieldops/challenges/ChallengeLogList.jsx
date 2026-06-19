@@ -272,6 +272,12 @@ export default function ChallengeLogList() {
 
                                     <div className="challenge-actions">
                                         <Link
+                                            to={`/fieldops/projects/${challenge.projectId?._id || challenge.projectId}/challenges/${challenge._id}`}
+                                            className="btn btn-ghost btn-sm"
+                                        >
+                                            <Eye size={16} /> View Details
+                                        </Link>
+                                        <Link
                                             to={`/fieldops/projects/${challenge.projectId?._id || challenge.projectId}/challenges/${challenge._id}/edit`}
                                             className="btn btn-ghost btn-sm"
                                         >

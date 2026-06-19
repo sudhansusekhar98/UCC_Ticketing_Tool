@@ -60,13 +60,10 @@ export default function VendorWorkLogForm() {
         try {
             const [projectRes, usersRes] = await Promise.all([
                 fieldOpsApi.getProjectById(projectId),
-                usersApi.getAll({ limit: 200, isActive: true })
+                usersApi.getAll({ role: 'Vendor', limit: 200, isActive: true })
             ]);
             setProject(projectRes.data.data);
-
-            // Filter to only show assigned vendors or all users for admin
-            const allUsers = usersRes.data.data || [];
-            setVendors(allUsers);
+            setVendors(usersRes.data.data || []);
 
             if (isEditing) {
                 const logRes = await fieldOpsApi.getVendorWorkLogById(logId);
@@ -249,6 +246,11 @@ export default function VendorWorkLogForm() {
                                     </option>
                                 ))}
                             </select>
+                            {vendors.length === 0 && (
+                                <span className="form-hint" style={{ color: 'var(--warning-500,#f59e0b)' }}>
+                                    No vendors found. Ask Admin to create users with the Vendor role.
+                                </span>
+                            )}
                         </div>
                         <div className="form-group">
                             <label className="form-label">Work Order ID</label>

@@ -10,8 +10,8 @@ import {
     Edit,
     Trash2,
     Shield,
-    Mail,
     Phone,
+    GitBranch,
 } from 'lucide-react';
 import { usersApi, lookupsApi, sitesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
@@ -28,12 +28,14 @@ const getRoleBadgeClass = (role) => {
         case 'L1Engineer': return 'role-l1';
         case 'L2Engineer': return 'role-l2';
         case 'ClientViewer': return 'role-client';
+        case 'Vendor': return 'role-vendor';
         default: return '';
     }
 };
 
 export default function UsersList() {
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState({ employees: [], vendors: [] });
+    const [showVendors, setShowVendors] = useState(false);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -98,7 +100,9 @@ export default function UsersList() {
                 siteName: u.siteId?.siteName || u.siteName
             }));
 
-            setUsers(mappedUsers);
+            const employees = mappedUsers.filter(u => !['Vendor', 'SiteClient'].includes(u.role));
+            const vendors = mappedUsers.filter(u => u.role === 'Vendor');
+            setUsers({ employees, vendors });
             setTotalCount(total);
         } catch (error) {
             toast.error('Failed to load users');
@@ -123,8 +127,7 @@ export default function UsersList() {
         }
     };
 
-    // No client-side filtering needed as we use server-side search
-    const displayedUsers = users;
+    const displayedUsers = showVendors ? users.vendors : users.employees;
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -134,15 +137,36 @@ export default function UsersList() {
                 <div>
                     <h1 className="page-title">Users &nbsp;</h1>
                     <p className="page-subtitle">
-                        {totalCount} total users
+                        {showVendors ? users.vendors.length : users.employees.length} {showVendors ? 'vendor' : 'employee'}s
                     </p>
                 </div>
-                {canCreate && (
-                    <Link to="/users/new" className="btn btn-primary">
-                        <Plus size={18} />
-                        Add User
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-light,rgba(148,163,184,0.2))' }}>
+                        <button
+                            className={`btn btn-sm ${!showVendors ? 'btn-primary' : 'btn-ghost'}`}
+                            style={{ borderRadius: 0 }}
+                            onClick={() => setShowVendors(false)}
+                        >
+                            Employees
+                        </button>
+                        <button
+                            className={`btn btn-sm ${showVendors ? 'btn-primary' : 'btn-ghost'}`}
+                            style={{ borderRadius: 0 }}
+                            onClick={() => setShowVendors(true)}
+                        >
+                            Vendors
+                        </button>
+                    </div>
+                    <Link to="/users/org-chart" className="btn btn-ghost btn-sm">
+                        <GitBranch size={16} /> Org Chart
                     </Link>
-                )}
+                    {canCreate && (
+                        <Link to="/users/new" className="btn btn-primary">
+                            <Plus size={18} />
+                            Add User
+                        </Link>
+                    )}
+                </div>
             </div>
 
             {/* Filters */}

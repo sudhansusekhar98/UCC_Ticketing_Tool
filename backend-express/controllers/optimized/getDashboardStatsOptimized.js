@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
-import Ticket from '../models/Ticket.model.js';
-import Asset from '../models/Asset.model.js';
+import Ticket from '../../models/Ticket.model.js';
+import Asset from '../../models/Asset.model.js';
 
 // @desc    Get dashboard stats - OPTIMIZED VERSION
 // @route   GET /api/tickets/dashboard/stats
@@ -204,3 +204,95 @@ export const getDashboardStatsOptimized = async (req, res, next) => {
 };
 
 export default getDashboardStatsOptimized;
+
+// @desc    Get daily ticket trend data for analytics dashboard
+// @route   GET /api/tickets/dashboard/trends
+// @access  Private
+export const getTicketTrends = async (req, res, next) => {
+    try {
+        const user = req.user;
+        const { startDate, endDate, siteId } = req.query;
+
+        const end = endDate ? new Date(endDate) : new Date();
+        const start = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        end.setHours(23, 59, 59, 999);
+        start.setHours(0, 0, 0, 0);
+
+        const rangeMs = end - start;
+        const prevEnd = new Date(start.getTime() - 1);
+        const prevStart = new Date(start.getTime() - rangeMs - 1);
+
+        // Role-based site filter (same pattern as getDashboardStatsOptimized)
+        let baseMatch = {};
+        if (user.role !== 'Admin') {
+            const siteFilter = siteId
+                ? [new mongoose.Types.ObjectId(siteId)]
+                : (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s));
+            const siteAssetIds = await Asset.find({ siteId: { $in: siteFilter } }).distinct('_id').lean();
+            baseMatch.$or = [
+                { assignedTo: user._id },
+                { createdBy: user._id },
+                { assetId: { $in: siteAssetIds } }
+            ];
+        } else if (siteId) {
+            const siteAssetIds = await Asset.find({ siteId: new mongoose.Types.ObjectId(siteId) }).distinct('_id').lean();
+            baseMatch.assetId = { $in: siteAssetIds };
+        }
+
+        // Daily created counts for current range
+        const createdTrends = await Ticket.aggregate([
+            { $match: { ...baseMatch, createdAt: { $gte: start, $lte: end } } },
+            { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, count: { $sum: 1 } } }
+        ]);
+
+        // Daily resolved counts for current range (only tickets with a resolvedOn date)
+        const resolvedTrends = await Ticket.aggregate([
+            { $match: { ...baseMatch, resolvedOn: { $ne: null, $gte: start, $lte: end } } },
+            { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$resolvedOn' } }, count: { $sum: 1 } } }
+        ]);
+
+        // Merge into unified trends array keyed by date
+        const trendMap = {};
+        createdTrends.forEach(d => {
+            trendMap[d._id] = { date: d._id, created: d.count, resolved: 0 };
+        });
+        resolvedTrends.forEach(d => {
+            if (trendMap[d._id]) trendMap[d._id].resolved = d.count;
+            else trendMap[d._id] = { date: d._id, created: 0, resolved: d.count };
+        });
+        const trends = Object.values(trendMap).sort((a, b) => a.date.localeCompare(b.date));
+
+        // Current period stats
+        const [currentTotal, currentResolved, currentOpen] = await Promise.all([
+            Ticket.countDocuments({ ...baseMatch, createdAt: { $gte: start, $lte: end } }),
+            Ticket.countDocuments({ ...baseMatch, resolvedOn: { $ne: null, $gte: start, $lte: end } }),
+            Ticket.countDocuments({ ...baseMatch, status: { $in: ['Open', 'Assigned', 'InProgress'] } })
+        ]);
+
+        // Previous period stats
+        const [prevTotal, prevResolved, prevOpen] = await Promise.all([
+            Ticket.countDocuments({ ...baseMatch, createdAt: { $gte: prevStart, $lte: prevEnd } }),
+            Ticket.countDocuments({ ...baseMatch, resolvedOn: { $ne: null, $gte: prevStart, $lte: prevEnd } }),
+            Ticket.countDocuments({ ...baseMatch, createdAt: { $gte: prevStart, $lte: prevEnd }, status: { $in: ['Open', 'Assigned', 'InProgress'] } })
+        ]);
+
+        res.json({
+            success: true,
+            data: {
+                trends,
+                currentStats: {
+                    totalCreated: currentTotal,
+                    totalResolved: currentResolved,
+                    openTickets: currentOpen
+                },
+                previousStats: {
+                    totalCreated: prevTotal,
+                    totalResolved: prevResolved,
+                    openTickets: prevOpen
+                }
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};

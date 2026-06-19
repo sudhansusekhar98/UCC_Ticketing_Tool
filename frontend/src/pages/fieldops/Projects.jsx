@@ -156,7 +156,6 @@ export default function Projects() {
                                     <tr>
                                         <th>Project #</th>
                                         <th>Project Name</th>
-                                        <th>Client</th>
                                         <th>Location</th>
                                         <th>Assigned PM</th>
                                         <th>Contract Period</th>
@@ -170,12 +169,6 @@ export default function Projects() {
                                             <td className="project-number">{project.projectNumber}</td>
                                             <td className="project-name">
                                                 <strong>{project.projectName}</strong>
-                                            </td>
-                                            <td>
-                                                <div className="cell-with-icon">
-                                                    <Building size={14} />
-                                                    {project.clientName}
-                                                </div>
                                             </td>
                                             <td>
                                                 <div className="cell-with-icon">

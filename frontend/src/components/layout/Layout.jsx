@@ -15,6 +15,7 @@ import {
     Shield,
     Bell,
     BarChart3,
+    BarChart2,
     HelpCircle,
     Package,
     ClipboardList,
@@ -31,7 +32,7 @@ import './Layout.css';
 
 const menuItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer', 'SiteClient'] },
-    // { path: '/dashboard-new', icon: LayoutDashboard, label: 'Dashboard (New)', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer', 'SiteClient'] },
+    // { path: '/analytics', icon: BarChart2, label: 'Analytics', roles: ['Admin', 'Supervisor', 'Dispatcher'] },
     { path: '/tickets', icon: Ticket, label: 'Tickets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'L1Engineer', 'L2Engineer', 'ClientViewer', 'SiteClient'] },
     { path: '/reports', icon: BarChart3, label: 'Reports', roles: ['Admin', 'Supervisor', 'Dispatcher'] },
     { path: '/assets', icon: Monitor, label: 'Assets', roles: ['Admin', 'Supervisor', 'Dispatcher', 'ClientViewer', 'L1Engineer', 'L2Engineer'] },

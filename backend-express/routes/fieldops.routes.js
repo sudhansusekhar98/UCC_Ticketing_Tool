@@ -52,8 +52,32 @@ import {
   // Reports
   getProjectReport,
   exportProjectReportPDF,
-  exportProjectReportExcel
+  exportProjectReportExcel,
+  // Reconciliation
+  getReconciliation,
+  getReconciliationDevices,
+  resyncSurveyRequirements,
+  // Device Mappings
+  getDeviceMappings,
+  createDeviceMapping,
+  updateDeviceMapping,
+  deleteDeviceMapping,
+  getUnmappedSurveyItems
 } from '../controllers/fieldops.controller.js';
+import {
+  getProjectActivities,
+  getProjectActivityById,
+  createProjectActivity,
+  updateProjectActivity,
+  updateProjectActivityStatus,
+  updateProjectActivityTask,
+  addProjectActivityTask,
+  deleteProjectActivityTask,
+  deleteProjectActivity,
+  getActivityTaskSuggestions,
+  getDailyLogPrefill,
+  getMyActivities
+} from '../controllers/projectActivity.controller.js';
 import { protect, authorize, allowAccess } from '../middleware/auth.middleware.js';
 import { upload } from '../utils/upload.js';
 import {
@@ -83,20 +107,26 @@ router.get('/surveys/:surveyId/requirements',
 // ==================== PROJECTS ====================
 
 // GET /api/fieldops/projects - List all projects
-router.get('/projects', getProjects);
+router.get('/projects',
+  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
+  getProjects
+);
 
 // POST /api/fieldops/projects - Create project (Admin, Supervisor only)
 router.post('/projects',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
   createProject
 );
 
 // GET /api/fieldops/projects/:id - Get single project
-router.get('/projects/:id', getProjectById);
+router.get('/projects/:id',
+  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
+  getProjectById
+);
 
 // PUT /api/fieldops/projects/:id - Update project (Admin, Supervisor only)
 router.put('/projects/:id',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
   updateProject
 );
 
@@ -183,7 +213,7 @@ router.post('/devices/bulk', createBulkDeviceInstallations);
 
 // POST /api/fieldops/devices/bulk-assign - Bulk assign devices to engineer
 router.post('/devices/bulk-assign',
-  allowAccess({ roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] }),
+  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
   bulkAssignDevices
 );
 
@@ -201,19 +231,19 @@ router.patch('/devices/:id/status', updateDeviceStatus);
 
 // POST /api/fieldops/devices/:id/assign - Assign device to engineer
 router.post('/devices/:id/assign',
-  allowAccess({ roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] }),
+  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
   assignDeviceToEngineer
 );
 
 // POST /api/fieldops/devices/:id/unassign - Unassign device
 router.post('/devices/:id/unassign',
-  allowAccess({ roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] }),
+  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
   unassignDevice
 );
 
 // POST /api/fieldops/devices/:id/skip-config - Skip configuration for non-IT/passive items
 router.post('/devices/:id/skip-config',
-  allowAccess({ roles: ['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer'] }),
+  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
   skipDeviceConfiguration
 );
 
@@ -259,6 +289,87 @@ router.post('/challenges/:id/resolve', resolveChallengeLog);
 
 // POST /api/fieldops/challenges/:id/comments - Add comment
 router.post('/challenges/:id/comments', addChallengeComment);
+
+// ==================== SURVEY RECONCILIATION ====================
+
+// GET /api/fieldops/projects/:projectId/reconciliation - Reconciliation report
+router.get('/projects/:projectId/reconciliation', getReconciliation);
+
+// GET /api/fieldops/projects/:projectId/reconciliation/devices - Drill-down device list
+router.get('/projects/:projectId/reconciliation/devices', getReconciliationDevices);
+
+// POST /api/fieldops/projects/:projectId/resync-survey - Re-sync from external survey API
+router.post('/projects/:projectId/resync-survey',
+  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  resyncSurveyRequirements
+);
+
+// ==================== DEVICE TYPE MAPPINGS ====================
+
+// GET /api/fieldops/device-mappings/unmapped-items - Get unmapped survey items (must be before :id route)
+router.get('/device-mappings/unmapped-items',
+  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  getUnmappedSurveyItems
+);
+
+// GET /api/fieldops/device-mappings - List all mappings
+router.get('/device-mappings', getDeviceMappings);
+
+// POST /api/fieldops/device-mappings - Create mapping
+router.post('/device-mappings',
+  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  createDeviceMapping
+);
+
+// PUT /api/fieldops/device-mappings/:id - Update mapping
+router.put('/device-mappings/:id',
+  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  updateDeviceMapping
+);
+
+// DELETE /api/fieldops/device-mappings/:id - Delete mapping
+router.delete('/device-mappings/:id',
+  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  deleteDeviceMapping
+);
+
+// ==================== PROJECT ACTIVITIES ====================
+
+// GET /api/fieldops/activities/task-suggestions - Sub-task suggestions by type
+router.get('/activities/task-suggestions', getActivityTaskSuggestions);
+
+// GET /api/fieldops/projects/:projectId/activities - List activities (supports ?groupByStatus=true)
+router.get('/projects/:projectId/activities', getProjectActivities);
+
+// POST /api/fieldops/projects/:projectId/activities - Create activity (PM / Admin / Supervisor)
+router.post('/projects/:projectId/activities', createProjectActivity);
+
+// GET /api/fieldops/projects/:projectId/daily-log/prefill - Active activities for daily log form
+router.get('/projects/:projectId/daily-log/prefill', getDailyLogPrefill);
+
+// GET /api/fieldops/activities/my-activities - Cross-project activities for current user (MUST be before /:id)
+router.get('/activities/my-activities', getMyActivities);
+
+// GET /api/fieldops/activities/:id - Get activity detail
+router.get('/activities/:id', getProjectActivityById);
+
+// PUT /api/fieldops/activities/:id - Update activity
+router.put('/activities/:id', updateProjectActivity);
+
+// PATCH /api/fieldops/activities/:id/status - Kanban status change
+router.patch('/activities/:id/status', updateProjectActivityStatus);
+
+// DELETE /api/fieldops/activities/:id - Soft delete
+router.delete('/activities/:id', deleteProjectActivity);
+
+// POST /api/fieldops/activities/:id/tasks - Add sub-task
+router.post('/activities/:id/tasks', addProjectActivityTask);
+
+// PATCH /api/fieldops/activities/:id/tasks/:taskId - Toggle/update sub-task
+router.patch('/activities/:id/tasks/:taskId', updateProjectActivityTask);
+
+// DELETE /api/fieldops/activities/:id/tasks/:taskId - Remove sub-task
+router.delete('/activities/:id/tasks/:taskId', deleteProjectActivityTask);
 
 // ==================== REPORTS ====================
 

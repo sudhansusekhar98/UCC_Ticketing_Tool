@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: ./backend-express
+    container_name: ticketops-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend-express/.env
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - backend-uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: https://ticket.vluccc.com/api
+    container_name: ticketops-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  backend-uploads:
