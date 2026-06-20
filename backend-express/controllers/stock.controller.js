@@ -667,6 +667,10 @@ export const updateStock = async (req, res, next) => {
             }
         }
 
+        if (updateData.quantity !== undefined) {
+            updateData.quantity = Number(updateData.quantity) || 1;
+        }
+
         // Keep remarks & remark in sync for backward compatibility
         if (updateData.remarks !== undefined) {
             updateData.remark = updateData.remarks;

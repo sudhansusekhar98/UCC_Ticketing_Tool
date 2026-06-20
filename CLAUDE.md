@@ -193,5 +193,5 @@ Fall back to Grep/Glob/Read **only** when the graph doesn't cover what you need.
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
-at `specs/004-activity-enhancements-fixes/plan.md`.
+at `specs/005-fix-stock-unit-update/plan.md`.
 <!-- SPECKIT END -->

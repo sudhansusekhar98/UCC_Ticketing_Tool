@@ -235,7 +235,11 @@ export default function InventoryList() {
         if (!editAsset?._id) return;
         try {
             setSaving(true);
-            await stockApi.updateStock(editAsset._id, editForm);
+            const payload = {
+                ...editForm,
+                quantity: editForm.quantity !== '' ? Number(editForm.quantity) : 1,
+            };
+            await stockApi.updateStock(editAsset._id, payload);
             toast.success('Stock item updated successfully');
             setEditAsset(null);
             fetchData();   // refresh the list
