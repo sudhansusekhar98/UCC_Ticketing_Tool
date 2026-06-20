@@ -56,7 +56,8 @@ export const getNotifications = async (req, res, next) => {
         .populate('createdBy', 'fullName')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit)),
+        .limit(parseInt(limit))
+        .lean(),
       Notification.countDocuments(conditions),
       Notification.countDocuments({
         ...conditions,

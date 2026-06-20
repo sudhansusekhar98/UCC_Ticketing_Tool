@@ -116,6 +116,7 @@ const siteSchema = new mongoose.Schema({
 // Indexes (siteUniqueID index is already created via unique: true)
 siteSchema.index({ city: 1 });
 siteSchema.index({ isActive: 1 });
+siteSchema.index({ isHeadOffice: 1 });
 
 // Virtual for assets
 siteSchema.virtual('assets', {

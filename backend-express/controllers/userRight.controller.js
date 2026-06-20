@@ -9,16 +9,18 @@ export const getAllUserRights = async (req, res, next) => {
     // Get all users with their assigned sites populated
     const users = await User.find({})
       .select('fullName email role designation assignedSites')
-      .populate('assignedSites', 'siteName siteUniqueID');
-    
+      .populate('assignedSites', 'siteName siteUniqueID')
+      .lean();
+
     // Get all user rights with site names populated
     const userRights = await UserRight.find({})
-      .populate('siteRights.site', 'siteName siteUniqueID');
+      .populate('siteRights.site', 'siteName siteUniqueID')
+      .lean();
 
     const result = users.map(user => {
       const rightRecord = userRights.find(ur => ur.user.toString() === user._id.toString());
       return {
-        user: user.toObject(),
+        user,
         siteRights: rightRecord ? rightRecord.siteRights : [],
         globalRights: rightRecord ? rightRecord.globalRights : []
       };

@@ -13,46 +13,50 @@ export const getActivities = async (req, res, next) => {
 
     const activities = await TicketActivity.find({ ticketId })
       .populate('userId', 'fullName username role profilePicture')
-      .sort({ createdOn: 1 }); // Sort ascending (oldest first) for chat display
+      .sort({ createdOn: 1 })
+      .lean();
 
-    // Get attachments for each activity
-    const activitiesWithAttachments = await Promise.all(
-      activities.map(async (activity) => {
-        const attachments = await TicketAttachment.find({ activityId: activity._id })
-          .select('fileName contentType fileSize attachmentType filePath cloudinaryUrl uploadedOn');
+    // Batch-fetch all attachments for these activities in one query
+    const activityIds = activities.map(a => a._id);
+    const allAttachments = await TicketAttachment.find({ activityId: { $in: activityIds } })
+      .select('activityId fileName contentType fileSize attachmentType filePath cloudinaryUrl uploadedOn')
+      .lean();
 
-        // Map to frontend expected format
-        const mappedAttachments = attachments.map(att => ({
-          attachmentId: att._id,
-          fileName: att.fileName,
-          contentType: att.contentType,
-          fileSize: att.fileSize,
-          attachmentType: att.attachmentType,
-          storageType: att.cloudinaryUrl ? 'Cloudinary' : 'FileSystem',
-          url: att.cloudinaryUrl || `/uploads/${att.filePath?.split(/[/\\]/).pop()}`
-        }));
+    // Group attachments by activityId
+    const attachmentsByActivity = {};
+    for (const att of allAttachments) {
+      const key = att.activityId.toString();
+      if (!attachmentsByActivity[key]) attachmentsByActivity[key] = [];
+      attachmentsByActivity[key].push({
+        attachmentId: att._id,
+        fileName: att.fileName,
+        contentType: att.contentType,
+        fileSize: att.fileSize,
+        attachmentType: att.attachmentType,
+        storageType: att.cloudinaryUrl ? 'Cloudinary' : 'FileSystem',
+        url: att.cloudinaryUrl || `/uploads/${att.filePath?.split(/[/\\]/).pop()}`
+      });
+    }
 
-        return {
-          activityId: activity._id,
-          ticketId: activity.ticketId,
-          userId: activity.userId?._id,
-          userName: activity.userId?.fullName || 'Unknown',
-          userRole: activity.userId?.role || '',
-          userAvatar: activity.userId?.profilePicture || null,
-          activityType: activity.activityType,
-          content: activity.content,
-          isInternal: activity.isInternal,
-          createdOn: activity.createdOn,
-          attachments: mappedAttachments
-        };
-      })
-    );
+    const activitiesWithAttachments = activities.map(activity => ({
+      activityId: activity._id,
+      ticketId: activity.ticketId,
+      userId: activity.userId?._id,
+      userName: activity.userId?.fullName || 'Unknown',
+      userRole: activity.userId?.role || '',
+      userAvatar: activity.userId?.profilePicture || null,
+      activityType: activity.activityType,
+      content: activity.content,
+      isInternal: activity.isInternal,
+      createdOn: activity.createdOn,
+      attachments: attachmentsByActivity[activity._id.toString()] || []
+    }));
 
     // Also get standalone attachments (not linked to activities) and show them as activity entries
     const standaloneAttachments = await TicketAttachment.find({
       ticketId,
       activityId: null
-    }).populate('uploadedBy', 'fullName role profilePicture').sort({ uploadedOn: 1 });
+    }).populate('uploadedBy', 'fullName role profilePicture').sort({ uploadedOn: 1 }).lean();
 
     // Convert standalone attachments to activity-like entries
     const attachmentActivities = standaloneAttachments.map(att => ({

@@ -47,7 +47,8 @@ export const getUsers = async (req, res, next) => {
         .populate('assignedSites', 'siteName siteUniqueID')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(parseInt(limit)),
+        .limit(parseInt(limit))
+        .lean(),
       User.countDocuments(query)
     ]);
 

@@ -188,6 +188,9 @@ ticketSchema.index({ assignedTo: 1 });
 ticketSchema.index({ siteId: 1 });
 ticketSchema.index({ assetId: 1 });
 ticketSchema.index({ createdAt: -1 });
+// Compound indexes for cron job SLA queries
+ticketSchema.index({ status: 1, slaRestoreDue: 1, isBreachWarningSent: 1 });
+ticketSchema.index({ status: 1, slaRestoreDue: 1, isSlaBreachedNotificationSent: 1 });
 
 // Virtual for activities
 ticketSchema.virtual('activities', {

@@ -26,4 +26,7 @@ const userRightSchema = new mongoose.Schema({
   timestamps: true
 });
 
+userRightSchema.index({ user: 1 });
+userRightSchema.index({ 'siteRights.site': 1 });
+
 export default mongoose.model('UserRight', userRightSchema);

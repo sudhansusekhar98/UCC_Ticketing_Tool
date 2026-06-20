@@ -34,21 +34,16 @@ const connectDB = async () => {
     console.log('📍 Connection URI:', process.env.MONGODB_URI?.replace(/\/\/([^:]+):([^@]+)@/, '//$1:****@') || 'NOT SET');
 
     const options = {
-      // Connection timeouts
       serverSelectionTimeoutMS: 30000,
       connectTimeoutMS: 30000,
-      socketTimeoutMS: 45000,
-      // Buffer commands until connection is established
+      socketTimeoutMS: 120000,
       bufferCommands: true,
-      // Connection pool for long-running EB process
-      maxPoolSize: 20,
+      maxPoolSize: 50,
       minPoolSize: 5,
-      maxIdleTimeMS: 30000,
-      // Use IPv4 first for DNS resolution
+      maxIdleTimeMS: 60000,
       family: 4,
-      // Retry writes
       retryWrites: true,
-      // Write concern
+      retryReads: true,
       w: 'majority'
     };
 

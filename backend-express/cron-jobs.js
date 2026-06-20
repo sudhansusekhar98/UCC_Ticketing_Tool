@@ -33,25 +33,23 @@ export const setupCronJobs = () => {
             const warningThreshold = new Date(now.getTime() + 4 * 60 * 60 * 1000); // Now + 4 hours
 
             const ticketsToWarn = await Ticket.find({
-                $and: [
-                    { status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] } },
-                    { slaRestoreDue: { $lt: warningThreshold, $gt: now } },
-                    { isBreachWarningSent: { $ne: true } },
-                    { assignedTo: { $exists: true, $ne: null } },
-                    // Exclude tickets with an active RMA (rma exists but not finalized)
-                    { $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }] }
-                ]
-            }).populate('assignedTo');
+                status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] },
+                slaRestoreDue: { $lt: warningThreshold, $gt: now },
+                isBreachWarningSent: { $ne: true },
+                assignedTo: { $exists: true, $ne: null },
+                $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }]
+            }).populate('assignedTo', 'fullName email').limit(200).lean();
             console.log(`   Found ${ticketsToWarn.length} tickets to warn.`);
 
+            const warnedIds = [];
             for (const ticket of ticketsToWarn) {
-                if (ticket.assignedTo && ticket.assignedTo.email) {
+                if (ticket.assignedTo?.email) {
                     const sent = await sendBreachWarningEmail(ticket, ticket.assignedTo);
-                    if (sent) {
-                        ticket.isBreachWarningSent = true;
-                        await ticket.save();
-                    }
+                    if (sent) warnedIds.push(ticket._id);
                 }
+            }
+            if (warnedIds.length > 0) {
+                await Ticket.updateMany({ _id: { $in: warnedIds } }, { $set: { isBreachWarningSent: true } });
             }
         } catch (error) {
             console.error('❌ Error in Pre-Breach Warning Cron:', error);
@@ -71,34 +69,28 @@ export const setupCronJobs = () => {
             // NOTE: Skip tickets with an active (non-finalized) RMA — TAT doesn't apply during RMA
 
             const breachedTickets = await Ticket.find({
-                $and: [
-                    { status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] } },
-                    { slaRestoreDue: { $lt: now } },
-                    { isSlaBreachedNotificationSent: { $ne: true } },
-                    { assignedTo: { $exists: true, $ne: null } },
-                    // Exclude tickets with an active RMA (rma exists but not finalized)
-                    { $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }] }
-                ]
-            }).populate('assignedTo');
+                status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] },
+                slaRestoreDue: { $lt: now },
+                isSlaBreachedNotificationSent: { $ne: true },
+                assignedTo: { $exists: true, $ne: null },
+                $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }]
+            }).populate('assignedTo', 'fullName email').limit(200).lean();
 
             if (breachedTickets.length > 0) {
                 console.log(`   Found ${breachedTickets.length} newly breached tickets.`);
 
-                // Fetch admins once
-                const admins = await User.find({ role: 'Admin', isActive: true });
+                const admins = await User.find({ role: 'Admin', isActive: true }).select('fullName email').lean();
 
+                const breachedIds = [];
                 for (const ticket of breachedTickets) {
-                    // Notify logic
                     const sent = await sendSlaBreachedEmail(ticket, ticket.assignedTo, admins);
-
-                    if (sent) {
-                        ticket.isSlaBreachedNotificationSent = true;
-                        // Ensure SLA tracking flag is also set
-                        if (!ticket.isSLARestoreBreached) {
-                            ticket.isSLARestoreBreached = true;
-                        }
-                        await ticket.save();
-                    }
+                    if (sent) breachedIds.push(ticket._id);
+                }
+                if (breachedIds.length > 0) {
+                    await Ticket.updateMany(
+                        { _id: { $in: breachedIds } },
+                        { $set: { isSlaBreachedNotificationSent: true, isSLARestoreBreached: true } }
+                    );
                 }
             }
         } catch (error) {
@@ -118,7 +110,7 @@ export const setupCronJobs = () => {
             const activeProjects = await Project.find({
                 status: 'Active',
                 isActive: true
-            }).populate('assignedPM', 'name email');
+            }).populate('assignedPM', 'name email').lean();
 
             if (activeProjects.length === 0) {
                 console.log('   No active projects found.');
@@ -127,23 +119,27 @@ export const setupCronJobs = () => {
 
             console.log(`   Checking ${activeProjects.length} active projects...`);
 
+            // Batch-fetch all today's logs in one query instead of one per project
+            const projectIds = activeProjects.map(p => p._id);
+            const todayLogs = await PMDailyLog.find({
+                projectId: { $in: projectIds },
+                logDate: { $gte: todayStart }
+            }).select('projectId submittedBy').lean();
+
+            // Build a set of "projectId:pmId" keys that have submitted
+            const submittedSet = new Set(
+                todayLogs.map(log => `${log.projectId}:${log.submittedBy}`)
+            );
+
             for (const project of activeProjects) {
                 if (!project.assignedPM || !project.assignedPM.email) {
-                    continue; // Skip projects without assigned PM
+                    continue;
                 }
 
-                // Check if PM has submitted today's log
-                const todayLog = await PMDailyLog.findOne({
-                    projectId: project._id,
-                    submittedBy: project.assignedPM._id,
-                    logDate: { $gte: todayStart }
-                });
-
-                if (!todayLog) {
-                    // PM hasn't submitted log for today - send reminder
+                const key = `${project._id}:${project.assignedPM._id}`;
+                if (!submittedSet.has(key)) {
                     console.log(`   Sending reminder to ${project.assignedPM.name} for project ${project.projectNumber}`);
 
-                    // Send email reminder
                     try {
                         await sendGeneralNotificationEmail(
                             project.assignedPM.email,
@@ -152,14 +148,6 @@ export const setupCronJobs = () => {
                         );
                     } catch (emailErr) {
                         console.error(`   Failed to send email to ${project.assignedPM.email}:`, emailErr.message);
-                    }
-
-                    // Create in-app notification (if io is available)
-                    try {
-                        // Note: In cron context, we might not have io available
-                        // This is a best-effort notification
-                    } catch (notifErr) {
-                        console.error('   Failed to create in-app notification:', notifErr.message);
                     }
                 }
             }

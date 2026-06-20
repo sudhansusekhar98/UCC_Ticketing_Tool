@@ -133,13 +133,14 @@ export const getTickets = async (req, res, next) => {
         .populate('slaPolicyId', 'policyName priority')
         .sort(sort)
         .skip(skip)
-        .limit(parseInt(limit)),
+        .limit(parseInt(limit))
+        .lean(),
       Ticket.countDocuments(query)
     ]);
 
     // Decrypt sensitive asset fields for authorized users
     const processedTickets = tickets.map(ticket => {
-      const ticketObj = ticket.toObject();
+      const ticketObj = { ...ticket };
       if (ticketObj.assetId) {
         // Find if user is assigned to this site
         const siteIdStr = ticketObj.siteId?._id?.toString() || ticketObj.siteId?.toString();
