@@ -2,10 +2,13 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json ./
-RUN npm install --production
+COPY package.json package-lock.json* ./
+RUN npm ci --production --ignore-scripts
 
 COPY . .
+
+ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=384"
 
 EXPOSE 3000
 
