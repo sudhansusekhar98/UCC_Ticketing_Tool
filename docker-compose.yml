@@ -30,7 +30,7 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: https://ticketopsapi.vluccc.com/api
+        VITE_API_URL: /api
     container_name: ticketops-frontend
     restart: unless-stopped
     ports:

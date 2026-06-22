@@ -45,6 +45,7 @@ export const getUsers = async (req, res, next) => {
         .select('-passwordHash')
         .populate('siteId', 'siteName siteUniqueID')
         .populate('assignedSites', 'siteName siteUniqueID')
+        .populate('reportsTo', 'fullName role')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(parseInt(limit))
@@ -75,7 +76,8 @@ export const getUserById = async (req, res, next) => {
     const user = await User.findById(req.params.id)
       .select('-passwordHash')
       .populate('siteId', 'siteName siteUniqueID city')
-      .populate('assignedSites', 'siteName siteUniqueID city');
+      .populate('assignedSites', 'siteName siteUniqueID city')
+      .populate('reportsTo', 'fullName role');
 
     if (!user) {
       return res.status(404).json({
