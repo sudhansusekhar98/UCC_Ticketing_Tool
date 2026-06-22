@@ -2165,20 +2165,24 @@ export const exportStockSummary = async (req, res, next) => {
             {
                 $group: {
                     _id: {
+                        assetType:  { $ifNull: ['$assetType', 'Unspecified'] },
                         deviceType: { $ifNull: ['$deviceType', 'Unspecified'] },
                         make:       { $ifNull: ['$make', 'Unspecified'] },
                         model:      { $ifNull: ['$model', 'Unspecified'] },
+                        unit:       { $ifNull: ['$unit', 'Nos'] },
                     },
                     quantity: { $sum: { $ifNull: ['$quantity', 1] } },
                 }
             },
-            { $sort: { '_id.deviceType': 1, '_id.make': 1, '_id.model': 1 } },
+            { $sort: { '_id.assetType': 1, '_id.deviceType': 1, '_id.make': 1, '_id.model': 1 } },
             {
                 $project: {
                     _id: 0,
+                    assetType:  '$_id.assetType',
                     deviceType: '$_id.deviceType',
                     make:       '$_id.make',
                     model:      '$_id.model',
+                    unit:       '$_id.unit',
                     quantity:   1,
                 }
             },

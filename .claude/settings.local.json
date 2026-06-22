@@ -47,7 +47,18 @@
       "PowerShell(\\(Get-Command gh -ErrorAction SilentlyContinue\\).Source)",
       "PowerShell(winget install *)",
       "PowerShell(try { \\(Get-Command choco -ErrorAction Stop\\).Source } catch { \"choco NOT FOUND\" }; try { \\(Get-Command scoop -ErrorAction Stop\\).Source } catch { \"scoop NOT FOUND\" }; try { \\(Get-Command winget -ErrorAction Stop\\).Source } catch { \"winget NOT FOUND\" })",
-      "PowerShell(choco install *)"
+      "PowerShell(choco install *)",
+      "Bash(node -c server.js)",
+      "Bash(node -c config/database.js)",
+      "Bash(node -c cron-jobs.js)",
+      "Bash(node -c controllers/activity.controller.js)",
+      "Bash(node -c controllers/ticket.controller.js)",
+      "Bash(gh run *)",
+      "Bash(powershell -ExecutionPolicy Bypass -File .specify/scripts/powershell/setup-plan.ps1 -Json)",
+      "Bash(powershell -ExecutionPolicy Bypass -File .specify/extensions/git/scripts/powershell/create-new-feature.ps1 -Json -ShortName \"fix-stock-unit-update\" \"fix stock unit not updating from edit form\")",
+      "Bash(xargs grep -l \"stockApi\")",
+      "Bash(powershell -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
+      "Bash(node -c controllers/stock.controller.js)"
     ]
   },
   "enableAllProjectMcpServers": true,

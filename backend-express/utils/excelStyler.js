@@ -628,9 +628,11 @@ export async function buildStockSummaryExcel(summaryRows, siteLabel) {
   wb.created = new Date();
 
   const columns = [
+    { header: 'Asset Type',   key: 'assetType',  width: 22 },
     { header: 'Device Type',  key: 'deviceType', width: 28 },
     { header: 'Make',         key: 'make',       width: 22 },
     { header: 'Model',        key: 'model',      width: 24 },
+    { header: 'Unit',         key: 'unit',       width: 14 },
     { header: 'Quantity',     key: 'quantity',    width: 14 },
   ];
 
@@ -652,23 +654,25 @@ export async function buildStockSummaryExcel(summaryRows, siteLabel) {
   let prevDeviceType = '';
   summaryRows.forEach((item, i) => {
     const row = ws.addRow({
+      assetType:  item.assetType,
       deviceType: item.deviceType,
       make:       item.make,
       model:      item.model,
+      unit:       item.unit,
       quantity:   item.quantity,
     });
 
     const fillMap = {};
     if (item.deviceType !== prevDeviceType) {
-      row.getCell(1).font = BOLD_FONT;
+      row.getCell(2).font = BOLD_FONT;
       prevDeviceType = item.deviceType;
     }
-    if (item.quantity >= 20) fillMap[4] = bgFill(C.priorHigh);
-    else if (item.quantity >= 10) fillMap[4] = bgFill(C.priorMedium);
+    if (item.quantity >= 20) fillMap[6] = bgFill(C.priorHigh);
+    else if (item.quantity >= 10) fillMap[6] = bgFill(C.priorMedium);
     styleDataRow(row, i, fillMap);
   });
 
-  const totRow = ws.addRow({ deviceType: 'TOTAL', quantity: totalQty });
+  const totRow = ws.addRow({ assetType: 'TOTAL', quantity: totalQty });
   totRow.eachCell({ includeEmpty: true }, cell => {
     cell.fill = bgFill(C.totals);
     cell.font = BOLD_FONT;

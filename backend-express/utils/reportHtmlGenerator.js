@@ -1023,16 +1023,20 @@ export function generateStockSummaryReport({ summaryRows, siteLabel }) {
     </div>`;
 
   const columns = [
+    { key: 'assetType',  label: 'Asset Type' },
     { key: 'deviceType', label: 'Device Type' },
     { key: 'make',       label: 'Make' },
     { key: 'model',      label: 'Model' },
+    { key: 'unit',       label: 'Unit' },
     { key: 'quantity',   label: 'Quantity' },
   ];
 
   const tableData = summaryRows.map(r => ({
+    assetType:  r.assetType,
     deviceType: r.deviceType,
     make:       r.make,
     model:      r.model,
+    unit:       r.unit,
     quantity:   r.quantity,
   }));
 
