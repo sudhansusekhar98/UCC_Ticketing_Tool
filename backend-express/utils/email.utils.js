@@ -1,17 +1,47 @@
-import { createTransport } from 'nodemailer';
 import 'dotenv/config';
 
-// Create reusable transporter
-const createTransporter = () => {
-  return createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
+
+const sendViaBrevo = async ({ to, bcc, subject, html }) => {
+  const toList = Array.isArray(to)
+    ? to.map(email => ({ email }))
+    : [{ email: to }];
+
+  const body = {
+    sender: {
+      name: 'TicketOps',
+      email: process.env.BREVO_SENDER_EMAIL,
     },
+    subject,
+    htmlContent: html,
+  };
+
+  if (bcc) {
+    const bccList = Array.isArray(bcc)
+      ? bcc.map(email => ({ email }))
+      : [{ email: bcc }];
+    body.to = [{ email: process.env.BREVO_SENDER_EMAIL }];
+    body.bcc = bccList;
+  } else {
+    body.to = toList;
+  }
+
+  const response = await fetch(BREVO_API_URL, {
+    method: 'POST',
+    headers: {
+      'accept': 'application/json',
+      'content-type': 'application/json',
+      'api-key': process.env.BREVO_API_KEY,
+    },
+    body: JSON.stringify(body),
   });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Brevo API error ${response.status}: ${errorData.message || response.statusText}`);
+  }
+
+  return response.json();
 };
 
 // Email template wrapper
@@ -118,7 +148,6 @@ const emailTemplate = (content, title) => `
 `;
 
 import NotificationLog from '../models/NotificationLog.model.js';
-import User from '../models/User.model.js';
 
 /**
  * Helper to log notifications to DB
@@ -145,7 +174,6 @@ const logNotification = async (recipient, subject, content, category, relatedTic
  */
 export const sendAccountCreationEmail = async (user, tempPassword) => {
   try {
-    const transporter = createTransporter();
 
     const content = `
       <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
@@ -171,10 +199,9 @@ export const sendAccountCreationEmail = async (user, tempPassword) => {
     `;
 
     const subject = 'Welcome to TicketOps - Account Created';
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+    await sendViaBrevo({
       to: user.email,
-      subject: subject,
+      subject,
       html: emailTemplate(content, 'Account Created'),
     });
 
@@ -191,7 +218,6 @@ export const sendAccountCreationEmail = async (user, tempPassword) => {
  */
 export const sendDeviceAssignmentEmail = async (device, assignedUser, assignedBy, project) => {
   try {
-    const transporter = createTransporter();
 
     const content = `
       <p>Hello <strong>${assignedUser.fullName || assignedUser.username}</strong>,</p>
@@ -219,10 +245,9 @@ export const sendDeviceAssignmentEmail = async (device, assignedUser, assignedBy
     `;
 
     const subject = `Device Assigned: ${device.deviceType} - ${project?.projectNumber || 'Project'}`;
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+    await sendViaBrevo({
       to: assignedUser.email,
-      subject: subject,
+      subject,
       html: emailTemplate(content, 'Device Assigned'),
     });
 
@@ -239,7 +264,6 @@ export const sendDeviceAssignmentEmail = async (device, assignedUser, assignedBy
  */
 export const sendTicketAssignmentEmail = async (ticket, assignedUser, assignedBy) => {
   try {
-    const transporter = createTransporter();
 
     const content = `
       <p>Hello <strong>${assignedUser.fullName || assignedUser.username}</strong>,</p>
@@ -268,10 +292,9 @@ export const sendTicketAssignmentEmail = async (ticket, assignedUser, assignedBy
     `;
 
     const subject = `Ticket Assigned: ${ticket.ticketNumber} - ${ticket.title}`;
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+    await sendViaBrevo({
       to: assignedUser.email,
-      subject: subject,
+      subject,
       html: emailTemplate(content, 'Ticket Assigned'),
     });
 
@@ -288,7 +311,6 @@ export const sendTicketAssignmentEmail = async (ticket, assignedUser, assignedBy
  */
 export const sendTicketEscalationEmail = async (ticket, escalatedToUser, escalatedBy, escalationReason) => {
   try {
-    const transporter = createTransporter();
 
     const content = `
       <p>Hello <strong>${escalatedToUser.fullName || escalatedToUser.username}</strong>,</p>
@@ -321,10 +343,9 @@ export const sendTicketEscalationEmail = async (ticket, escalatedToUser, escalat
     `;
 
     const subject = `🚨 ESCALATED: ${ticket.ticketNumber} - ${ticket.title}`;
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+    await sendViaBrevo({
       to: escalatedToUser.email,
-      subject: subject,
+      subject,
       html: emailTemplate(content, 'Ticket Escalated'),
     });
 
@@ -341,7 +362,6 @@ export const sendTicketEscalationEmail = async (ticket, escalatedToUser, escalat
  */
 export const sendRMACreationEmail = async (rmaRequest, ticket, requestedBy, notifyUsers = []) => {
   try {
-    const transporter = createTransporter();
 
     // Send to all users who should be notified (admin, logistics, etc.)
     const recipients = notifyUsers.map(user => user.email).filter(Boolean);
@@ -382,10 +402,9 @@ export const sendRMACreationEmail = async (rmaRequest, ticket, requestedBy, noti
     `;
 
     const subject = `New RMA Request: ${rmaRequest.rmaNumber}`;
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
-      to: recipients.join(', '),
-      subject: subject,
+    await sendViaBrevo({
+      to: recipients,
+      subject,
       html: emailTemplate(content, 'RMA Request Generated'),
     });
 
@@ -409,7 +428,6 @@ export const sendRMACreationEmail = async (rmaRequest, ticket, requestedBy, noti
  */
 export const sendTicketStatusChangeEmail = async (ticket, user, oldStatus, newStatus, comments = '') => {
   try {
-    const transporter = createTransporter();
 
     const content = `
       <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
@@ -432,10 +450,9 @@ export const sendTicketStatusChangeEmail = async (ticket, user, oldStatus, newSt
     `;
 
     const subject = `Ticket Status Update: ${ticket.ticketNumber}`;
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+    await sendViaBrevo({
       to: user.email,
-      subject: subject,
+      subject,
       html: emailTemplate(content, 'Ticket Status Updated'),
     });
 
@@ -452,7 +469,6 @@ export const sendTicketStatusChangeEmail = async (ticket, user, oldStatus, newSt
  */
 export const sendPasswordResetEmail = async (user, newPassword) => {
   try {
-    const transporter = createTransporter();
 
     const content = `
       <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
@@ -475,10 +491,9 @@ export const sendPasswordResetEmail = async (user, newPassword) => {
     `;
 
     const subject = 'Your Password Has Been Reset';
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+    await sendViaBrevo({
       to: user.email,
-      subject: subject,
+      subject,
       html: emailTemplate(content, 'Password Reset'),
     });
 
@@ -495,7 +510,6 @@ export const sendPasswordResetEmail = async (user, newPassword) => {
  */
 export const sendBreachWarningEmail = async (ticket, user) => {
   try {
-    const transporter = createTransporter();
 
     const content = `
       <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
@@ -519,10 +533,9 @@ export const sendBreachWarningEmail = async (ticket, user) => {
     `;
 
     const subject = `⚠️ SLA WARNING: Ticket ${ticket.ticketNumber} Approaching Breach`;
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+    await sendViaBrevo({
       to: user.email,
-      subject: subject,
+      subject,
       html: emailTemplate(content, 'SLA Breach Warning'),
     });
 
@@ -541,7 +554,6 @@ export const sendBreachWarningEmail = async (ticket, user) => {
  */
 export const sendSlaBreachedEmail = async (ticket, user, admins) => {
   try {
-    const transporter = createTransporter();
 
     // 1. Send to Assigned User
     if (user) {
@@ -564,8 +576,7 @@ export const sendSlaBreachedEmail = async (ticket, user, admins) => {
         <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
       `;
 
-      await transporter.sendMail({
-        from: `"TicketOps" <${process.env.SMTP_USER}>`,
+      await sendViaBrevo({
         to: user.email,
         subject: `🚨 SLA BREACHED: Ticket ${ticket.ticketNumber}`,
         html: emailTemplate(userContent, 'SLA Breach Notification'),
@@ -593,9 +604,8 @@ export const sendSlaBreachedEmail = async (ticket, user, admins) => {
 
     const adminEmails = admins.map(a => a.email).filter(Boolean);
     if (adminEmails.length > 0) {
-      await transporter.sendMail({
-        from: `"TicketOps" <${process.env.SMTP_USER}>`,
-        to: adminEmails.join(', '),
+      await sendViaBrevo({
+        to: adminEmails,
         subject: `🚨 ADMIN ALERT: SLA Breach for ${ticket.ticketNumber}`,
         html: emailTemplate(adminContent, 'SLA Breach Alert'),
       });
@@ -625,7 +635,6 @@ export const sendSlaBreachedEmail = async (ticket, user, admins) => {
  */
 export const sendRMAMilestoneEmail = async (rma, milestone, recipients, additionalDetails = {}) => {
   try {
-    const transporter = createTransporter();
 
     if (!recipients || recipients.length === 0) {
       console.log('No recipients for RMA milestone notification');
@@ -705,10 +714,9 @@ export const sendRMAMilestoneEmail = async (rma, milestone, recipients, addition
     `;
 
     const subject = `${config.icon} RMA ${milestone}: ${rma.rmaNumber}`;
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
-      to: recipientEmails.join(', '),
-      subject: subject,
+    await sendViaBrevo({
+      to: recipientEmails,
+      subject,
       html: emailTemplate(content, config.title),
     });
 
@@ -734,7 +742,6 @@ export const sendRMAMilestoneEmail = async (rma, milestone, recipients, addition
  */
 export const sendGeneralNotificationEmail = async (recipients, notification) => {
   try {
-    const transporter = createTransporter();
 
     // Convert single recipient to array
     const recipientList = Array.isArray(recipients) ? recipients : [recipients];
@@ -765,22 +772,16 @@ export const sendGeneralNotificationEmail = async (recipients, notification) => 
 
     const subject = `Notification: ${notification.title}`;
 
-    // If many recipients, we might want to send individually or use BCC to avoid exposing emails
-    // For now, let's send to all in one go or loop if it's manageable
     if (recipientEmails.length > 50) {
-      // Batching would be better, but let's stick to simple for now or split
-      // Nodemailer handles arrays in 'to', but BCC is safer for privacy
-      await transporter.sendMail({
-        from: `"TicketOps" <${process.env.SMTP_USER}>`,
-        bcc: recipientEmails.join(', '),
-        subject: subject,
+      await sendViaBrevo({
+        bcc: recipientEmails,
+        subject,
         html: emailTemplate(content, 'New Notification'),
       });
     } else {
-      await transporter.sendMail({
-        from: `"TicketOps" <${process.env.SMTP_USER}>`,
-        to: recipientEmails.join(', '),
-        subject: subject,
+      await sendViaBrevo({
+        to: recipientEmails,
+        subject,
         html: emailTemplate(content, 'New Notification'),
       });
     }
@@ -810,7 +811,6 @@ export const sendGeneralNotificationEmail = async (recipients, notification) => 
 export const sendClientSignupAlertEmail = async (registration, adminEmails) => {
   try {
     if (!adminEmails || adminEmails.length === 0) return;
-    const transporter = createTransporter();
 
     const content = `
       <p>Hello Admin,</p>
@@ -836,9 +836,8 @@ export const sendClientSignupAlertEmail = async (registration, adminEmails) => {
     `;
 
     const subject = `New Client Sign-Up Request: ${registration.fullName} (${registration.siteName})`;
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
-      to: adminEmails.join(', '),
+    await sendViaBrevo({
+      to: adminEmails,
       subject,
       html: emailTemplate(content, 'New Client Registration'),
     });
@@ -855,7 +854,6 @@ export const sendClientSignupAlertEmail = async (registration, adminEmails) => {
  */
 export const sendClientApprovalEmail = async (registration, username, tempPassword) => {
   try {
-    const transporter = createTransporter();
 
     const content = `
       <p>Hello <strong>${registration.fullName}</strong>,</p>
@@ -883,8 +881,7 @@ export const sendClientApprovalEmail = async (registration, username, tempPasswo
     `;
 
     const subject = 'Your TicketOps Client Account is Ready';
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+    await sendViaBrevo({
       to: registration.email,
       subject,
       html: emailTemplate(content, 'Account Approved'),
@@ -902,7 +899,6 @@ export const sendClientApprovalEmail = async (registration, username, tempPasswo
  */
 export const sendClientRejectionEmail = async (registration) => {
   try {
-    const transporter = createTransporter();
 
     const content = `
       <p>Hello <strong>${registration.fullName}</strong>,</p>
@@ -918,8 +914,7 @@ export const sendClientRejectionEmail = async (registration) => {
     `;
 
     const subject = 'TicketOps — Registration Request Update';
-    await transporter.sendMail({
-      from: `"TicketOps" <${process.env.SMTP_USER}>`,
+    await sendViaBrevo({
       to: registration.email,
       subject,
       html: emailTemplate(content, 'Registration Update'),
@@ -943,9 +938,7 @@ export const sendActivityAssignmentEmail = async (activity, project, users) => {
 
   for (const user of validUsers) {
     try {
-      const transporter = createTransporter();
-      await transporter.sendMail({
-        from: `"${process.env.SMTP_FROM_NAME || 'TicketOps'}" <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
+      await sendViaBrevo({
         to: user.email,
         subject: `Activity Assigned: ${activity.title} — ${project.projectName}`,
         html: emailTemplate(`
