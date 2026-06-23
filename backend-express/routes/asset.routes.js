@@ -61,7 +61,7 @@ router.route('/:id')
 // Secure credentials endpoint - Admin/Supervisor only with rate limiting
 router.get('/:id/credentials', sensitiveLimiter, authorize('Admin', 'Supervisor'), getAssetCredentials);
 
-router.patch('/:id/status', updateAssetStatus);
+router.patch('/:id/status', allowAccess({ roles: ['Admin', 'Supervisor', 'Dispatcher'], right: 'MANAGE_ASSETS' }), updateAssetStatus);
 
 export default router;
 

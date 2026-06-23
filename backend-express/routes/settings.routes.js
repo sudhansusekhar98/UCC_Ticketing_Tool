@@ -19,7 +19,7 @@ router.put('/sla', authorize('Admin'), updateGlobalSLA);
 
 router.route('/')
   .get(getSettings)
-  .put(updateSettings);
+  .put(authorize('Admin'), updateSettings);
 
 router.get('/:category', getSettingsByCategory);
 router.patch('/:category/:key', authorize('Admin'), updateSingleSetting);

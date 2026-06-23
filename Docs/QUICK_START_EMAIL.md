@@ -38,7 +38,7 @@ Check your `.env` file:
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=support@vlaccess.com
-SMTP_PASS=komqumdelemayjiy
+SMTP_PASS=your_smtp_app_password_here
 FRONTEND_URL=http://localhost:5173
 ```
 

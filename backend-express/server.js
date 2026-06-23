@@ -5,18 +5,25 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
 import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
+import mongoSanitize from 'express-mongo-sanitize';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import connectDB from './config/database.js';
 import { setupCronJobs } from './cron-jobs.js';
+import { generalLimiter } from './middleware/rateLimiter.middleware.js';
+import { validateJwtSecrets } from './utils/auth.utils.js';
 
 // Load environment variables
 dotenv.config();
 
+// Validate critical security configuration at startup
+validateJwtSecrets();
+
 // Initialize Express app
 const app = express();
 
-// Trust proxy — required behind AWS ALB/Nginx
+// Trust proxy — required behind Nginx reverse proxy
 app.set('trust proxy', 1);
 
 // Create HTTP server and Socket.IO
@@ -37,26 +44,46 @@ const io = new Server(httpServer, {
   // Connection stability
   pingTimeout: 60000,
   pingInterval: 25000,
-  // AWS ALB WebSocket support
   transports: ['websocket', 'polling'],
   allowUpgrades: true,
+});
+
+// Socket.IO authentication middleware — verify JWT before allowing connection
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) {
+    return next(new Error('Authentication required'));
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS256'] });
+    socket.userId = decoded.id;
+    next();
+  } catch {
+    next(new Error('Invalid or expired token'));
+  }
 });
 
 // Socket.IO connection handling
 const isDevMode = process.env.NODE_ENV !== 'production';
 io.on('connection', (socket) => {
-  if (isDevMode) console.log('Client connected:', socket.id);
+  if (isDevMode) console.log('Client connected:', socket.id, 'user:', socket.userId);
+
+  // Auto-join the authenticated user's own room
+  socket.join(`user_${socket.userId}`);
 
   socket.on('disconnect', () => {
     if (isDevMode) console.log('Client disconnected:', socket.id);
   });
 
   socket.on('join', (userId) => {
+    if (userId !== socket.userId) return;
     socket.join(`user_${userId}`);
   });
 
   socket.on('join:ticket', (ticketId) => {
-    socket.join(`ticket_${ticketId}`);
+    if (ticketId && typeof ticketId === 'string') {
+      socket.join(`ticket_${ticketId}`);
+    }
   });
 
   socket.on('leave:ticket', (ticketId) => {
@@ -129,7 +156,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, postman, ELB health checks)
+    // Allow requests with no origin (like mobile apps, curl, postman, health checks)
     if (!origin) return callback(null, true);
 
     // Remove trailing slash from origin for comparison
@@ -138,8 +165,8 @@ app.use(cors({
     if (allowedOrigins.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
-      callback(null, true); // Allow anyway for debugging, change to callback(new Error('Not allowed by CORS')) for strict mode
+      console.warn('CORS rejected origin:', origin);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -150,29 +177,28 @@ app.use(compression()); // Compress responses
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev')); // Logging (only in development)
 }
-app.use(express.json({ limit: '10mb' })); // Parse JSON bodies with size limit
-app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse URL-encoded bodies
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(mongoSanitize());
+app.use('/api', generalLimiter);
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static('uploads'));
 
-// Root endpoint for ELB health check
+// Root endpoint for health check
 app.get('/', (req, res) => {
   res.json({
-    message: 'TicketOps API - AWS Production',
+    message: 'TicketOps API - Production',
     status: 'running',
     timestamp: new Date().toISOString()
   });
 });
 
-// Health check endpoint
+// Health check endpoint — only expose status publicly
 app.get('/api/health', (req, res) => {
   res.json({
-    status: 'OK',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    environment: process.env.NODE_ENV,
-    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    status: mongoose.connection.readyState === 1 ? 'OK' : 'DEGRADED',
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -235,7 +261,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server — AWS EB sets PORT via environment (default 8080)
+// Start server
 const PORT = process.env.PORT || 8080;
 httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
@@ -244,7 +270,7 @@ httpServer.listen(PORT, '0.0.0.0', () => {
   console.log(`🔌 Socket.IO ready for WebSocket connections`);
 });
 
-// Graceful shutdown for AWS EB (receives SIGTERM on deployment/scaling)
+// Graceful shutdown
 const gracefulShutdown = async (signal) => {
   console.log(`\n⚠️ Received ${signal}. Starting graceful shutdown...`);
 

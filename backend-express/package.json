@@ -1,7 +1,7 @@
 {
   "name": "ticketops-backend",
   "version": "1.0.0",
-  "description": "TicketOps - Express.js Backend with MongoDB (AWS Elastic Beanstalk)",
+  "description": "TicketOps - Express.js Backend with MongoDB",
   "main": "server.js",
   "type": "module",
   "engines": {
@@ -34,10 +34,11 @@
     "bcryptjs": "^2.4.3",
     "cloudinary": "^2.8.0",
     "compression": "^1.7.4",
-    "exceljs": "^4.4.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "exceljs": "^4.4.0",
     "express": "^4.21.2",
+    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.2.1",
     "express-validator": "^7.2.1",
     "helmet": "^8.0.0",

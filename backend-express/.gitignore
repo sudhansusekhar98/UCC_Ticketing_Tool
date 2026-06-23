@@ -37,6 +37,3 @@ Thumbs.db
 dist/
 build/
 
-# AWS Elastic Beanstalk
-.elasticbeanstalk/
-ticketops-backend-aws-*.zip

@@ -9,7 +9,7 @@ Copy everything below the line and paste it into a new Claude Code CLI session.
 I have a full-stack app (Express.js backend + React/Vite frontend) that I need to deploy to my Linux VPS using Docker and GitHub Actions CI/CD.
 
 ### Current State
-- The codebase is at: `d:\VL Access\CODES\UCC_Ticketing_Tool - AWS`
+- The codebase is at: `d:\VL Access\CODES\UCC_Ticketing_Tool - VPS`
 - It already has `docker-compose.yml`, `backend-express/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf`, and `.github/workflows/deploy.yml` ready
 - The VPS already has the app running manually (backend at `~/ticketops`, frontend at `~/ticketops-frontend`)
 - The VPS has Docker and Docker Compose installed

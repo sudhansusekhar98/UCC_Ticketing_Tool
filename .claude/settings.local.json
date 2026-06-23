@@ -58,7 +58,16 @@
       "Bash(powershell -ExecutionPolicy Bypass -File .specify/extensions/git/scripts/powershell/create-new-feature.ps1 -Json -ShortName \"fix-stock-unit-update\" \"fix stock unit not updating from edit form\")",
       "Bash(xargs grep -l \"stockApi\")",
       "Bash(powershell -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks)",
-      "Bash(node -c controllers/stock.controller.js)"
+      "Bash(node -c controllers/stock.controller.js)",
+      "Bash(git show *)",
+      "Bash(echo \"EXIT_CODE=$?\")",
+      "Bash(node --check server.js)",
+      "Bash(node --check utils/auth.utils.js)",
+      "Bash(node --check controllers/auth.controller.js)",
+      "Bash(node --check controllers/user.controller.js)",
+      "Bash(node --check controllers/clientRegistration.controller.js)",
+      "Bash(node --check utils/upload.js)",
+      "Bash(node --check middleware/auth.middleware.js)"
     ]
   },
   "enableAllProjectMcpServers": true,

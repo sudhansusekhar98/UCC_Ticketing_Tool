@@ -1,7 +1,10 @@
 import User from '../models/User.model.js';
 import UserRight from '../models/UserRight.model.js';
 import DailyWorkLog from '../models/DailyWorkLog.model.js';
-import { hashPassword } from '../utils/auth.utils.js';
+import { hashPassword, validatePassword } from '../utils/auth.utils.js';
+import crypto from 'crypto';
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 import { sendAccountCreationEmail, sendPasswordResetEmail } from '../utils/email.utils.js';
 
 // @desc    Get all users
@@ -31,10 +34,11 @@ export const getUsers = async (req, res, next) => {
     if (siteId) query.siteId = siteId;
     if (isActive !== undefined) query.isActive = isActive === 'true';
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { fullName: { $regex: search, $options: 'i' } },
-        { username: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } }
+        { fullName: { $regex: safeSearch, $options: 'i' } },
+        { username: { $regex: safeSearch, $options: 'i' } },
+        { email: { $regex: safeSearch, $options: 'i' } }
       ];
     }
 
@@ -102,10 +106,13 @@ export const createUser = async (req, res, next) => {
   try {
     const { password, ...userData } = req.body;
 
-    // Store temporary password for email
-    const tempPassword = password || 'DefaultPass@123';
+    const tempPassword = password || crypto.randomBytes(12).toString('base64url').slice(0, 14) + 'A1!';
 
-    // Hash password
+    const passwordError = validatePassword(tempPassword);
+    if (password && passwordError) {
+      return res.status(400).json({ success: false, message: passwordError });
+    }
+
     const passwordHash = await hashPassword(tempPassword);
 
     const user = await User.create({
@@ -363,10 +370,16 @@ export const resetPassword = async (req, res, next) => {
   try {
     const { newPassword } = req.body;
 
-    // Store new password for email
-    const resetPassword = newPassword || 'Reset@123';
+    const resetPass = newPassword || crypto.randomBytes(12).toString('base64url').slice(0, 14) + 'A1!';
 
-    const passwordHash = await hashPassword(resetPassword);
+    if (newPassword) {
+      const passwordError = validatePassword(newPassword);
+      if (passwordError) {
+        return res.status(400).json({ success: false, message: passwordError });
+      }
+    }
+
+    const passwordHash = await hashPassword(resetPass);
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
@@ -383,7 +396,7 @@ export const resetPassword = async (req, res, next) => {
 
     // Send password reset email
     if (user.email) {
-      await sendPasswordResetEmail(user, resetPassword);
+      await sendPasswordResetEmail(user, resetPass);
     }
 
     res.json({

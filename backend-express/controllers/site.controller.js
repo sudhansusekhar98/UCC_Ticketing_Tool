@@ -2,6 +2,8 @@ import Site from '../models/Site.model.js';
 import SLAPolicy from '../models/SLAPolicy.model.js';
 import DailyWorkLog from '../models/DailyWorkLog.model.js';
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // @desc    Get all sites
 // @route   GET /api/sites
 // @access  Private
@@ -29,9 +31,9 @@ export const getSites = async (req, res, next) => {
     if (isActive !== undefined) query.isActive = isActive === 'true';
     if (search) {
       query.$or = [
-        { siteName: { $regex: search, $options: 'i' } },
-        { siteUniqueID: { $regex: search, $options: 'i' } },
-        { address: { $regex: search, $options: 'i' } }
+        { siteName: { $regex: escapeRegex(search), $options: 'i' } },
+        { siteUniqueID: { $regex: escapeRegex(search), $options: 'i' } },
+        { address: { $regex: escapeRegex(search), $options: 'i' } }
       ];
     }
 

@@ -5,6 +5,8 @@ import { logNotification } from '../utils/notificationLogger.js';
 import emailUtils from '../utils/email.utils.js';
 const { sendGeneralNotificationEmail } = emailUtils;
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // @desc    Get notifications for current user
 // @route   GET /api/notifications
 // @access  Private
@@ -371,9 +373,9 @@ export const getNotificationLogs = async (req, res, next) => {
 
     if (search) {
       query.$or = [
-        { recipient: { $regex: search, $options: 'i' } },
-        { subject: { $regex: search, $options: 'i' } },
-        { content: { $regex: search, $options: 'i' } }
+        { recipient: { $regex: escapeRegex(search), $options: 'i' } },
+        { subject: { $regex: escapeRegex(search), $options: 'i' } },
+        { content: { $regex: escapeRegex(search), $options: 'i' } }
       ];
     }
 

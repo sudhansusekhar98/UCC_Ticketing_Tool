@@ -7,6 +7,8 @@ import SLAPolicy from '../models/SLAPolicy.model.js';
 import { sendTicketAssignmentEmail, sendTicketEscalationEmail } from '../utils/email.utils.js';
 import DailyWorkLog from '../models/DailyWorkLog.model.js';
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // @desc    Get all tickets
 // @route   GET /api/tickets
 // @access  Private
@@ -101,7 +103,7 @@ export const getTickets = async (req, res, next) => {
     }
 
     if (search) {
-      const searchRegex = { $regex: search, $options: 'i' };
+      const searchRegex = { $regex: escapeRegex(search), $options: 'i' };
       const searchCriteria = [
         { ticketNumber: searchRegex },
         { title: searchRegex },

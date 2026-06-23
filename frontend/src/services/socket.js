@@ -51,14 +51,21 @@ class SocketService {
         }
 
         try {
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                console.log('[Socket] No auth token — skipping connection');
+                return null;
+            }
+
             this.socket = io(SOCKET_URL, {
-                transports: ['websocket'], // Try WebSocket first
-                upgrade: true, // Allow upgrade from polling if needed
+                auth: { token },
+                transports: ['websocket'],
+                upgrade: true,
                 reconnection: true,
                 reconnectionAttempts: this.maxReconnectAttempts,
                 reconnectionDelay: 2000,
                 reconnectionDelayMax: 10000,
-                timeout: 10000, // Connection timeout
+                timeout: 10000,
                 autoConnect: true,
             });
 

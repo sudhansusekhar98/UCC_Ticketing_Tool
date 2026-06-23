@@ -5,7 +5,8 @@ import {
   generateRefreshToken,
   hashPassword,
   comparePassword,
-  verifyRefreshToken
+  verifyRefreshToken,
+  validatePassword
 } from '../utils/auth.utils.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
 import { createAuditLog, logAuthFailure } from '../middleware/audit.middleware.js';
@@ -67,7 +68,7 @@ export const login = async (req, res, next) => {
 
     // Save refresh token
     user.refreshToken = refreshToken;
-    user.refreshTokenExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    user.refreshTokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     await user.save();
 
     // Remove password from output
@@ -294,6 +295,14 @@ export const changePassword = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: 'Please provide current and new password'
+      });
+    }
+
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      return res.status(400).json({
+        success: false,
+        message: passwordError
       });
     }
 

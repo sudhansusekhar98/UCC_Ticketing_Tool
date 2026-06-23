@@ -4,14 +4,14 @@ import mongoose from 'mongoose';
 import XLSX from 'xlsx';
 import fs from 'fs';
 import path from 'path';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import net from 'net';
 import { decrypt, isEncrypted, SENSITIVE_ASSET_FIELDS } from '../utils/encryption.utils.js';
 import { createAuditLog } from '../middleware/audit.middleware.js';
 import DailyWorkLog from '../models/DailyWorkLog.model.js';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 // In-memory store for ping progress (keyed by userId)
 // This allows HTTP polling as a fallback when WebSockets aren't available
@@ -23,26 +23,29 @@ const pingProgressStore = new Map();
  * - Linux/Mac:  native ping -c 1 -W <sec>  (ICMP)
  * - Serverless: TCP connect probe on common ports (last resort)
  */
+const VALID_IP_REGEX = /^(\d{1,3}\.){3}\d{1,3}$/;
+
 async function crossPlatformPing(ipAddress, timeoutMs = 3000) {
-  // Windows: native ping.exe
+  // Validate IP format to prevent command injection
+  if (!ipAddress || !VALID_IP_REGEX.test(ipAddress)) return false;
+  const octets = ipAddress.split('.').map(Number);
+  if (octets.some(o => o > 255)) return false;
+
+  // Windows: native ping.exe (execFile — no shell interpretation)
   if (process.platform === 'win32') {
     try {
-      const command = `ping -n 1 -w ${timeoutMs} ${ipAddress}`;
-      const { stdout } = await execAsync(command, { timeout: timeoutMs + 3000 });
+      const { stdout } = await execFileAsync('ping', ['-n', '1', '-w', String(timeoutMs), ipAddress], { timeout: timeoutMs + 3000 });
       return /TTL=/i.test(stdout);
     } catch {
       return false;
     }
   }
 
-  // Linux / macOS: native ping command (ICMP)
+  // Linux / macOS: native ping command (execFile — no shell interpretation)
   try {
     const timeoutSec = Math.max(1, Math.ceil(timeoutMs / 1000));
-    // -c 1 = one packet, -W = timeout in seconds (Linux), -t = timeout (macOS)
     const flag = process.platform === 'darwin' ? '-t' : '-W';
-    const command = `ping -c 1 ${flag} ${timeoutSec} ${ipAddress}`;
-    const { stdout } = await execAsync(command, { timeout: timeoutMs + 3000 });
-    // Linux/Mac ping output contains "ttl=" on success
+    const { stdout } = await execFileAsync('ping', ['-c', '1', flag, String(timeoutSec), ipAddress], { timeout: timeoutMs + 3000 });
     return /ttl=/i.test(stdout);
   } catch {
     // ping command failed or not available — fall through to TCP probe
@@ -69,7 +72,8 @@ async function crossPlatformPing(ipAddress, timeoutMs = 3000) {
   return false;
 }
 
-// Roles used for audit logging on credential-specific endpoints
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const PRIVILEGED_ROLES = ['Admin', 'Supervisor'];
 
 /**
@@ -130,16 +134,16 @@ const buildAssetQuery = (req) => {
   if (isActive !== undefined) query.isActive = isActive === 'true';
 
   if (search) {
-    // Search on non-sensitive (unencrypted) fields via regex
+    const safeSearch = escapeRegex(search);
     query.$or = [
-      { assetCode: { $regex: search, $options: 'i' } },
-      { locationDescription: { $regex: search, $options: 'i' } },
-      { locationName: { $regex: search, $options: 'i' } },
-      { make: { $regex: search, $options: 'i' } },
-      { model: { $regex: search, $options: 'i' } },
-      { assetType: { $regex: search, $options: 'i' } },
-      { deviceType: { $regex: search, $options: 'i' } },
-      { remarks: { $regex: search, $options: 'i' } }
+      { assetCode: { $regex: safeSearch, $options: 'i' } },
+      { locationDescription: { $regex: safeSearch, $options: 'i' } },
+      { locationName: { $regex: safeSearch, $options: 'i' } },
+      { make: { $regex: safeSearch, $options: 'i' } },
+      { model: { $regex: safeSearch, $options: 'i' } },
+      { assetType: { $regex: safeSearch, $options: 'i' } },
+      { deviceType: { $regex: safeSearch, $options: 'i' } },
+      { remarks: { $regex: safeSearch, $options: 'i' } }
     ];
   }
 

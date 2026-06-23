@@ -45,7 +45,7 @@ npm run preview      # Preview production build
 ## Architecture
 
 ### Backend Structure
-- `server.js` - Express app entry point, middleware setup, route mounting; sets `trust proxy 1` for AWS ALB
+- `server.js` - Express app entry point, middleware setup, route mounting; sets `trust proxy 1` for Nginx reverse proxy
 - `config/database.js` - MongoDB connection (supports Vercel serverless)
 - `routes/*.routes.js` - Route definitions (auth, tickets, assets, sites, users, stock, worklog, rma, fieldops, reporting, lookup, settings, etc.)
 - `controllers/*.controller.js` - Business logic; `controllers/optimized/` holds performance-optimized variants (e.g., dashboard stats)
@@ -146,8 +146,7 @@ Socket.IO rooms: `user_{userId}` for user notifications, `ticket_{ticketId}` for
 - Auto-lock logs - locks PM daily logs after 24 hours (hourly check)
 
 ## Deployment
-- **Primary backend**: AWS Elastic Beanstalk — `Procfile` runs `node server.js`; `create-aws-bundle.ps1` packages the deployment zip
-- **Serverless backend**: Vercel — entry point is `api/production.js` (not `api/index.js`); WebSocket support is limited, so `usePollingFallback` is used on the frontend
+- **Primary backend**: VPS with Nginx reverse proxy — runs `node server.js`
 - **Frontend**: Vercel static hosting
 - **Database**: MongoDB Atlas
 

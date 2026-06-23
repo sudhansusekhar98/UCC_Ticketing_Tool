@@ -18,6 +18,8 @@ import path from 'path';
 import { buildStockSummaryExcel } from '../utils/excelStyler.js';
 import { generateStockSummaryReport } from '../utils/reportHtmlGenerator.js';
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // Helper: Check if user has a specific right for a site
 const hasRightForSite = (user, rightName, siteId) => {
     if (['Admin', 'Supervisor'].includes(user.role)) return true;
@@ -53,9 +55,9 @@ export const getInventory = async (req, res, next) => {
 
         if (search) {
             matchQuery.$or = [
-                { assetCode: { $regex: search, $options: 'i' } },
-                { mac: { $regex: search, $options: 'i' } },
-                { serialNumber: { $regex: search, $options: 'i' } }
+                { assetCode: { $regex: escapeRegex(search), $options: 'i' } },
+                { mac: { $regex: escapeRegex(search), $options: 'i' } },
+                { serialNumber: { $regex: escapeRegex(search), $options: 'i' } }
             ];
         }
 

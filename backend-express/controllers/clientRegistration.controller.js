@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import ClientRegistration from '../models/ClientRegistration.model.js';
 import User from '../models/User.model.js';
 import { hashPassword } from '../utils/auth.utils.js';
@@ -8,22 +9,19 @@ import {
     sendPasswordResetEmail
 } from '../utils/email.utils.js';
 
-// Helper: generate a random temp password
 const generateTempPassword = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#!';
-    let password = '';
-    for (let i = 0; i < 10; i++) {
-        password += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return password;
+    const bytes = crypto.randomBytes(10);
+    return Array.from(bytes).map(b => chars[b % chars.length]).join('');
 };
 
-// Helper: derive a safe username from name + random suffix
 const generateUsername = (fullName) => {
     const base = fullName.toLowerCase().replace(/\s+/g, '.').replace(/[^a-z0-9.]/g, '').slice(0, 20);
-    const suffix = Math.floor(1000 + Math.random() * 9000);
+    const suffix = crypto.randomInt(1000, 9999);
     return `${base}.${suffix}`;
 };
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // @desc   Submit a new client registration request
 // @route  POST /api/auth/client-signup
@@ -225,9 +223,9 @@ export const listClients = async (req, res, next) => {
         const filter = { role: 'SiteClient' };
         if (search) {
             filter.$or = [
-                { fullName: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } },
-                { username: { $regex: search, $options: 'i' } }
+                { fullName: { $regex: escapeRegex(search), $options: 'i' } },
+                { email: { $regex: escapeRegex(search), $options: 'i' } },
+                { username: { $regex: escapeRegex(search), $options: 'i' } }
             ];
         }
 
