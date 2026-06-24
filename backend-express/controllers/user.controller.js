@@ -178,6 +178,12 @@ export const updateUser = async (req, res, next) => {
       });
     }
 
+    if (password && user.email) {
+      sendPasswordResetEmail(user, password).catch(err =>
+        console.error('Password reset email failed:', err.message)
+      );
+    }
+
     res.json({
       success: true,
       data: user,
