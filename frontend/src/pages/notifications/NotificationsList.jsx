@@ -1,4 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+
+function stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html || '';
+    return tmp.textContent || tmp.innerText || '';
+}
 import {
     Bell,
     Check,
@@ -177,12 +183,15 @@ export default function NotificationsList() {
                                             </span>
                                         </div>
                                         <p className="notification-message">
-                                            {expandedIds.has(notification._id)
-                                                ? notification.message
-                                                : (notification.message?.length > 100
-                                                    ? `${notification.message.substring(0, 100)}...`
-                                                    : notification.message)}
-                                            {notification.message?.length > 100 && (
+                                            {(() => {
+                                                const plain = stripHtml(notification.message);
+                                                return expandedIds.has(notification._id)
+                                                    ? plain
+                                                    : plain.length > 100
+                                                        ? `${plain.substring(0, 100)}...`
+                                                        : plain;
+                                            })()}
+                                            {stripHtml(notification.message).length > 100 && (
                                                 <button
                                                     className="read-more-link"
                                                     onClick={(e) => {

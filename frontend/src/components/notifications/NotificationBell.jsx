@@ -1,4 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+
+function stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html || '';
+    return tmp.textContent || tmp.innerText || '';
+}
 import { Bell, X, Check, CheckCheck, Trash2, Info, AlertTriangle, AlertCircle, Megaphone, Ticket, Settings } from 'lucide-react';
 import { notificationsApi } from '../../services/api';
 import socketService from '../../services/socket';
@@ -175,7 +181,12 @@ export default function NotificationBell() {
                                     </div>
                                     <div className="notification-content">
                                         <div className="notification-title">{notification.title}</div>
-                                        <div className="notification-message">{notification.message}</div>
+                                        <div className="notification-message">
+                                            {(() => {
+                                                const plain = stripHtml(notification.message);
+                                                return plain.length > 80 ? `${plain.substring(0, 80)}…` : plain;
+                                            })()}
+                                        </div>
                                         <div className="notification-time">
                                             {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                                         </div>

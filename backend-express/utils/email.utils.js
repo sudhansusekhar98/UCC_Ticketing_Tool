@@ -752,21 +752,28 @@ export const sendGeneralNotificationEmail = async (recipients, notification) => 
       return false;
     }
 
+    // Strip base64 inline images — email clients block them; replace with a clickable notice
+    const appUrl = process.env.FRONTEND_URL || 'https://ticketops.vluccc.com';
+    const emailSafeMessage = (notification.message || '').replace(
+      /<img[^>]+src="data:[^"]*"[^>]*\/?>/gi,
+      `<em style="color:#888;font-size:0.9em;">[Screenshot included — <a href="${appUrl}/notifications" style="color:#667eea;">view in TicketOps</a>]</em>`
+    );
+
     const content = `
       <p>Hello,</p>
       <p>A new ${notification.type || 'notification'} has been posted on TicketOps.</p>
-      
+
       <div class="info-box">
         <h3 style="margin-top: 0; color: #667eea;">${notification.title}</h3>
-        <p style="white-space: pre-wrap;">${notification.message}</p>
+        <div style="margin-top: 8px;">${emailSafeMessage}</div>
       </div>
-      
+
       ${notification.link ? `
       <div style="text-align: center;">
-        <a href="${notification.link.startsWith('http') ? notification.link : (process.env.FRONTEND_URL || 'https://ticketops.vluccc.com') + notification.link}" class="btn" style="color: white !important; text-decoration: none;">View on System</a>
+        <a href="${notification.link.startsWith('http') ? notification.link : appUrl + notification.link}" class="btn" style="color: white !important; text-decoration: none;">View on System</a>
       </div>
       ` : ''}
-      
+
       <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
