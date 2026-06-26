@@ -67,7 +67,8 @@
       "Bash(node --check controllers/user.controller.js)",
       "Bash(node --check controllers/clientRegistration.controller.js)",
       "Bash(node --check utils/upload.js)",
-      "Bash(node --check middleware/auth.middleware.js)"
+      "Bash(node --check middleware/auth.middleware.js)",
+      "mcp__code-review-graph__semantic_search_nodes_tool"
     ]
   },
   "enableAllProjectMcpServers": true,

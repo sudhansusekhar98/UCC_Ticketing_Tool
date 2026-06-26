@@ -34,6 +34,7 @@ import { format } from 'date-fns';
 import ActivitySection from './ActivitySection';
 import RMASection from './RMASection';
 import TicketStockPanel from './TicketStockPanel';
+import TicketCablePanel from './TicketCablePanel';
 import AssetUpdateApproval from './AssetUpdateApproval';
 import { createPortal } from 'react-dom';
 import './Tickets.css';
@@ -76,6 +77,8 @@ export default function TicketDetail() {
     const [selectedEscalationUser, setSelectedEscalationUser] = useState('');
 
     const isLocked = ['InProgress', 'OnHold', 'Installed', 'Repaired', 'Replaced', 'SentToSite', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
+    const CABLE_KEYWORDS = ['fibre', 'fiber', 'cable cut', 'cable damage', 'cable'];
+    const isCableCutTicket = ticket && CABLE_KEYWORDS.some(kw => (ticket.subCategory || '').toLowerCase().includes(kw));
     // Get the site ID from the ticket directly or via asset
     const ticketSiteId = ticket?.siteId?._id || ticket?.siteId || ticket?.assetId?.siteId?._id || ticket?.assetId?.siteId;
     const canEdit = (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId)) && !isLocked;
@@ -698,6 +701,20 @@ export default function TicketDetail() {
                                     ticketId={ticket.ticketId}
                                     siteId={ticketSiteId}
                                     assetId={ticket.assetId?._id || ticket.assetId}
+                                    ticketStatus={ticket.status}
+                                    isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
+                                    onUpdate={() => {
+                                        fetchTicket();
+                                        fetchAuditTrail();
+                                    }}
+                                />
+                            )}
+
+                            {/* Cable / Wire Usage Panel */}
+                            {isCableCutTicket && (
+                                <TicketCablePanel
+                                    ticketId={ticket.ticketId}
+                                    siteId={ticketSiteId}
                                     ticketStatus={ticket.status}
                                     isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
                                     onUpdate={() => {

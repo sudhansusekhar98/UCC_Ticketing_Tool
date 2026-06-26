@@ -21,6 +21,12 @@ Welcome to TicketOps, a comprehensive ticketing and asset management system desi
 | [Settings](./settings.md)           | System configuration                  | View          |
 | [Notifications](./notifications.md) | Alert management                      | View          |
 
+### Stock & Inventory
+
+| Module | Description | Documentation |
+|---|---|---|
+| [Stock & Inventory](./stock.md) | Spare parts, cable stock, and inventory tracking | View |
+
 ---
 
 ## 🚀 Quick Start Guide
@@ -65,4 +71,4 @@ For technical support, please contact your system administrator.
 
 ---
 
-_Last Updated: January 2026_
+_Last Updated: June 2026_

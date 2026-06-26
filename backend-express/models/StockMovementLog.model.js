@@ -20,9 +20,14 @@ const stockMovementLogSchema = new mongoose.Schema({
             'Released',        // Released from reservation
             'Replaced',        // Device replaced via RMA installation
             'Installed',       // Device installed at site
-            'Disposed'         // Marked as damaged/disposed
+            'Disposed',        // Marked as damaged/disposed
+            'CableUsed'        // Cable/wire consumed for a ticket repair
         ],
         required: true
+    },
+    // Quantity change (negative = consumed/deducted, positive = added)
+    quantityChange: {
+        type: Number
     },
     // Source location (null for new additions)
     fromSiteId: {
@@ -108,7 +113,8 @@ stockMovementLogSchema.statics.logMovement = async function (data) {
         requisitionId,
         stockTransferId,
         ticketId,
-        notes
+        notes,
+        quantityChange
     } = data;
 
     return this.create({
@@ -124,6 +130,7 @@ stockMovementLogSchema.statics.logMovement = async function (data) {
         stockTransferId,
         ticketId,
         notes,
+        quantityChange,
         assetSnapshot: {
             assetCode: asset.assetCode,
             assetType: asset.assetType,
@@ -145,7 +152,8 @@ export const MovementTypes = {
     RELEASED: 'Released',
     REPLACED: 'Replaced',
     INSTALLED: 'Installed',
-    DISPOSED: 'Disposed'
+    DISPOSED: 'Disposed',
+    CABLE_USED: 'CableUsed'
 };
 
 export default mongoose.model('StockMovementLog', stockMovementLogSchema);

@@ -1,11 +1,22 @@
 import { useActionState, useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Paperclip, X, FileText, Image } from 'lucide-react';
+import { ArrowLeft, Save, Paperclip, X, FileText, Image, Cable, Info } from 'lucide-react';
 import { ticketsApi, assetsApi, sitesApi, lookupsApi, usersApi, activitiesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
 import SubmitButton from '../../components/ui/SubmitButton';
 import toast from 'react-hot-toast';
 import './Tickets.css';
+
+const SUBCATEGORY_SUGGESTIONS = {
+    Connectivity: ['Fibre Cut', 'Cable Cut', 'Cable Damage', 'Link Down', 'Latency Issue', 'Loop Detected'],
+    Network: ['Fibre Cut', 'Cable Damage', 'Switch Failure', 'Port Down', 'IP Conflict', 'DNS Issue'],
+    Hardware: ['Camera Malfunction', 'NVR Failure', 'Power Supply Failure', 'Physical Damage'],
+    Power: ['Power Outage', 'UPS Failure', 'Overload', 'Tripped Breaker'],
+    Software: ['Firmware Upgrade', 'Configuration Error', 'Software Crash', 'Login Issue'],
+    Other: ['Scheduled Maintenance', 'Site Visit', 'Audit'],
+};
+
+const CABLE_SUBCATEGORIES = ['fibre cut', 'cable cut', 'cable damage', 'cable'];
 
 export default function TicketForm() {
     const { id } = useParams();
@@ -507,7 +518,10 @@ export default function TicketForm() {
                             <select
                                 className="form-select"
                                 value={formData.category}
-                                onChange={(e) => handleChange('category', e.target.value)}
+                                onChange={(e) => {
+                                    handleChange('category', e.target.value);
+                                    handleChange('subCategory', '');
+                                }}
                                 required
                             >
                                 <option value="">Select Category</option>
@@ -525,8 +539,51 @@ export default function TicketForm() {
                                 className="form-input"
                                 value={formData.subCategory}
                                 onChange={(e) => handleChange('subCategory', e.target.value)}
-                                placeholder="Optional sub-category"
+                                placeholder="Type or select below"
                             />
+                            {/* Suggestion chips based on selected category */}
+                            {formData.category && SUBCATEGORY_SUGGESTIONS[formData.category]?.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                                    {SUBCATEGORY_SUGGESTIONS[formData.category].map(suggestion => (
+                                        <button
+                                            key={suggestion}
+                                            type="button"
+                                            onClick={() => handleChange('subCategory', suggestion)}
+                                            style={{
+                                                fontSize: '11px',
+                                                fontWeight: '600',
+                                                padding: '3px 10px',
+                                                borderRadius: '999px',
+                                                border: '1px solid',
+                                                cursor: 'pointer',
+                                                transition: 'all 0.15s',
+                                                backgroundColor: formData.subCategory === suggestion ? '#0ea5e9' : 'transparent',
+                                                color: formData.subCategory === suggestion ? '#fff' : '#64748b',
+                                                borderColor: formData.subCategory === suggestion ? '#0ea5e9' : '#cbd5e1',
+                                            }}
+                                        >
+                                            {suggestion}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                            {/* Cable stock tracking notice */}
+                            {CABLE_SUBCATEGORIES.some(kw => formData.subCategory.toLowerCase().includes(kw)) && (
+                                <div
+                                    style={{
+                                        display: 'flex', alignItems: 'flex-start', gap: '8px',
+                                        marginTop: '8px', padding: '8px 12px', borderRadius: '8px',
+                                        backgroundColor: '#f0f9ff', border: '1px solid #bae6fd',
+                                        fontSize: '12px', color: '#0369a1', lineHeight: '1.5'
+                                    }}
+                                >
+                                    <Cable size={14} style={{ marginTop: '1px', flexShrink: 0 }} />
+                                    <span>
+                                        <strong>Cable stock tracking will be enabled</strong> on this ticket.
+                                        Engineers will be able to record cable/wire usage directly from the ticket detail page, and the stock quantity will be deducted automatically.
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Title */}

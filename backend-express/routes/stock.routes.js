@@ -32,7 +32,11 @@ import {
     deleteAllocation,
     getProjectAllocatedStock,
     getProjectCableAllocations,
-    exportStockSummary
+    exportStockSummary,
+    // Cable usage for tickets
+    getCableStockForSite,
+    recordCableUsage,
+    getCableUsageForTicket
 } from '../controllers/stock.controller.js';
 import { protect, allowAccess } from '../middleware/auth.middleware.js';
 import { simpleUpload } from '../utils/upload.js';
@@ -69,6 +73,11 @@ router.post('/bulk-upload', allowAccess({ roles: ['Admin', 'Supervisor'], rights
 router.get('/export-template', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), exportStockTemplate);
 router.put('/:assetId', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), updateStock);
 router.delete('/:assetId', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), deleteStock);
+
+// Cable usage for ticket-based repairs
+router.get('/cables', getCableStockForSite);
+router.post('/cable-usage', recordCableUsage);
+router.get('/cable-usage/:ticketId', getCableUsageForTicket);
 
 // Movement logs
 router.get('/movement-logs', getStockMovementLogs);

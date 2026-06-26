@@ -18,7 +18,8 @@ import {
     Search,
     ExternalLink,
     Database,
-    Package
+    Package,
+    Sparkles
 } from 'lucide-react';
 import './Help.css';
 
@@ -29,6 +30,30 @@ const HELP_SECTIONS = [
         title: 'Getting Started',
         icon: Book,
         subsections: [
+            {
+                id: 'whats-new',
+                title: "What's New",
+                content: `
+                    <h2>What's New — June 2026</h2>
+                    <p>The following features were added in the latest release.</p>
+
+                    <h3>🔌 Cable / Fibre Cut Ticket Stock Integration</h3>
+                    <p>Tickets raised for cable or fibre cut issues can now track material consumption directly. Stock quantities are deducted automatically when engineers log usage from the ticket detail page.</p>
+                    <ul>
+                        <li><strong>Sub-Category smart chips</strong> — When creating a ticket, clickable suggestion chips appear based on the selected Category. No more typing the same sub-categories every time.</li>
+                        <li><strong>Cable tracking notice</strong> — Selecting "Fibre Cut", "Cable Cut", or "Cable Damage" as the Sub-Category shows a blue info banner explaining that cable stock tracking will be active on the ticket.</li>
+                        <li><strong>Cable / Wire Usage panel</strong> — A new panel on the ticket detail page shows available cable stock at the site and lets engineers record how much cable was used. Stock quantity is reduced immediately on confirmation.</li>
+                        <li><strong>Usage history</strong> — All cable consumption entries for a ticket are logged with engineer name, timestamp, quantity, and notes. The running total is shown at a glance.</li>
+                    </ul>
+
+                    <h3>📋 Sub-Category Suggestions (All Ticket Types)</h3>
+                    <p>Every Category now has a curated set of sub-category suggestions shown as quick-select chips on the ticket creation form. These help standardise categorisation and speed up ticket entry.</p>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Select the correct Sub-Category when raising a fibre or cable ticket — it is what activates the Cable / Wire Usage panel on the ticket detail page.
+                    </div>
+                `
+            },
             {
                 id: 'overview',
                 title: 'Overview',
@@ -168,22 +193,44 @@ const HELP_SECTIONS = [
                 title: 'Creating a Ticket',
                 content: `
                     <h2>Creating a Ticket</h2>
-                    
+
                     <h3>Required Fields</h3>
                     <ol>
                         <li><strong>Site</strong> - Select the location where the issue occurred</li>
                         <li><strong>Category</strong> - Type of issue (Hardware, Software, etc.)</li>
                         <li><strong>Title</strong> - Brief description of the problem</li>
-                        <li><strong>Priority</strong> - Urgency level</li>
                     </ol>
-                    
+
                     <h3>Optional Fields</h3>
                     <ul>
                         <li><strong>Asset</strong> - Link to specific device/equipment</li>
+                        <li><strong>Sub-Category</strong> - More specific categorisation (see smart suggestions below)</li>
                         <li><strong>Description</strong> - Detailed explanation of the issue</li>
                         <li><strong>Attachments</strong> - Photos or documents</li>
                     </ul>
-                    
+
+                    <h3>Sub-Category Smart Suggestions</h3>
+                    <p>After selecting a Category, clickable suggestion chips appear below the Sub-Category field. Click a chip to fill it instantly — or type a custom value. Changing the Category resets the Sub-Category so you always see relevant options.</p>
+                    <table>
+                        <thead>
+                            <tr><th>Category</th><th>Suggested Sub-Categories</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Connectivity</strong></td><td>Fibre Cut, Cable Cut, Cable Damage, Link Down, Latency Issue, Loop Detected</td></tr>
+                            <tr><td><strong>Network</strong></td><td>Fibre Cut, Cable Damage, Switch Failure, Port Down, IP Conflict, DNS Issue</td></tr>
+                            <tr><td><strong>Hardware</strong></td><td>Camera Malfunction, NVR Failure, Power Supply Failure, Physical Damage</td></tr>
+                            <tr><td><strong>Power</strong></td><td>Power Outage, UPS Failure, Overload, Tripped Breaker</td></tr>
+                            <tr><td><strong>Software</strong></td><td>Firmware Upgrade, Configuration Error, Software Crash, Login Issue</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Cable / Fibre Cut Tickets</h3>
+                    <p>When the Sub-Category contains <strong>Fibre Cut</strong>, <strong>Cable Cut</strong>, or <strong>Cable Damage</strong>, a blue notice appears on the form:</p>
+                    <div class="tip-box" style="background:#f0f9ff;border-color:#bae6fd;color:#0369a1;">
+                        🔌 <strong>Cable stock tracking will be enabled</strong> on this ticket. Engineers will be able to record cable/wire usage directly from the ticket detail page, and the stock quantity will be deducted automatically.
+                    </div>
+                    <p>This means the <strong>Cable / Wire Usage</strong> panel will be visible on the ticket detail page once the ticket is created.</p>
+
                     <h3>Auto-Generated</h3>
                     <ul>
                         <li><strong>Ticket Number</strong> - Format: TKT-YYYYMMDD-XXXX</li>
@@ -256,6 +303,57 @@ const HELP_SECTIONS = [
                         <li>🟡 <strong>At Risk</strong> - Approaching deadline</li>
                         <li>🔴 <strong>Breached</strong> - SLA exceeded</li>
                     </ul>
+                `
+            },
+            {
+                id: 'cable-usage',
+                title: 'Cable / Wire Usage',
+                content: `
+                    <h2>Cable / Wire Usage Panel</h2>
+                    <p>This panel appears automatically on the ticket detail page when the ticket's Sub-Category identifies it as a cable or fibre cut issue (e.g. "Fibre Cut", "Cable Cut", "Cable Damage").</p>
+
+                    <h3>What the Panel Shows</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Section</th><th>Description</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Available at Site</strong></td><td>All cable and wire assets in Spare status at the ticket's site — showing item name, type, make/model, quantity, and unit (e.g. 50 meters, 3 boxes)</td></tr>
+                            <tr><td><strong>Usage History</strong></td><td>All cable quantities recorded against this ticket, with engineer name, timestamp, quantity consumed, and any notes. Running total is shown top-right.</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Recording Cable Usage</h3>
+                    <p>Only available while the ticket is active (not Resolved, Verified, Closed, or Cancelled).</p>
+                    <p><strong>Who can record:</strong> Admin, Supervisor, Dispatcher, L1 Engineer, L2 Engineer.</p>
+                    <ol>
+                        <li>Click <strong>Record Usage</strong> in the top-right of the panel.</li>
+                        <li>In the modal:
+                            <ul>
+                                <li><strong>Select cable item</strong> — items with zero stock are shown but disabled.</li>
+                                <li><strong>Enter quantity used</strong> — the unit (e.g. meters, box) is shown inline next to the field. The maximum available is shown as a hint. You cannot exceed available stock.</li>
+                                <li><strong>Add a note</strong> (optional) — e.g. "Replaced 15m at junction box B".</li>
+                            </ul>
+                        </li>
+                        <li>Click <strong>Confirm</strong>.</li>
+                    </ol>
+                    <p>The stock quantity is reduced immediately. If it reaches zero, the item remains visible at 0 so stock managers know to reorder.</p>
+
+                    <h3>Key Rules</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Rule</th><th>Details</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Site-only stock</strong></td><td>Only cable from the ticket's own site is shown. Head-office or other-site cable is not accessible here.</td></tr>
+                            <tr><td><strong>No edits</strong></td><td>Usage entries cannot be edited or deleted. Add a corrective note entry if a wrong quantity was recorded.</td></tr>
+                            <tr><td><strong>Locked when closed</strong></td><td>The Record Usage button is disabled once the ticket is Resolved, Verified, Closed, or Cancelled.</td></tr>
+                        </tbody>
+                    </table>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Make sure the cable items in stock have the correct unit set (meter / m) so they appear in this panel. Items without a meter unit that are named with cable keywords (e.g. "Fibre Cable") also appear.
+                    </div>
                 `
             }
         ]
@@ -627,6 +725,52 @@ const HELP_SECTIONS = [
                 `
             },
             {
+                id: 'cable-stock',
+                title: 'Cable Stock & Ticket Integration',
+                content: `
+                    <h2>Cable Stock & Ticket Integration</h2>
+                    <p>Cable and wire items in the stock inventory are automatically linked to fibre/cable cut tickets, allowing engineers to record consumption and deduct quantities in real time.</p>
+
+                    <h3>How Cable Items Are Identified</h3>
+                    <p>An asset in stock is treated as a cable/wire item if it meets either condition:</p>
+                    <ul>
+                        <li>Its <strong>unit</strong> is set to <code>meter</code>, <code>m</code>, or <code>mtr</code></li>
+                        <li>Its <strong>Asset Type</strong> or <strong>Device Type</strong> contains a cable keyword: cable, cabling, cat5, cat6, fiber, fibre, coaxial, wire</li>
+                    </ul>
+
+                    <h3>End-to-End Flow</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Step</th><th>Who</th><th>Action</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>1</td><td>Dispatcher / Engineer</td><td>Creates a ticket with Sub-Category "Fibre Cut", "Cable Cut", or "Cable Damage"</td></tr>
+                            <tr><td>2</td><td>System</td><td>Cable / Wire Usage panel appears automatically on the ticket detail page</td></tr>
+                            <tr><td>3</td><td>Engineer</td><td>Records cable usage — selects item, enters quantity in the item's stored unit, adds note</td></tr>
+                            <tr><td>4</td><td>System</td><td>Deducts quantity from the cable asset record immediately. Logs the movement linked to the ticket.</td></tr>
+                            <tr><td>5</td><td>Stock Manager</td><td>Reviews inventory — items at 0 indicate reorder is needed</td></tr>
+                        </tbody>
+                    </table>
+
+                    <h3>Stock Movement Log</h3>
+                    <p>Every cable usage entry creates a movement log record of type <strong>CableUsed</strong>, storing:</p>
+                    <ul>
+                        <li>Linked ticket reference</li>
+                        <li>Quantity consumed (negative value)</li>
+                        <li>Asset snapshot at time of usage</li>
+                        <li>Engineer who recorded it</li>
+                        <li>Date and time</li>
+                    </ul>
+
+                    <h3>Zero-Quantity Behaviour</h3>
+                    <p>When a cable item's quantity reaches <strong>0</strong>, it remains visible in the stock list and in the Cable Usage panel (shown as disabled). This signals to stock managers that the item needs to be reordered — it is <em>not</em> automatically removed or decommissioned.</p>
+
+                    <div class="tip-box">
+                        <strong>💡 Tip:</strong> Ensure cable assets are created with the correct unit before usage tracking begins. You can update the unit on any Spare asset from the Stock Management page (Admin / Supervisor only).
+                    </div>
+                `
+            },
+            {
                 id: 'stock-rma-integration',
                 title: 'Stock & RMA Integration',
                 content: `
@@ -946,7 +1090,7 @@ const HELP_SECTIONS = [
 
 export default function Help() {
     const [expandedSection, setExpandedSection] = useState('getting-started');
-    const [activeSubsection, setActiveSubsection] = useState('overview');
+    const [activeSubsection, setActiveSubsection] = useState('whats-new');
     const [searchQuery, setSearchQuery] = useState('');
     const [isTransitioning, setIsTransitioning] = useState(false);
     const contentRef = React.useRef(null);

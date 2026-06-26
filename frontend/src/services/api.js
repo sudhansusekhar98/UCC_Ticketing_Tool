@@ -400,6 +400,10 @@ export const stockApi = {
     deleteAllocation: (id) => api.delete(`/stock/allocations/${id}`),
     getProjectAllocatedStock: (projectId) => api.get('/stock/allocations/for-device-form', { params: { projectId } }),
     getProjectCableAllocations: (projectId, cableType) => api.get('/stock/allocations/cables', { params: { projectId, cableType } }),
+    // Cable usage for ticket-based repairs
+    getCableStock: (siteId) => api.get('/stock/cables', { params: { siteId } }),
+    recordCableUsage: (data) => api.post('/stock/cable-usage', data),
+    getCableUsage: (ticketId) => api.get(`/stock/cable-usage/${ticketId}`),
 };
 
 // Field Operations API

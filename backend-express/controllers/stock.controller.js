@@ -2146,6 +2146,119 @@ export const getProjectCableAllocations = async (req, res, next) => {
     }
 };
 
+// @desc    Get cable/wire items in stock for a site (unit=meter or cable keywords)
+// @route   GET /api/stock/cables
+// @access  Private
+export const getCableStockForSite = async (req, res, next) => {
+    try {
+        const { siteId } = req.query;
+        const user = req.user;
+
+        const CABLE_KEYWORDS = ['cable', 'cabling', 'cat5', 'cat6', 'fiber', 'fibre', 'coaxial', 'wire'];
+        const METER_UNITS = ['meter', 'meters', 'm', 'mtr', 'mtrs'];
+
+        let matchQuery = { status: 'Spare' };
+
+        if (siteId) {
+            matchQuery.siteId = new mongoose.Types.ObjectId(siteId);
+        } else if (user.role !== 'Admin') {
+            matchQuery.siteId = { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) };
+        }
+
+        const assets = await Asset.find(matchQuery)
+            .select('assetCode assetType deviceType make model quantity unit locationDescription siteId')
+            .lean();
+
+        const cables = assets.filter(a => {
+            const assetType = (a.assetType || '').toLowerCase();
+            const deviceType = (a.deviceType || '').toLowerCase();
+            const unit = (a.unit || '').toLowerCase();
+            return METER_UNITS.includes(unit) ||
+                CABLE_KEYWORDS.some(kw => assetType.includes(kw) || deviceType.includes(kw));
+        });
+
+        res.json({ success: true, data: cables });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Record cable usage for a ticket (deducts from asset quantity)
+// @route   POST /api/stock/cable-usage
+// @access  Private
+export const recordCableUsage = async (req, res, next) => {
+    try {
+        const { ticketId, cableAssetId, quantityUsed, notes } = req.body;
+
+        if (!ticketId || !cableAssetId || quantityUsed == null) {
+            return res.status(400).json({ success: false, message: 'ticketId, cableAssetId, and quantityUsed are required' });
+        }
+
+        const qty = parseFloat(quantityUsed);
+        if (isNaN(qty) || qty <= 0) {
+            return res.status(400).json({ success: false, message: 'quantityUsed must be a positive number' });
+        }
+
+        const asset = await Asset.findById(cableAssetId);
+        if (!asset) {
+            return res.status(404).json({ success: false, message: 'Cable asset not found' });
+        }
+        if (asset.status !== 'Spare') {
+            return res.status(400).json({ success: false, message: 'Asset is not available in stock' });
+        }
+
+        const currentQty = asset.quantity ?? 0;
+        if (qty > currentQty) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot use ${qty} ${asset.unit || 'units'}. Only ${currentQty} ${asset.unit || 'units'} available.`
+            });
+        }
+
+        asset.quantity = Math.max(0, currentQty - qty);
+        await asset.save();
+
+        const log = await StockMovementLog.logMovement({
+            asset,
+            movementType: 'CableUsed',
+            fromSiteId: asset.siteId,
+            toSiteId: asset.siteId,
+            fromStatus: 'Spare',
+            toStatus: 'Spare',
+            performedBy: req.user._id,
+            ticketId,
+            notes: notes || null,
+            quantityChange: -qty
+        });
+
+        res.json({
+            success: true,
+            message: `${qty} ${asset.unit || 'units'} deducted from stock`,
+            data: { asset, log }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Get cable usage history for a ticket
+// @route   GET /api/stock/cable-usage/:ticketId
+// @access  Private
+export const getCableUsageForTicket = async (req, res, next) => {
+    try {
+        const { ticketId } = req.params;
+
+        const logs = await StockMovementLog.find({ ticketId, movementType: 'CableUsed' })
+            .populate('performedBy', 'name email')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        res.json({ success: true, data: logs });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Export inventory stock summary (grouped by deviceType, make, model)
 // @route   GET /api/stock/export-summary
 // @access  Private (Admin, Supervisor, or MANAGE_SITE_STOCK right)
