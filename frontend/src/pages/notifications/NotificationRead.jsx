@@ -119,9 +119,10 @@ export default function NotificationRead() {
 
                 <div className="notification-body">
                     <h1 className="notification-title">{notification.title}</h1>
-                    <div className="notification-message">
-                        {notification.message}
-                    </div>
+                    <div
+                        className="notification-message notification-message--rich"
+                        dangerouslySetInnerHTML={{ __html: notification.message }}
+                    />
                 </div>
 
                 {notification.link && (

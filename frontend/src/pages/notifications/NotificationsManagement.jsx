@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
     Bell,
@@ -22,12 +22,152 @@ import {
     Loader,
     Mail,
     Shield,
+    Bold,
+    Italic,
+    ImagePlus,
+    Underline,
 } from 'lucide-react';
 import { notificationsApi, usersApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import NotificationLogs from './NotificationLogs';
 import './NotificationsManagement.css';
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+function stripHtml(html) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = html || '';
+    return tmp.textContent || tmp.innerText || '';
+}
+
+function RichMessageEditor({ value, onChange }) {
+    const editorRef = useRef(null);
+    const imageInputRef = useRef(null);
+    const isInternalUpdate = useRef(false);
+
+    // Seed editor with initial value on mount (handles edit mode)
+    useEffect(() => {
+        if (editorRef.current && value) {
+            editorRef.current.innerHTML = value;
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // mount only
+
+    // Clear editor when parent resets value to empty (modal close/reset)
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!editor) return;
+        if (!value && editor.innerHTML !== '') {
+            editor.innerHTML = '';
+        }
+    }, [value]);
+
+    const sync = useCallback(() => {
+        if (editorRef.current) {
+            onChange(editorRef.current.innerHTML);
+        }
+    }, [onChange]);
+
+    const execCmd = (cmd, val = null) => {
+        editorRef.current?.focus();
+        document.execCommand(cmd, false, val);
+        sync();
+    };
+
+    const insertImageDataUrl = (dataUrl) => {
+        editorRef.current?.focus();
+        document.execCommand(
+            'insertHTML', false,
+            `<img src="${dataUrl}" class="notif-inline-img" />`
+        );
+        sync();
+    };
+
+    const handlePaste = (e) => {
+        const items = Array.from(e.clipboardData?.items || []);
+        const imgItem = items.find(i => i.type.startsWith('image/'));
+        if (!imgItem) return; // let default paste happen for text
+
+        e.preventDefault();
+        const blob = imgItem.getAsFile();
+        if (blob.size > MAX_IMAGE_BYTES) {
+            toast.error('Image exceeds 5 MB limit');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (evt) => insertImageDataUrl(evt.target.result);
+        reader.readAsDataURL(blob);
+    };
+
+    const handleImageFile = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > MAX_IMAGE_BYTES) {
+            toast.error('Image exceeds 5 MB limit');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (evt) => insertImageDataUrl(evt.target.result);
+        reader.readAsDataURL(file);
+        e.target.value = '';
+    };
+
+    const isEmpty = !stripHtml(value).trim();
+
+    return (
+        <div className="rich-editor-wrapper">
+            {/* Toolbar */}
+            <div className="rich-editor-toolbar">
+                <button type="button" title="Bold" className="rtb-btn" onMouseDown={e => { e.preventDefault(); execCmd('bold'); }}>
+                    <Bold size={14} />
+                </button>
+                <button type="button" title="Italic" className="rtb-btn" onMouseDown={e => { e.preventDefault(); execCmd('italic'); }}>
+                    <Italic size={14} />
+                </button>
+                <button type="button" title="Underline" className="rtb-btn" onMouseDown={e => { e.preventDefault(); execCmd('underline'); }}>
+                    <Underline size={14} />
+                </button>
+                <div className="rtb-divider" />
+                <button
+                    type="button"
+                    title="Attach image"
+                    className="rtb-btn rtb-img-btn"
+                    onClick={() => imageInputRef.current?.click()}
+                >
+                    <ImagePlus size={14} />
+                    <span>Image</span>
+                </button>
+                <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleImageFile}
+                />
+            </div>
+
+            {/* Editable body */}
+            <div
+                ref={editorRef}
+                className="rich-editor-body"
+                contentEditable
+                suppressContentEditableWarning
+                onInput={sync}
+                onPaste={handlePaste}
+                data-placeholder="Enter notification message — paste or attach images inline…"
+                aria-label="Message"
+                aria-multiline="true"
+                role="textbox"
+            />
+            {isEmpty && (
+                <div className="rich-editor-placeholder" aria-hidden="true">
+                    Enter notification message — paste or attach images inline…
+                </div>
+            )}
+        </div>
+    );
+}
 
 const notificationTypes = [
     { value: 'info', label: 'Info', icon: Info, color: '#3b82f6' },
@@ -165,7 +305,7 @@ export default function NotificationsManagement() {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!formData.title.trim() || !formData.message.trim()) {
+        if (!formData.title.trim() || !stripHtml(formData.message).trim()) {
             toast.error('Title and message are required');
             return;
         }
@@ -342,12 +482,13 @@ export default function NotificationsManagement() {
                                             <div className="col-title" data-label="Content">
                                                 <div className="notification-title">{notification.title}</div>
                                                 <div className="notification-message">
-                                                    {expandedIds.has(notification._id)
-                                                        ? notification.message
-                                                        : (notification.message?.length > 100
-                                                            ? `${notification.message.substring(0, 100)}...`
-                                                            : notification.message)}
-                                                    {notification.message?.length > 100 && (
+                                                    {(() => {
+                                                        const plain = stripHtml(notification.message);
+                                                        return expandedIds.has(notification._id)
+                                                            ? plain
+                                                            : plain.length > 100 ? `${plain.substring(0, 100)}…` : plain;
+                                                    })()}
+                                                    {stripHtml(notification.message).length > 100 && (
                                                         <button
                                                             className="read-more-btn"
                                                             onClick={(e) => {
@@ -496,17 +637,10 @@ export default function NotificationsManagement() {
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label" htmlFor="message">Message *</label>
-                                    <textarea
-                                        id="message"
-                                        name="message"
-                                        className="form-textarea"
+                                    <label className="form-label">Message *</label>
+                                    <RichMessageEditor
                                         value={formData.message}
-                                        onChange={handleInputChange}
-                                        placeholder="Enter notification message"
-                                        rows={4}
-                                        maxLength={1000}
-                                        required
+                                        onChange={(html) => setFormData(prev => ({ ...prev, message: html }))}
                                     />
                                 </div>
 
