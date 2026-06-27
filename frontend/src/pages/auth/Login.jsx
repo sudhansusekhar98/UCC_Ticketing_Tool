@@ -1,52 +1,41 @@
-import { useActionState, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useFormStatus } from 'react-dom';
 import { Eye, EyeOff, Loader } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import TOpsLogo from '../../assets/TicketOps.png';
 import './Login.css';
 
-// Separate component so useFormStatus can read the parent form's pending state
-function LoginButton() {
-    const { pending } = useFormStatus();
-    return (
-        <button
-            type="submit"
-            className="btn btn-primary btn-lg w-full login-btn"
-            disabled={pending}
-        >
-            {pending ? (
-                <>
-                    <Loader size={20} className="animate-spin" />
-                    Signing in...
-                </>
-            ) : (
-                'Sign In'
-            )}
-        </button>
-    );
-}
-
 export default function Login() {
     const [showPassword, setShowPassword] = useState(false);
+    const [error, setError] = useState(null);
+    const [isPending, setIsPending] = useState(false);
     const { login } = useAuthStore();
     const navigate = useNavigate();
 
-    const [state, formAction] = useActionState(async (prevState, formData) => {
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
         const username = formData.get('username')?.trim();
         const password = formData.get('password');
 
         if (!username || !password) {
-            return { error: 'Please enter username and password' };
+            setError('Please enter username and password');
+            return;
         }
 
+        setError(null);
+        setIsPending(true);
+
         const result = await login(username, password);
+
+        setIsPending(false);
+
         if (result.success) {
             navigate('/dashboard');
-            return { error: null };
+        } else {
+            setError(result.error || 'Login failed');
         }
-        return { error: result.error || 'Login failed' };
-    }, { error: null });
+    };
 
     return (
         <div className="login-page">
@@ -68,7 +57,7 @@ export default function Login() {
                         <p className="login-subtitle">Surveillance Maintenance Platform</p>
                     </div>
 
-                    <form action={formAction} className="login-form">
+                    <form onSubmit={handleSubmit} className="login-form">
                         <div className="form-group">
                             <label className="form-label">Username</label>
                             <input
@@ -100,13 +89,26 @@ export default function Login() {
                             </div>
                         </div>
 
-                        {state.error && (
+                        {error && (
                             <div className="login-error">
-                                {state.error}
+                                {error}
                             </div>
                         )}
 
-                        <LoginButton />
+                        <button
+                            type="submit"
+                            className="btn btn-primary btn-lg w-full login-btn"
+                            disabled={isPending}
+                        >
+                            {isPending ? (
+                                <>
+                                    <Loader size={20} className="animate-spin" />
+                                    Signing in...
+                                </>
+                            ) : (
+                                'Sign In'
+                            )}
+                        </button>
                     </form>
 
                     <div className="login-client-link">
