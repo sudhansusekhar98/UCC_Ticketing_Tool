@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
     ArrowRightLeft, PackagePlus, Truck, CheckCircle2, AlertCircle,
     Clock, Filter, Building2, Box, Calendar, User, FileText,
-    ChevronLeft, ChevronRight, RefreshCw, History
+    ChevronLeft, ChevronRight, RefreshCw, History, Cable
 } from 'lucide-react';
 import { stockApi, sitesApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -32,7 +32,8 @@ const MovementLogs = () => {
         { value: 'StatusChange', label: 'Status Change', icon: RefreshCw, color: 'var(--secondary)' },
         { value: 'Reserved', label: 'Reserved', icon: Clock, color: 'var(--warning)' },
         { value: 'Released', label: 'Released', icon: CheckCircle2, color: 'var(--success)' },
-        { value: 'Disposed', label: 'Disposed', icon: AlertCircle, color: 'var(--danger)' }
+        { value: 'Disposed', label: 'Disposed', icon: AlertCircle, color: 'var(--danger)' },
+        { value: 'CableUsed', label: 'Cable Used', icon: Cable, color: '#f97316' },
     ];
 
     useEffect(() => {
@@ -129,7 +130,7 @@ const MovementLogs = () => {
 
             {/* Stats Cards */}
             <div className="movement-stats-grid">
-                {movementTypes.slice(0, 6).map(({ value, label, icon: Icon, color }) => (
+                {movementTypes.map(({ value, label, icon: Icon, color }) => (
                     <div key={value} className="stat-card-mini" style={{ borderLeftColor: color }}>
                         <div className="stat-icon-wrapper" style={{ background: `${color}15`, color }}>
                             <Icon size={22} />
@@ -217,6 +218,7 @@ const MovementLogs = () => {
                                 <th>Asset</th>
                                 <th>From → To</th>
                                 <th>Status Change</th>
+                                <th>Qty Change</th>
                                 <th>Reference</th>
                                 <th>Performed By</th>
                                 <th>Notes</th>
@@ -277,6 +279,14 @@ const MovementLogs = () => {
                                                 </span>
                                             </div>
                                         ) : '-'}
+                                    </td>
+                                    <td style={{ textAlign: 'center', fontWeight: 600, fontSize: '13px' }}>
+                                        {log.quantityChange != null ? (
+                                            <span style={{ color: log.quantityChange < 0 ? '#dc2626' : '#059669' }}>
+                                                {log.quantityChange > 0 ? `+${log.quantityChange}` : log.quantityChange}
+                                                {log.assetSnapshot?.unit ? ` ${log.assetSnapshot.unit}` : ''}
+                                            </span>
+                                        ) : '—'}
                                     </td>
                                     <td className="reference-cell">
                                         {log.rmaId && (

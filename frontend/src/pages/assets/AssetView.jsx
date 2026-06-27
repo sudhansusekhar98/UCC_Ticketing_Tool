@@ -451,9 +451,19 @@ export default function AssetView() {
                                                         display: 'block'
                                                     }}>Original Device</span>
                                                     <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                                                        {(rma.originalDetailsSnapshot.make || rma.originalDetailsSnapshot.model) && (
+                                                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                                <strong>Make/Model:</strong> {[rma.originalDetailsSnapshot.make, rma.originalDetailsSnapshot.model].filter(Boolean).join(' ')}
+                                                            </span>
+                                                        )}
                                                         {rma.originalDetailsSnapshot.serialNumber && (
                                                             <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                                                                 <strong>S/N:</strong> {rma.originalDetailsSnapshot.serialNumber}
+                                                            </span>
+                                                        )}
+                                                        {rma.originalDetailsSnapshot.mac && (
+                                                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                                <strong>MAC:</strong> {rma.originalDetailsSnapshot.mac}
                                                             </span>
                                                         )}
                                                         {rma.originalDetailsSnapshot.ipAddress && (
@@ -484,9 +494,19 @@ export default function AssetView() {
                                                         display: 'block'
                                                     }}>Replacement Device</span>
                                                     <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                                                        {(rma.replacementDetails.make || rma.replacementDetails.model) && (
+                                                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                                <strong>Make/Model:</strong> {[rma.replacementDetails.make, rma.replacementDetails.model].filter(Boolean).join(' ')}
+                                                            </span>
+                                                        )}
                                                         {rma.replacementDetails.serialNumber && (
                                                             <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                                                                 <strong>S/N:</strong> {rma.replacementDetails.serialNumber}
+                                                            </span>
+                                                        )}
+                                                        {rma.replacementDetails.mac && (
+                                                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                                                <strong>MAC:</strong> {rma.replacementDetails.mac}
                                                             </span>
                                                         )}
                                                         {rma.replacementDetails.ipAddress && (
@@ -1232,10 +1252,22 @@ export default function AssetView() {
                                                                     display: 'inline-block'
                                                                 }}>Original</span>
                                                                 <div style={{ marginTop: '8px' }}>
+                                                                    {(rma.originalDetailsSnapshot.make || rma.originalDetailsSnapshot.model) && (
+                                                                        <div style={{ marginBottom: '4px' }}>
+                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>Make/Model: </span>
+                                                                            <span style={{ fontSize: '12px', color: '#374151' }}>{[rma.originalDetailsSnapshot.make, rma.originalDetailsSnapshot.model].filter(Boolean).join(' ')}</span>
+                                                                        </div>
+                                                                    )}
                                                                     {rma.originalDetailsSnapshot.serialNumber && (
                                                                         <div style={{ marginBottom: '4px' }}>
                                                                             <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>S/N: </span>
                                                                             <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151' }}>{rma.originalDetailsSnapshot.serialNumber}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {rma.originalDetailsSnapshot.mac && (
+                                                                        <div style={{ marginBottom: '4px' }}>
+                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>MAC: </span>
+                                                                            <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151' }}>{rma.originalDetailsSnapshot.mac}</span>
                                                                         </div>
                                                                     )}
                                                                     {rma.originalDetailsSnapshot.ipAddress && (
@@ -1278,10 +1310,22 @@ export default function AssetView() {
                                                                     display: 'inline-block'
                                                                 }}>Replacement</span>
                                                                 <div style={{ marginTop: '8px' }}>
+                                                                    {(rma.replacementDetails.make || rma.replacementDetails.model) && (
+                                                                        <div style={{ marginBottom: '4px' }}>
+                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>Make/Model: </span>
+                                                                            <span style={{ fontSize: '12px', color: '#374151' }}>{[rma.replacementDetails.make, rma.replacementDetails.model].filter(Boolean).join(' ')}</span>
+                                                                        </div>
+                                                                    )}
                                                                     {rma.replacementDetails.serialNumber && (
                                                                         <div style={{ marginBottom: '4px' }}>
                                                                             <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>S/N: </span>
                                                                             <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151' }}>{rma.replacementDetails.serialNumber}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {rma.replacementDetails.mac && (
+                                                                        <div style={{ marginBottom: '4px' }}>
+                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>MAC: </span>
+                                                                            <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151' }}>{rma.replacementDetails.mac}</span>
                                                                         </div>
                                                                     )}
                                                                     {rma.replacementDetails.ipAddress && (

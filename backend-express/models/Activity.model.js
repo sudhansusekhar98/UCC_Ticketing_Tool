@@ -146,7 +146,6 @@ activitySchema.index({ projectId: 1, status: 1 });
 activitySchema.index({ projectId: 1, isActive: 1 });
 activitySchema.index({ leadEngineer: 1 });
 activitySchema.index({ assignees: 1 });
-activitySchema.index({ activityNumber: 1 });
 activitySchema.index({ createdAt: -1 });
 
 // Pre-save hook for auto-generating activity number

@@ -84,7 +84,8 @@ const stockMovementLogSchema = new mongoose.Schema({
         serialNumber: String,
         mac: String,
         make: String,
-        model: String
+        model: String,
+        unit: String
     }
 }, {
     timestamps: true
@@ -137,7 +138,8 @@ stockMovementLogSchema.statics.logMovement = async function (data) {
             serialNumber: asset.serialNumber,
             mac: asset.mac,
             make: asset.make,
-            model: asset.model
+            model: asset.model,
+            unit: asset.unit
         }
     });
 };

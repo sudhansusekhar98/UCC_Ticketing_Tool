@@ -227,6 +227,7 @@ export const ticketsApi = {
     getAuditTrail: (id) => api.get(`/tickets/${id}/audit`),
     getDashboardStats: (params) => api.get('/tickets/dashboard/stats', { params }),
     getTrends: (params = {}) => api.get('/tickets/dashboard/trends', { params }),
+    addActivity: (ticketId, data) => api.post(`/tickets/${ticketId}/activities`, data),
 };
 
 // Lookups API

@@ -15,8 +15,9 @@ import Login from './pages/auth/Login';
 import ClientSignup from './pages/auth/ClientSignup';
 import ClientRegistrations from './pages/admin/ClientRegistrations';
 // import Dashboard from './pages/dashboard/Dashboard';
-import TicketingDashboard from './pages/dashboard/TicketingDashboard';
+// import TicketingDashboard from './pages/dashboard/TicketingDashboard';
 // import AnalyticsDashboard from './pages/dashboard/analytics/AnalyticsDashboard';
+import VDashboard from './pages/dashboard/VDashboard';
 import Reports from './pages/reports/Reports';
 import TicketsList from './pages/tickets/TicketsList';
 import TicketDetail from './pages/tickets/TicketDetail';
@@ -239,7 +240,7 @@ function App() {
             path="/dashboard"
             element={
               <ProtectedRoute>
-                <TicketingDashboard />
+                <VDashboard />
               </ProtectedRoute>
             }
           />

@@ -190,7 +190,6 @@ challengeLogSchema.index({ reportedBy: 1 });
 challengeLogSchema.index({ assignedTo: 1 });
 challengeLogSchema.index({ projectId: 1, resolutionStatus: 1 });
 challengeLogSchema.index({ createdAt: -1 });
-challengeLogSchema.index({ challengeNumber: 1 });
 
 // Pre-save hook for auto-generating challenge number
 challengeLogSchema.pre('save', async function(next) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { stockApi } from '../../services/api';
+import { stockApi, ticketsApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { Cable, Plus, History, AlertTriangle, CheckCircle, X, Loader } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
@@ -72,6 +72,19 @@ const TicketCablePanel = ({ ticketId, siteId, ticketStatus, isLocked, onUpdate }
         setSubmitting(true);
         try {
             await stockApi.recordCableUsage({ ticketId, cableAssetId: selectedCable, quantityUsed: qty, notes });
+
+            // Auto-post a ticket comment summarising the cable usage
+            const cableName = selectedCableObj
+                ? [selectedCableObj.deviceType || selectedCableObj.assetType, selectedCableObj.make, selectedCableObj.model]
+                    .filter(Boolean).join(' ')
+                : 'Cable';
+            const commentText = `Cable/Wire Usage Recorded: ${qty} ${unit} of ${cableName} deducted from site stock.${notes ? ` Notes: ${notes}` : ''}`;
+            try {
+                await ticketsApi.addActivity(ticketId, { content: commentText, activityType: 'Comment', isInternal: true });
+            } catch {
+                // comment failure is non-critical; main usage already saved
+            }
+
             toast.success(`${qty} ${unit} deducted from stock`);
             closeModal();
             await loadData();

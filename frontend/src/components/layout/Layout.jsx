@@ -27,6 +27,7 @@ import useAuthStore from '../../context/authStore';
 import { PERMISSIONS } from '../../constants/permissions';
 import { ticketsApi, assetsApi, sitesApi, usersApi } from '../../services/api';
 import NotificationBell from '../notifications/NotificationBell';
+import ErrorBoundary from '../common/ErrorBoundary';
 import TOpsLogo from '../../assets/TicketOps.png';
 import './Layout.css';
 
@@ -497,7 +498,9 @@ export default function Layout({ children }) {
 
                 {/* Page Content */}
                 <main className="main-content">
-                    {children}
+                    <ErrorBoundary key={location.pathname}>
+                        {children}
+                    </ErrorBoundary>
                 </main>
             </div>
         </div>

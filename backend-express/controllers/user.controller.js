@@ -278,10 +278,10 @@ export const getEngineers = async (req, res, next) => {
     }
 
     const engineers = await User.find(engineerQuery)
-      .select('fullName username role siteId assignedSites mobileNumber')
+      .select('fullName username role siteId assignedSites mobileNumber lastActivityAt profilePicture')
       .populate('siteId', 'siteName')
       .populate('assignedSites', 'siteName')
-      .sort({ fullName: 1 });
+      .sort({ lastActivityAt: -1, fullName: 1 });
 
     res.json({
       success: true,

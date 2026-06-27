@@ -68,7 +68,18 @@
       "Bash(node --check controllers/clientRegistration.controller.js)",
       "Bash(node --check utils/upload.js)",
       "Bash(node --check middleware/auth.middleware.js)",
-      "mcp__code-review-graph__semantic_search_nodes_tool"
+      "mcp__code-review-graph__semantic_search_nodes_tool",
+      "Bash(find src *)",
+      "Bash(cat src/main.jsx)",
+      "Bash(cat src/index.jsx)",
+      "Bash(node -p \"require\\('react/package.json'\\).version\")",
+      "Bash(node -p \"JSON.stringify\\(require\\('@visactor/react-vchart/package.json'\\).peerDependencies||{}, null, 2\\)\")",
+      "Bash(node \"C:\\\\Users\\\\sudha\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--VL-Access-CODES-UCC-Ticketing-Tool---VPS\\\\54013264-a54f-40f9-ad87-7bb9777fe50c\\\\scratchpad\\\\cdpcheck.js\")",
+      "Bash(cp \"C:\\\\Users\\\\sudha\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\D--VL-Access-CODES-UCC-Ticketing-Tool---VPS\\\\54013264-a54f-40f9-ad87-7bb9777fe50c\\\\scratchpad\\\\cdpcheck.js\" \"D:\\\\VL Access\\\\CODES\\\\UCC_Ticketing_Tool - VPS\\\\frontend\\\\_cdpcheck.cjs\")",
+      "Bash(node _cdpcheck.cjs)",
+      "Bash(rm -f _chartcheck.html _chartcheck.jsx _cdpcheck.cjs)",
+      "Bash(ls _chartcheck* _cdpcheck*)",
+      "Bash(node _shot.cjs \"http://localhost:5173/_dashpreview.html\" \"_preview_dark.png\" \"dark\")"
     ]
   },
   "enableAllProjectMcpServers": true,
