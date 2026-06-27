@@ -59,7 +59,7 @@ export default function TicketsList() {
     const [statuses, setStatuses] = useState([]);
     const [priorities, setPriorities] = useState([]);
     const [categories, setCategories] = useState([]);
-    const [engineers, setEngineers] = useState([]);
+    const [assignees, setAssignees] = useState([]);
     const [sites, setSites] = useState([]);
 
     const isSiteClient = hasRole('SiteClient');
@@ -75,11 +75,11 @@ export default function TicketsList() {
 
     const loadDropdowns = async () => {
         try {
-            const [statusRes, priorityRes, categoryRes, engineersRes, sitesRes] = await Promise.all([
+            const [statusRes, priorityRes, categoryRes, assigneesRes, sitesRes] = await Promise.all([
                 lookupsApi.getStatuses(),
                 lookupsApi.getPriorities(),
                 lookupsApi.getCategories(),
-                usersApi.getEngineers(),
+                usersApi.getDropdown(),
                 sitesApi.getDropdown(),
             ]);
             // Handle both Express (data.data) and .NET (data) response formats
@@ -87,11 +87,11 @@ export default function TicketsList() {
             setPriorities(priorityRes.data.data || priorityRes.data || []);
             setCategories(categoryRes.data.data || categoryRes.data || []);
 
-            // Map engineers to expected format
-            const engineerData = engineersRes.data.data || engineersRes.data || [];
-            setEngineers(engineerData.map(e => ({
-                value: e._id || e.value || e.userId,
-                label: e.fullName || e.label
+            // Map all users to expected format for the assignee filter
+            const assigneeData = assigneesRes.data.data || assigneesRes.data || [];
+            setAssignees(assigneeData.map(u => ({
+                value: u._id || u.value || u.userId,
+                label: u.fullName || u.label
             })));
 
             // Map sites to expected format
@@ -298,9 +298,9 @@ export default function TicketsList() {
                                     onChange={(e) => { const f = { ...filters, assignedTo: e.target.value, page: 1 }; setFilters(f); setTimeout(() => handleSearchWith(f), 0); }}
                                     className="form-select filter-select"
                                 >
-                                    <option value="">All Engineers</option>
-                                    {engineers.map((e) => (
-                                        <option key={e.value} value={e.value}>{e.label}</option>
+                                    <option value="">All Assignees</option>
+                                    {assignees.map((u) => (
+                                        <option key={u.value} value={u.value}>{u.label}</option>
                                     ))}
                                 </select>
 
