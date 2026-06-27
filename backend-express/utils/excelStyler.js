@@ -185,6 +185,104 @@ export async function workbookToBuffer(wb) {
   return wb.xlsx.writeBuffer();
 }
 
+/**
+ * Add a "Summary" worksheet to an existing workbook.
+ * sections = [{ title: string, rows: [{ label, count, fill? }] }]
+ */
+function addSummarySheet(wb, reportTitle, sections) {
+  const ws = wb.addWorksheet('Summary', {
+    pageSetup: { paperSize: 9, orientation: 'portrait' },
+  });
+  ws.getColumn(1).width = 34;
+  ws.getColumn(2).width = 14;
+  ws.getColumn(3).width = 14;
+
+  let r = 1;
+
+  // Report title banner
+  ws.mergeCells(r, 1, r, 3);
+  const titleCell = ws.getRow(r).getCell(1);
+  titleCell.value = reportTitle;
+  titleCell.font = { name: 'Calibri', size: 13, bold: true, color: fgText('FFFFFF') };
+  titleCell.fill = bgFill(C.headerBg);
+  titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  ws.getRow(r).height = 26;
+  r++;
+
+  // Generated date
+  ws.mergeCells(r, 1, r, 3);
+  const dateCell = ws.getRow(r).getCell(1);
+  dateCell.value = `Generated: ${new Date().toLocaleString('en-IN')}`;
+  dateCell.font = { name: 'Calibri', size: 10, color: fgText('1E40AF') };
+  dateCell.fill = bgFill('EFF6FF');
+  dateCell.alignment = { vertical: 'middle', horizontal: 'center' };
+  ws.getRow(r).height = 18;
+  r += 2; // blank spacer
+
+  for (const section of sections) {
+    if (!section.rows || section.rows.length === 0) continue;
+
+    // Section heading
+    ws.mergeCells(r, 1, r, 3);
+    const hCell = ws.getRow(r).getCell(1);
+    hCell.value = section.title;
+    hCell.font = { name: 'Calibri', size: 11, bold: true, color: fgText('1E293B') };
+    hCell.fill = bgFill('E2E8F0');
+    hCell.alignment = { vertical: 'middle', indent: 1 };
+    ws.getRow(r).height = 20;
+    r++;
+
+    // Column headers
+    const colLabels = ['Category', 'Count', '%'];
+    const hRow = ws.getRow(r);
+    colLabels.forEach((lbl, i) => {
+      const cell = hRow.getCell(i + 1);
+      cell.value = lbl;
+      cell.font = HEADER_FONT;
+      cell.fill = bgFill(C.headerBg);
+      cell.border = THIN_BORDER;
+      cell.alignment = { vertical: 'middle', horizontal: i === 0 ? 'left' : 'center' };
+    });
+    hRow.height = 20;
+    r++;
+
+    const total = section.rows.reduce((s, row) => s + row.count, 0);
+
+    section.rows.forEach((row, i) => {
+      const pct = total > 0 ? `${Math.round((row.count / total) * 100)}%` : '0%';
+      const dRow = ws.getRow(r);
+      dRow.getCell(1).value = row.label;
+      dRow.getCell(2).value = row.count;
+      dRow.getCell(3).value = pct;
+      const defaultFill = bgFill(i % 2 === 0 ? C.rowEven : C.rowOdd);
+      [1, 2, 3].forEach(col => {
+        const cell = dRow.getCell(col);
+        cell.fill = (col === 1 && row.fill) ? row.fill : defaultFill;
+        cell.border = THIN_BORDER;
+        cell.font = BASE_FONT;
+        cell.alignment = { vertical: 'middle', horizontal: col === 1 ? 'left' : 'center' };
+      });
+      dRow.height = 18;
+      r++;
+    });
+
+    // Totals row
+    const totRow = ws.getRow(r);
+    totRow.getCell(1).value = 'TOTAL';
+    totRow.getCell(2).value = total;
+    totRow.getCell(3).value = '100%';
+    [1, 2, 3].forEach(col => {
+      const cell = totRow.getCell(col);
+      cell.fill = bgFill(C.totals);
+      cell.font = BOLD_FONT;
+      cell.border = THIN_BORDER;
+      cell.alignment = { vertical: 'middle', horizontal: col === 1 ? 'left' : 'center' };
+    });
+    totRow.height = 18;
+    r += 2; // spacer between sections
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // STYLED EXCEL GENERATORS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -255,9 +353,36 @@ export async function buildTicketsExcel(tickets) {
     fillMap[slaCol]      = statusFill(ticket.isSLARestoreBreached ? 'Breached' : 'On Track');
 
     styleDataRow(row, i, fillMap);
-    // Bold ticket number
     row.getCell(1).font = BOLD_FONT;
   });
+
+  // ── Summary sheet ──────────────────────────────────────────────────────────
+  const statusCounts   = {};
+  const priorityCounts = {};
+  const categoryCounts = {};
+  tickets.forEach(t => {
+    statusCounts[t.status || 'Unknown']            = (statusCounts[t.status || 'Unknown'] || 0) + 1;
+    priorityCounts[t.priority || 'Unknown']        = (priorityCounts[t.priority || 'Unknown'] || 0) + 1;
+    categoryCounts[t.category || 'Uncategorized']  = (categoryCounts[t.category || 'Uncategorized'] || 0) + 1;
+  });
+
+  addSummarySheet(wb, '📋  TICKETS REPORT — SUMMARY', [
+    {
+      title: 'By Status',
+      rows: Object.entries(statusCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count, fill: statusFill(label) })),
+    },
+    {
+      title: 'By Priority',
+      rows: Object.entries(priorityCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count, fill: priorityFill(label) })),
+    },
+    {
+      title: 'By Category',
+      rows: Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count })),
+    },
+  ]);
 
   return workbookToBuffer(wb);
 }
@@ -425,11 +550,38 @@ export async function buildAssetsExcel(assets, rmaMap) {
 
     const fillMap = {};
     fillMap[4] = statusFill(asset.status);
-    // Flag high RMA counts
     if ((rma.rmaCount || 0) >= 3) fillMap[19] = bgFill(C.priorHigh);
     styleDataRow(row, i, fillMap);
     row.getCell(1).font = BOLD_FONT;
   });
+
+  // ── Summary sheet ──────────────────────────────────────────────────────────
+  const assetTypeCounts   = {};
+  const deviceTypeCounts  = {};
+  const assetStatusCounts = {};
+  assets.forEach(a => {
+    assetTypeCounts[a.assetType || 'Unknown']   = (assetTypeCounts[a.assetType || 'Unknown'] || 0) + 1;
+    deviceTypeCounts[a.deviceType || 'Unknown'] = (deviceTypeCounts[a.deviceType || 'Unknown'] || 0) + 1;
+    assetStatusCounts[a.status || 'Unknown']    = (assetStatusCounts[a.status || 'Unknown'] || 0) + 1;
+  });
+
+  addSummarySheet(wb, '🖥️  ASSET STATUS REPORT — SUMMARY', [
+    {
+      title: 'By Asset Type',
+      rows: Object.entries(assetTypeCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count })),
+    },
+    {
+      title: 'By Device Type',
+      rows: Object.entries(deviceTypeCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count })),
+    },
+    {
+      title: 'By Status',
+      rows: Object.entries(assetStatusCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count, fill: statusFill(label) })),
+    },
+  ]);
 
   return workbookToBuffer(wb);
 }
@@ -500,6 +652,36 @@ export async function buildRMAExcel(rmaRequests) {
     row.getCell(1).font = BOLD_FONT;
   });
 
+  // ── Summary sheet ──────────────────────────────────────────────────────────
+  const rmaStatusCounts     = {};
+  const rmaDeviceTypeCounts = {};
+  const rmaAssetTypeCounts  = {};
+  rmaRequests.forEach(r => {
+    rmaStatusCounts[r.status || 'Unknown']                                    = (rmaStatusCounts[r.status || 'Unknown'] || 0) + 1;
+    const dt = r.originalAssetId?.deviceType || 'Unknown';
+    rmaDeviceTypeCounts[dt]                                                   = (rmaDeviceTypeCounts[dt] || 0) + 1;
+    const at = r.originalAssetId?.assetType || 'Unknown';
+    rmaAssetTypeCounts[at]                                                    = (rmaAssetTypeCounts[at] || 0) + 1;
+  });
+
+  addSummarySheet(wb, '🔄  RMA REPORT — SUMMARY', [
+    {
+      title: 'By Status',
+      rows: Object.entries(rmaStatusCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count, fill: statusFill(label) })),
+    },
+    {
+      title: 'By Device Type',
+      rows: Object.entries(rmaDeviceTypeCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count })),
+    },
+    {
+      title: 'By Asset Type',
+      rows: Object.entries(rmaAssetTypeCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count })),
+    },
+  ]);
+
   return workbookToBuffer(wb);
 }
 
@@ -553,6 +735,27 @@ export async function buildSpareStockExcel(assets) {
     styleDataRow(row, i, {});
     row.getCell(1).font = BOLD_FONT;
   });
+
+  // ── Summary sheet ──────────────────────────────────────────────────────────
+  const spareDeviceTypeCounts = {};
+  const spareAssetTypeCounts  = {};
+  assets.forEach(a => {
+    spareDeviceTypeCounts[a.deviceType || 'Unknown'] = (spareDeviceTypeCounts[a.deviceType || 'Unknown'] || 0) + 1;
+    spareAssetTypeCounts[a.assetType || 'Unknown']   = (spareAssetTypeCounts[a.assetType || 'Unknown'] || 0) + 1;
+  });
+
+  addSummarySheet(wb, '📦  SPARE STOCK REPORT — SUMMARY', [
+    {
+      title: 'By Device Type',
+      rows: Object.entries(spareDeviceTypeCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count })),
+    },
+    {
+      title: 'By Asset Type',
+      rows: Object.entries(spareAssetTypeCounts).sort((a, b) => b[1] - a[1])
+        .map(([label, count]) => ({ label, count })),
+    },
+  ]);
 
   return workbookToBuffer(wb);
 }

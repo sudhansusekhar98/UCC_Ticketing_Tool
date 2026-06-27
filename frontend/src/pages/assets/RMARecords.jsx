@@ -148,7 +148,11 @@ export default function RMARecords() {
         );
     };
 
-    const filteredRmas = activeTab === 'ongoing' ? ongoingRmas : completedRmas;
+    // When a status filter is active the server already scopes the result; skip the
+    // ongoing/completed tab split so the filtered records are always visible.
+    const filteredRmas = statusFilter
+        ? rmas
+        : (activeTab === 'ongoing' ? ongoingRmas : completedRmas);
 
     const searchedRmas = searchTerm
         ? filteredRmas.filter(rma =>

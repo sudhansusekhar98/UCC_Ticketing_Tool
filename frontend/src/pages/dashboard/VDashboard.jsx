@@ -33,6 +33,11 @@ const pctDelta = (cur, prev) => {
     return Math.round(((cur - prev) / prev) * 100);
 };
 
+/* Guard: suppress a positive delta badge when the displayed KPI value is 0
+   (e.g. "0 Open tickets ↑250%" is misleading — the % comes from a different denominator) */
+const safeDelta = (displayedValue, deltaValue) =>
+    displayedValue === 0 && (deltaValue ?? 0) > 0 ? null : deltaValue;
+
 /* ── avatar helpers ───────────────────────────────────────── */
 const ACCENT_COLORS = ['#4F46E5', '#0EA5E9', '#10B981', '#8B5CF6', '#F59E0B'];
 function initials(name) {
@@ -161,8 +166,10 @@ export default function VDashboard() {
     );
 
     const criticalCount = useMemo(() => {
+        // Prefer the new combined field (priority=Critical OR slaBreached) from backend
+        if (stats?.criticalTickets != null) return stats.criticalTickets;
         const p = stats?.ticketsByPriority ?? stats?.byPriority ?? [];
-        return p.find((x) => x.priority === 'Critical')?.count ?? 0;
+        return (p.find((x) => x.priority === 'Critical')?.count ?? 0) + (stats?.slaBreached ?? 0);
     }, [stats]);
 
     const statusData = stats?.ticketsByStatus ?? stats?.byStatus ?? [];
@@ -232,16 +239,24 @@ export default function VDashboard() {
             <section className="vd-kpi-grid">
                 <KpiCard to="/tickets" icon={Ticket} label="Total Tickets" value={stats?.totalTickets ?? 0}
                     accent="#4F46E5" delta={pctDelta(cur.totalCreated, prev.totalCreated)} series={createdSeries} />
-                <KpiCard to="/tickets?status=Open" icon={FolderOpen} label="Open" value={stats?.openTickets ?? 0}
-                    accent="#0EA5E9" delta={pctDelta(cur.openTickets, prev.openTickets)} invert />
+                <KpiCard to="/tickets?status=Open,Assigned" icon={FolderOpen} label="Open"
+                    value={stats?.openTickets ?? 0}
+                    accent="#0EA5E9"
+                    delta={safeDelta(stats?.openTickets ?? 0, pctDelta(cur.openTickets, prev.openTickets))}
+                    invert />
                 <KpiCard to="/tickets?status=InProgress" icon={Loader2} label="In Progress" value={stats?.inProgressTickets ?? 0}
                     accent="#F59E0B" sub="Currently being worked" />
                 <KpiCard to="/tickets?priority=Critical" icon={Flame} label="Critical" value={criticalCount}
-                    accent="#F43F5E" invert sub="Needs immediate attention" />
-                <KpiCard to="/tickets?slaStatus=Resolved" icon={CheckCircle2} label="Resolved" value={cur.totalResolved ?? stats?.totalResolved ?? 0}
-                    accent="#10B981" delta={pctDelta(cur.totalResolved, prev.totalResolved)} series={resolvedSeries} />
-                <KpiCard to="/tickets?slaStatus=OnTrack" icon={ShieldCheck} label="SLA Compliance" value={stats?.slaCompliancePercent ?? 0}
-                    accent="#8B5CF6" sub="Target: 95%" />
+                    accent="#F43F5E" invert sub={criticalCount > 0 ? `${stats?.slaBreached ?? 0} SLA breached` : 'Needs immediate attention'} />
+                <KpiCard to="/tickets?status=Resolved" icon={CheckCircle2} label="Resolved"
+                    value={stats?.totalResolved ?? 0}
+                    accent="#10B981"
+                    delta={pctDelta(cur.totalResolved, prev.totalResolved)}
+                    series={resolvedSeries} />
+                <KpiCard to="/tickets?slaStatus=OnTrack" icon={ShieldCheck} label="SLA Compliance"
+                    value={stats?.slaCompliancePercent ?? '—'}
+                    accent="#8B5CF6"
+                    sub={stats?.slaCompliancePercent == null ? 'No closed tickets yet' : 'Target: 95%'} />
             </section>
 
             {/* ── Trend + SLA ────────────────────────────────── */}

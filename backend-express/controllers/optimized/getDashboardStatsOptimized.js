@@ -80,11 +80,12 @@ export const getDashboardStatsOptimized = async (req, res, next) => {
                                     },
                                     { $count: 'count' }
                                 ],
+                                // SLA compliance: include Closed + Resolved as denominator
                                 closedCompliant: [
                                     {
                                         $match: {
-                                            status: 'Closed',
-                                            isSLARestoreBreached: false
+                                            status: { $in: ['Closed', 'Resolved'] },
+                                            isSLARestoreBreached: { $ne: true }
                                         }
                                     },
                                     { $count: 'count' }
@@ -92,13 +93,26 @@ export const getDashboardStatsOptimized = async (req, res, next) => {
                                 totalClosed: [
                                     {
                                         $match: {
-                                            status: 'Closed'
+                                            status: { $in: ['Closed', 'Resolved'] }
                                         }
                                     },
                                     { $count: 'count' }
                                 ]
                             }
                         }
+                    ],
+                    // Critical priority OR SLA-breached active tickets
+                    criticalOrBreached: [
+                        {
+                            $match: {
+                                status: { $nin: ['Closed', 'Cancelled'] },
+                                $or: [
+                                    { priority: 'Critical' },
+                                    { isSLARestoreBreached: true }
+                                ]
+                            }
+                        },
+                        { $count: 'count' }
                     ],
                     // Escalated count
                     escalatedCount: [
@@ -141,9 +155,11 @@ export const getDashboardStatsOptimized = async (req, res, next) => {
         const slaAtRisk = stats.slaStats[0].atRisk[0]?.count || 0;
         const closedWithSLA = stats.slaStats[0].closedCompliant[0]?.count || 0;
         const totalClosedForSLA = stats.slaStats[0].totalClosed[0]?.count || 0;
+        const criticalTickets = stats.criticalOrBreached[0]?.count || 0;
+        // Return null when no closed/resolved tickets yet — avoids hardcoded 100% illusion
         const slaCompliancePercent = totalClosedForSLA > 0
             ? Math.round((closedWithSLA / totalClosedForSLA) * 100)
-            : 100;
+            : null;
 
         const ticketsByPriority = stats.priorityBreakdown.map(item => ({
             priority: item._id,
@@ -168,9 +184,11 @@ export const getDashboardStatsOptimized = async (req, res, next) => {
             success: true,
             data: {
                 // Main stats
-                openTickets: statusCounts['Open'] || 0,
+                // Open = unacknowledged tickets (Open + Assigned statuses)
+                openTickets: (statusCounts['Open'] || 0) + (statusCounts['Assigned'] || 0),
                 inProgressTickets: statusCounts['InProgress'] || 0,
                 escalatedTickets: totalEscalated,
+                criticalTickets,
                 slaBreached,
                 slaAtRisk,
                 slaCompliancePercent,
@@ -262,18 +280,26 @@ export const getTicketTrends = async (req, res, next) => {
         });
         const trends = Object.values(trendMap).sort((a, b) => a.date.localeCompare(b.date));
 
-        // Current period stats
+        // Current period stats — all three use the same date bounds for coherent deltas
         const [currentTotal, currentResolved, currentOpen] = await Promise.all([
             Ticket.countDocuments({ ...baseMatch, createdAt: { $gte: start, $lte: end } }),
             Ticket.countDocuments({ ...baseMatch, resolvedOn: { $ne: null, $gte: start, $lte: end } }),
-            Ticket.countDocuments({ ...baseMatch, status: { $in: ['Open', 'Assigned', 'InProgress'] } })
+            Ticket.countDocuments({
+                ...baseMatch,
+                createdAt: { $gte: start, $lte: end },
+                status: { $nin: ['Closed', 'Cancelled', 'Resolved'] }
+            })
         ]);
 
-        // Previous period stats
+        // Previous period stats — same structure as current period
         const [prevTotal, prevResolved, prevOpen] = await Promise.all([
             Ticket.countDocuments({ ...baseMatch, createdAt: { $gte: prevStart, $lte: prevEnd } }),
             Ticket.countDocuments({ ...baseMatch, resolvedOn: { $ne: null, $gte: prevStart, $lte: prevEnd } }),
-            Ticket.countDocuments({ ...baseMatch, createdAt: { $gte: prevStart, $lte: prevEnd }, status: { $in: ['Open', 'Assigned', 'InProgress'] } })
+            Ticket.countDocuments({
+                ...baseMatch,
+                createdAt: { $gte: prevStart, $lte: prevEnd },
+                status: { $nin: ['Closed', 'Cancelled', 'Resolved'] }
+            })
         ]);
 
         res.json({

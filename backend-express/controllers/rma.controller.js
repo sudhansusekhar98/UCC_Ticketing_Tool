@@ -281,7 +281,7 @@ export const createRMA = async (req, res, next) => {
     await ticket.save();
 
     // Populate for email
-    await rma.populate('originalAssetId', 'assetCode assetType serialNumber ipAddress');
+    await rma.populate('originalAssetId', 'assetCode assetType deviceType serialNumber ipAddress');
 
     // Log activity on ticket
     await TicketActivity.create({
@@ -308,7 +308,7 @@ export const createRMA = async (req, res, next) => {
           failureSymptoms: requestReason,
           oldSerialNumber: asset.serialNumber,
           createdAt: rma.createdAt,
-          asset: { name: asset.assetCode, assetType: asset.assetType }
+          asset: { name: asset.assetCode, assetType: asset.assetType, deviceType: asset.deviceType }
         };
         await sendRMACreationEmail(rmaForEmail, ticket, req.user, notifyUsers);
       }
@@ -1402,6 +1402,9 @@ export const updateRMAStatus = async (req, res, next) => {
         }).select('fullName email');
 
         if (recipients.length > 0) {
+          if (!rma.populated('originalAssetId')) {
+            await rma.populate('originalAssetId', 'assetCode assetType deviceType');
+          }
           await sendRMAMilestoneEmail(rma, status, recipients, {
             siteName: site?.siteName,
             shippingDetails,

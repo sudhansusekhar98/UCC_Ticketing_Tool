@@ -378,8 +378,9 @@ export const sendRMACreationEmail = async (rmaRequest, ticket, requestedBy, noti
       <table class="data-table">
         <tr><th>RMA Number</th><td>${rmaRequest.rmaNumber}</td></tr>
         <tr><th>Related Ticket</th><td>${ticket?.ticketNumber || 'N/A'}</td></tr>
-        <tr><th>Asset</th><td>${rmaRequest.asset?.name || 'N/A'}</td></tr>
+        <tr><th>Asset Code</th><td>${rmaRequest.asset?.name || 'N/A'}</td></tr>
         <tr><th>Asset Type</th><td>${rmaRequest.asset?.assetType || 'N/A'}</td></tr>
+        <tr><th>Device Type</th><td>${rmaRequest.asset?.deviceType || 'N/A'}</td></tr>
         <tr><th>Serial Number</th><td>${rmaRequest.oldSerialNumber || 'N/A'}</td></tr>
         <tr><th>Status</th><td>${rmaRequest.status}</td></tr>
         <tr><th>Requested By</th><td>${requestedBy?.fullName || requestedBy?.name || 'System'}</td></tr>
@@ -395,9 +396,9 @@ export const sendRMACreationEmail = async (rmaRequest, ticket, requestedBy, noti
       <p>Please review and process this RMA request at your earliest convenience.</p>
       
       <div style="text-align: center;">
-        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/rma" class="btn" style="color: white !important; text-decoration: none;">View RMA Details</a>
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none;">View Ticket &amp; RMA Details</a>
       </div>
-      
+
       <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
@@ -696,6 +697,9 @@ export const sendRMAMilestoneEmail = async (rma, milestone, recipients, addition
       
       <table class="data-table">
         <tr><th>RMA Number</th><td>${rma.rmaNumber}</td></tr>
+        <tr><th>Asset Code</th><td>${rma.originalAssetId?.assetCode || 'N/A'}</td></tr>
+        <tr><th>Asset Type</th><td>${rma.originalAssetId?.assetType || 'N/A'}</td></tr>
+        <tr><th>Device Type</th><td>${rma.originalAssetId?.deviceType || 'N/A'}</td></tr>
         <tr><th>Replacement Source</th><td>${rma.replacementSource || 'N/A'}</td></tr>
         ${additionalDetails.siteName ? `<tr><th>Site</th><td>${additionalDetails.siteName}</td></tr>` : ''}
         ${additionalDetails.shippingDetails?.trackingNumber ? `<tr><th>Tracking Number</th><td>${additionalDetails.shippingDetails.trackingNumber}</td></tr>` : ''}
@@ -707,9 +711,9 @@ export const sendRMAMilestoneEmail = async (rma, milestone, recipients, addition
       ${additionalDetails.remarks ? `<p><strong>Remarks:</strong></p><div class="info-box">${additionalDetails.remarks}</div>` : ''}
       
       <div style="text-align: center;">
-        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/rma" class="btn" style="color: white !important; text-decoration: none;">View RMA Details</a>
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${rma.ticketId}" class="btn" style="color: white !important; text-decoration: none;">View Ticket &amp; RMA Details</a>
       </div>
-      
+
       <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 

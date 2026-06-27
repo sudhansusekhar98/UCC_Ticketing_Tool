@@ -1327,9 +1327,22 @@ export const getDashboardStats = async (req, res, next) => {
             { $match: { status: { $nin: ['Closed', 'Cancelled'] } } },
             { $group: { _id: '$category', count: { $sum: 1 } } }
           ],
-          // SLA breached count
+          // SLA breached count (active tickets only)
           slaBreached: [
             { $match: { isSLARestoreBreached: true, status: { $nin: ['Closed', 'Cancelled'] } } },
+            { $count: 'count' }
+          ],
+          // Critical priority OR SLA-breached active tickets
+          criticalOrBreached: [
+            {
+              $match: {
+                status: { $nin: ['Closed', 'Cancelled'] },
+                $or: [
+                  { priority: 'Critical' },
+                  { isSLARestoreBreached: true }
+                ]
+              }
+            },
             { $count: 'count' }
           ],
           // SLA at risk count
@@ -1347,13 +1360,13 @@ export const getDashboardStats = async (req, res, next) => {
             { $match: { resolvedOn: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } } },
             { $count: 'count' }
           ],
-          // SLA compliance counts
+          // SLA compliance: count Closed+Resolved tickets (not just Closed)
           closedCompliant: [
-            { $match: { status: 'Closed', isSLARestoreBreached: false } },
+            { $match: { status: { $in: ['Closed', 'Resolved'] }, isSLARestoreBreached: { $ne: true } } },
             { $count: 'count' }
           ],
           totalClosed: [
-            { $match: { status: 'Closed' } },
+            { $match: { status: { $in: ['Closed', 'Resolved'] } } },
             { $count: 'count' }
           ],
           // Total tickets
@@ -1389,12 +1402,13 @@ export const getDashboardStats = async (req, res, next) => {
     const slaAtRisk = stats.slaAtRisk[0]?.count || 0;
     const resolvedToday = stats.resolvedToday[0]?.count || 0;
 
-    // SLA compliance
+    // SLA compliance — null when no closed/resolved tickets yet (avoid false 100%)
     const closedWithSLA = stats.closedCompliant[0]?.count || 0;
     const totalClosedForSLA = stats.totalClosed[0]?.count || 0;
+    const criticalTickets = stats.criticalOrBreached[0]?.count || 0;
     const slaCompliancePercent = totalClosedForSLA > 0
       ? Math.round((closedWithSLA / totalClosedForSLA) * 100)
-      : 100;
+      : null;
 
     // Format chart data
     const ticketsByPriority = (stats.priorityBreakdown || []).map(item => ({
@@ -1416,9 +1430,11 @@ export const getDashboardStats = async (req, res, next) => {
       success: true,
       data: {
         // Main stats
-        openTickets: totalOpen,
+        // Open = tickets not yet acknowledged (Open + Assigned statuses)
+        openTickets: (statusCounts['Open'] || 0) + (statusCounts['Assigned'] || 0),
         inProgressTickets: totalInProgress,
         escalatedTickets: totalEscalated,
+        criticalTickets,
         slaBreached,
         slaAtRisk,
         slaCompliancePercent,
