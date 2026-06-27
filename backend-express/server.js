@@ -148,7 +148,7 @@ app.use(helmet({
 
 // CORS Configuration - supports multiple origins
 const allowedOrigins = [
-  'http://localhost:5173',
+  'http://localhost:5175',
   'http://localhost:3000', // Next.js template dashboard
   'https://ticketops.vluccc.com',
   // Add the CORS_ORIGIN from env (remove trailing slash if present)
