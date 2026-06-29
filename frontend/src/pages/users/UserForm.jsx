@@ -1,4 +1,4 @@
-import { useActionState, useState, useEffect } from 'react';
+﻿import { useActionState, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Eye, EyeOff } from 'lucide-react';
 import { usersApi, sitesApi, lookupsApi } from '../../services/api';
@@ -432,7 +432,7 @@ export default function UserForm() {
                             <strong>Client Viewer:</strong> View-only access to tickets and assets
                         </div>
                         <div className="role-desc">
-                            <strong>Vendor:</strong> External contractor — used in vendor work logs; limited system access
+                            <strong>Vendor:</strong> External contractor - used in vendor work logs; limited system access
                         </div>
                     </div>
                 </div>

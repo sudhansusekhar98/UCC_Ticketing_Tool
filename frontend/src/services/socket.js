@@ -1,4 +1,4 @@
-import { io } from 'socket.io-client';
+﻿import { io } from 'socket.io-client';
 
 // Use environment variable for API URL, removing '/api' suffix for socket connection
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -53,7 +53,7 @@ class SocketService {
         try {
             const token = localStorage.getItem('accessToken');
             if (!token) {
-                console.log('[Socket] No auth token — skipping connection');
+                console.log('[Socket] No auth token - skipping connection');
                 return null;
             }
 

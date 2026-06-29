@@ -80,7 +80,8 @@
       "Bash(rm -f _chartcheck.html _chartcheck.jsx _cdpcheck.cjs)",
       "Bash(ls _chartcheck* _cdpcheck*)",
       "Bash(node _shot.cjs \"http://localhost:5173/_dashpreview.html\" \"_preview_dark.png\" \"dark\")",
-      "Bash(xargs grep -l -i \"rma\")"
+      "Bash(xargs grep -l -i \"rma\")",
+      "Bash(node -e \"const icons = require\\('lucide-react'\\); ['Map', 'ClipboardList', 'Shield', 'Activity', 'FolderOpen'].forEach\\(n => console.log\\(n, !!icons[n]\\)\\)\")"
     ]
   },
   "enableAllProjectMcpServers": true,

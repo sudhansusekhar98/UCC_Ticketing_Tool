@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+﻿import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Ticket,
@@ -454,7 +454,7 @@ export default function TicketingDashboard() {
                     <div className="td-active-users-grid">
                         {activeUsers.map(u => {
                             const minutesAgo = Math.floor((Date.now() - new Date(u.lastActivityAt).getTime()) / 60000);
-                            const siteNames = u.assignedSites?.map(s => s.siteName).join(', ') || '—';
+                            const siteNames = u.assignedSites?.map(s => s.siteName).join(', ') || '-';
                             return (
                                 <div key={u._id} className="td-active-user-item">
                                     <div className="td-active-user-avatar">

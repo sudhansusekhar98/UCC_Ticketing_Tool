@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
     Plus,
@@ -19,12 +19,12 @@ import './Tickets.css';
 
 const safeFormatDate = (date, formatStr) => {
     try {
-        if (!date) return '—';
+        if (!date) return '-';
         const d = new Date(date);
-        if (isNaN(d.getTime())) return '—';
+        if (isNaN(d.getTime())) return '-';
         return format(d, formatStr);
     } catch (e) {
-        return '—';
+        return '-';
     }
 };
 
@@ -146,8 +146,11 @@ export default function TicketsList() {
                 mac: t.assetId?.mac || '',
                 siteName: t.assetId?.siteId?.siteName || t.siteName,
                 assignedToName: t.assignedTo?.fullName || t.assignedToName,
-                slaStatus: t.isSLARestoreBreached ? 'Breached' :
-                    (t.isSLAResponseBreached ? 'AtRisk' : 'OnTrack')
+                slaStatus: (() => {
+                    if (t.isSLARestoreBreached || (t.slaRestoreDue && new Date(t.slaRestoreDue) < new Date())) return 'Breached';
+                    if (t.isSLAResponseBreached || (t.slaRestoreDue && new Date(t.slaRestoreDue) < new Date(Date.now() + 4 * 60 * 60 * 1000))) return 'AtRisk';
+                    return 'OnTrack';
+                })()
             })) : [];
 
             setTickets(mappedTickets);
@@ -176,7 +179,7 @@ export default function TicketsList() {
         setFilters({ ...filters, page: 1 });
     };
 
-    // Accepts an explicit filter snapshot — used by dropdowns so they don't hit stale closure
+    // Accepts an explicit filter snapshot - used by dropdowns so they don't hit stale closure
     const handleSearchWith = (f) => {
         const params = new URLSearchParams();
         if (f.status) params.set('status', f.status);
@@ -259,7 +262,7 @@ export default function TicketsList() {
                 </div>
             </div>
 
-            {/* Search & Filter Bar — always visible, changes apply immediately */}
+            {/* Search & Filter Bar - always visible, changes apply immediately */}
             <div className="filter-bar glass-card">
                 <div className="filter-bar-content">
                     <div className="search-box small">
@@ -338,6 +341,7 @@ export default function TicketsList() {
                                     className="form-select filter-select"
                                 >
                                     <option value="">All SLA</option>
+                                    <option value="Issues">Breached &amp; At Risk</option>
                                     <option value="Breached">Breached</option>
                                     <option value="AtRisk">At Risk</option>
                                     <option value="OnTrack">On Track</option>
@@ -447,7 +451,7 @@ export default function TicketsList() {
                                                 {ticket.status}
                                             </span>
                                         </td>
-                                        <td>{ticket.assignedToName || '—'}</td>
+                                        <td>{ticket.assignedToName || '-'}</td>
                                         <td>
                                             <div className={`sla-indicator ${getSLAStatusClass(ticket.slaStatus)}`}>
                                                 {ticket.slaStatus === 'Breached' && <AlertTriangle size={14} />}
@@ -499,11 +503,11 @@ export default function TicketsList() {
                                     <div className="card-details">
                                         <div className="card-detail-item">
                                             <span className="detail-label">Asset:</span>
-                                            <span className="detail-value">{ticket.assetCode || '—'}</span>
+                                            <span className="detail-value">{ticket.assetCode || '-'}</span>
                                         </div>
                                         <div className="card-detail-item">
                                             <span className="detail-label">Site:</span>
-                                            <span className="detail-value text-truncate">{ticket.siteName || '—'}</span>
+                                            <span className="detail-value text-truncate">{ticket.siteName || '-'}</span>
                                         </div>
                                     </div>
 

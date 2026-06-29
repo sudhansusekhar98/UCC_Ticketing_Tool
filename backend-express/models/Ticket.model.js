@@ -303,7 +303,7 @@ ticketSchema.pre('save', async function (next) {
         if (!this.slaRestoreDue) this.slaRestoreDue = new Date(now.getTime() + restoreMins * 60 * 1000);
       }
 
-      if (!slaSource) console.warn(`No SLA policy in DB for priority ${this.priority} — using hardcoded defaults`);
+      if (!slaSource) console.warn(`No SLA policy in DB for priority ${this.priority} using hardcoded defaults`);
     } catch (error) {
       console.error('Error auto-assigning SLA policy in pre-save:', error);
     }

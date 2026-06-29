@@ -529,7 +529,7 @@ export const sendBreachWarningEmail = async (ticket, user, minutesLeft) => {
         <tr><th>Time Remaining</th><td style="color:${accentColor};font-weight:700;">${timeLabel}</td></tr>
       </table>
 
-      <p><strong style="color: ${accentColor};">${isUrgent ? '🚨 FINAL WARNING — Immediate action required!' : 'Please prioritize this ticket to avoid a potential SLA breach.'}</strong></p>
+      <p><strong style="color: ${accentColor};">${isUrgent ? '🚨 FINAL WARNING Immediate action required!' : 'Please prioritize this ticket to avoid a potential SLA breach.'}</strong></p>
 
       <div style="text-align: center;">
         <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none; background-color: ${accentColor};">View Ticket Now</a>
@@ -539,7 +539,7 @@ export const sendBreachWarningEmail = async (ticket, user, minutesLeft) => {
     `;
 
     const subject = isUrgent
-      ? `🚨 FINAL SLA WARNING: Ticket ${ticket.ticketNumber} — ${timeLabel} Remaining`
+      ? `🚨 FINAL SLA WARNING: Ticket ${ticket.ticketNumber} ${timeLabel} Remaining`
       : `⚠️ SLA WARNING: Ticket ${ticket.ticketNumber} Approaching Breach`;
     await sendViaBrevo({
       to: user.email,
@@ -763,11 +763,11 @@ export const sendGeneralNotificationEmail = async (recipients, notification) => 
       return false;
     }
 
-    // Strip base64 inline images — email clients block them; replace with a clickable notice
+    // Strip base64 inline images email clients block them; replace with a clickable notice
     const appUrl = process.env.FRONTEND_URL || 'https://ticketops.vluccc.com';
     const emailSafeMessage = (notification.message || '').replace(
       /<img[^>]+src="data:[^"]*"[^>]*\/?>/gi,
-      `<em style="color:#888;font-size:0.9em;">[Screenshot included — <a href="${appUrl}/notifications" style="color:#667eea;">view in TicketOps</a>]</em>`
+      `<em style="color:#888;font-size:0.9em;">[Screenshot included <a href="${appUrl}/notifications" style="color:#667eea;">view in TicketOps</a>]</em>`
     );
 
     const content = `
@@ -931,7 +931,7 @@ export const sendClientRejectionEmail = async (registration) => {
       <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
-    const subject = 'TicketOps — Registration Request Update';
+    const subject = 'TicketOps Registration Request Update';
     await sendViaBrevo({
       to: registration.email,
       subject,
@@ -958,11 +958,11 @@ export const sendActivityAssignmentEmail = async (activity, project, users) => {
     try {
       await sendViaBrevo({
         to: user.email,
-        subject: `Activity Assigned: ${activity.title} — ${project.projectName}`,
+        subject: `Activity Assigned: ${activity.title} ${project.projectName}`,
         html: emailTemplate(`
           <h2 style="margin:0 0 1rem">You have been assigned to an activity</h2>
           <table style="width:100%;border-collapse:collapse;font-size:0.95rem">
-            <tr><td style="padding:0.4rem 0.6rem;font-weight:600;width:130px">Activity</td><td style="padding:0.4rem 0.6rem">${activity.activityNumber} — ${activity.title}</td></tr>
+            <tr><td style="padding:0.4rem 0.6rem;font-weight:600;width:130px">Activity</td><td style="padding:0.4rem 0.6rem">${activity.activityNumber} ${activity.title}</td></tr>
             <tr style="background:rgba(0,0,0,0.03)"><td style="padding:0.4rem 0.6rem;font-weight:600">Project</td><td style="padding:0.4rem 0.6rem">${project.projectName} (${project.projectNumber})</td></tr>
             <tr><td style="padding:0.4rem 0.6rem;font-weight:600">Type</td><td style="padding:0.4rem 0.6rem">${activity.type}</td></tr>
             <tr style="background:rgba(0,0,0,0.03)"><td style="padding:0.4rem 0.6rem;font-weight:600">Priority</td><td style="padding:0.4rem 0.6rem">${activity.priority}</td></tr>

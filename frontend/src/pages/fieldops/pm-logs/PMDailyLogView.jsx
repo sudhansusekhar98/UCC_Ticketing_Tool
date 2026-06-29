@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     ArrowLeft, Calendar, User, FileText, CheckCircle, XCircle,
@@ -266,7 +266,7 @@ export default function PMDailyLogView() {
                     </div>
                 </div>
 
-                {/* Progress bar + Task Checklist — side by side */}
+                {/* Progress bar + Task Checklist - side by side */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.875rem' }}>
 
                     {/* Progress */}
@@ -447,11 +447,11 @@ export default function PMDailyLogView() {
                                                     background: 'var(--bg-secondary,rgba(148,163,184,0.08))',
                                                     padding: '0.1rem 0.35rem', borderRadius: 4
                                                 }}>
-                                                    {device.serialNumber || '—'}
+                                                    {device.serialNumber || '-'}
                                                 </code>
                                             </td>
-                                            <td>{device.installedBy?.fullName || '—'}</td>
-                                            <td>{device.zoneId?.zoneName || '—'}</td>
+                                            <td>{device.installedBy?.fullName || '-'}</td>
+                                            <td>{device.zoneId?.zoneName || '-'}</td>
                                             <td>
                                                 <span className={`status-badge ${deviceStatusColors[device.status] || 'status-badge-info'}`}>
                                                     {device.status}

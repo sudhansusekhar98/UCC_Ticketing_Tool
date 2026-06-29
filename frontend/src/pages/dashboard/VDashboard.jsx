@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Ticket, FolderOpen, Loader2, Flame, CheckCircle2, ShieldCheck,
@@ -34,7 +34,7 @@ const pctDelta = (cur, prev) => {
 };
 
 /* Guard: suppress a positive delta badge when the displayed KPI value is 0
-   (e.g. "0 Open tickets ↑250%" is misleading — the % comes from a different denominator) */
+   (e.g. "0 Open tickets ↑250%" is misleading - the % comes from a different denominator) */
 const safeDelta = (displayedValue, deltaValue) =>
     displayedValue === 0 && (deltaValue ?? 0) > 0 ? null : deltaValue;
 
@@ -279,10 +279,11 @@ export default function VDashboard() {
                     accent="#10B981"
                     delta={pctDelta(cur.totalResolved, prev.totalResolved)}
                     series={resolvedSeries} />
-                <KpiCard to="/tickets?slaStatus=OnTrack" icon={ShieldCheck} label="SLA Compliance"
-                    value={stats?.slaCompliancePercent ?? '—'}
+                <KpiCard to="/tickets?slaStatus=Issues" icon={ShieldCheck} label="SLA Compliance"
+                    value={stats?.slaCompliancePercent ?? 0}
+                    valueSuffix={stats?.slaCompliancePercent != null ? '%' : ''}
                     accent="#8B5CF6"
-                    sub={stats?.slaCompliancePercent == null ? 'No closed tickets yet' : 'Target: 95%'} />
+                    sub={stats?.slaCompliancePercent == null ? 'No SLA-tracked closed tickets' : stats.slaCompliancePercent >= 95 ? 'Target met (95%)' : 'Below target GOAL: 95%'} />
             </section>
 
             {/* ── Trend + SLA ────────────────────────────────── */}

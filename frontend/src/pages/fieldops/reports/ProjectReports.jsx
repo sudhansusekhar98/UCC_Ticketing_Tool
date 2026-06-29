@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import {
     FileText,
@@ -283,7 +283,7 @@ export default function ProjectReports() {
                     {/* Two-column: Summary + Logs */}
                     <div className="report-main-grid">
 
-                        {/* LEFT — Project Summary */}
+                        {/* LEFT - Project Summary */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             <div className="report-card">
                                 <div className="report-card-title">
@@ -330,11 +330,11 @@ export default function ProjectReports() {
                                             <span className="report-meta-value" style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                                                 {reportData.project?.contractStartDate
                                                     ? format(new Date(reportData.project.contractStartDate), 'dd MMM yy')
-                                                    : '—'}
-                                                {' — '}
+                                                    : '-'}
+                                                {' - '}
                                                 {reportData.project?.contractEndDate
                                                     ? format(new Date(reportData.project.contractEndDate), 'dd MMM yy')
-                                                    : '—'}
+                                                    : '-'}
                                             </span>
                                         </div>
                                     </div>
@@ -379,7 +379,7 @@ export default function ProjectReports() {
 
                         </div>
 
-                        {/* RIGHT — Daily Logs Table */}
+                        {/* RIGHT - Daily Logs Table */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                             {reportData.dailyLogs?.length > 0 ? (
                                 <div className="report-card" style={{ padding: 0 }}>

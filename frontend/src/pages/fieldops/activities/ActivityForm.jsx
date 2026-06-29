@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, X, Zap } from 'lucide-react';
 import { fieldOpsApi, usersApi, stockApi } from '../../../services/api';
@@ -38,7 +38,7 @@ export default function ActivityForm() {
         try {
             const pid = projectId || (isEditing ? null : null);
 
-            // Load users — backend enforces $nin exclusion; client-side filter is a safety net
+            // Load users - backend enforces $nin exclusion; client-side filter is a safety net
             const usersRes = await usersApi.getAll({ isActive: true, limit: 500, roleNotIn: 'Vendor,SiteClient' });
             const userData = (usersRes.data.data || usersRes.data || []);
             const filtered = userData.filter(u => !['Vendor', 'SiteClient'].includes(u.role));
@@ -398,7 +398,7 @@ export default function ActivityForm() {
                             ))}
                             {form.tasks.length === 0 && (
                                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontStyle: 'italic', margin: 0 }}>
-                                    No tasks yet — click chips above or "Add Task"
+                                    No tasks yet - click chips above or "Add Task"
                                 </p>
                             )}
                         </div>
@@ -433,7 +433,7 @@ export default function ActivityForm() {
                                                     const isOut = remaining <= 0;
                                                     return (
                                                         <option key={alloc._id} value={alloc._id} disabled={isAssigned || isOut}>
-                                                            {alloc.stockItemId?.assetType} — {alloc.stockItemId?.deviceType}
+                                                            {alloc.stockItemId?.assetType} - {alloc.stockItemId?.deviceType}
                                                             {isAssigned ? ' (Assigned)' : isOut ? ' (Out of Stock)' : ` (Remaining: ${remaining})`}
                                                         </option>
                                                     );

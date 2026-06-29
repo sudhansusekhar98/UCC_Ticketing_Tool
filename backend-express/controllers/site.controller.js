@@ -358,7 +358,7 @@ export const updateSiteSLA = async (req, res, next) => {
       data: site.slaPolicies,
       message: policies.length > 0
         ? 'Site SLA policies updated successfully'
-        : 'Site SLA cleared — will use global defaults'
+        : 'Site SLA cleared will use global defaults'
     });
 
     // Fire-and-forget: auto-track

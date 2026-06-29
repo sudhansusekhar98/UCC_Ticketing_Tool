@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     ArrowLeft, Edit, Trash2, CheckCircle, Circle,
@@ -372,7 +372,7 @@ export default function ActivityDetail() {
                                 <div key={label}>
                                     <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.2rem' }}>{label}</div>
                                     <div style={{ fontSize: '0.83rem', fontWeight: 600, color: value ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                                        {value ? format(new Date(value), 'dd MMM yyyy') : '—'}
+                                        {value ? format(new Date(value), 'dd MMM yyyy') : '-'}
                                     </div>
                                 </div>
                             ))}

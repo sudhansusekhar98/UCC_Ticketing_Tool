@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -54,7 +54,7 @@ export default function SiteView() {
     };
 
     const formatMin = (min) => {
-        if (!min && min !== 0) return '—';
+        if (!min && min !== 0) return '-';
         if (min < 60) return `${min}m`;
         const h = Math.floor(min / 60);
         const m = min % 60;
@@ -195,11 +195,11 @@ export default function SiteView() {
                         </div>
                         <div className="detail-item">
                             <label>Zone / Ward</label>
-                            <p>{site.zone}{site.ward ? ` / ${site.ward}` : '' || '—'}</p>
+                            <p>{site.zone}{site.ward ? ` / ${site.ward}` : '' || '-'}</p>
                         </div>
                         <div className="detail-item">
                             <label>Coordinates</label>
-                            <p>{site.latitude && site.longitude ? `${site.latitude}, ${site.longitude}` : '—'}</p>
+                            <p>{site.latitude && site.longitude ? `${site.latitude}, ${site.longitude}` : '-'}</p>
                         </div>
                     </div>
                 </div>
@@ -221,7 +221,7 @@ export default function SiteView() {
                                     <label>Phone Number</label>
                                     <p className="flex items-center gap-2 font-mono">
                                         <Phone size={14} className="text-muted" />
-                                        {site.contactPhone || '—'}
+                                        {site.contactPhone || '-'}
                                     </p>
                                 </div>
                             </div>
@@ -345,7 +345,7 @@ export default function SiteView() {
                                                 {asset.status}
                                             </span>
                                         </td>
-                                        <td><span className="font-mono text-xs">{asset.ipAddress || '—'}</span></td>
+                                        <td><span className="font-mono text-xs">{asset.ipAddress || '-'}</span></td>
                                         <td className="text-right">
                                             <Link to={`/assets/${asset._id}`} className="btn btn-icon btn-ghost btn-sm" title="View Asset">
                                                 <Info size={14} />

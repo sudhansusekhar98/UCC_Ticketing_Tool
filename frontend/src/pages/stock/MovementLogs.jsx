@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
     ArrowRightLeft, PackagePlus, Truck, CheckCircle2, AlertCircle,
     Clock, Filter, Building2, Box, Calendar, User, FileText,
@@ -286,7 +286,7 @@ const MovementLogs = () => {
                                                 {log.quantityChange > 0 ? `+${log.quantityChange}` : log.quantityChange}
                                                 {log.assetSnapshot?.unit ? ` ${log.assetSnapshot.unit}` : ''}
                                             </span>
-                                        ) : '—'}
+                                        ) : '-'}
                                     </td>
                                     <td className="reference-cell">
                                         {log.rmaId && (

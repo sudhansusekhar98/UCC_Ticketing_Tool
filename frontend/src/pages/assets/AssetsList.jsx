@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -528,12 +528,12 @@ export default function AssetsList() {
                                         <td className="col-sl">{(page - 1) * pageSize + index + 1}</td>
                                         <td title={asset.assetCode || ''}>
                                             <Link to={`/assets/${asset.assetId}`} className="text-primary font-mono hover:underline">
-                                                {asset.assetCode || '—'}
+                                                {asset.assetCode || '-'}
                                             </Link>
                                         </td>
                                         <td title={asset.ipAddress || asset.managementIP || ''}>
                                             <span className="font-mono">
-                                                {asset.ipAddress || asset.managementIP || '—'}
+                                                {asset.ipAddress || asset.managementIP || '-'}
                                             </span>
                                         </td>
                                         <td className="col-status">
@@ -541,13 +541,13 @@ export default function AssetsList() {
                                                 {asset.status || 'Operational'}
                                             </span>
                                         </td>
-                                        <td title={asset.siteId?.siteName || ''}>{asset.siteId?.siteName || '—'}</td>
-                                        <td title={asset.locationName || asset.locationDescription || ''}>{asset.locationName || asset.locationDescription || '—'}</td>
-                                        <td title={asset.assetType || ''}>{asset.assetType || '—'}</td>
-                                        <td title={asset.deviceType || ''}>{asset.deviceType || '—'}</td>
-                                        <td title={asset.mac || asset.macAddress || ''}>{asset.mac || asset.macAddress || '—'}</td>
+                                        <td title={asset.siteId?.siteName || ''}>{asset.siteId?.siteName || '-'}</td>
+                                        <td title={asset.locationName || asset.locationDescription || ''}>{asset.locationName || asset.locationDescription || '-'}</td>
+                                        <td title={asset.assetType || ''}>{asset.assetType || '-'}</td>
+                                        <td title={asset.deviceType || ''}>{asset.deviceType || '-'}</td>
+                                        <td title={asset.mac || asset.macAddress || ''}>{asset.mac || asset.macAddress || '-'}</td>
                                         <td title={asset.serialNumber || ''}>
-                                            <span className="font-mono">{asset.serialNumber || '—'}</span>
+                                            <span className="font-mono">{asset.serialNumber || '-'}</span>
                                         </td>
                                         {showActionColumn && (
                                             <td className="col-actions">

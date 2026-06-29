@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { stockApi, ticketsApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -10,7 +10,7 @@ const safeFormat = (date) => {
     try {
         return format(new Date(date), 'dd MMM yyyy, HH:mm');
     } catch {
-        return '—';
+        return '-';
     }
 };
 
@@ -44,7 +44,7 @@ const TicketCablePanel = ({ ticketId, siteId, ticketStatus, isLocked, onUpdate }
             setCables(cableRes.data.data || []);
             setUsageHistory(historyRes.data.data || []);
         } catch {
-            // silently fail — panel won't block the rest of the page
+            // silently fail - panel won't block the rest of the page
         } finally {
             setLoading(false);
         }
@@ -200,7 +200,7 @@ const TicketCablePanel = ({ ticketId, siteId, ticketStatus, isLocked, onUpdate }
                                         {log.assetSnapshot?.assetType || 'Cable'}
                                     </span>
                                     {log.notes && (
-                                        <span className="ml-2 text-gray-400 italic">— {log.notes}</span>
+                                        <span className="ml-2 text-gray-400 italic">- {log.notes}</span>
                                     )}
                                     <div className="text-gray-400 mt-0.5">
                                         {log.performedBy?.name || 'Unknown'} · {safeFormat(log.createdAt)}
@@ -237,12 +237,12 @@ const TicketCablePanel = ({ ticketId, siteId, ticketStatus, isLocked, onUpdate }
                                     value={selectedCable}
                                     onChange={e => { setSelectedCable(e.target.value); setQuantityUsed(''); }}
                                 >
-                                    <option value="">— Select item —</option>
+                                    <option value="">- Select item -</option>
                                     {cables.map(c => (
                                         <option key={c._id} value={c._id} disabled={c.quantity <= 0}>
                                             {c.deviceType || c.assetType}
                                             {c.make ? ` (${c.make}${c.model ? ' ' + c.model : ''})` : ''}
-                                            {' — '}
+                                            {' - '}
                                             {c.quantity} {c.unit} available
                                             {c.quantity <= 0 ? ' [Out of stock]' : ''}
                                         </option>

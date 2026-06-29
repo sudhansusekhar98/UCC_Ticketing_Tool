@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -165,7 +165,7 @@ export default function SurveyReconciliation() {
                             Survey vs Actual Reconciliation
                         </h1>
                         <p style={{ margin: '0.25rem 0 0', color: 'var(--text-secondary)' }}>
-                            {project.projectNumber} — {project.projectName}
+                            {project.projectNumber} - {project.projectName}
                             {project.linkedSurveyName && ` | Survey: ${project.linkedSurveyName}`}
                         </p>
                     </div>
@@ -272,7 +272,7 @@ export default function SurveyReconciliation() {
                                                         <span key={status} className="recon-mini-badge">{status}: {count}</span>
                                                     ))}
                                                     {Object.keys(item.deployedByStatus || {}).length === 0 && (
-                                                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>—</span>
+                                                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>-</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -281,7 +281,7 @@ export default function SurveyReconciliation() {
                                                 fontWeight: 600,
                                                 color: item.variance > 0 ? 'var(--color-success, #22c55e)' : item.variance < 0 ? 'var(--color-danger, #ef4444)' : 'var(--text-primary)'
                                             }}>
-                                                {item.status === 'Unmapped' ? '—' : (item.variance > 0 ? `+${item.variance}` : item.variance)}
+                                                {item.status === 'Unmapped' ? '-' : (item.variance > 0 ? `+${item.variance}` : item.variance)}
                                             </td>
                                             <td>
                                                 {item.status !== 'Unmapped' && item.netRequired > 0 ? (
@@ -295,7 +295,7 @@ export default function SurveyReconciliation() {
                                                         />
                                                         <span className="recon-progress-label">{pct}%</span>
                                                     </div>
-                                                ) : '—'}
+                                                ) : '-'}
                                             </td>
                                             <td>{getStatusBadge(item.status, item.variance)}</td>
                                         </tr>
@@ -327,17 +327,17 @@ export default function SurveyReconciliation() {
                                                             <tbody>
                                                                 {devices.map(device => (
                                                                     <tr key={device._id}>
-                                                                        <td>{device.serialNumber || '—'}</td>
-                                                                        <td>{device.zoneId?.zoneName || '—'}</td>
-                                                                        <td>{device.installationLocation?.description || device.installationLocation?.poleWallId || '—'}</td>
+                                                                        <td>{device.serialNumber || '-'}</td>
+                                                                        <td>{device.zoneId?.zoneName || '-'}</td>
+                                                                        <td>{device.installationLocation?.description || device.installationLocation?.poleWallId || '-'}</td>
                                                                         <td>{device.quantity}</td>
                                                                         <td>
                                                                             <span className={`status-badge status-badge-${device.status?.toLowerCase() || 'pending'}`}>
                                                                                 {device.status}
                                                                             </span>
                                                                         </td>
-                                                                        <td>{device.installedBy?.fullName || '—'}</td>
-                                                                        <td>{device.installedAt ? format(new Date(device.installedAt), 'dd MMM yyyy') : device.createdAt ? format(new Date(device.createdAt), 'dd MMM yyyy') : '—'}</td>
+                                                                        <td>{device.installedBy?.fullName || '-'}</td>
+                                                                        <td>{device.installedAt ? format(new Date(device.installedAt), 'dd MMM yyyy') : device.createdAt ? format(new Date(device.createdAt), 'dd MMM yyyy') : '-'}</td>
                                                                         <td>
                                                                             <Link
                                                                                 to={`/fieldops/devices/${device._id}`}

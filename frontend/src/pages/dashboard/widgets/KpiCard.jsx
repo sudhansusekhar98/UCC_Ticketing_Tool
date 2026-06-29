@@ -17,6 +17,7 @@ export default function KpiCard({
     icon: Icon,
     label,
     value = 0,
+    valueSuffix = '',
     accent = '#4F46E5',
     delta,
     invert = false,
@@ -47,7 +48,7 @@ export default function KpiCard({
             </div>
 
             <div className="vd-kpi-body">
-                <span className="vd-kpi-value">{animated.toLocaleString()}</span>
+                <span className="vd-kpi-value">{animated.toLocaleString()}{valueSuffix}</span>
                 <span className="vd-kpi-label">{label}</span>
             </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
     Plus,
@@ -214,7 +214,7 @@ export default function SitesList() {
                                             </span>
                                         </td>
                                         <td>
-                                            <span className="cell-truncate">{site.address || '—'}</span>
+                                            <span className="cell-truncate">{site.address || '-'}</span>
                                         </td>
                                         <td>
                                             <div className="contact-cell">

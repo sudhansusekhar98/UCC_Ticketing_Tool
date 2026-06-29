@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { rmaApi, sitesApi, stockApi } from '../../services/api';
@@ -76,7 +76,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const [stockAssetType, setStockAssetType] = useState('');
     const [stockDeviceType, setStockDeviceType] = useState('');
 
-    // Transfer spares — available assets from source site for admin to pick from in dispatch modal
+    // Transfer spares - available assets from source site for admin to pick from in dispatch modal
     const [transferSpares, setTransferSpares] = useState([]);
     const [loadingTransferSpares, setLoadingTransferSpares] = useState(false);
     const [selectedDispatchAssetId, setSelectedDispatchAssetId] = useState('');
@@ -319,7 +319,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                 status: 'ReplacementRequisitionRaised',
                 replacementStockSource,
                 replacementSourceSiteId: replacementStockSource === 'SiteStock' ? replacementSourceSiteId : undefined,
-                remarks: actionRemark || `Replacement requisition raised — Source: ${replacementStockSource}`
+                remarks: actionRemark || `Replacement requisition raised - Source: ${replacementStockSource}`
             };
             await rmaApi.updateStatus(rma._id, data);
             toast.success('Replacement requisition raised');
@@ -350,7 +350,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const handleTransferSelect = (transferId) => {
         setSelectedTransferId(transferId);
         if (!transferId) {
-            // Cleared selection — reset fields
+            // Cleared selection - reset fields
             setReplLogisticsCarrier('');
             setReplLogisticsTracking('');
             setReplLogisticsRemarks('');
@@ -404,7 +404,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                 remarks: actionRemark || 'Replacement dispatched to site'
             };
             await rmaApi.updateStatus(rma._id, data);
-            toast.success('Replacement dispatched — device reserved and deducted from stock');
+            toast.success('Replacement dispatched - device reserved and deducted from stock');
             setShowReplacementDispatchModal(false);
             setReplLogisticsCarrier('');
             setReplLogisticsTracking('');
@@ -427,7 +427,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                 status: 'ModifyToRepairAndReplace',
                 remarks: modifyRemarks || 'Admin upgraded from Repair Only to Repair & Replace'
             });
-            toast.success('RMA upgraded to Repair & Replace — replacement track activated');
+            toast.success('RMA upgraded to Repair & Replace - replacement track activated');
             setShowModifyTypeModal(false);
             setModifyRemarks('');
             loadRMA();
@@ -444,7 +444,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const isL1 = hasRole(['L1Engineer', 'L2Engineer']);
 
     // ==========================================
-    // STATUS FLOW HELPER — returns { repairSteps, replacementSteps }
+    // STATUS FLOW HELPER - returns { repairSteps, replacementSteps }
     // ==========================================
     const getStatusFlow = () => {
         if (!rma) return { repairSteps: [], replacementSteps: [] };
@@ -490,7 +490,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
             }
         }
 
-        // Return from repair — depends on the route
+        // Return from repair - depends on the route
         if (isDirectSC) {
             // Direct SC: repaired item comes back to site directly
             repairSteps.push(
@@ -629,7 +629,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
 
             {rma ? (
                 <div className="space-y-4">
-                    {/* Status Tracker — Dual Track */}
+                    {/* Status Tracker - Dual Track */}
                     <div className="rma-tracker-container">
                         {renderTrack(repairSteps, 'Repair Track', 'primary', <RefreshCw size={14} />)}
                         {replacementSteps.length > 0 && renderTrack(replacementSteps, 'Replacement Track', 'info', <Package size={14} />)}
@@ -759,7 +759,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             <div className="rma-alert-info">
                                 <Send size={20} className="text-primary-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">RMA Approved — Send Item for Repair</p>
+                                    <p className="alert-title">RMA Approved - Send Item for Repair</p>
                                     <p className="alert-desc">
                                         Send the faulty item either <strong>directly to the service center</strong> or <strong>to the Head Office (HO)</strong>. Update logistics details (carrier, tracking number).
                                     </p>
@@ -805,7 +805,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             <div className="rma-alert-info">
                                 <RefreshCw size={20} className="text-warning-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Item at HO — Send to Service Center</p>
+                                    <p className="alert-title">Item at HO - Send to Service Center</p>
                                     <p className="alert-desc">
                                         Item is at HO. Forward it to the service center for repair. Optionally add / reference a service center ticket.
                                     </p>
@@ -822,7 +822,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                     )}
 
-                    {/* STEP 4a: Repair done via HO route — Admin confirms receipt back at HO */}
+                    {/* STEP 4a: Repair done via HO route - Admin confirms receipt back at HO */}
                     {(rma.repairTrackStatus === 'SentForRepair') && canManageRMA && (
                         <div className="rma-finalization-alert status-in-repair animate-fade-in">
                             <div className="rma-alert-info">
@@ -839,13 +839,13 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                     className="btn btn-sm btn-success shadow-sm flex items-center gap-1"
                                     onClick={() => handleUpdateStatus('ItemRepairedAtHO')}
                                 >
-                                    <CheckCircle size={14} /> Yes — Repaired Item Received at HO
+                                    <CheckCircle size={14} /> Yes - Repaired Item Received at HO
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {/* STEP 4b: Repair done via direct SC route — L1 confirms receipt back at site */}
+                    {/* STEP 4b: Repair done via direct SC route - L1 confirms receipt back at site */}
                     {rma.repairTrackStatus === 'SentToServiceCenter' && (canInstall || canManageRMA) && (
                         <div className="rma-finalization-alert status-in-repair animate-fade-in">
                             <div className="rma-alert-info">
@@ -868,13 +868,13 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                     )}
 
-                    {/* STEP 5: Admin ships repaired item — with destination selection */}
+                    {/* STEP 5: Admin ships repaired item - with destination selection */}
                     {rma.repairTrackStatus === 'Repaired' && canManageRMA && (
                         <div className="rma-finalization-alert status-repaired animate-fade-in">
                             <div className="rma-alert-info">
                                 <CheckCircle size={20} className="text-success-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Repaired Item Ready — Select Destination & Ship</p>
+                                    <p className="alert-title">Repaired Item Ready - Select Destination & Ship</p>
                                     <p className="alert-desc">
                                         The repaired item has been received at HO. Choose where to send it and initiate shipping.
                                     </p>
@@ -950,7 +950,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
 
                             <div className="rma-alert-actions mt-3">
                                 {repairedItemDest === 'HOStock' ? (
-                                    /* HO Stock — item already at HO, no shipping needed */
+                                    /* HO Stock - item already at HO, no shipping needed */
                                     <button
                                         className="btn btn-sm btn-primary shadow-sm flex items-center gap-1"
                                         onClick={() => handleUpdateStatus('ReturnShippedToSite', {
@@ -960,7 +960,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                         <Home size={14} /> Add to HO Stock
                                     </button>
                                 ) : (
-                                    /* Back to Site / Other Site — need shipping details */
+                                    /* Back to Site / Other Site - need shipping details */
                                     <button
                                         className="btn btn-sm btn-primary shadow-sm flex items-center gap-1"
                                         onClick={() => { resetLogisticsForm(); setTargetStatus('ReturnShippedToSite'); setShowLogisticsModal(true); }}
@@ -1002,7 +1002,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             <div className="rma-alert-info">
                                 <Server size={20} className="text-success-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Repaired Item Received — Install Device</p>
+                                    <p className="alert-title">Repaired Item Received - Install Device</p>
                                     <p className="alert-desc">
                                         The repaired item has arrived at the site. Install the device and update its current details (IP, credentials).
                                     </p>
@@ -1049,13 +1049,13 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                     )}
 
-                    {/* STEP 6d: L1 received repaired item from service center — Install (RepairOnly) */}
+                    {/* STEP 6d: L1 received repaired item from service center - Install (RepairOnly) */}
                     {rma.repairTrackStatus === 'RepairedReceivedAtSite' && rma.replacementSource !== 'RepairAndReplace' && (canInstall) && (
                         <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--success-500)' }}>
                             <div className="rma-alert-info">
                                 <Server size={20} className="text-success-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Repaired Item Received — Install Device</p>
+                                    <p className="alert-title">Repaired Item Received - Install Device</p>
                                     <p className="alert-desc">
                                         The repaired item has been received back from the service center. Install the device and update its current details (IP, credentials).
                                     </p>
@@ -1102,13 +1102,13 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                     )}
 
-                    {/* STEP 6e: L1 received repaired item from service center — Add to Stock (when replacement was installed) */}
+                    {/* STEP 6e: L1 received repaired item from service center - Add to Stock (when replacement was installed) */}
                     {rma.repairTrackStatus === 'RepairedReceivedAtSite' && rma.replacementSource === 'RepairAndReplace' && (canInstall || canManageRMA) && (
                         <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--primary-500)' }}>
                             <div className="rma-alert-info">
                                 <Package size={20} className="text-primary-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Repaired Item Received — Add to Site Stock</p>
+                                    <p className="alert-title">Repaired Item Received - Add to Site Stock</p>
                                     <p className="alert-desc">
                                         The repaired item has been received from the service center. Since a replacement device was already installed, this item will be added to your site's spare stock.
                                     </p>
@@ -1169,7 +1169,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                 <div className="rma-alert-info">
                                     <Server size={20} className="text-success-500" />
                                     <div className="rma-alert-text">
-                                        <p className="alert-title">Replacement Device Ready — Install Now</p>
+                                        <p className="alert-title">Replacement Device Ready - Install Now</p>
                                         {rma.reservedAssetId && (rma.replacementDetails || typeof rma.reservedAssetId === 'object') ? (
                                             <p className="alert-desc">
                                                 Your pre-selected replacement device has been approved and is ready. Install it and update the asset details.
@@ -1222,14 +1222,14 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         REPLACEMENT WORKFLOW ALERTS (Admin/Escalation only)
                        ======================================== */}
 
-                    {/* REPLACEMENT STEP 1: After approval of RepairAndReplace — Admin raises requisition */}
+                    {/* REPLACEMENT STEP 1: After approval of RepairAndReplace - Admin raises requisition */}
                     {/* Only show when NO device was pre-selected by engineer (i.e., admin needs to source from HO/other site) */}
                     {rma.replacementTrackStatus === 'Pending' && !rma.reservedAssetId && canManageRMA && (
                         <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--info-500)' }}>
                             <div className="rma-alert-info">
                                 <ShoppingBag size={20} className="text-info-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Replacement Required — Raise Requisition</p>
+                                    <p className="alert-title">Replacement Required - Raise Requisition</p>
                                     <p className="alert-desc">
                                         This RMA requires a replacement device. Raise a stock transfer requisition from HO or another site's stock.
                                     </p>
@@ -1246,13 +1246,13 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                     )}
 
-                    {/* REPLACEMENT STEP 2: Requisition raised — Admin dispatches replacement */}
+                    {/* REPLACEMENT STEP 2: Requisition raised - Admin dispatches replacement */}
                     {rma.replacementTrackStatus === 'RequisitionRaised' && canManageRMA && (
                         <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--primary-500)' }}>
                             <div className="rma-alert-info">
                                 <Truck size={20} className="text-primary-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Requisition Raised — Dispatch Replacement</p>
+                                    <p className="alert-title">Requisition Raised - Dispatch Replacement</p>
                                     <p className="alert-desc">
                                         Stock requisition has been raised{rma.replacementStockSource ? ` (from ${rma.replacementStockSource === 'HOStock' ? 'HO Stock' : rma.replacementStockSource === 'SiteStock' ? 'Site Stock' : 'Market'})` : ''}. Select a device and dispatch it to the site.
                                     </p>
@@ -1293,13 +1293,13 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                     )}
 
-                    {/* REPLACEMENT STEP 3: Dispatched — L1/ticket owner confirms receipt */}
+                    {/* REPLACEMENT STEP 3: Dispatched - L1/ticket owner confirms receipt */}
                     {rma.replacementTrackStatus === 'Dispatched' && (isL1 || canManageRMA) && (
                         <div className="rma-finalization-alert status-received animate-fade-in" style={{ borderLeft: '4px solid var(--success-500)' }}>
                             <div className="rma-alert-info">
                                 <ArrowDownToLine size={20} className="text-success-500" />
                                 <div className="rma-alert-text">
-                                    <p className="alert-title">Replacement Dispatched — Confirm Receipt</p>
+                                    <p className="alert-title">Replacement Dispatched - Confirm Receipt</p>
                                     <p className="alert-desc">
                                         The replacement item is on its way. Confirm receipt once it arrives at the site.
                                         {rma.logisticsReplacementToSite?.trackingNumber && ` (Tracking: ${rma.logisticsReplacementToSite.trackingNumber})`}
@@ -1332,7 +1332,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                         </div>
                     )}
 
-                    {/* REJECTED — Show rejection details and re-request option */}
+                    {/* REJECTED - Show rejection details and re-request option */}
                     {rma.status === 'Rejected' && (
                         <div className="rma-finalization-alert animate-fade-in" style={{ borderLeft: '4px solid var(--danger-500)', background: 'linear-gradient(135deg, rgba(239,68,68,0.06) 0%, rgba(239,68,68,0.02) 100%)' }}>
                             <div className="rma-alert-info">
@@ -1521,7 +1521,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                                     <span className="text-[10px] text-primary-600">Checking site stock availability...</span>
                                                 </div>
                                             ) : siteStockChecked && siteSpares.length > 0 ? (
-                                                /* Stock available — engineer selects a device */
+                                                /* Stock available - engineer selects a device */
                                                 <div className="p-3 rounded-lg border" style={{ background: 'linear-gradient(135deg, rgba(34,197,94,0.04) 0%, rgba(34,197,94,0.01) 100%)', borderColor: 'rgba(34,197,94,0.2)' }}>
                                                     <div className="flex items-center justify-between mb-2">
                                                         <p className="text-[11px] font-bold text-success-700 flex items-center gap-1.5">
@@ -1621,7 +1621,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                                     )}
                                                 </div>
                                             ) : siteStockChecked && siteSpares.length === 0 ? (
-                                                /* No stock at site — admin will handle transfer */
+                                                /* No stock at site - admin will handle transfer */
                                                 <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
                                                     <p className="text-[10px] font-bold text-primary-700 mb-1 flex items-center gap-1">
                                                         <Info size={11} /> No spare stock currently at this site
@@ -1816,7 +1816,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
 
                                 <div className="p-3 bg-secondary/10 rounded-lg border border-border/30 mb-3">
                                     <div className="text-[10px] text-muted uppercase tracking-wider font-bold mb-1 opacity-60">Asset Code (fixed, never changes)</div>
-                                    <div className="font-mono font-bold text-sm text-primary-500">{rma?.originalDetailsSnapshot?.assetCode || rma?.originalAssetId || '—'}</div>
+                                    <div className="font-mono font-bold text-sm text-primary-500">{rma?.originalDetailsSnapshot?.assetCode || rma?.originalAssetId || '-'}</div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3 mb-3">
@@ -2115,7 +2115,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                             <p className="text-[10px] text-success-700 mt-2 flex items-center gap-1 font-medium">
                                                 <CheckCircle size={10} />
                                                 Selected: <span className="font-mono">{sel.serialNumber || sel.assetCode || sel._id}</span>
-                                                {sel.make && ` — ${sel.make} ${sel.model || ''}`}
+                                                {sel.make && ` - ${sel.make} ${sel.model || ''}`}
                                             </p>
                                         ) : null;
                                     })()}
@@ -2134,7 +2134,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                             value={selectedTransferId}
                                             onChange={e => handleTransferSelect(e.target.value)}
                                         >
-                                            <option value="">— None (use auto-created transfer) —</option>
+                                            <option value="">- None (use auto-created transfer) -</option>
                                             {dispatchedTransfers.map(tr => {
                                                 const srcLabel = tr.sourceSiteId?.isHeadOffice ? 'HO' : (tr.sourceSiteId?.siteName || '?');
                                                 const destLabel = tr.destinationSiteId?.isHeadOffice ? 'HO' : (tr.destinationSiteId?.siteName || '?');
@@ -2215,7 +2215,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                         rows={2}
                                         value={modifyRemarks}
                                         onChange={e => setModifyRemarks(e.target.value)}
-                                        placeholder="e.g., Stock available at HO — upgrading to send a replacement while repair is in progress..."
+                                        placeholder="e.g., Stock available at HO - upgrading to send a replacement while repair is in progress..."
                                     />
                                 </div>
                             </div>
@@ -2285,7 +2285,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                 )
             }
 
-            {/* Reject RMA Modal — requires reason */}
+            {/* Reject RMA Modal - requires reason */}
             {
                 showRejectModal && createPortal(
                     <div className="modal-overlay animate-fade-in" onClick={() => setShowRejectModal(false)}>

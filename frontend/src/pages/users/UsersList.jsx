@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Plus,
@@ -292,7 +292,7 @@ export default function UsersList() {
                                                             : `${user.assignedSites.length} Sites`}
                                                     </span>
                                                 ) : (
-                                                    <span className="cell-secondary">—</span>
+                                                    <span className="cell-secondary">-</span>
                                                 )}
                                             </div>
                                         </td>

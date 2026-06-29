@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { Users, Clock, CheckCircle, XCircle, RefreshCw, Eye, Check, X, Loader, Key, Plus, Edit3, Trash2, RotateCcw, UserPlus, Search, MapPin } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
@@ -13,7 +13,7 @@ const STATUS_BADGE = {
 };
 
 function formatDate(d) {
-    if (!d) return '—';
+    if (!d) return '-';
     return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
@@ -319,7 +319,7 @@ export default function ClientRegistrations() {
                                                 </td>
                                                 <td>{reg.email}</td>
                                                 <td>{reg.phone}</td>
-                                                <td><span className="cr-desig">{reg.designation || '—'}</span></td>
+                                                <td><span className="cr-desig">{reg.designation || '-'}</span></td>
                                                 <td>{reg.siteName}</td>
                                                 <td><span className="date-text">{formatDate(reg.createdAt)}</span></td>
                                                 <td>
@@ -386,12 +386,12 @@ export default function ClientRegistrations() {
                                                 <td><strong>{c.fullName}</strong></td>
                                                 <td>{c.email}</td>
                                                 <td><code className="cr-username">{c.username}</code></td>
-                                                <td>{c.mobileNumber || '—'}</td>
-                                                <td>{c.designation || '—'}</td>
+                                                <td>{c.mobileNumber || '-'}</td>
+                                                <td>{c.designation || '-'}</td>
                                                 <td>
                                                     {c.assignedSites?.length > 0
                                                         ? c.assignedSites.map(s => <span key={s._id || s} className="cr-site-pill"><MapPin size={10} />{s.siteName || s}</span>)
-                                                        : <span className="text-muted">—</span>
+                                                        : <span className="text-muted">-</span>
                                                     }
                                                 </td>
                                                 <td>
@@ -531,7 +531,7 @@ export default function ClientRegistrations() {
                                     value={clientForm.assignedSite}
                                     onChange={handleSiteSelect}
                                 >
-                                    <option value="">— Select a site —</option>
+                                    <option value="">- Select a site -</option>
                                     {sites.map(site => (
                                         <option key={site._id} value={site._id}>{site.siteName}</option>
                                     ))}

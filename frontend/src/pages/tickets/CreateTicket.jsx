@@ -1,4 +1,4 @@
-import { useActionState, useState, useEffect, useRef } from 'react';
+﻿import { useActionState, useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Paperclip, X, FileText, Image, Cable, Info } from 'lucide-react';
 import { ticketsApi, assetsApi, sitesApi, lookupsApi, usersApi, activitiesApi } from '../../services/api';
@@ -439,7 +439,7 @@ export default function TicketForm() {
                             </div>
                         )}
 
-                        {/* Location, Asset Type, Device Type, Asset — Hidden for SiteClient */}
+                        {/* Location, Asset Type, Device Type, Asset - Hidden for SiteClient */}
                         {!isSiteClient && (
                             <>
                                 <div className="form-group">

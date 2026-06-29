@@ -1,4 +1,4 @@
-/* Inventory List Styles */
+﻿/* Inventory List Styles */
 
 /* Filters */
 .inventory-filters {
@@ -229,7 +229,7 @@
     outline-offset: -1px;
 }
 
-/* Meter-unit rows — wire/cable items (measured in meters, not counted) */
+/* Meter-unit rows - wire/cable items (measured in meters, not counted) */
 .inventory-data-row.meter-row {
     background: rgba(20, 184, 166, 0.04);
     border-left: 3px solid rgba(20, 184, 166, 0.5);

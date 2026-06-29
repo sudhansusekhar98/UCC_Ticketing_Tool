@@ -366,7 +366,7 @@ export async function buildTicketsExcel(tickets) {
     categoryCounts[t.category || 'Uncategorized']  = (categoryCounts[t.category || 'Uncategorized'] || 0) + 1;
   });
 
-  addSummarySheet(wb, '📋  TICKETS REPORT — SUMMARY', [
+  addSummarySheet(wb, '📋  TICKETS REPORT SUMMARY', [
     {
       title: 'By Status',
       rows: Object.entries(statusCounts).sort((a, b) => b[1] - a[1])
@@ -417,7 +417,7 @@ export async function buildEmployeesExcel(employees, statsMap) {
   const active = employees.filter(e => e.isActive).length;
 
   const summaryLines = [
-    { text: '👥  TICKETOPS — EMPLOYEE STATUS REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
+    { text: '👥  TICKETOPS EMPLOYEE STATUS REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
     { text: `Generated: ${new Date().toLocaleString('en-IN')}   |   Total Employees: ${total}   |   Active: ${active}   |   Inactive: ${total - active}`, size: 10, bg: 'EFF6FF', color: '1E40AF', align: 'center', height: 20 },
     { text: '', bg: 'FFFFFF', height: 6 },
   ];
@@ -512,7 +512,7 @@ export async function buildAssetsExcel(assets, rmaMap) {
   const offline     = assets.filter(a => a.status === 'Offline').length;
 
   const summaryLines = [
-    { text: '🖥️  TICKETOPS — ASSET STATUS REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
+    { text: '🖥️  TICKETOPS ASSET STATUS REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
     { text: `Generated: ${new Date().toLocaleString('en-IN')}   |   Total: ${total}   |   Operational: ${operational}   |   Offline: ${offline}`, size: 10, bg: 'EFF6FF', color: '1E40AF', align: 'center', height: 20 },
     { text: '', bg: 'FFFFFF', height: 6 },
   ];
@@ -565,7 +565,7 @@ export async function buildAssetsExcel(assets, rmaMap) {
     assetStatusCounts[a.status || 'Unknown']    = (assetStatusCounts[a.status || 'Unknown'] || 0) + 1;
   });
 
-  addSummarySheet(wb, '🖥️  ASSET STATUS REPORT — SUMMARY', [
+  addSummarySheet(wb, '🖥️  ASSET STATUS REPORT SUMMARY', [
     {
       title: 'By Asset Type',
       rows: Object.entries(assetTypeCounts).sort((a, b) => b[1] - a[1])
@@ -615,7 +615,7 @@ export async function buildRMAExcel(rmaRequests) {
   const completed = rmaRequests.filter(r => r.status === 'Installed').length;
 
   const summaryLines = [
-    { text: '🔄  TICKETOPS — RMA REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
+    { text: '🔄  TICKETOPS RMA REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
     { text: `Generated: ${new Date().toLocaleString('en-IN')}   |   Total: ${total}   |   Pending: ${pending}   |   Completed: ${completed}`, size: 10, bg: 'EFF6FF', color: '1E40AF', align: 'center', height: 20 },
     { text: '', bg: 'FFFFFF', height: 6 },
   ];
@@ -632,18 +632,18 @@ export async function buildRMAExcel(rmaRequests) {
   rmaRequests.forEach((rma, i) => {
     const row = ws.addRow({
       rmaId:         rma._id.toString().slice(-8).toUpperCase(),
-      ticketNo:      rma.ticketId?.ticketNumber || '—',
-      assetCode:     rma.originalAssetId?.assetCode || '—',
-      deviceType:    rma.originalAssetId?.deviceType || '—',
+      ticketNo:      rma.ticketId?.ticketNumber || '-',
+      assetCode:     rma.originalAssetId?.assetCode || '-',
+      deviceType:    rma.originalAssetId?.deviceType || '-',
       status:        rma.status,
-      site:          rma.siteId?.siteName || '—',
-      city:          rma.siteId?.city || '—',
-      requestedBy:   rma.requestedBy?.fullName || '—',
-      requestedDate: rma.createdAt ? new Date(rma.createdAt).toLocaleDateString('en-IN') : '—',
-      approvedBy:    rma.approvedBy?.fullName || '—',
-      vendor:        rma.vendorDetails?.vendorName || '—',
-      installedDate: getInstalledDate(rma) ? new Date(getInstalledDate(rma)).toLocaleDateString('en-IN') : '—',
-      remarks:       rma.remarks || '—',
+      site:          rma.siteId?.siteName || '-',
+      city:          rma.siteId?.city || '-',
+      requestedBy:   rma.requestedBy?.fullName || '-',
+      requestedDate: rma.createdAt ? new Date(rma.createdAt).toLocaleDateString('en-IN') : '-',
+      approvedBy:    rma.approvedBy?.fullName || '-',
+      vendor:        rma.vendorDetails?.vendorName || '-',
+      installedDate: getInstalledDate(rma) ? new Date(getInstalledDate(rma)).toLocaleDateString('en-IN') : '-',
+      remarks:       rma.remarks || '-',
     });
 
     const fillMap = {};
@@ -664,7 +664,7 @@ export async function buildRMAExcel(rmaRequests) {
     rmaAssetTypeCounts[at]                                                    = (rmaAssetTypeCounts[at] || 0) + 1;
   });
 
-  addSummarySheet(wb, '🔄  RMA REPORT — SUMMARY', [
+  addSummarySheet(wb, '🔄  RMA REPORT SUMMARY', [
     {
       title: 'By Status',
       rows: Object.entries(rmaStatusCounts).sort((a, b) => b[1] - a[1])
@@ -709,7 +709,7 @@ export async function buildSpareStockExcel(assets) {
 
   const total = assets.length;
   const summaryLines = [
-    { text: '📦  TICKETOPS — SPARE STOCK REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
+    { text: '📦  TICKETOPS SPARE STOCK REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
     { text: `Generated: ${new Date().toLocaleString('en-IN')}   |   Total Spare Items: ${total}`, size: 10, bg: 'EFF6FF', color: '1E40AF', align: 'center', height: 20 },
     { text: '', bg: 'FFFFFF', height: 6 },
   ];
@@ -744,7 +744,7 @@ export async function buildSpareStockExcel(assets) {
     spareAssetTypeCounts[a.assetType || 'Unknown']   = (spareAssetTypeCounts[a.assetType || 'Unknown'] || 0) + 1;
   });
 
-  addSummarySheet(wb, '📦  SPARE STOCK REPORT — SUMMARY', [
+  addSummarySheet(wb, '📦  SPARE STOCK REPORT SUMMARY', [
     {
       title: 'By Device Type',
       rows: Object.entries(spareDeviceTypeCounts).sort((a, b) => b[1] - a[1])
@@ -785,7 +785,7 @@ export async function buildWorkActivityExcel(logs) {
   logs.forEach(l => { totalActivities += (l.activities || []).length; });
 
   const summaryLines = [
-    { text: '⚙️  TICKETOPS — WORK ACTIVITY REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
+    { text: '  TICKETOPS WORK ACTIVITY REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
     { text: `Generated: ${new Date().toLocaleString('en-IN')}   |   Log Entries: ${logs.length}   |   Total Activities: ${totalActivities}`, size: 10, bg: 'EFF6FF', color: '1E40AF', align: 'center', height: 20 },
     { text: '', bg: 'FFFFFF', height: 6 },
   ];

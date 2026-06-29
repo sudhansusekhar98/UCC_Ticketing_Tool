@@ -1,4 +1,4 @@
-/* Notifications Management Styles */
+﻿/* Notifications Management Styles */
 
 .notifications-management {
     padding: var(--space-6);
@@ -1044,7 +1044,7 @@
 }
 
 /* ============================================================
-   Rich Message Editor — Gmail-style compose body
+   Rich Message Editor - Gmail-style compose body
    ============================================================ */
 
 .rich-editor-wrapper {
@@ -1152,7 +1152,7 @@
 }
 
 /* ============================================================
-   Notification read view — render rich HTML message
+   Notification read view - render rich HTML message
    ============================================================ */
 
 .notification-message--rich img {

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { X, Package, Save, AlertCircle } from 'lucide-react';
 import { stockApi, fieldOpsApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -93,7 +93,7 @@ export default function ProjectAllocationModal({ asset, onClose, onSuccess }) {
                         }}>
                             <div style={{ fontWeight: 600, marginBottom: '0.25rem' }}>
                                 {asset.deviceType || asset.assetType || asset.groupAssetType}
-                                {asset.make && ` — ${asset.make}`}
+                                {asset.make && ` - ${asset.make}`}
                                 {asset.model && ` ${asset.model}`}
                             </div>
                             <div style={{ color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>

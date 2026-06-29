@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -268,7 +268,7 @@ export default function DeviceMappingConfig() {
                                                         ))}
                                                     </select>
                                                 </td>
-                                                <td>{mapping.createdBy?.fullName || '—'}</td>
+                                                <td>{mapping.createdBy?.fullName || '-'}</td>
                                                 <td>
                                                     <div style={{ display: 'flex', gap: '0.25rem' }}>
                                                         <button className="btn btn-ghost btn-sm" onClick={() => handleUpdate(mapping._id)}>
@@ -283,11 +283,11 @@ export default function DeviceMappingConfig() {
                                         ) : (
                                             <>
                                                 <td><strong>{mapping.surveyItemName}</strong></td>
-                                                <td>{mapping.surveyItemTypeName || '—'}</td>
+                                                <td>{mapping.surveyItemTypeName || '-'}</td>
                                                 <td>
                                                     <span className="recon-mini-badge">{mapping.internalDeviceType}</span>
                                                 </td>
-                                                <td>{mapping.createdBy?.fullName || '—'}</td>
+                                                <td>{mapping.createdBy?.fullName || '-'}</td>
                                                 <td>
                                                     <div style={{ display: 'flex', gap: '0.25rem' }}>
                                                         <button className="btn btn-ghost btn-sm" onClick={() => startEdit(mapping)}>

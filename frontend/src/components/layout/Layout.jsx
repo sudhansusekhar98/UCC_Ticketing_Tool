@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+﻿import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -150,7 +150,7 @@ export default function Layout({ children }) {
             const searchParam = query.trim();
             const results = { tickets: [], assets: [], sites: [], users: [] };
 
-            // Run searches in parallel — catch individually so one failure doesn't block all
+            // Run searches in parallel - catch individually so one failure doesn't block all
             const [ticketsRes, assetsRes, sitesRes, usersRes] = await Promise.allSettled([
                 ticketsApi.getAll({ search: searchParam }),
                 assetsApi.getAll({ search: searchParam }),

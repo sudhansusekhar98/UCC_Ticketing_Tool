@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     RefreshCw,
@@ -31,8 +31,8 @@ const statusBadge = (status) => {
 };
 
 const fmtDate = (d) => {
-    if (!d) return '—';
-    try { return format(new Date(d), 'dd MMM yyyy'); } catch { return '—'; }
+    if (!d) return '-';
+    try { return format(new Date(d), 'dd MMM yyyy'); } catch { return '-'; }
 };
 
 export default function SurveyExplorer() {
@@ -303,7 +303,7 @@ export default function SurveyExplorer() {
                                                 onClick={() => navigate(`/fieldops/projects/${p._id}`)}
                                                 type="button"
                                             >
-                                                {p.projectNumber} — {p.projectName}
+                                                {p.projectNumber} - {p.projectName}
                                                 <ExternalLink size={12} />
                                             </button>
                                         ))}
@@ -342,10 +342,10 @@ export default function SurveyExplorer() {
                                                 return (
                                                     <tr key={r.itemId || idx}>
                                                         <td>
-                                                            <div className="item-name">{r.itemName || '—'}</div>
+                                                            <div className="item-name">{r.itemName || '-'}</div>
                                                             {r.itemId && <div className="muted mono tiny">ID: {r.itemId}</div>}
                                                         </td>
-                                                        <td>{r.itemTypeName || '—'}</td>
+                                                        <td>{r.itemTypeName || '-'}</td>
                                                         <td className="num">{req}</td>
                                                         <td className="num">{have}</td>
                                                         <td className="num">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     Package, Search, Warehouse, ArrowLeft, MapPin, ChevronDown, ChevronUp,
@@ -291,7 +291,7 @@ export default function InventoryList() {
         }, {})
     );
 
-    // Total item count — excludes all meter-unit assets (matching backend)
+    // Total item count - excludes all meter-unit assets (matching backend)
     const totalAssets = Array.isArray(inventory)
         ? inventory.reduce((acc, group) => acc + (Number(group.count) || 0), 0)
         : 0;
@@ -534,31 +534,31 @@ export default function InventoryList() {
                                                     <span className="type-badge">{asset.assetType || asset.groupAssetType}</span>
                                                 </td>
                                                 <td className="col-device">
-                                                    {asset.deviceType || '—'}
+                                                    {asset.deviceType || '-'}
                                                 </td>
                                                 <td className="col-make">
-                                                    {asset.make || '—'}
+                                                    {asset.make || '-'}
                                                 </td>
                                                 <td className="col-model">
-                                                    {asset.model || '—'}
+                                                    {asset.model || '-'}
                                                 </td>
                                                 <td className="col-mac">
                                                     <code className="mac-code" title={asset.mac}>
-                                                        {asset.mac || '—'}
+                                                        {asset.mac || '-'}
                                                     </code>
                                                 </td>
                                                 <td className="col-serial">
                                                     <span className="serial-text" title={asset.serialNumber}>
-                                                        {asset.serialNumber || '—'}
+                                                        {asset.serialNumber || '-'}
                                                     </span>
                                                 </td>
                                                 {/* <td className="col-location">
-                                                    <span className="location-text">{asset.stockLocation || '—'}</span>
+                                                    <span className="location-text">{asset.stockLocation || '-'}</span>
                                                 </td> */}
                                                 <td className="col-qty">
                                                     {asset.isMeterUnit ? (
-                                                        <span className="meter-qty-badge" title={`${asset.quantity} meters of wire/cable — not counted in stock total`}>
-                                                            {asset.quantity || '—'}
+                                                        <span className="meter-qty-badge" title={`${asset.quantity} meters of wire/cable - not counted in stock total`}>
+                                                            {asset.quantity || '-'}
                                                         </span>
                                                     ) : (
                                                         asset.quantity || '1'
@@ -573,7 +573,7 @@ export default function InventoryList() {
                                                 </td>
                                                 {/* <td className="col-remarks">
                                                     <span className="remarks-text" title={asset.remarks || asset.remark}>
-                                                        {asset.remarks || asset.remark || '—'}
+                                                        {asset.remarks || asset.remark || '-'}
                                                     </span>
                                                 </td> */}
                                                 <td className="col-actions">
@@ -651,29 +651,29 @@ export default function InventoryList() {
                                 </div>
                                 <div className="detail-item">
                                     <label>Device Type</label>
-                                    <div className="detail-value">{viewAsset.deviceType || '—'}</div>
+                                    <div className="detail-value">{viewAsset.deviceType || '-'}</div>
                                 </div>
                                 <div className="detail-item">
                                     <label>Make</label>
-                                    <div className="detail-value">{viewAsset.make || '—'}</div>
+                                    <div className="detail-value">{viewAsset.make || '-'}</div>
                                 </div>
                                 <div className="detail-item">
                                     <label>Model</label>
-                                    <div className="detail-value">{viewAsset.model || '—'}</div>
+                                    <div className="detail-value">{viewAsset.model || '-'}</div>
                                 </div>
                                 <div className="detail-item full-width">
                                     <label>MAC Address</label>
                                     <div className="detail-value">
-                                        <code className="mac-code">{viewAsset.mac || '—'}</code>
+                                        <code className="mac-code">{viewAsset.mac || '-'}</code>
                                     </div>
                                 </div>
                                 <div className="detail-item full-width">
                                     <label>Serial Number</label>
-                                    <div className="detail-value">{viewAsset.serialNumber || '—'}</div>
+                                    <div className="detail-value">{viewAsset.serialNumber || '-'}</div>
                                 </div>
                                 <div className="detail-item">
                                     <label>Storage Location</label>
-                                    <div className="detail-value">{viewAsset.stockLocation || '—'}</div>
+                                    <div className="detail-value">{viewAsset.stockLocation || '-'}</div>
                                 </div>
                                 <div className="detail-item">
                                     <label>Quantity</label>
@@ -681,7 +681,7 @@ export default function InventoryList() {
                                         {viewAsset.isMeterUnit ? (
                                             <span className="meter-qty-badge">
                                                 <Ruler size={12} />
-                                                {viewAsset.quantity || '—'} m
+                                                {viewAsset.quantity || '-'} m
                                             </span>
                                         ) : (
                                             viewAsset.quantity || '1'
@@ -701,7 +701,7 @@ export default function InventoryList() {
                                 </div>
                                 <div className="detail-item full-width">
                                     <label>Remarks</label>
-                                    <div className="detail-value">{viewAsset.remarks || viewAsset.remark || '—'}</div>
+                                    <div className="detail-value">{viewAsset.remarks || viewAsset.remark || '-'}</div>
                                 </div>
                                 <div className="detail-item">
                                     <label>Status</label>
@@ -741,7 +741,7 @@ export default function InventoryList() {
                                 <Edit size={20} />
                                 <h2>Edit Stock Item</h2>
                                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400, marginLeft: '4px' }}>
-                                    — {editAsset.assetType || editAsset.groupAssetType}
+                                    - {editAsset.assetType || editAsset.groupAssetType}
                                 </span>
                             </div>
                             <button className="modal-close" onClick={() => !saving && setEditAsset(null)} disabled={saving}>
@@ -752,7 +752,7 @@ export default function InventoryList() {
                         <form onSubmit={submitEdit}>
                             <div className="modal-body">
                                 <div className="asset-detail-grid">
-                                    {/* Asset Type — free text */}
+                                    {/* Asset Type - free text */}
                                     <div className="detail-item">
                                         <label htmlFor="edit-assetType">Asset Type</label>
                                         <input
@@ -766,7 +766,7 @@ export default function InventoryList() {
                                             placeholder="e.g. Camera, Switch"
                                         />
                                     </div>
-                                    {/* Device Type — free text */}
+                                    {/* Device Type - free text */}
                                     <div className="detail-item">
                                         <label htmlFor="edit-deviceType">Device Type</label>
                                         <input
@@ -926,7 +926,7 @@ export default function InventoryList() {
                             <div style={{ marginTop: '12px', padding: '12px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', borderLeft: '3px solid var(--error-500)' }}>
                                 <strong style={{ color: 'var(--text-primary)', fontSize: '0.875rem' }}>
                                     {deleteTarget.assetType || deleteTarget.groupAssetType}
-                                    {deleteTarget.deviceType ? ` — ${deleteTarget.deviceType}` : ''}
+                                    {deleteTarget.deviceType ? ` - ${deleteTarget.deviceType}` : ''}
                                 </strong>
                                 {deleteTarget.serialNumber && (
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>S/N: {deleteTarget.serialNumber}</div>

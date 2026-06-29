@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -41,12 +41,12 @@ import './Tickets.css';
 
 const safeFormatDate = (date, formatStr) => {
     try {
-        if (!date) return '—';
+        if (!date) return '-';
         const d = new Date(date);
-        if (isNaN(d.getTime())) return '—';
+        if (isNaN(d.getTime())) return '-';
         return format(d, formatStr);
     } catch (e) {
-        return '—';
+        return '-';
     }
 };
 
@@ -83,7 +83,7 @@ export default function TicketDetail() {
     const ticketSiteId = ticket?.siteId?._id || ticket?.siteId || ticket?.assetId?.siteId?._id || ticket?.assetId?.siteId;
     const canEdit = (hasRole(['Admin', 'Supervisor', 'Dispatcher']) || hasRight('EDIT_TICKET', ticketSiteId)) && !isLocked;
 
-    // Compare using string IDs for MongoDB — must be declared BEFORE canAssign
+    // Compare using string IDs for MongoDB - must be declared BEFORE canAssign
     const assignedToId = typeof ticket?.assignedTo === 'object' ? ticket?.assignedTo?._id : ticket?.assignedTo;
     const isAssignedToMe = assignedToId && assignedToId === user?.userId;
     const isAdmin = hasRole('Admin');
@@ -165,8 +165,13 @@ export default function TicketDetail() {
                 createdByName: ticketData.createdBy?.fullName || ticketData.createdByName,
                 assignedToName: ticketData.assignedTo?.fullName || ticketData.assignedToName,
                 assignedTo: typeof ticketData.assignedTo === 'object' ? ticketData.assignedTo?._id : ticketData.assignedTo,
-                slaStatus: ticketData.isSLARestoreBreached ? 'Breached' :
-                    (ticketData.isSLAResponseBreached ? 'AtRisk' : 'OnTrack')
+                slaStatus: (() => {
+                    const restoreDue = ticketData.slaRestoreDue ? new Date(ticketData.slaRestoreDue) : null;
+                    const now = new Date();
+                    if (ticketData.isSLARestoreBreached || (restoreDue && restoreDue < now)) return 'Breached';
+                    if (ticketData.isSLAResponseBreached || (restoreDue && restoreDue < new Date(now.getTime() + 4 * 60 * 60 * 1000))) return 'AtRisk';
+                    return 'OnTrack';
+                })()
             });
         } catch (error) {
             toast.error('Failed to load ticket');
@@ -593,7 +598,7 @@ export default function TicketDetail() {
                                 <Info size={12} />
                                 Description
                             </span>
-                            <span className="detail-value">{ticket.description || '—'}</span>
+                            <span className="detail-value">{ticket.description || '-'}</span>
                         </div>
 
                         {/* Impact/Urgency and Source - Hidden for SiteClient */}
@@ -629,7 +634,7 @@ export default function TicketDetail() {
                                 <Building2 size={12} />
                                 Site
                             </span>
-                            <span className="detail-value">{ticket.siteName || '—'}</span>
+                            <span className="detail-value">{ticket.siteName || '-'}</span>
                         </div>
 
                         <div className="detail-row">
@@ -637,7 +642,7 @@ export default function TicketDetail() {
                                 <MapPin size={12} />
                                 Location
                             </span>
-                            <span className="detail-value">{ticket.locationName || '—'}</span>
+                            <span className="detail-value">{ticket.locationName || '-'}</span>
                         </div>
                     </div>
 
@@ -664,7 +669,7 @@ export default function TicketDetail() {
                                             <MapPin size={12} />
                                             Location Name
                                         </span>
-                                        <span className="detail-value">{ticket.assetId?.locationName || ticket.locationName || '—'}</span>
+                                        <span className="detail-value">{ticket.assetId?.locationName || ticket.locationName || '-'}</span>
                                     </div>
 
                                     <div className="detail-row">
@@ -672,7 +677,7 @@ export default function TicketDetail() {
                                             <Cpu size={12} />
                                             MAC Address
                                         </span>
-                                        <span className="detail-value font-mono">{ticket.assetId?.mac || '—'}</span>
+                                        <span className="detail-value font-mono">{ticket.assetId?.mac || '-'}</span>
                                     </div>
 
                                     <div className="detail-row">
@@ -680,7 +685,7 @@ export default function TicketDetail() {
                                             <Activity size={12} />
                                             Serial Number
                                         </span>
-                                        <span className="detail-value font-mono">{ticket.assetId?.serialNumber || '—'}</span>
+                                        <span className="detail-value font-mono">{ticket.assetId?.serialNumber || '-'}</span>
                                     </div>
 
                                     <div className="detail-row">
@@ -877,7 +882,7 @@ export default function TicketDetail() {
                             )}
                         </div>
 
-                        {/* RMA Active — TAT Paused Indicator */}
+                        {/* RMA Active - TAT Paused Indicator */}
                         {hasActiveRma && (
                             <div className="timeline-milestone" style={{
                                 background: 'rgba(245, 158, 11, 0.08)',
@@ -891,7 +896,7 @@ export default function TicketDetail() {
                                 </div>
                                 <div className="milestone-content">
                                     <div className="milestone-label" style={{ color: 'var(--warning-500)', fontWeight: 700 }}>
-                                        TAT Paused — RMA Active
+                                        TAT Paused - RMA Active
                                     </div>
                                     <div className="milestone-time" style={{ fontSize: '10px' }}>
                                         SLA/TAT does not apply while device replacement is in progress

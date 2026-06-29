@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -92,13 +92,13 @@ export default function DeviceInstallationForm() {
             try {
                 const allocRes = await stockApi.getProjectAllocatedStock(projectId);
                 setAllocatedStock(allocRes.data.data || []);
-            } catch { /* no allocations — that's OK */ }
+            } catch { /* no allocations - that's OK */ }
 
             // Fetch all cable allocations for this project
             try {
                 const cableRes = await stockApi.getProjectCableAllocations(projectId);
                 setAllCableAllocations(cableRes.data.data || []);
-            } catch { /* no cable allocations — that's OK */ }
+            } catch { /* no cable allocations - that's OK */ }
 
             if (isEditing) {
                 const deviceRes = await fieldOpsApi.getDeviceInstallationById(deviceId);
@@ -538,7 +538,7 @@ export default function DeviceInstallationForm() {
                                     <option value="">-- Select Asset Type --</option>
                                     {assetTypesWithQty.map(asset => (
                                         <option key={asset.type} value={asset.type}>
-                                            {asset.type} — {asset.totalRemaining} remaining ({asset.count} items)
+                                            {asset.type} - {asset.totalRemaining} remaining ({asset.count} items)
                                         </option>
                                     ))}
                                 </select>
@@ -557,7 +557,7 @@ export default function DeviceInstallationForm() {
                                     <option value="">-- Select Device Type --</option>
                                     {deviceTypesForAsset.map(device => (
                                         <option key={device.type} value={device.type}>
-                                            {device.type} — {device.totalRemaining} remaining
+                                            {device.type} - {device.totalRemaining} remaining
                                         </option>
                                     ))}
                                     {isEditing && formData.deviceType && deviceTypesForAsset.length === 0 && (
@@ -675,7 +675,7 @@ export default function DeviceInstallationForm() {
                                         <option value="">-- Select Stock Item --</option>
                                         {filteredStockItems.map(item => (
                                             <option key={item.allocationId} value={item.allocationId}>
-                                                {item.make} {item.model} {item.serialNumber ? `(${item.serialNumber})` : ''} — {item.remainingQty} remaining
+                                                {item.make} {item.model} {item.serialNumber ? `(${item.serialNumber})` : ''} - {item.remainingQty} remaining
                                             </option>
                                         ))}
                                     </select>
@@ -881,7 +881,7 @@ export default function DeviceInstallationForm() {
                                 <option value="">-- Select Cable Type --</option>
                                 {cableTypesWithQty.map(cable => (
                                     <option key={cable.type} value={cable.type}>
-                                        {cable.type} — {cable.totalRemaining} remaining (of {cable.totalAllocated})
+                                        {cable.type} - {cable.totalRemaining} remaining (of {cable.totalAllocated})
                                     </option>
                                 ))}
                             </select>
@@ -903,7 +903,7 @@ export default function DeviceInstallationForm() {
                                         <option value="">-- Select Cable Stock --</option>
                                         {filteredCableAllocations.filter(c => c.remainingQty > 0).map(cable => (
                                             <option key={cable.allocationId} value={cable.allocationId}>
-                                                {cable.make} {cable.model} — {cable.remainingQty} {cable.unit || 'm'} remaining
+                                                {cable.make} {cable.model} - {cable.remainingQty} {cable.unit || 'm'} remaining
                                             </option>
                                         ))}
                                     </select>

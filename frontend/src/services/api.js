@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import useCacheStore, { generateCacheKey, shouldCache } from '../context/cacheStore';
 
 // Use environment variable for API URL, fallback to localhost for development
@@ -109,10 +109,10 @@ api.interceptors.response.use(
                     return api(originalRequest);
                 }
             } catch {
-                // Refresh failed — fall through to force logout below
+                // Refresh failed - fall through to force logout below
             }
 
-            // No refresh token OR refresh failed — force logout and redirect
+            // No refresh token OR refresh failed - force logout and redirect
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');

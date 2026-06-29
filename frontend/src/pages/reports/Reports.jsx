@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { reportingApi, sitesApi } from '../../services/api';
 import ReportFilters from '../../components/reporting/ReportFilters';
 import {
@@ -345,7 +345,7 @@ export default function Reports() {
                                 className="btn btn-html-report"
                                 onClick={handleHtmlExport}
                                 disabled={exportingHtml || exporting}
-                                title="Download interactive HTML report with charts — open in browser"
+                                title="Download interactive HTML report with charts - open in browser"
                             >
                                 {exportingHtml ? (
                                     <>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, AlertCircle, ArrowRight, ShieldCheck, MessageSquare } from 'lucide-react';
 import { assetUpdateRequestApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -98,7 +98,7 @@ export default function AssetUpdateApproval({ ticketId, onUpdate }) {
                                 </thead>
                                 <tbody>
                                     {Object.entries(req.proposedChanges || {}).map(([field, newValue]) => {
-                                        const originalValue = req.originalValues?.[field] || '—';
+                                        const originalValue = req.originalValues?.[field] || '-';
                                         if (newValue === originalValue) return null;
                                         
                                         return (
@@ -109,7 +109,7 @@ export default function AssetUpdateApproval({ ticketId, onUpdate }) {
                                                     <ArrowRight size={14} className="mx-auto" />
                                                 </td>
                                                 <td className="text-sm font-bold text-success-500 bg-success-500/5 rounded">
-                                                    {newValue || '—'}
+                                                    {newValue || '-'}
                                                 </td>
                                             </tr>
                                         );

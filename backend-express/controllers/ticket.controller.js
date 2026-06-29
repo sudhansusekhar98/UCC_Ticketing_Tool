@@ -79,9 +79,16 @@ export const getTickets = async (req, res, next) => {
         query.isSLARestoreBreached = true;
         query.status = { $nin: ['Closed', 'Cancelled'] };
       } else if (slaStatus === 'AtRisk') {
-        query.slaRestoreDue = { $lte: new Date(Date.now() + 30 * 60 * 1000) }; // Within 30 minutes
-        query.isSLARestoreBreached = false;
+        query.slaRestoreDue = { $lte: new Date(Date.now() + 4 * 60 * 60 * 1000), $gt: new Date() };
+        query.isSLARestoreBreached = { $ne: true };
         query.status = { $nin: ['Closed', 'Cancelled', 'Resolved'] };
+      } else if (slaStatus === 'Issues') {
+        // Breached OR At Risk — all tickets with SLA problems
+        query.status = { $nin: ['Closed', 'Cancelled'] };
+        query.$or = [
+          { isSLARestoreBreached: true },
+          { slaRestoreDue: { $lte: new Date(Date.now() + 4 * 60 * 60 * 1000), $gt: new Date() }, isSLARestoreBreached: { $ne: true } }
+        ];
       } else if (slaStatus === 'OnTrack') {
         query.$and = query.$and || [];
         query.$and.push(
@@ -686,15 +693,21 @@ export const startTicket = async (req, res, next) => {
 export const resolveTicket = async (req, res, next) => {
   try {
     const { rootCause, resolutionSummary } = req.body;
+    const now = new Date();
+
+    // Fetch current SLA deadline to stamp breach state accurately at closure time
+    const existing = await Ticket.findById(req.params.id).select('slaRestoreDue').lean();
+    const isBreached = existing?.slaRestoreDue ? now > new Date(existing.slaRestoreDue) : false;
 
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
       {
         status: 'Resolved',
-        resolvedOn: new Date(),
+        resolvedOn: now,
         rootCause,
         resolutionSummary,
-        updatedAt: new Date()
+        isSLARestoreBreached: isBreached,
+        updatedAt: now
       },
       { new: true }
     );
@@ -797,13 +810,20 @@ export const verifyTicket = async (req, res, next) => {
 export const closeTicket = async (req, res, next) => {
   try {
     const { notes } = req.body;
+    const now = new Date();
+
+    const existing = await Ticket.findById(req.params.id).select('slaRestoreDue resolvedOn isSLARestoreBreached').lean();
+    // Breach if: already flagged, OR (SLA exists AND neither resolved in time nor closed in time)
+    const isBreached = existing?.isSLARestoreBreached ||
+      (existing?.slaRestoreDue && !existing?.resolvedOn && now > new Date(existing.slaRestoreDue));
 
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
       {
         status: 'Closed',
-        closedOn: new Date(),
-        updatedAt: new Date()
+        closedOn: now,
+        isSLARestoreBreached: !!isBreached,
+        updatedAt: now
       },
       { new: true }
     );
@@ -1354,7 +1374,8 @@ export const getDashboardStats = async (req, res, next) => {
           slaAtRisk: [
             {
               $match: {
-                slaRestoreDue: { $lte: new Date(Date.now() + 30 * 60 * 1000) },
+                slaRestoreDue: { $lte: new Date(Date.now() + 4 * 60 * 60 * 1000), $gt: new Date() },
+                isSLARestoreBreached: { $ne: true },
                 status: { $nin: ['Closed', 'Cancelled', 'Resolved'] }
               }
             },
@@ -1365,9 +1386,31 @@ export const getDashboardStats = async (req, res, next) => {
             { $match: { resolvedOn: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } } },
             { $count: 'count' }
           ],
-          // SLA compliance: count Closed+Resolved tickets (not just Closed)
+          // SLA compliance: resolved/closed within deadline (use actual timestamps, not stored flag)
+          // Only count tickets that had an SLA assigned (slaRestoreDue exists)
           closedCompliant: [
-            { $match: { status: { $in: ['Closed', 'Resolved'] }, isSLARestoreBreached: { $ne: true } } },
+            {
+              $match: {
+                status: { $in: ['Closed', 'Resolved'] },
+                slaRestoreDue: { $exists: true, $ne: null },
+                $expr: {
+                  $lte: [
+                    { $ifNull: ['$resolvedOn', '$closedOn'] },
+                    '$slaRestoreDue'
+                  ]
+                }
+              }
+            },
+            { $count: 'count' }
+          ],
+          // Denominator: only tickets with SLA data (exclude tickets with no slaRestoreDue)
+          totalClosedWithSLA: [
+            {
+              $match: {
+                status: { $in: ['Closed', 'Resolved'] },
+                slaRestoreDue: { $exists: true, $ne: null }
+              }
+            },
             { $count: 'count' }
           ],
           totalClosed: [
@@ -1407,12 +1450,13 @@ export const getDashboardStats = async (req, res, next) => {
     const slaAtRisk = stats.slaAtRisk[0]?.count || 0;
     const resolvedToday = stats.resolvedToday[0]?.count || 0;
 
-    // SLA compliance — null when no closed/resolved tickets yet (avoid false 100%)
+    // SLA compliance: % of tickets-with-SLA that were resolved before their deadline
+    // Denominator excludes tickets with no slaRestoreDue (no SLA data = meaningless)
     const closedWithSLA = stats.closedCompliant[0]?.count || 0;
-    const totalClosedForSLA = stats.totalClosed[0]?.count || 0;
+    const totalClosedWithSLA = stats.totalClosedWithSLA[0]?.count || 0;
     const criticalTickets = stats.criticalOrBreached[0]?.count || 0;
-    const slaCompliancePercent = totalClosedForSLA > 0
-      ? Math.round((closedWithSLA / totalClosedForSLA) * 100)
+    const slaCompliancePercent = totalClosedWithSLA > 0
+      ? Math.round((closedWithSLA / totalClosedWithSLA) * 100)
       : null;
 
     // Format chart data

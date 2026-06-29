@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Users, GitBranch, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
 import { usersApi } from '../../services/api';
@@ -290,7 +290,7 @@ export default function OrgChart() {
                                     to={`/users/${n.id}/edit`}
                                     className="org-node"
                                     style={{ left: n.x, top: n.y }}
-                                    title={`${n.user?.fullName} — click to edit`}
+                                    title={`${n.user?.fullName} - click to edit`}
                                 >
                                     <div className="org-node-avatar">
                                         {n.user?.profilePicture ? (

@@ -1,10 +1,10 @@
-/*
+﻿/*
    StockAnalyticsDashboard.css
    Faithfully adapted from Stitch "StockFlow Analytics" screen.
    Design tokens: Material Design 3 color system (primary #2b4bb9, secondary #4648d4, tertiary #006242)
    Typography: Manrope (headlines) + Inter (body/labels)
    Shape: 0.75rem standard, rounded-full for progress bars
-   No 1px borders — shadow-sm + tonal bg only
+   No 1px borders - shadow-sm + tonal bg only
 */
 
 /* ─── Container ─── */

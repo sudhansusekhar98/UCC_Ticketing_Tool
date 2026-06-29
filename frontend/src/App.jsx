@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import useAuthStore from './context/authStore';
@@ -217,7 +217,7 @@ function App() {
             }
           />
 
-          {/* Client Sign-Up — Public */}
+          {/* Client Sign-Up - Public */}
           <Route
             path="/signup"
             element={

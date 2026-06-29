@@ -1,4 +1,4 @@
-import { useActionState, useTransition, useState, useEffect } from 'react';
+﻿import { useActionState, useTransition, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Clock, RotateCcw, Download } from 'lucide-react';
 import { sitesApi, usersApi } from '../../services/api';
@@ -22,7 +22,7 @@ const PRIORITY_COLORS = {
 };
 
 function formatMinutes(min) {
-    if (!min && min !== 0) return '—';
+    if (!min && min !== 0) return '-';
     if (min < 60) return `${min}m`;
     const h = Math.floor(min / 60);
     const m = min % 60;
@@ -60,7 +60,7 @@ export default function SiteForm() {
     const [slaSource, setSlaSource] = useState('global');
     const [slaExpanded, setSlaExpanded] = useState(true);
 
-    // useTransition for SLA save — replaces manual savingSLA state
+    // useTransition for SLA save - replaces manual savingSLA state
     const [isSLAPending, startSLATransition] = useTransition();
 
     useEffect(() => {
@@ -173,7 +173,7 @@ export default function SiteForm() {
         toast.success('Loaded global default SLA values');
     };
 
-    // useTransition replaces setSavingSLA — handles both reset and save
+    // useTransition replaces setSavingSLA - handles both reset and save
     const handleResetToGlobal = () => {
         if (!confirm('Remove site-specific SLA and revert to global defaults?')) return;
         startSLATransition(async () => {

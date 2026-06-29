@@ -1,4 +1,4 @@
-/* Stock Transfers Styles (List & Form) */
+﻿/* Stock Transfers Styles (List & Form) */
 
 /* Transfer List Filters */
 .filter-bar {
@@ -273,7 +273,7 @@
     border: 1px solid var(--border-light);
 }
 
-/* Transfer card header — use transferName as primary label */
+/* Transfer card header - use transferName as primary label */
 .transfer-header .id-label {
     font-size: 0.8125rem;
     font-weight: 700;

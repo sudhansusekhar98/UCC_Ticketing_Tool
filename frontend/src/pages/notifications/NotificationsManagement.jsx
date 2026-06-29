@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
     Bell,
@@ -155,14 +155,14 @@ function RichMessageEditor({ value, onChange }) {
                 suppressContentEditableWarning
                 onInput={sync}
                 onPaste={handlePaste}
-                data-placeholder="Enter notification message — paste or attach images inline…"
+                data-placeholder="Enter notification message - paste or attach images inline…"
                 aria-label="Message"
                 aria-multiline="true"
                 role="textbox"
             />
             {isEmpty && (
                 <div className="rich-editor-placeholder" aria-hidden="true">
-                    Enter notification message — paste or attach images inline…
+                    Enter notification message - paste or attach images inline…
                 </div>
             )}
         </div>

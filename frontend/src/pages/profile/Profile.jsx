@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import {
     User,
     Mail,
@@ -309,7 +309,7 @@ export default function Profile() {
                                         <Mail size={14} />
                                         Email Address
                                     </label>
-                                    <span>{profileInfo.email || '—'}</span>
+                                    <span>{profileInfo.email || '-'}</span>
                                 </div>
 
                                 <div className="info-item">
@@ -317,7 +317,7 @@ export default function Profile() {
                                         <Phone size={14} />
                                         Mobile Number
                                     </label>
-                                    <span>{profileInfo.mobileNumber || '—'}</span>
+                                    <span>{profileInfo.mobileNumber || '-'}</span>
                                 </div>
 
                                 <div className="info-item">
@@ -335,7 +335,7 @@ export default function Profile() {
                                         <MapPin size={14} />
                                         Assigned Site
                                     </label>
-                                    <span>{profileInfo.siteName || '—'}</span>
+                                    <span>{profileInfo.siteName || '-'}</span>
                                 </div>
 
                                 <div className="info-item">
@@ -346,7 +346,7 @@ export default function Profile() {
                                     <span>
                                         {profileInfo.createdOn
                                             ? format(new Date(profileInfo.createdOn), 'MMM dd, yyyy')
-                                            : '—'}
+                                            : '-'}
                                     </span>
                                 </div>
 
@@ -358,7 +358,7 @@ export default function Profile() {
                                     <span>
                                         {profileInfo.lastLoginOn
                                             ? format(new Date(profileInfo.lastLoginOn), 'MMM dd, yyyy HH:mm')
-                                            : '—'}
+                                            : '-'}
                                     </span>
                                 </div>
                             </div>

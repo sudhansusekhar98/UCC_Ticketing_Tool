@@ -1,4 +1,4 @@
-/* Tickets Page Styles */
+﻿/* Tickets Page Styles */
 
 .tickets-page {
   height: calc(100vh - 64px - 48px);
@@ -1173,7 +1173,7 @@
   }
 }
 
-/* ===== RMA Workflow Tracker — Dual Track Design ===== */
+/* ===== RMA Workflow Tracker - Dual Track Design ===== */
 
 .rma-tracker-container {
   display: flex;

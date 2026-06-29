@@ -2066,7 +2066,7 @@ export const getProjectAllocatedStock = async (req, res, next) => {
                     faultyQty: a.faultyQty,
                     remainingQty: Math.max(0, a.allocatedQty - a.installedQty - a.faultyQty),
                     status: a.status,
-                    label: `${a.stockItemId.deviceType || a.stockItemId.assetType} — ${a.stockItemId.make || ''} ${a.stockItemId.model || ''}`.trim()
+                    label: `${a.stockItemId.deviceType || a.stockItemId.assetType} - ${a.stockItemId.make || ''} ${a.stockItemId.model || ''}`.trim()
                 };
             });
 
@@ -2137,7 +2137,7 @@ export const getProjectCableAllocations = async (req, res, next) => {
             faultyQty: a.faultyQty,
             remainingQty: Math.max(0, a.allocatedQty - a.installedQty - a.faultyQty),
             status: a.status,
-            label: `${a.stockItemId.deviceType || a.stockItemId.assetType} — ${a.stockItemId.make || ''} ${a.stockItemId.model || ''}`.trim()
+            label: `${a.stockItemId.deviceType || a.stockItemId.assetType} - ${a.stockItemId.make || ''} ${a.stockItemId.model || ''}`.trim()
         }));
 
         res.json({ success: true, data: items });

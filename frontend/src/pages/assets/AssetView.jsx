@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Edit, History, Calendar, MapPin, Network, HardDrive, Info, Server, Database, RotateCcw, ArrowRight, User, Ticket, Search, XCircle, Copy, X, Clock, RefreshCw, CheckCircle, Package, Truck, Download, AlertCircle, ExternalLink } from 'lucide-react';
@@ -199,7 +199,7 @@ export default function AssetView() {
 
                             <div className="asset-info-item">
                                 <label className="asset-info-label">Device Type</label>
-                                <p className="asset-info-value">{asset.deviceType || '—'}</p>
+                                <p className="asset-info-value">{asset.deviceType || '-'}</p>
                             </div>
 
                             <div className="asset-info-item">
@@ -218,17 +218,17 @@ export default function AssetView() {
 
                             <div className="asset-info-item">
                                 <label className="asset-info-label">Make</label>
-                                <p className="asset-info-value">{asset.make || '—'}</p>
+                                <p className="asset-info-value">{asset.make || '-'}</p>
                             </div>
 
                             <div className="asset-info-item">
                                 <label className="asset-info-label">Model</label>
-                                <p className="asset-info-value">{asset.model || '—'}</p>
+                                <p className="asset-info-value">{asset.model || '-'}</p>
                             </div>
 
                             <div className="asset-info-item">
                                 <label className="asset-info-label">SL Number</label>
-                                <p className="asset-info-value font-mono">{asset.serialNumber || '—'}</p>
+                                <p className="asset-info-value font-mono">{asset.serialNumber || '-'}</p>
                             </div>
                         </div>
                     </div>
@@ -243,32 +243,32 @@ export default function AssetView() {
                         <div className="asset-info-grid">
                             <div className="asset-info-item">
                                 <label className="asset-info-label">IP Address</label>
-                                <p className="asset-info-value font-mono">{asset.ipAddress || '—'}</p>
+                                <p className="asset-info-value font-mono">{asset.ipAddress || '-'}</p>
                             </div>
 
                             <div className="asset-info-item">
                                 <label className="asset-info-label">Mac Address</label>
-                                <p className="asset-info-value font-mono">{asset.mac || '—'}</p>
+                                <p className="asset-info-value font-mono">{asset.mac || '-'}</p>
                             </div>
 
                             <div className="asset-info-item">
                                 <label className="asset-info-label">Device Username</label>
-                                <p className="asset-info-value font-mono">{asset.userName || '—'}</p>
+                                <p className="asset-info-value font-mono">{asset.userName || '-'}</p>
                             </div>
 
                             <div className="asset-info-item">
                                 <label className="asset-info-label">Device Password</label>
-                                <p className="asset-info-value font-mono">{asset.password || '—'}</p>
+                                <p className="asset-info-value font-mono">{asset.password || '-'}</p>
                             </div>
 
                             <div className="asset-info-item">
                                 <label className="asset-info-label">VMS Ref ID</label>
-                                <p className="asset-info-value">{asset.vmsReferenceId || '—'}</p>
+                                <p className="asset-info-value">{asset.vmsReferenceId || '-'}</p>
                             </div>
 
                             <div className="asset-info-item">
                                 <label className="asset-info-label">NMS Ref ID</label>
-                                <p className="asset-info-value">{asset.nmsReferenceId || '—'}</p>
+                                <p className="asset-info-value">{asset.nmsReferenceId || '-'}</p>
                             </div>
                         </div>
                     </div>
@@ -283,18 +283,18 @@ export default function AssetView() {
                         <div className="location-details">
                             <div className="asset-info-item">
                                 <label className="asset-info-label">Site</label>
-                                <p className="asset-info-value">{asset.siteId?.siteName || '—'}</p>
+                                <p className="asset-info-value">{asset.siteId?.siteName || '-'}</p>
                             </div>
 
                             <div className="asset-info-grid">
                                 <div className="asset-info-item">
                                     <label className="asset-info-label">Location Name</label>
-                                    <p className="asset-info-value">{asset.locationName || '—'}</p>
+                                    <p className="asset-info-value">{asset.locationName || '-'}</p>
                                 </div>
 
                                 <div className="asset-info-item">
                                     <label className="asset-info-label">Description</label>
-                                    <p className="asset-info-value">{asset.locationDescription || '—'}</p>
+                                    <p className="asset-info-value">{asset.locationDescription || '-'}</p>
                                 </div>
                             </div>
                         </div>
@@ -606,14 +606,14 @@ export default function AssetView() {
                             <div className="summary-item">
                                 <span className="asset-info-label">Installed</span>
                                 <span className="asset-info-value">
-                                    {asset.installationDate ? new Date(asset.installationDate).toLocaleDateString() : '—'}
+                                    {asset.installationDate ? new Date(asset.installationDate).toLocaleDateString() : '-'}
                                 </span>
                             </div>
 
                             <div className="summary-item">
                                 <span className="asset-info-label">Warranty Ends</span>
                                 <span className="asset-info-value text-warning">
-                                    {asset.warrantyEndDate ? new Date(asset.warrantyEndDate).toLocaleDateString() : '—'}
+                                    {asset.warrantyEndDate ? new Date(asset.warrantyEndDate).toLocaleDateString() : '-'}
                                 </span>
                             </div>
 

@@ -22,6 +22,32 @@ export const setupCronJobs = (io) => {
         const NO_ACTIVE_RMA = { $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }] };
 
         try {
+            // ── Auto-update At Risk flag ──────────────────────────────────────
+            // Mark tickets as At Risk when slaRestoreDue is within 4 hours
+            const atRiskResult = await Ticket.updateMany(
+                {
+                    status: ACTIVE_STATUSES,
+                    slaRestoreDue: { $lte: in4h, $gt: now },
+                    isSLARestoreBreached: { $ne: true },
+                    isSLAResponseBreached: { $ne: true }
+                },
+                { $set: { isSLAResponseBreached: true } }
+            );
+            if (atRiskResult.modifiedCount > 0) {
+                console.log(`⏰ SLA At Risk: marked ${atRiskResult.modifiedCount} ticket(s) as At Risk`);
+            }
+
+            // Clear At Risk flag for tickets that are back on track (e.g. SLA extended / priority changed)
+            await Ticket.updateMany(
+                {
+                    status: ACTIVE_STATUSES,
+                    slaRestoreDue: { $gt: in4h },
+                    isSLARestoreBreached: { $ne: true },
+                    isSLAResponseBreached: true
+                },
+                { $set: { isSLAResponseBreached: false } }
+            );
+
             // ── 4-hour warning ────────────────────────────────────────────────
             const tickets4h = await Ticket.find({
                 status: ACTIVE_STATUSES,
@@ -50,7 +76,7 @@ export const setupCronJobs = (io) => {
                         if (io && ticket.assignedTo?._id) {
                             await createSystemNotification(io, {
                                 userId: ticket.assignedTo._id,
-                                title: '⚠️ SLA Warning — 4 Hours',
+                                title: '⚠️ SLA Warning 4 Hours',
                                 message: `Ticket ${ticket.ticketNumber} breaches SLA in ~${minutesLeft} min. Please act now.`,
                                 type: 'warning',
                                 link: `/tickets/${ticket._id}`
@@ -90,7 +116,7 @@ export const setupCronJobs = (io) => {
                         if (io && ticket.assignedTo?._id) {
                             await createSystemNotification(io, {
                                 userId: ticket.assignedTo._id,
-                                title: '🚨 SLA Critical — 1 Hour Left',
+                                title: '🚨 SLA Critical 1 Hour Left',
                                 message: `Ticket ${ticket.ticketNumber} breaches SLA in ~${minutesLeft} min. Immediate action required!`,
                                 type: 'error',
                                 link: `/tickets/${ticket._id}`
@@ -143,7 +169,7 @@ export const setupCronJobs = (io) => {
                             if (io && admin._id) {
                                 await createSystemNotification(io, {
                                     userId: admin._id,
-                                    title: '🚨 SLA BREACHED — Admin Alert',
+                                    title: '🚨 SLA BREACHED Admin Alert',
                                     message: `Ticket ${ticket.ticketNumber} has breached SLA. Assigned to: ${ticket.assignedTo?.fullName || 'Unassigned'}.`,
                                     type: 'error',
                                     link: `/tickets/${ticket._id}`

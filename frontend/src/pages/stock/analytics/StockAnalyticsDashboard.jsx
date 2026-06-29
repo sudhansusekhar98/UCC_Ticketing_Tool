@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Package, Warehouse, MapPin, TrendingUp, Clock,
@@ -104,7 +104,7 @@ export default function StockAnalyticsDashboard() {
           });
         setLocationData(locs);
 
-        // Mix donut — top 3 asset type categories
+        // Mix donut - top 3 asset type categories
         const mixTotal = Object.values(assetTypeMap).reduce((s, v) => s + v, 0) || 1;
         const mix = Object.entries(assetTypeMap)
           .sort((a, b) => b[1] - a[1])
@@ -255,7 +255,7 @@ export default function StockAnalyticsDashboard() {
       {/* ──── Bento Row 1: Location Bars + Mix Donut ──── */}
       <section className="sa-bento-row">
 
-        {/* Stock by Location — stacked horizontal progress bars */}
+        {/* Stock by Location - stacked horizontal progress bars */}
         <div className="sa-card">
           <div className="sa-card-header">
             <h3 className="sa-card-title">Stock by Location</h3>
@@ -290,7 +290,7 @@ export default function StockAnalyticsDashboard() {
           )}
         </div>
 
-        {/* Inventory Mix — SVG donut */}
+        {/* Inventory Mix - SVG donut */}
         <div className="sa-card sa-mix-card">
           <h3 className="sa-card-title">Inventory Mix</h3>
 
@@ -387,7 +387,7 @@ export default function StockAnalyticsDashboard() {
           )}
         </div>
 
-        {/* Active Transfers — dark map card */}
+        {/* Active Transfers - dark map card */}
         <div className="sa-card sa-transfer-card">
           <div className="sa-transfer-header">
             <h3 className="sa-card-title sa-text-white">Active Transfers</h3>
@@ -410,7 +410,7 @@ export default function StockAnalyticsDashboard() {
                 <div className="sa-transfer-icon"><Truck size={14} /></div>
                 <div>
                   <p className="sa-transfer-id">
-                    {activeTransfer.sourceSiteId?.siteName || 'Transfer'} → {activeTransfer.destinationSiteId?.siteName || '—'}</p>
+                    {activeTransfer.sourceSiteId?.siteName || 'Transfer'} → {activeTransfer.destinationSiteId?.siteName || '-'}</p>
                   <p className="sa-transfer-meta">{activeTransfer.status} • {activeTransfer.assetIds?.length || 0} items</p>
                 </div>
               </div>
@@ -472,11 +472,11 @@ export default function StockAnalyticsDashboard() {
                         </div>
                       </div>
                     </td>
-                    <td className="sa-td-dest">{req.siteId?.siteName || '—'}</td>
+                    <td className="sa-td-dest">{req.siteId?.siteName || '-'}</td>
                     <td>
                       <div className="sa-td-user">
                         <div className="sa-avatar" />
-                        <span>{req.requestedBy?.fullName || req.requestedBy?.username || '—'}</span>
+                        <span>{req.requestedBy?.fullName || req.requestedBy?.username || '-'}</span>
                       </div>
                     </td>
                     <td>
