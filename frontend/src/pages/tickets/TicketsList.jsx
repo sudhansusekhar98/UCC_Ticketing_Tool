@@ -69,6 +69,23 @@ export default function TicketsList() {
         loadDropdowns();
     }, []);
 
+    // Sync filter state whenever URL params change (e.g. navigating from dashboard links)
+    useEffect(() => {
+        setFilters(prev => ({
+            ...prev,
+            status: searchParams.get('status') || '',
+            priority: searchParams.get('priority') || '',
+            category: searchParams.get('category') || '',
+            assignedTo: searchParams.get('assignedTo') || '',
+            siteId: searchParams.get('siteId') || '',
+            slaStatus: searchParams.get('slaStatus') || '',
+            searchTerm: searchParams.get('search') || '',
+            startDate: searchParams.get('startDate') || '',
+            endDate: searchParams.get('endDate') || '',
+            page: parseInt(searchParams.get('page')) || 1,
+        }));
+    }, [searchParams]);
+
     useEffect(() => {
         fetchTickets();
     }, [filters.page, searchParams]);

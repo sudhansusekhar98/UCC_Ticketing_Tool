@@ -272,7 +272,7 @@ export default function VDashboard() {
                     invert />
                 <KpiCard to="/tickets?status=InProgress" icon={Loader2} label="In Progress" value={stats?.inProgressTickets ?? 0}
                     accent="#F59E0B" sub="Currently being worked" />
-                <KpiCard to="/tickets?priority=Critical" icon={Flame} label="Critical" value={criticalCount}
+                <KpiCard to="/tickets?slaStatus=Breached" icon={Flame} label="Critical" value={criticalCount}
                     accent="#F43F5E" invert sub={criticalCount > 0 ? `${stats?.slaBreached ?? 0} SLA breached` : 'Needs immediate attention'} />
                 <KpiCard to="/tickets?status=Resolved" icon={CheckCircle2} label="Resolved"
                     value={stats?.totalResolved ?? 0}
