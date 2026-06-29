@@ -768,45 +768,94 @@ export default function TicketForm() {
                         )}
                     </div>
 
-                    {/* Priority Preview */}
-                    {!isSiteClient && (
-                        <>
-                            <div className="priority-preview">
-                                <span className="preview-label">Calculated Priority:</span>
-                                <span className={`badge priority-${getPriorityFromScore(formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2)).toLowerCase()}`}>
-                                    {getPriorityFromScore(formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2))}
-                                </span>
-                                <span className="preview-note">
-                                    (Score: {formData.impact * formData.urgency * (assets.find(a => a.value === formData.assetId)?.criticality || 2)} = Impact × Urgency × Asset Criticality)
-                                </span>
-                            </div>
+                    {/* Priority & SLA Preview */}
+                    {!isSiteClient && (() => {
+                        const assetCriticality = assets.find(a => a.value === formData.assetId)?.criticality || 2;
+                        const score = Number(formData.impact) * Number(formData.urgency) * assetCriticality;
+                        const priority = getPriorityFromScore(score);
+                        const policy = slaPolicies.find(p => p.priority === priority);
 
-                            {calculatedTargets.response && (
-                                <div className="sla-preview-grid" style={{
-                                    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        const fmtDate = (d) => d ? d.toLocaleString('en-GB', {
+                            weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit', hour12: false
+                        }) : null;
+
+                        return (
+                            <>
+                                <div className="priority-preview">
+                                    <span className="preview-label">Calculated Priority:</span>
+                                    <span className={`badge priority-${priority.toLowerCase()}`}>{priority}</span>
+                                    <span className="preview-note">
+                                        Score: {score} = Impact({formData.impact}) × Urgency({formData.urgency}) × Asset Criticality({assetCriticality})
+                                    </span>
+                                </div>
+
+                                <div style={{
+                                    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
                                     gap: '1rem', marginTop: '1rem', padding: '1rem',
-                                    backgroundColor: 'var(--surface-alt)', borderRadius: '8px', border: '1px solid var(--border)'
+                                    backgroundColor: 'var(--bg-secondary)', borderRadius: '8px',
+                                    border: '1px solid var(--border-light)'
                                 }}>
-                                    <div className="sla-preview-item">
-                                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                                    <div>
+                                        <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: '6px' }}>
                                             Predicted Response Target
-                                        </label>
-                                        <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
-                                            {calculatedTargets.response.toLocaleString()}
-                                        </span>
+                                        </div>
+                                        {calculatedTargets.response ? (
+                                            <>
+                                                <div style={{ fontWeight: '700', color: 'var(--primary-500)', fontSize: '14px' }}>
+                                                    {fmtDate(calculatedTargets.response)}
+                                                </div>
+                                                {policy && (
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                                                        {formatDuration(policy.responseTimeMinutes)} after ticket submission
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                {slaPolicies.length === 0 ? 'Loading SLA data...' : 'No SLA policy configured'}
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="sla-preview-item">
-                                        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                                    <div>
+                                        <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: '6px' }}>
                                             Predicted Resolution Target
-                                        </label>
-                                        <span style={{ fontWeight: '600', color: 'var(--primary)' }}>
-                                            {calculatedTargets.resolution.toLocaleString()}
-                                        </span>
+                                        </div>
+                                        {calculatedTargets.resolution ? (
+                                            <>
+                                                <div style={{ fontWeight: '700', color: 'var(--primary-500)', fontSize: '14px' }}>
+                                                    {fmtDate(calculatedTargets.resolution)}
+                                                </div>
+                                                {policy && (
+                                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                                                        {formatDuration(policy.restoreTimeMinutes)} after ticket submission
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                {slaPolicies.length === 0 ? 'Loading SLA data...' : 'No SLA policy configured'}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
-                            )}
-                        </>
-                    )}
+
+                                <div style={{
+                                    display: 'flex', alignItems: 'flex-start', gap: '8px',
+                                    marginTop: '10px', padding: '10px 14px', borderRadius: '8px',
+                                    backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border-light)',
+                                    fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.6'
+                                }}>
+                                    <Info size={13} style={{ marginTop: '2px', flexShrink: 0, color: 'var(--primary-400)' }} />
+                                    <span>
+                                        <strong style={{ color: 'var(--text-secondary)' }}>How priority is calculated:</strong> Priority Score = Impact × Urgency × Asset Criticality (default 2 when no asset selected).
+                                        Score &ge; 50 = <strong>P1 Critical</strong>, &ge; 25 = <strong>P2 High</strong>, &ge; 10 = <strong>P3 Normal</strong>, &lt; 10 = <strong>P4 Low</strong>.
+                                        Targets shown are estimates from the time of ticket submission, based on your configured SLA policies and may shift if priority changes after assignment.
+                                    </span>
+                                </div>
+                            </>
+                        );
+                    })()}
 
                     <div className="form-actions">
                         <Link to="/tickets" className="btn btn-ghost">Cancel</Link>
@@ -829,4 +878,11 @@ function getPriorityFromScore(score) {
     if (score >= 25) return 'P2';
     if (score >= 10) return 'P3';
     return 'P4';
+}
+
+function formatDuration(minutes) {
+    if (!minutes) return '';
+    if (minutes < 60) return `${minutes} min`;
+    const h = Math.round(minutes / 60);
+    return h === 1 ? '1 hour' : `${h} hours`;
 }

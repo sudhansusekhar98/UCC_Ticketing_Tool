@@ -9,7 +9,7 @@ export const getAllLookups = async (req, res, next) => {
   try {
     const [assetTypes, slaPolicies] = await Promise.all([
       Asset.distinct('assetType'),
-      SLAPolicy.find({ isActive: true }).select('policyName priority responseTimeMinutes restoreTimeMinutes')
+      SLAPolicy.find({ isActive: { $ne: false } }).select('policyName priority responseTimeMinutes restoreTimeMinutes')
     ]);
 
     // Format asset types consistently
