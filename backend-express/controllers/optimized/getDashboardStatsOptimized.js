@@ -80,20 +80,29 @@ export const getDashboardStatsOptimized = async (req, res, next) => {
                                     },
                                     { $count: 'count' }
                                 ],
-                                // SLA compliance: include Closed + Resolved as denominator
+                                // SLA compliance: actual timestamp comparison, not the flag
+                                // Only tickets that have an SLA deadline set are counted (avoids pre-fix tickets skewing %)
                                 closedCompliant: [
                                     {
                                         $match: {
                                             status: { $in: ['Closed', 'Resolved'] },
-                                            isSLARestoreBreached: { $ne: true }
+                                            slaRestoreDue: { $exists: true, $ne: null },
+                                            $expr: {
+                                                $lte: [
+                                                    { $ifNull: ['$resolvedOn', '$closedOn'] },
+                                                    '$slaRestoreDue'
+                                                ]
+                                            }
                                         }
                                     },
                                     { $count: 'count' }
                                 ],
-                                totalClosed: [
+                                // Denominator: only tickets that have an SLA deadline (excludes pre-fix legacy tickets)
+                                totalClosedWithSLA: [
                                     {
                                         $match: {
-                                            status: { $in: ['Closed', 'Resolved'] }
+                                            status: { $in: ['Closed', 'Resolved'] },
+                                            slaRestoreDue: { $exists: true, $ne: null }
                                         }
                                     },
                                     { $count: 'count' }
@@ -154,9 +163,9 @@ export const getDashboardStatsOptimized = async (req, res, next) => {
         const slaBreached = stats.slaStats[0].breached[0]?.count || 0;
         const slaAtRisk = stats.slaStats[0].atRisk[0]?.count || 0;
         const closedWithSLA = stats.slaStats[0].closedCompliant[0]?.count || 0;
-        const totalClosedForSLA = stats.slaStats[0].totalClosed[0]?.count || 0;
+        const totalClosedForSLA = stats.slaStats[0].totalClosedWithSLA[0]?.count || 0;
         const criticalTickets = stats.criticalOrBreached[0]?.count || 0;
-        // Return null when no closed/resolved tickets yet — avoids hardcoded 100% illusion
+        // Return null when no tickets have SLA dates yet - avoids showing 100% on a blank slate
         const slaCompliancePercent = totalClosedForSLA > 0
             ? Math.round((closedWithSLA / totalClosedForSLA) * 100)
             : null;
