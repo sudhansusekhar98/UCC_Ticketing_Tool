@@ -13,6 +13,7 @@ import {
     Lock,
     Clock,
     RefreshCw,
+    AlertOctagon,
 } from 'lucide-react';
 import { activitiesApi } from '../../services/api';
 import socketService from '../../services/socket';
@@ -29,6 +30,7 @@ const getRoleBadgeClass = (role) => {
         case 'L1Engineer': return 'role-l1';
         case 'L2Engineer': return 'role-l2';
         case 'ClientViewer': return 'role-client';
+        case 'System': return 'role-system';
         default: return '';
     }
 };
@@ -75,9 +77,9 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                 ...a,
                 activityId: a._id || a.activityId,
                 userId: typeof a.userId === 'object' ? a.userId?._id : a.userId,
-                userName: a.userId?.fullName || a.userName || 'Unknown',
-                userAvatar: typeof a.userId === 'object' ? a.userId?.profilePicture : null,
-                userRole: a.userId?.role || a.userRole || '',
+                userName: a.isSystem ? 'System' : (a.userId?.fullName || a.userName || 'Unknown'),
+                userAvatar: a.isSystem ? null : (typeof a.userId === 'object' ? a.userId?.profilePicture : null),
+                userRole: a.isSystem ? 'System' : (a.userId?.role || a.userRole || ''),
                 createdOn: a.createdAt || a.createdOn,
                 attachments: (a.attachments || []).map(att => ({
                     ...att,
@@ -286,8 +288,25 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
 
-    const renderActivityText = (content) => {
+    const renderActivityText = (content, activityType) => {
         if (!content) return null;
+
+        // SLA Breach system entry
+        if (activityType === 'SLABreach') {
+            const [headline, ...rest] = content.split('. ');
+            return (
+                <div className="sla-breach-card">
+                    <div className="sla-breach-header">
+                        <AlertOctagon size={14} className="sla-breach-icon" />
+                        <span className="sla-breach-title">SLA Breached</span>
+                    </div>
+                    <div className="sla-breach-body">
+                        <strong>{headline}.</strong>
+                        {rest.length > 0 && <span> {rest.join('. ')}</span>}
+                    </div>
+                </div>
+            );
+        }
 
         // Check if this is an RMA/Device Replacement Request
         if (content.includes('RMA/Device Replacement Request Submitted')) {
@@ -402,10 +421,12 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                     activities.map((activity) => (
                         <div
                             key={activity.activityId}
-                            className={`activity-item ${activity.userId === user?.userId ? 'own' : ''} ${activity.isInternal ? 'internal' : ''}`}
+                            className={`activity-item ${!activity.isSystem && activity.userId === user?.userId ? 'own' : ''} ${activity.isInternal ? 'internal' : ''} ${activity.activityType === 'SLABreach' ? 'sla-breach' : ''}`}
                         >
-                            <div className="activity-avatar" data-initial={(activity.userName || 'U').charAt(0).toUpperCase()}>
-                                {activity.userAvatar && activity.userAvatar !== 'null' && activity.userAvatar !== 'undefined' ? (
+                            <div className={`activity-avatar${activity.isSystem ? ' system-avatar' : ''}`} data-initial={(activity.userName || 'S').charAt(0).toUpperCase()}>
+                                {activity.isSystem ? (
+                                    <AlertOctagon size={13} />
+                                ) : activity.userAvatar && activity.userAvatar !== 'null' && activity.userAvatar !== 'undefined' ? (
                                     <img src={activity.userAvatar} alt={activity.userName} className="activity-avatar-img" onError={(e) => { e.target.style.display = 'none'; e.target.parentElement.classList.add('show-initial'); }} />
                                 ) : (
                                     (activity.userName || 'U').charAt(0).toUpperCase()
@@ -426,7 +447,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                                         {getActivityTypeIcon(activity.activityType)}
                                     </span>
                                 </div>
-                                {renderActivityText(activity.content)}
+                                {renderActivityText(activity.content, activity.activityType)}
 
                                 {activity.attachments?.length > 0 && (
                                     <div className="activity-attachments">

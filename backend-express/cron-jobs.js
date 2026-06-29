@@ -3,6 +3,7 @@ import Ticket from './models/Ticket.model.js';
 import User from './models/User.model.js';
 import Project from './models/Project.model.js';
 import PMDailyLog from './models/PMDailyLog.model.js';
+import TicketActivity from './models/TicketActivity.model.js';
 import { sendBreachWarningEmail, sendSlaBreachedEmail, sendGeneralNotificationEmail } from './utils/email.utils.js';
 import { createSystemNotification } from './controllers/notification.controller.js';
 
@@ -183,6 +184,28 @@ export const setupCronJobs = (io) => {
                         { _id: { $in: breachedIds } },
                         { $set: { isSlaBreachedNotificationSent: true, isSLARestoreBreached: true } }
                     );
+
+                    // Log SLA breach as an activity entry on each ticket's timeline
+                    const activityDocs = breachedTickets
+                        .filter(t => breachedIds.some(id => String(id) === String(t._id)))
+                        .map(ticket => {
+                            const due = new Date(ticket.slaRestoreDue);
+                            const dueStr = due.toLocaleString('en-GB', {
+                                day: '2-digit', month: 'short', year: 'numeric',
+                                hour: '2-digit', minute: '2-digit', hour12: false
+                            });
+                            return {
+                                ticketId: ticket._id,
+                                activityType: 'SLABreach',
+                                isSystem: true,
+                                content: `SLA breached. Resolution target was ${dueStr}. This ticket has exceeded its SLA deadline and requires immediate attention.`
+                            };
+                        });
+                    if (activityDocs.length) {
+                        await TicketActivity.insertMany(activityDocs).catch(err =>
+                            console.error('Failed to log SLA breach activities:', err)
+                        );
+                    }
                 }
             }
         } catch (error) {

@@ -8,13 +8,17 @@ const ticketActivitySchema = new mongoose.Schema({
   },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
+    // optional — null for system-generated entries (SLABreach, etc.)
+  },
+  isSystem: {
+    type: Boolean,
+    default: false
   },
   activityType: {
     type: String,
     required: true,
-    enum: ['Comment', 'StatusChange', 'Assignment', 'Escalation', 'Resolution', 'Attachment', 'Note', 'RMA'],
+    enum: ['Comment', 'StatusChange', 'Assignment', 'Escalation', 'Resolution', 'Attachment', 'Note', 'RMA', 'SLABreach'],
     default: 'Comment'
   },
   content: {
