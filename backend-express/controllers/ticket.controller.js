@@ -695,9 +695,14 @@ export const resolveTicket = async (req, res, next) => {
     const { rootCause, resolutionSummary } = req.body;
     const now = new Date();
 
-    // Fetch current SLA deadline to stamp breach state accurately at closure time
-    const existing = await Ticket.findById(req.params.id).select('slaRestoreDue').lean();
-    const isBreached = existing?.slaRestoreDue ? now > new Date(existing.slaRestoreDue) : false;
+    // Fetch SLA deadline and assignment time to stamp breach state accurately.
+    // A breach is only valid if the engineer was assigned BEFORE the SLA deadline —
+    // retroactively-set SLA dates (deadline already past when engineer was assigned) are excluded.
+    const existing = await Ticket.findById(req.params.id).select('slaRestoreDue assignedOn').lean();
+    const slaDeadline = existing?.slaRestoreDue ? new Date(existing.slaRestoreDue) : null;
+    const assignedOn = existing?.assignedOn ? new Date(existing.assignedOn) : null;
+    const hadFairChance = slaDeadline && assignedOn && assignedOn <= slaDeadline;
+    const isBreached = hadFairChance && now > slaDeadline;
 
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
@@ -812,10 +817,15 @@ export const closeTicket = async (req, res, next) => {
     const { notes } = req.body;
     const now = new Date();
 
-    const existing = await Ticket.findById(req.params.id).select('slaRestoreDue resolvedOn isSLARestoreBreached').lean();
-    // Breach if: already flagged, OR (SLA exists AND neither resolved in time nor closed in time)
+    const existing = await Ticket.findById(req.params.id).select('slaRestoreDue resolvedOn assignedOn isSLARestoreBreached').lean();
+    // Carry forward breach flag from resolve step, OR check for direct-close case.
+    // Only flag a breach on direct close if the engineer was assigned before the SLA deadline
+    // (retroactively-set SLA dates don't count as a breach).
+    const slaDeadline = existing?.slaRestoreDue ? new Date(existing.slaRestoreDue) : null;
+    const assignedOn = existing?.assignedOn ? new Date(existing.assignedOn) : null;
+    const hadFairChance = slaDeadline && assignedOn && assignedOn <= slaDeadline;
     const isBreached = existing?.isSLARestoreBreached ||
-      (existing?.slaRestoreDue && !existing?.resolvedOn && now > new Date(existing.slaRestoreDue));
+      (hadFairChance && !existing?.resolvedOn && now > slaDeadline);
 
     const ticket = await Ticket.findByIdAndUpdate(
       req.params.id,
