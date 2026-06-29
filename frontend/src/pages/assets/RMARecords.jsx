@@ -156,6 +156,7 @@ export default function RMARecords() {
 
     const searchedRmas = searchTerm
         ? filteredRmas.filter(rma =>
+            rma.rmaNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             rma.ticketId?.ticketNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             rma.originalAssetId?.assetCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             rma.originalAssetId?.ipAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -254,7 +255,7 @@ export default function RMARecords() {
                         <Search size={16} />
                         <input
                             type="text"
-                            placeholder="Search by ticket, asset, or site..."
+                            placeholder="Search by RMA#, ticket, asset, or site..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -326,7 +327,12 @@ export default function RMARecords() {
                         {searchedRmas.map((rma) => (
                             <div key={rma._id} className="rma-list-item" onClick={() => navigate(`/tickets/${rma.ticketId?._id}`)}>
                                 <div className="list-col">
-                                    <span className="list-label">Ticket</span>
+                                    <span className="list-label">RMA / Ticket</span>
+                                    {rma.rmaNumber && (
+                                        <span className="list-value monospace" style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                                            {rma.rmaNumber}
+                                        </span>
+                                    )}
                                     <span className="ticket-pill">{rma.ticketId?.ticketNumber || 'N/A'}</span>
                                     <span className="list-value" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                                         {format(new Date(rma.createdAt), 'MMM dd, yyyy')}
@@ -375,6 +381,11 @@ export default function RMARecords() {
                             >
                                 <div className="rma-card-header">
                                     <div className="rma-ticket-info">
+                                        {rma.rmaNumber && (
+                                            <span className="rma-number-badge" title="RMA Number">
+                                                {rma.rmaNumber}
+                                            </span>
+                                        )}
                                         <span className="ticket-number">
                                             {rma.ticketId?.ticketNumber || 'N/A'}
                                         </span>

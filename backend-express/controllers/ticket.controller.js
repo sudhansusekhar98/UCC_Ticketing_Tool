@@ -864,10 +864,22 @@ export const reopenTicket = async (req, res, next) => {
       req.params.id,
       {
         status: 'Open',
+        assignedTo: null,
+        assignedOn: null,
+        acknowledgedOn: null,
+        startedOn: null,
         resolvedOn: null,
         closedOn: null,
         verifiedOn: null,
         verifiedBy: null,
+        rootCause: null,
+        resolutionSummary: null,
+        escalationLevel: 0,
+        escalatedBy: null,
+        escalatedOn: null,
+        escalationReason: null,
+        escalationAcceptedBy: null,
+        escalationAcceptedOn: null,
         updatedAt: new Date()
       },
       { new: true }

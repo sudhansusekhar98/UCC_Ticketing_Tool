@@ -50,6 +50,34 @@ function avatarColor(name) {
     return ACCENT_COLORS[h % ACCENT_COLORS.length];
 }
 
+/* ── online user hover card ───────────────────────────────── */
+function UserHoverCard({ user }) {
+    const [visible, setVisible] = useState(false);
+    const name = user.fullName || user.name || 'Unknown';
+    return (
+        <span
+            className="vd-presence-ava"
+            style={{ background: avatarColor(name) }}
+            onMouseEnter={() => setVisible(true)}
+            onMouseLeave={() => setVisible(false)}
+        >
+            {user.profilePicture ? <img src={user.profilePicture} alt="" /> : initials(name)}
+            {visible && (
+                <span className="vd-user-popup">
+                    <span className="vd-user-popup-ava" style={{ background: avatarColor(name) }}>
+                        {user.profilePicture ? <img src={user.profilePicture} alt="" /> : initials(name)}
+                    </span>
+                    <span className="vd-user-popup-info">
+                        <span className="vd-user-popup-name">{name}</span>
+                        {user.role && <span className="vd-user-popup-role">{user.role}</span>}
+                    </span>
+                    <span className="vd-user-popup-dot" />
+                </span>
+            )}
+        </span>
+    );
+}
+
 /* ── asset / priority mappings ────────────────────────────── */
 const ASSET_ICONS = {
     'IP Camera': Camera, Camera: Camera, NVR: HardDrive, DVR: HardDrive,
@@ -211,9 +239,7 @@ export default function VDashboard() {
                     <div className="vd-presence">
                         <div className="vd-presence-avatars">
                             {activeUsers.slice(0, 4).map((u) => (
-                                <span key={u._id} className="vd-presence-ava" style={{ background: avatarColor(u.fullName || u.name) }} title={u.fullName || u.name}>
-                                    {u.profilePicture ? <img src={u.profilePicture} alt="" /> : initials(u.fullName || u.name)}
-                                </span>
+                                <UserHoverCard key={u._id} user={u} />
                             ))}
                         </div>
                         <span className="vd-presence-txt">
