@@ -96,7 +96,7 @@ app.set('io', io);
 
 // Connect to database and setup cron jobs
 connectDB().then(() => {
-  setupCronJobs();
+  setupCronJobs(io);
   console.log('✅ Cron jobs initialized');
 }).catch(err => console.error('❌ MongoDB connection failed for cron jobs:', err));
 

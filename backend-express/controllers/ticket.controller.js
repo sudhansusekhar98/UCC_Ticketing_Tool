@@ -209,28 +209,21 @@ export const getTicketById = async (req, res, next) => {
     }
 
     // Self-healing: If SLA data is missing, calculate it now
-    if (!ticket.slaPolicyId || !ticket.slaResponseDue || !ticket.slaRestoreDue) {
+    if (!ticket.slaResponseDue || !ticket.slaRestoreDue) {
       try {
-        const slaPolicy = await SLAPolicy.findOne({
-          priority: ticket.priority,
-          isActive: true
-        });
+        const DEFAULT_SLA = { P1: { response: 15, restore: 60 }, P2: { response: 30, restore: 240 }, P3: { response: 60, restore: 480 }, P4: { response: 120, restore: 1440 } };
+        const slaPolicy = await SLAPolicy.findOne({ priority: ticket.priority, isActive: true });
+        const defaults = DEFAULT_SLA[ticket.priority] || DEFAULT_SLA['P3'];
+        const responseMins = slaPolicy?.responseTimeMinutes ?? defaults.response;
+        const restoreMins = slaPolicy?.restoreTimeMinutes ?? defaults.restore;
+        const baseDate = ticket.createdAt || new Date();
 
-        if (slaPolicy) {
-          ticket.slaPolicyId = slaPolicy._id;
-          const baseDate = ticket.createdAt || new Date();
+        if (slaPolicy) ticket.slaPolicyId = slaPolicy._id;
+        if (!ticket.slaResponseDue) ticket.slaResponseDue = new Date(baseDate.getTime() + responseMins * 60 * 1000);
+        if (!ticket.slaRestoreDue) ticket.slaRestoreDue = new Date(baseDate.getTime() + restoreMins * 60 * 1000);
 
-          if (!ticket.slaResponseDue) {
-            ticket.slaResponseDue = new Date(baseDate.getTime() + slaPolicy.responseTimeMinutes * 60 * 1000);
-          }
-          if (!ticket.slaRestoreDue) {
-            ticket.slaRestoreDue = new Date(baseDate.getTime() + slaPolicy.restoreTimeMinutes * 60 * 1000);
-          }
-
-          await ticket.save();
-          // Reload to ensure population
-          await ticket.populate('slaPolicyId');
-        }
+        await ticket.save();
+        await ticket.populate('slaPolicyId');
       } catch (slaError) {
         console.error('Error auto-calculating SLA for ticket:', slaError);
       }

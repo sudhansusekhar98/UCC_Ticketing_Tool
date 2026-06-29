@@ -509,31 +509,38 @@ export const sendPasswordResetEmail = async (user, newPassword) => {
 /**
  * Send specific breach warning email
  */
-export const sendBreachWarningEmail = async (ticket, user) => {
+export const sendBreachWarningEmail = async (ticket, user, minutesLeft) => {
   try {
+    const timeLabel = minutesLeft != null
+      ? (minutesLeft <= 60 ? `~${minutesLeft} minutes` : `~${Math.round(minutesLeft / 60)} hours`)
+      : 'Less than 4 hours';
+    const isUrgent = minutesLeft != null && minutesLeft <= 60;
+    const accentColor = isUrgent ? '#dc3545' : '#e67e22';
 
     const content = `
       <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
-      <p>This is a warning that a ticket assigned to you is approaching its SLA Resolution Deadline.</p>
-      
+      <p>This is a${isUrgent ? ' <strong style="color:${accentColor}">FINAL</strong>' : ''} warning that a ticket is approaching its SLA Resolution Deadline.</p>
+
       <table class="data-table">
         <tr><th>Ticket ID</th><td>${ticket.ticketNumber}</td></tr>
         <tr><th>Subject</th><td>${ticket.title}</td></tr>
         <tr><th>Priority</th><td>${ticket.priority}</td></tr>
         <tr><th>Expected Resolution</th><td><strong>${ticket.slaRestoreDue ? new Date(ticket.slaRestoreDue).toLocaleString() : 'N/A'}</strong></td></tr>
-        <tr><th>Time Remaining</th><td>Less than 4 hours</td></tr>
+        <tr><th>Time Remaining</th><td style="color:${accentColor};font-weight:700;">${timeLabel}</td></tr>
       </table>
-      
-      <p><strong style="color: #e67e22;">Please prioritize this ticket to avoid a potential SLA breach.</strong></p>
-      
+
+      <p><strong style="color: ${accentColor};">${isUrgent ? '🚨 FINAL WARNING — Immediate action required!' : 'Please prioritize this ticket to avoid a potential SLA breach.'}</strong></p>
+
       <div style="text-align: center;">
-        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none; background-color: #e67e22;">View Ticket Now</a>
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none; background-color: ${accentColor};">View Ticket Now</a>
       </div>
-      
+
       <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
-    const subject = `⚠️ SLA WARNING: Ticket ${ticket.ticketNumber} Approaching Breach`;
+    const subject = isUrgent
+      ? `🚨 FINAL SLA WARNING: Ticket ${ticket.ticketNumber} — ${timeLabel} Remaining`
+      : `⚠️ SLA WARNING: Ticket ${ticket.ticketNumber} Approaching Breach`;
     await sendViaBrevo({
       to: user.email,
       subject,

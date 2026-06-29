@@ -7,86 +7,152 @@ import { sendBreachWarningEmail, sendSlaBreachedEmail, sendGeneralNotificationEm
 import { createSystemNotification } from './controllers/notification.controller.js';
 
 // Setup Cron Jobs
-export const setupCronJobs = () => {
+export const setupCronJobs = (io) => {
     console.log('⏰ Initializing Cron Jobs...');
 
-    // 1. Pre-Breach Warning Job
-    // Checks every 15 minutes
-    cron.schedule('*/15 * * * *', async () => {
-        // Only run during office hours (9 AM to 6 PM)
+    // 1a. SLA Warning — 4 hours before breach (first reminder)
+    // 1b. SLA Warning — 1 hour before breach (final reminder)
+    // Both check every 10 minutes, 24/7 (no office-hours gate — VPS timezone may differ)
+    cron.schedule('*/10 * * * *', async () => {
         const now = new Date();
-        const currentHour = now.getHours();
+        const in4h = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+        const in1h = new Date(now.getTime() + 1 * 60 * 60 * 1000);
 
-        if (currentHour < 9 || currentHour >= 18) {
-            return; // Skip outside office hours
-        }
-
-        console.log('⏰ Running Pre-Breach Warning Check...');
+        const ACTIVE_STATUSES = { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] };
+        const NO_ACTIVE_RMA = { $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }] };
 
         try {
-            // Find active tickets approaching breach
-            // active: not closed/resolved/cancelled
-            // approaching: due in < 4 hours
-            // not notified yet: isBreachWarningSent = false
-            // NOTE: Skip tickets with an active (non-finalized) RMA — TAT doesn't apply during RMA
-
-            const warningThreshold = new Date(now.getTime() + 4 * 60 * 60 * 1000); // Now + 4 hours
-
-            const ticketsToWarn = await Ticket.find({
-                status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] },
-                slaRestoreDue: { $lt: warningThreshold, $gt: now },
+            // ── 4-hour warning ────────────────────────────────────────────────
+            const tickets4h = await Ticket.find({
+                status: ACTIVE_STATUSES,
+                slaRestoreDue: { $lt: in4h, $gt: now },
                 isBreachWarningSent: { $ne: true },
                 assignedTo: { $exists: true, $ne: null },
-                $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }]
-            }).populate('assignedTo', 'fullName email').limit(200).lean();
-            console.log(`   Found ${ticketsToWarn.length} tickets to warn.`);
+                ...NO_ACTIVE_RMA
+            }).populate('assignedTo', 'fullName email _id').limit(200).lean();
 
-            const warnedIds = [];
-            for (const ticket of ticketsToWarn) {
-                if (ticket.assignedTo?.email) {
-                    const sent = await sendBreachWarningEmail(ticket, ticket.assignedTo);
-                    if (sent) warnedIds.push(ticket._id);
+            if (tickets4h.length) {
+                console.log(`⏰ SLA 4h Warning: ${tickets4h.length} ticket(s)`);
+                // Get supervisors & dispatchers to CC
+                const supervisors = await User.find({ role: { $in: ['Supervisor', 'Dispatcher'] }, isActive: true }).select('fullName email _id').lean();
+
+                const warned4hIds = [];
+                for (const ticket of tickets4h) {
+                    const minutesLeft = Math.round((new Date(ticket.slaRestoreDue) - now) / 60000);
+                    const sent = await sendBreachWarningEmail(ticket, ticket.assignedTo, minutesLeft);
+                    if (sent) {
+                        warned4hIds.push(ticket._id);
+                        // Notify supervisors by email
+                        for (const sup of supervisors) {
+                            await sendBreachWarningEmail(ticket, sup, minutesLeft).catch(() => {});
+                        }
+                        // In-app notification to assigned engineer
+                        if (io && ticket.assignedTo?._id) {
+                            await createSystemNotification(io, {
+                                userId: ticket.assignedTo._id,
+                                title: '⚠️ SLA Warning — 4 Hours',
+                                message: `Ticket ${ticket.ticketNumber} breaches SLA in ~${minutesLeft} min. Please act now.`,
+                                type: 'warning',
+                                link: `/tickets/${ticket._id}`
+                            });
+                        }
+                    }
+                }
+                if (warned4hIds.length) {
+                    await Ticket.updateMany({ _id: { $in: warned4hIds } }, { $set: { isBreachWarningSent: true } });
                 }
             }
-            if (warnedIds.length > 0) {
-                await Ticket.updateMany({ _id: { $in: warnedIds } }, { $set: { isBreachWarningSent: true } });
+
+            // ── 1-hour final warning ──────────────────────────────────────────
+            const tickets1h = await Ticket.find({
+                status: ACTIVE_STATUSES,
+                slaRestoreDue: { $lt: in1h, $gt: now },
+                slaWarning1hSent: { $ne: true },
+                assignedTo: { $exists: true, $ne: null },
+                ...NO_ACTIVE_RMA
+            }).populate('assignedTo', 'fullName email _id').limit(200).lean();
+
+            if (tickets1h.length) {
+                console.log(`⏰ SLA 1h Warning: ${tickets1h.length} ticket(s)`);
+                const admins = await User.find({ role: { $in: ['Admin', 'Supervisor'] }, isActive: true }).select('fullName email _id').lean();
+
+                const warned1hIds = [];
+                for (const ticket of tickets1h) {
+                    const minutesLeft = Math.round((new Date(ticket.slaRestoreDue) - now) / 60000);
+                    const sent = await sendBreachWarningEmail(ticket, ticket.assignedTo, minutesLeft);
+                    if (sent) {
+                        warned1hIds.push(ticket._id);
+                        // Alert admins at 1-hour mark too
+                        for (const admin of admins) {
+                            await sendBreachWarningEmail(ticket, admin, minutesLeft).catch(() => {});
+                        }
+                        // Urgent in-app notification
+                        if (io && ticket.assignedTo?._id) {
+                            await createSystemNotification(io, {
+                                userId: ticket.assignedTo._id,
+                                title: '🚨 SLA Critical — 1 Hour Left',
+                                message: `Ticket ${ticket.ticketNumber} breaches SLA in ~${minutesLeft} min. Immediate action required!`,
+                                type: 'error',
+                                link: `/tickets/${ticket._id}`
+                            });
+                        }
+                    }
+                }
+                if (warned1hIds.length) {
+                    await Ticket.updateMany({ _id: { $in: warned1hIds } }, { $set: { slaWarning1hSent: true } });
+                }
             }
         } catch (error) {
-            console.error('❌ Error in Pre-Breach Warning Cron:', error);
+            console.error('❌ Error in SLA Warning Cron:', error);
         }
     });
 
-    // 2. SLA Breach Notification Job
-    // Checks every 15 minutes
-    cron.schedule('*/15 * * * *', async () => {
-        console.log('⏰ Running SLA Breach Check...');
+    // 2. SLA Breach Notification Job — checks every 10 minutes, 24/7
+    cron.schedule('*/10 * * * *', async () => {
         const now = new Date();
 
         try {
-            // Find tickets that have JUST breached (or breached recently but not notified)
-            // breached: due < now
-            // not notified: isSlaBreachedNotificationSent = false
-            // NOTE: Skip tickets with an active (non-finalized) RMA — TAT doesn't apply during RMA
-
             const breachedTickets = await Ticket.find({
                 status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] },
                 slaRestoreDue: { $lt: now },
                 isSlaBreachedNotificationSent: { $ne: true },
-                assignedTo: { $exists: true, $ne: null },
                 $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }]
-            }).populate('assignedTo', 'fullName email').limit(200).lean();
+            }).populate('assignedTo', 'fullName email _id').limit(200).lean();
 
-            if (breachedTickets.length > 0) {
-                console.log(`   Found ${breachedTickets.length} newly breached tickets.`);
-
-                const admins = await User.find({ role: 'Admin', isActive: true }).select('fullName email').lean();
+            if (breachedTickets.length) {
+                console.log(`⏰ SLA Breach: ${breachedTickets.length} newly breached ticket(s)`);
+                const admins = await User.find({ role: { $in: ['Admin', 'Supervisor'] }, isActive: true }).select('fullName email _id').lean();
 
                 const breachedIds = [];
                 for (const ticket of breachedTickets) {
                     const sent = await sendSlaBreachedEmail(ticket, ticket.assignedTo, admins);
-                    if (sent) breachedIds.push(ticket._id);
+                    if (sent) {
+                        breachedIds.push(ticket._id);
+                        // In-app notification to assigned engineer
+                        if (io && ticket.assignedTo?._id) {
+                            await createSystemNotification(io, {
+                                userId: ticket.assignedTo._id,
+                                title: '🚨 SLA BREACHED',
+                                message: `Ticket ${ticket.ticketNumber} has breached its SLA deadline. Immediate escalation required.`,
+                                type: 'error',
+                                link: `/tickets/${ticket._id}`
+                            });
+                        }
+                        // In-app notification to admins
+                        for (const admin of admins) {
+                            if (io && admin._id) {
+                                await createSystemNotification(io, {
+                                    userId: admin._id,
+                                    title: '🚨 SLA BREACHED — Admin Alert',
+                                    message: `Ticket ${ticket.ticketNumber} has breached SLA. Assigned to: ${ticket.assignedTo?.fullName || 'Unassigned'}.`,
+                                    type: 'error',
+                                    link: `/tickets/${ticket._id}`
+                                }).catch(() => {});
+                            }
+                        }
+                    }
                 }
-                if (breachedIds.length > 0) {
+                if (breachedIds.length) {
                     await Ticket.updateMany(
                         { _id: { $in: breachedIds } },
                         { $set: { isSlaBreachedNotificationSent: true, isSLARestoreBreached: true } }

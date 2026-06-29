@@ -108,6 +108,10 @@ const ticketSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  slaWarning1hSent: {
+    type: Boolean,
+    default: false
+  },
   isSlaBreachedNotificationSent: {
     type: Boolean,
     default: false
@@ -251,8 +255,10 @@ ticketSchema.pre('save', async function (next) {
   }
 
   // 3. Auto-assign SLA policy and calculate due dates
-  // Priority: Site-level SLA → Global SLAPolicy fallback
-  if (!this.slaPolicyId && this.priority) {
+  // Recalculate whenever: new ticket, OR priority changed, OR SLA dates missing
+  const DEFAULT_SLA = { P1: { response: 15, restore: 60 }, P2: { response: 30, restore: 240 }, P3: { response: 60, restore: 480 }, P4: { response: 120, restore: 1440 } };
+  const needsSla = this.isNew || this.isModified('priority') || !this.slaResponseDue || !this.slaRestoreDue;
+  if (needsSla && this.priority) {
     try {
       const now = this.createdAt || new Date();
       let slaSource = null;
@@ -269,26 +275,35 @@ ticketSchema.pre('save', async function (next) {
       // Second: fallback to global SLAPolicy collection
       if (!slaSource) {
         const SLAPolicy = mongoose.model('SLAPolicy');
-        const globalPolicy = await SLAPolicy.findOne({
-          priority: this.priority,
-          isActive: true
-        });
+        const globalPolicy = await SLAPolicy.findOne({ priority: this.priority, isActive: true });
         if (globalPolicy) {
           slaSource = globalPolicy;
           this.slaPolicyId = globalPolicy._id;
         }
       }
 
-      if (slaSource) {
-        if (!this.slaResponseDue) {
-          this.slaResponseDue = new Date(now.getTime() + slaSource.responseTimeMinutes * 60 * 1000);
-        }
-        if (!this.slaRestoreDue) {
-          this.slaRestoreDue = new Date(now.getTime() + slaSource.restoreTimeMinutes * 60 * 1000);
+      // Third: hardcoded defaults so SLA is always set even if DB has no policies
+      const defaults = DEFAULT_SLA[this.priority] || DEFAULT_SLA['P3'];
+      const responseMins = slaSource?.responseTimeMinutes ?? defaults.response;
+      const restoreMins = slaSource?.restoreTimeMinutes ?? defaults.restore;
+
+      // On priority change, always recalculate from createdAt
+      if (this.isNew || this.isModified('priority')) {
+        this.slaResponseDue = new Date(now.getTime() + responseMins * 60 * 1000);
+        this.slaRestoreDue = new Date(now.getTime() + restoreMins * 60 * 1000);
+        // Reset warning flags so reminders fire for the new SLA window
+        if (this.isModified('priority')) {
+          this.isBreachWarningSent = false;
+          this.slaWarning1hSent = false;
+          this.isSlaBreachedNotificationSent = false;
+          this.isSLARestoreBreached = false;
         }
       } else {
-        console.warn(`No SLA found (site or global) for priority: ${this.priority}`);
+        if (!this.slaResponseDue) this.slaResponseDue = new Date(now.getTime() + responseMins * 60 * 1000);
+        if (!this.slaRestoreDue) this.slaRestoreDue = new Date(now.getTime() + restoreMins * 60 * 1000);
       }
+
+      if (!slaSource) console.warn(`No SLA policy in DB for priority ${this.priority} — using hardcoded defaults`);
     } catch (error) {
       console.error('Error auto-assigning SLA policy in pre-save:', error);
     }
