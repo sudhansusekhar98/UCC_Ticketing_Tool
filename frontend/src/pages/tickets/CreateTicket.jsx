@@ -226,12 +226,18 @@ export default function TicketForm() {
     };
 
     useEffect(() => {
+        const DEFAULT_SLA = {
+            P1: { responseTimeMinutes: 15, restoreTimeMinutes: 60 },
+            P2: { responseTimeMinutes: 30, restoreTimeMinutes: 240 },
+            P3: { responseTimeMinutes: 60, restoreTimeMinutes: 480 },
+            P4: { responseTimeMinutes: 120, restoreTimeMinutes: 1440 },
+        };
         const calculateSLA = () => {
             const selectedAsset = assets.find(a => a.value === formData.assetId);
             const criticality = selectedAsset?.criticality || 2;
             const score = formData.impact * formData.urgency * criticality;
             const priority = getPriorityFromScore(score);
-            const policy = slaPolicies.find(p => p.priority === priority);
+            const policy = slaPolicies.find(p => p.priority === priority) || DEFAULT_SLA[priority];
             if (policy) {
                 const now = new Date();
                 setCalculatedTargets({
@@ -242,7 +248,7 @@ export default function TicketForm() {
                 setCalculatedTargets({ response: null, resolution: null });
             }
         };
-        if (slaPolicies.length > 0) calculateSLA();
+        calculateSLA();
     }, [formData.impact, formData.urgency, formData.assetId, slaPolicies, assets]);
 
     const loadTicket = async () => {
@@ -780,10 +786,16 @@ export default function TicketForm() {
 
                     {/* Priority & SLA Preview */}
                     {!isSiteClient && (() => {
+                        const DEFAULT_SLA_DISPLAY = {
+                            P1: { responseTimeMinutes: 15, restoreTimeMinutes: 60 },
+                            P2: { responseTimeMinutes: 30, restoreTimeMinutes: 240 },
+                            P3: { responseTimeMinutes: 60, restoreTimeMinutes: 480 },
+                            P4: { responseTimeMinutes: 120, restoreTimeMinutes: 1440 },
+                        };
                         const assetCriticality = assets.find(a => a.value === formData.assetId)?.criticality || 2;
                         const score = Number(formData.impact) * Number(formData.urgency) * assetCriticality;
                         const priority = getPriorityFromScore(score);
-                        const policy = slaPolicies.find(p => p.priority === priority);
+                        const policy = slaPolicies.find(p => p.priority === priority) || DEFAULT_SLA_DISPLAY[priority];
 
                         const fmtDate = (d) => d ? d.toLocaleString('en-GB', {
                             weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
