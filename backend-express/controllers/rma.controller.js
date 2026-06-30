@@ -848,25 +848,71 @@ export const updateRMAStatus = async (req, res, next) => {
     // ADMIN: Modify RMA type from RepairOnly → RepairAndReplace
     // ========================================
     if (status === 'ModifyToRepairAndReplace') {
-      // Only allow upgrading from RepairOnly
       if (rma.replacementSource !== 'RepairOnly' && rma.replacementSource !== 'Repair') {
         return res.status(400).json({
           success: false,
           message: `Cannot modify — RMA is already set to ${rma.replacementSource}`
         });
       }
-      // Must be approved and not yet finalized
-      if (['Requested', 'Rejected', 'Installed'].includes(rma.status)) {
+      if (['Rejected', 'Installed'].includes(rma.status)) {
         return res.status(400).json({
           success: false,
           message: `Cannot modify RMA in ${rma.status} state`
         });
       }
 
-      // Upgrade to RepairAndReplace
       rma.replacementSource = 'RepairAndReplace';
-      rma.replacementTrackStatus = 'Pending';
-      // Don't touch the main status or repair track — they continue independently
+      // Only set replacement track if already approved; for Requested, it'll be set on approval
+      if (rma.status !== 'Requested') {
+        rma.replacementTrackStatus = 'Pending';
+      }
+    }
+
+    // ========================================
+    // ADMIN: Modify RMA type from RepairAndReplace → RepairOnly
+    // ========================================
+    if (status === 'ModifyToRepairOnly') {
+      if (rma.replacementSource === 'RepairOnly' || rma.replacementSource === 'Repair') {
+        return res.status(400).json({ success: false, message: 'RMA is already set to Repair Only' });
+      }
+      if (['Rejected', 'Installed'].includes(rma.status)) {
+        return res.status(400).json({ success: false, message: `Cannot modify RMA in ${rma.status} state` });
+      }
+      if (['RequisitionRaised', 'Dispatched', 'Received', 'Installed'].includes(rma.replacementTrackStatus)) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot downgrade — replacement track is already in progress (${rma.replacementTrackStatus})`
+        });
+      }
+
+      // Release reserved asset if any
+      if (rma.reservedAssetId) {
+        const reservedAsset = await Asset.findById(rma.reservedAssetId);
+        if (reservedAsset) {
+          const fromStatus = reservedAsset.status;
+          reservedAsset.status = 'Spare';
+          reservedAsset.reservedByRma = undefined;
+          await reservedAsset.save();
+
+          await StockMovementLog.logMovement({
+            asset: reservedAsset,
+            movementType: 'Released',
+            fromSiteId: reservedAsset.siteId,
+            toSiteId: reservedAsset.siteId,
+            fromStatus,
+            toStatus: 'Spare',
+            performedBy: req.user._id,
+            rmaId: rma._id,
+            ticketId: rma.ticketId,
+            notes: `RMA ${rma.rmaNumber} - Reservation released (RMA type changed to Repair Only)`
+          });
+        }
+        rma.reservedAssetId = undefined;
+        rma.replacementDetails = undefined;
+      }
+
+      rma.replacementSource = 'RepairOnly';
+      rma.replacementTrackStatus = rma.status === 'Approved' ? 'NotRequired' : null;
     }
 
     // ========================================
@@ -1374,6 +1420,8 @@ export const updateRMAStatus = async (req, res, next) => {
       'ReplacementRequisitionRaised': `**Replacement Requisition Raised** — Admin (${req.user.fullName}) has raised a requisition for stock replacement.\n**Source:** ${rma.replacementStockSource === 'HOStock' ? 'HO Stock' : rma.replacementStockSource === 'SiteStock' ? 'Site Stock' : 'Market Purchase'}${remarks ? `\nRemarks: ${remarks}` : ''}`,
       'ReplacementDispatched': `**Replacement Dispatched** — Replacement stock has been dispatched to the site.${rma.logisticsReplacementToSite?.trackingNumber ? `\nTracking: ${rma.logisticsReplacementToSite.trackingNumber}` : ''}${remarks ? `\nRemarks: ${remarks}` : ''}`,
       'ReplacementReceivedAtSite': `**Replacement Received at Site** — The replacement item has been received at the site and is ready for installation.${remarks ? `\nRemarks: ${remarks}` : ''}`,
+      'ModifyToRepairAndReplace': `**RMA Type Changed: Repair Only → Repair & Replace** by ${req.user.fullName}${remarks ? `\nRemarks: ${remarks}` : ''}`,
+      'ModifyToRepairOnly': `**RMA Type Changed: Repair & Replace → Repair Only** by ${req.user.fullName}${remarks ? `\nRemarks: ${remarks}` : ''}`,
     };
 
     const statusMessage = statusMessages[status] || `RMA Status Updated: ${status}${remarks ? `. ${remarks}` : ''}`;

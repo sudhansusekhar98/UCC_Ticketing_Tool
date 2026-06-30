@@ -77,9 +77,9 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                 ...a,
                 activityId: a._id || a.activityId,
                 userId: typeof a.userId === 'object' ? a.userId?._id : a.userId,
-                userName: a.isSystem ? 'System' : (a.userId?.fullName || a.userName || 'Unknown'),
+                userName: a.isSystem ? 'TicketOps VLAccess' : (a.userId?.fullName || a.userName || 'Unknown'),
                 userAvatar: a.isSystem ? null : (typeof a.userId === 'object' ? a.userId?.profilePicture : null),
-                userRole: a.isSystem ? 'System' : (a.userId?.role || a.userRole || ''),
+                userRole: a.isSystem ? 'TicketOps VLAccess' : (a.userId?.role || a.userRole || ''),
                 createdOn: a.createdAt || a.createdOn,
                 attachments: (a.attachments || []).map(att => ({
                     ...att,

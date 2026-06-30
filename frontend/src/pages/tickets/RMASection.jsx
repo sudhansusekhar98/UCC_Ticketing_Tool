@@ -20,6 +20,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const [rejectionReason, setRejectionReason] = useState('');
     const [showModifyTypeModal, setShowModifyTypeModal] = useState(false);
     const [modifyRemarks, setModifyRemarks] = useState('');
+    const [modifyTargetType, setModifyTargetType] = useState('RepairAndReplace');
 
     // Form States
     const [requestReason, setRequestReason] = useState('');
@@ -420,14 +421,20 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
         }
     };
 
-    // Modify RMA type: RepairOnly → RepairAndReplace
-    const handleModifyToRepairAndReplace = async () => {
+    // Modify RMA type (bidirectional)
+    const handleModifyRMAType = async () => {
+        const statusCmd = modifyTargetType === 'RepairAndReplace' ? 'ModifyToRepairAndReplace' : 'ModifyToRepairOnly';
+        const defaultRemark = modifyTargetType === 'RepairAndReplace'
+            ? 'Admin changed RMA type to Repair & Replace'
+            : 'Admin changed RMA type to Repair Only';
         try {
             await rmaApi.updateStatus(rma._id, {
-                status: 'ModifyToRepairAndReplace',
-                remarks: modifyRemarks || 'Admin upgraded from Repair Only to Repair & Replace'
+                status: statusCmd,
+                remarks: modifyRemarks || defaultRemark
             });
-            toast.success('RMA upgraded to Repair & Replace - replacement track activated');
+            toast.success(modifyTargetType === 'RepairAndReplace'
+                ? 'RMA upgraded to Repair & Replace'
+                : 'RMA changed to Repair Only');
             setShowModifyTypeModal(false);
             setModifyRemarks('');
             loadRMA();
@@ -435,6 +442,12 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to modify RMA type');
         }
+    };
+
+    const openModifyTypeModal = (targetType) => {
+        setModifyTargetType(targetType);
+        setModifyRemarks('');
+        setShowModifyTypeModal(true);
     };
 
     if (loading) return <div className="p-4 text-center">Loading RMA details...</div>;
@@ -1194,7 +1207,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             </div>
                         )}
 
-                    {/* ADMIN: Upgrade RepairOnly → RepairAndReplace */}
+                    {/* ADMIN: Upgrade RepairOnly → RepairAndReplace (after approval) */}
                     {rma.replacementSource === 'RepairOnly' && rma.replacementTrackStatus === 'NotRequired' && canManageRMA && !['Requested', 'Rejected', 'Installed'].includes(rma.status) && (
                         <div className="rma-finalization-alert animate-fade-in" style={{ borderLeft: '4px solid var(--warning-500)', background: 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(245,158,11,0.02) 100%)' }}>
                             <div className="rma-alert-info">
@@ -1203,16 +1216,38 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                     <p className="alert-title">This RMA is Repair Only</p>
                                     <p className="alert-desc">
                                         If the same device type is available at HO or another site, you can upgrade this to <strong>Repair & Replace</strong> to send a replacement while the original is being repaired.
-                                        Check the <strong>Stock Availability</strong> panel above.
                                     </p>
                                 </div>
                             </div>
                             <div className="rma-alert-actions">
                                 <button
                                     className="btn btn-sm btn-warning shadow-sm flex items-center gap-1"
-                                    onClick={() => { setModifyRemarks(''); setShowModifyTypeModal(true); }}
+                                    onClick={() => openModifyTypeModal('RepairAndReplace')}
                                 >
                                     <ArrowRightLeft size={14} /> Upgrade to Repair & Replace
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ADMIN: Downgrade RepairAndReplace → RepairOnly (before replacement work starts) */}
+                    {rma.replacementSource === 'RepairAndReplace' && canManageRMA && !['Rejected', 'Installed'].includes(rma.status) && ['Pending', null].includes(rma.replacementTrackStatus) && !rma.reservedAssetId && (
+                        <div className="rma-finalization-alert animate-fade-in" style={{ borderLeft: '4px solid var(--info-500)', background: 'linear-gradient(135deg, rgba(14,165,233,0.06) 0%, rgba(14,165,233,0.02) 100%)' }}>
+                            <div className="rma-alert-info">
+                                <ArrowRightLeft size={20} className="text-info-500" />
+                                <div className="rma-alert-text">
+                                    <p className="alert-title">Change RMA Type to Repair Only</p>
+                                    <p className="alert-desc">
+                                        No replacement has been dispatched yet. You can downgrade this to <strong>Repair Only</strong> if no replacement device is needed.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="rma-alert-actions">
+                                <button
+                                    className="btn btn-sm btn-outline-info shadow-sm flex items-center gap-1"
+                                    onClick={() => openModifyTypeModal('RepairOnly')}
+                                >
+                                    <ArrowRightLeft size={14} /> Change to Repair Only
                                 </button>
                             </div>
                         </div>
@@ -1414,6 +1449,14 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                         </div>
                                     </div>
                                 )}
+                                <button
+                                    className="btn btn-sm btn-outline px-3 flex items-center gap-1"
+                                    onClick={() => openModifyTypeModal(rma.replacementSource === 'RepairOnly' ? 'RepairAndReplace' : 'RepairOnly')}
+                                    title="Change RMA type before approving"
+                                >
+                                    <ArrowRightLeft size={13} />
+                                    {rma.replacementSource === 'RepairOnly' ? 'Switch to Repair & Replace' : 'Switch to Repair Only'}
+                                </button>
                                 <button className="btn btn-sm btn-danger px-3" onClick={() => { setRejectionReason(''); setShowRejectModal(true); }}>Reject</button>
                                 <button className="btn btn-sm btn-success px-3" onClick={() => handleUpdateStatus('Approved')}>Approve</button>
                             </>
@@ -2194,20 +2237,32 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                 showModifyTypeModal && createPortal(
                     <div className="modal-overlay animate-fade-in" onClick={() => setShowModifyTypeModal(false)}>
                         <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-                            <div className="modal-header" style={{ borderBottom: '2px solid var(--warning-500)' }}>
-                                <h3 className="flex items-center gap-2" style={{ color: 'var(--warning-600)' }}>
-                                    <ArrowRightLeft size={18} /> Upgrade to Repair & Replace
+                            <div className="modal-header" style={{ borderBottom: `2px solid var(--${modifyTargetType === 'RepairAndReplace' ? 'warning' : 'info'}-500)` }}>
+                                <h3 className="flex items-center gap-2" style={{ color: `var(--${modifyTargetType === 'RepairAndReplace' ? 'warning' : 'info'}-600)` }}>
+                                    <ArrowRightLeft size={18} />
+                                    {modifyTargetType === 'RepairAndReplace' ? 'Change to Repair & Replace' : 'Change to Repair Only'}
                                 </h3>
                             </div>
                             <div className="modal-body">
-                                <div className="p-3 bg-warning/10 rounded-lg border border-warning/30 mb-4 animate-fade-in">
-                                    <p className="text-xs font-bold text-warning-700 mb-1">What will change?</p>
-                                    <ul className="text-[10px] text-warning-600 space-y-1 pl-3" style={{ listStyleType: 'disc' }}>
-                                        <li>A <strong>Replacement Track</strong> will be activated alongside the ongoing repair</li>
-                                        <li>You will be prompted to raise a <strong>stock requisition</strong> (from HO or another site)</li>
-                                        <li>The existing <strong>Repair Track</strong> remains completely unaffected</li>
-                                    </ul>
-                                </div>
+                                {modifyTargetType === 'RepairAndReplace' ? (
+                                    <div className="p-3 bg-warning/10 rounded-lg border border-warning/30 mb-4 animate-fade-in">
+                                        <p className="text-xs font-bold text-warning-700 mb-1">What will change?</p>
+                                        <ul className="text-[10px] text-warning-600 space-y-1 pl-3" style={{ listStyleType: 'disc' }}>
+                                            <li>A <strong>Replacement Track</strong> will be activated alongside the ongoing repair</li>
+                                            <li>You will be prompted to raise a <strong>stock requisition</strong> (from HO or another site)</li>
+                                            <li>The existing <strong>Repair Track</strong> remains completely unaffected</li>
+                                        </ul>
+                                    </div>
+                                ) : (
+                                    <div className="p-3 bg-info/10 rounded-lg border border-info/30 mb-4 animate-fade-in">
+                                        <p className="text-xs font-bold text-info-700 mb-1">What will change?</p>
+                                        <ul className="text-[10px] text-info-600 space-y-1 pl-3" style={{ listStyleType: 'disc' }}>
+                                            <li>The <strong>Replacement Track</strong> will be deactivated</li>
+                                            {rma?.reservedAssetId && <li>Any <strong>reserved replacement device</strong> will be released back to spare stock</li>}
+                                            <li>The <strong>Repair Track</strong> continues unaffected</li>
+                                        </ul>
+                                    </div>
+                                )}
                                 <div className="form-group">
                                     <label className="form-label text-[10px] uppercase font-bold opacity-70">Remarks (optional)</label>
                                     <textarea
@@ -2215,14 +2270,19 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                         rows={2}
                                         value={modifyRemarks}
                                         onChange={e => setModifyRemarks(e.target.value)}
-                                        placeholder="e.g., Stock available at HO - upgrading to send a replacement while repair is in progress..."
+                                        placeholder={modifyTargetType === 'RepairAndReplace'
+                                            ? 'e.g., Stock available at HO — sending replacement while repair is in progress...'
+                                            : 'e.g., No replacement device available — repair only needed...'}
                                     />
                                 </div>
                             </div>
                             <div className="modal-footer">
                                 <button className="btn btn-ghost" onClick={() => setShowModifyTypeModal(false)}>Cancel</button>
-                                <button className="btn btn-warning flex items-center gap-1" onClick={handleModifyToRepairAndReplace}>
-                                    <ArrowRightLeft size={14} /> Confirm Upgrade
+                                <button
+                                    className={`btn btn-${modifyTargetType === 'RepairAndReplace' ? 'warning' : 'primary'} flex items-center gap-1`}
+                                    onClick={handleModifyRMAType}
+                                >
+                                    <ArrowRightLeft size={14} /> Confirm Change
                                 </button>
                             </div>
                         </div>
