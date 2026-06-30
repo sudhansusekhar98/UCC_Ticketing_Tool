@@ -75,15 +75,15 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
     return (
         <div
             className="shadow-[0_2px_12px_rgba(0,0,0,0.08)] border p-4 mt-4 animate-fade-in"
-            style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRadius: '12px', border: '1px solid #f1f5f9' }}
+            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', borderRadius: '12px', border: '1px solid var(--border-light)' }}
         >
             {/* Header */}
             <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
                     <Database size={19} className="text-gray-400" />
-                    <h3 className="text-[17px] font-semibold m-0" style={{ color: '#1e293b' }}>
+                    <h3 className="text-[17px] font-semibold m-0" style={{ color: 'var(--text-primary)' }}>
                         Stock Availability
-                        <span style={{ color: '#94a3b8', fontWeight: 'normal', fontSize: '13px', marginLeft: '4px' }}>({displayType})</span>
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 'normal', fontSize: '13px', marginLeft: '4px' }}>({displayType})</span>
                     </h3>
                 </div>
                 {/* Total badge */}
@@ -91,15 +91,15 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
                     <span
                         className="text-[11px] font-bold px-2.5 py-1 rounded-full"
                         style={{
-                            backgroundColor: hasStock ? '#dcfce7' : '#fee2e2',
-                            color: hasStock ? '#166534' : '#991b1b'
+                            backgroundColor: hasStock ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)',
+                            color: hasStock ? 'var(--success-500)' : 'var(--danger-500)'
                         }}
                     >
                         {availability.totalAvailable} Total
                     </span>
                     {availability.viewScope === 'site' && (
                         <span className="text-[9px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full"
-                            style={{ backgroundColor: '#f1f5f9', color: '#64748b' }}>
+                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
                             Your Site Only
                         </span>
                     )}
@@ -107,7 +107,7 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
             </div>
 
             {/* Subtle Divider */}
-            <div style={{ borderTop: '1px solid #f1f5f9', marginBottom: '4px' }}></div>
+            <div style={{ borderTop: '1px solid var(--border-light)', marginBottom: '4px' }}></div>
 
             {/* ==========================================
                 ADMIN/SUPERVISOR VIEW: Per-site breakdown
@@ -115,12 +115,12 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
             {isAdminOrSupervisor && availability.allSitesStock?.length > 0 ? (
                 <div className="flex flex-col gap-1">
                     {availability.allSitesStock.map((site) => (
-                        <div key={site.siteId} className="rounded-lg overflow-hidden border" style={{ borderColor: '#f1f5f9' }}>
+                        <div key={site.siteId} className="rounded-lg overflow-hidden border" style={{ borderColor: 'var(--border-light)' }}>
                             {/* Site Row */}
                             <div
-                                className="flex justify-between items-center py-2 px-3 cursor-pointer transition-all hover:bg-slate-50"
+                                className="flex justify-between items-center py-2 px-3 cursor-pointer transition-all"
                                 onClick={() => toggleSiteExpand(site.siteId)}
-                                style={{ backgroundColor: site.isTicketSite ? '#f0fdf4' : site.isHeadOffice ? '#eff6ff' : '#ffffff' }}
+                                style={{ backgroundColor: site.isTicketSite ? 'rgba(34,197,94,0.08)' : site.isHeadOffice ? 'rgba(59,130,246,0.08)' : 'var(--bg-card)' }}
                             >
                                 <div className="flex items-center gap-2.5">
                                     {expandedSites[site.siteId] ? <ChevronDown size={14} className="text-gray-400" /> : <ChevronRight size={14} className="text-gray-400" />}
@@ -130,18 +130,18 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
                                             backgroundColor: site.isTicketSite ? '#059669' : site.isHeadOffice ? '#2563eb' : '#8b5cf6'
                                         }}
                                     ></div>
-                                    <span className="text-[12px] font-bold tracking-wide" style={{ color: '#334155' }}>
+                                    <span className="text-[12px] font-bold tracking-wide" style={{ color: 'var(--text-primary)' }}>
                                         {site.siteName}
                                     </span>
                                     {site.isTicketSite && (
                                         <span className="text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
-                                            style={{ backgroundColor: '#dcfce7', color: '#166534' }}>
+                                            style={{ backgroundColor: 'rgba(34,197,94,0.15)', color: 'var(--success-500)' }}>
                                             Ticket Site
                                         </span>
                                     )}
                                     {site.isHeadOffice && (
                                         <span className="text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded"
-                                            style={{ backgroundColor: '#dbeafe', color: '#1e40af' }}>
+                                            style={{ backgroundColor: 'rgba(59,130,246,0.15)', color: 'var(--primary-500)' }}>
                                             HO
                                         </span>
                                     )}
@@ -150,8 +150,8 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
                                     className="text-[18px] font-bold"
                                     style={{
                                         color: site.count > 0
-                                            ? (site.isTicketSite ? '#059669' : site.isHeadOffice ? '#2563eb' : '#7c3aed')
-                                            : '#cbd5e1'
+                                            ? (site.isTicketSite ? 'var(--success-500)' : site.isHeadOffice ? 'var(--primary-500)' : 'var(--accent-purple)')
+                                            : 'var(--border-medium)'
                                     }}
                                 >
                                     {site.count}
@@ -160,15 +160,15 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
 
                             {/* Expanded spare items */}
                             {expandedSites[site.siteId] && site.spares?.length > 0 && (
-                                <div className="px-3 pb-2 pt-1 animate-fade-in" style={{ backgroundColor: '#fafbfc' }}>
+                                <div className="px-3 pb-2 pt-1 animate-fade-in" style={{ backgroundColor: 'var(--bg-secondary)' }}>
                                     <div className="grid gap-1.5">
                                         {site.spares.map((spare) => (
                                             <div
                                                 key={spare._id}
                                                 className="flex items-center justify-between px-3 py-2 rounded-lg border transition-all"
                                                 style={{
-                                                    backgroundColor: '#ffffff',
-                                                    borderColor: '#f1f5f9',
+                                                    backgroundColor: 'var(--bg-card)',
+                                                    borderColor: 'var(--border-light)',
                                                     fontSize: '11px'
                                                 }}
                                             >
@@ -198,14 +198,14 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
                    ENGINEER VIEW: Only local site stock
                    ========================================== */
                 <div className="flex flex-col">
-                    <div className="flex justify-between items-center py-2.5 border-b" style={{ borderColor: '#f8fafc' }}>
+                    <div className="flex justify-between items-center py-2.5 border-b" style={{ borderColor: 'var(--border-light)' }}>
                         <div className="flex items-center gap-2.5">
                             <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                            <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>
+                            <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                                 {isAdminOrSupervisor ? 'Local Site Stock' : 'Your Site Stock'}
                             </span>
                         </div>
-                        <span className="text-[20px] font-bold" style={{ color: availability.localStock > 0 ? '#059669' : '#cbd5e1' }}>
+                        <span className="text-[20px] font-bold" style={{ color: availability.localStock > 0 ? 'var(--success-500)' : 'var(--border-medium)' }}>
                             {availability.localStock}
                         </span>
                     </div>
@@ -214,9 +214,9 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
                         <div className="flex justify-between items-center py-2.5">
                             <div className="flex items-center gap-2.5">
                                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: '#64748b' }}>Head Office Stock</span>
+                                <span className="text-[12px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Head Office Stock</span>
                             </div>
-                            <span className="text-[20px] font-bold" style={{ color: availability.hoStock > 0 ? '#2563eb' : '#cbd5e1' }}>
+                            <span className="text-[20px] font-bold" style={{ color: availability.hoStock > 0 ? 'var(--primary-500)' : 'var(--border-medium)' }}>
                                 {availability.hoStock}
                             </span>
                         </div>
@@ -226,11 +226,11 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
 
             {/* Contextual Alerts */}
             {!isLocked && ticketStatus === 'InProgress' && (
-                <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: '#f1f5f9' }}>
+                <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: 'var(--border-light)' }}>
                     {!hasStock ? (
                         <div
                             className="flex items-center gap-2 text-xs font-medium p-2.5 border"
-                            style={{ backgroundColor: '#fef2f2', color: '#b91c1c', borderColor: '#fee2e2', borderRadius: '8px' }}
+                            style={{ backgroundColor: 'rgba(239,68,68,0.08)', color: 'var(--danger-500)', borderColor: 'rgba(239,68,68,0.2)', borderRadius: '8px' }}
                         >
                             <AlertTriangle size={14} />
                             <span>
@@ -243,7 +243,7 @@ const TicketStockPanel = ({ ticketId, siteId, assetId, ticketStatus, isLocked, o
                     ) : (
                         <div
                             className="flex items-center gap-2 text-[11px] leading-relaxed p-2.5 border"
-                            style={{ backgroundColor: '#f0f9ff', color: '#0369a1', borderColor: '#e0f2fe', borderRadius: '8px' }}
+                            style={{ backgroundColor: 'rgba(59,130,246,0.08)', color: 'var(--primary-500)', borderColor: 'rgba(59,130,246,0.2)', borderRadius: '8px' }}
                         >
                             <Info size={14} className="shrink-0" />
                             <span>Replacements can be managed through the RMA workflow below.</span>

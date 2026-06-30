@@ -573,8 +573,8 @@ export default function TicketForm() {
                                     style={{
                                         display: 'flex', alignItems: 'flex-start', gap: '8px',
                                         marginTop: '8px', padding: '8px 12px', borderRadius: '8px',
-                                        backgroundColor: '#f0f9ff', border: '1px solid #bae6fd',
-                                        fontSize: '12px', color: '#0369a1', lineHeight: '1.5'
+                                        backgroundColor: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)',
+                                        fontSize: '12px', color: 'var(--primary-500)', lineHeight: '1.5'
                                     }}
                                 >
                                     <Cable size={14} style={{ marginTop: '1px', flexShrink: 0 }} />

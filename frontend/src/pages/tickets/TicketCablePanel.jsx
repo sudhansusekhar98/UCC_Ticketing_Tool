@@ -109,13 +109,13 @@ const TicketCablePanel = ({ ticketId, siteId, ticketStatus, isLocked, onUpdate }
     return (
         <div
             className="shadow-[0_2px_12px_rgba(0,0,0,0.08)] border p-4 mt-4 animate-fade-in"
-            style={{ backgroundColor: '#ffffff', color: '#1e293b', borderRadius: '12px', border: '1px solid #f1f5f9' }}
+            style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', borderRadius: '12px', border: '1px solid var(--border-light)' }}
         >
             {/* Header */}
             <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3">
                     <Cable size={19} className="text-gray-400" />
-                    <h3 className="text-[17px] font-semibold m-0" style={{ color: '#1e293b' }}>
+                    <h3 className="text-[17px] font-semibold m-0" style={{ color: 'var(--text-primary)' }}>
                         Cable / Wire Usage
                     </h3>
                 </div>
@@ -123,20 +123,20 @@ const TicketCablePanel = ({ ticketId, siteId, ticketStatus, isLocked, onUpdate }
                     <button
                         onClick={openModal}
                         className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-all"
-                        style={{ backgroundColor: '#0ea5e9', color: '#fff' }}
+                        style={{ backgroundColor: 'var(--primary-500)', color: '#fff' }}
                     >
                         <Plus size={13} /> Record Usage
                     </button>
                 )}
             </div>
 
-            <div style={{ borderTop: '1px solid #f1f5f9', marginBottom: '12px' }}></div>
+            <div style={{ borderTop: '1px solid var(--border-light)', marginBottom: '12px' }}></div>
 
             {/* Available cable stock */}
             {cables.length === 0 ? (
                 <div
                     className="flex items-center gap-2 text-xs p-2.5 rounded-lg border mb-3"
-                    style={{ backgroundColor: '#fef9c3', color: '#854d0e', borderColor: '#fef08a' }}
+                    style={{ backgroundColor: 'rgba(245,158,11,0.1)', color: 'var(--warning-500)', borderColor: 'rgba(245,158,11,0.25)' }}
                 >
                     <AlertTriangle size={13} />
                     No cable/wire items found in stock for this site.
@@ -151,7 +151,7 @@ const TicketCablePanel = ({ ticketId, siteId, ticketStatus, isLocked, onUpdate }
                             <div
                                 key={c._id}
                                 className="flex items-center justify-between px-3 py-2 rounded-lg border"
-                                style={{ backgroundColor: '#f8fafc', borderColor: '#f1f5f9', fontSize: '12px' }}
+                                style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-light)', fontSize: '12px' }}
                             >
                                 <div>
                                     <span className="font-bold text-gray-700">
@@ -166,7 +166,7 @@ const TicketCablePanel = ({ ticketId, siteId, ticketStatus, isLocked, onUpdate }
                                 </div>
                                 <span
                                     className="font-bold text-[13px] ml-4 shrink-0"
-                                    style={{ color: c.quantity > 0 ? '#059669' : '#cbd5e1' }}
+                                    style={{ color: c.quantity > 0 ? 'var(--success-500)' : 'var(--border-medium)' }}
                                 >
                                     {c.quantity} {c.unit}
                                 </span>
@@ -179,12 +179,12 @@ const TicketCablePanel = ({ ticketId, siteId, ticketStatus, isLocked, onUpdate }
             {/* Usage history */}
             {usageHistory.length > 0 && (
                 <div>
-                    <div style={{ borderTop: '1px solid #f1f5f9', marginBottom: '10px' }}></div>
+                    <div style={{ borderTop: '1px solid var(--border-light)', marginBottom: '10px' }}></div>
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: '#94a3b8' }}>
+                        <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                             <History size={11} className="inline mr-1" /> Usage History
                         </p>
-                        <span className="text-[11px] font-bold" style={{ color: '#0ea5e9' }}>
+                        <span className="text-[11px] font-bold" style={{ color: 'var(--accent-cyan)' }}>
                             Total used: {totalUsed}
                         </span>
                     </div>
@@ -193,7 +193,7 @@ const TicketCablePanel = ({ ticketId, siteId, ticketStatus, isLocked, onUpdate }
                             <div
                                 key={log._id}
                                 className="flex items-center justify-between px-3 py-2 rounded-lg border"
-                                style={{ backgroundColor: '#f8fafc', borderColor: '#f1f5f9', fontSize: '11px' }}
+                                style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-light)', fontSize: '11px' }}
                             >
                                 <div>
                                     <span className="font-bold text-gray-700">

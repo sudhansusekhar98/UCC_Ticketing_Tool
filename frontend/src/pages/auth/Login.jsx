@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Eye, EyeOff, Loader } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import TOpsLogo from '../../assets/TicketOps.png';
@@ -11,6 +11,8 @@ export default function Login() {
     const [isPending, setIsPending] = useState(false);
     const { login } = useAuthStore();
     const navigate = useNavigate();
+    const location = useLocation();
+    const redirectTo = location.state?.from || '/dashboard';
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -31,7 +33,7 @@ export default function Login() {
         setIsPending(false);
 
         if (result.success) {
-            navigate('/dashboard');
+            navigate(redirectTo, { replace: true });
         } else {
             setError(result.error || 'Login failed');
         }

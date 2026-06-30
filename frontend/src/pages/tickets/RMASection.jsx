@@ -882,8 +882,8 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                             </div>
 
                             {/* Destination selection */}
-                            <div className="mt-3 p-3 rounded-lg border" style={{ backgroundColor: '#fafbfc', borderColor: '#e2e8f0' }}>
-                                <label className="text-[10px] font-bold uppercase tracking-wider mb-2 block" style={{ color: '#64748b' }}>
+                            <div className="mt-3 p-3 rounded-lg border" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-light)' }}>
+                                <label className="text-[10px] font-bold uppercase tracking-wider mb-2 block" style={{ color: 'var(--text-muted)' }}>
                                     Repaired Item Destination
                                 </label>
                                 <div className="grid grid-cols-3 gap-2 mb-2">
@@ -1556,8 +1556,8 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                                                     className="w-full text-left rounded-lg border transition-all"
                                                                     style={{
                                                                         padding: '10px 12px',
-                                                                        borderColor: isSelected ? 'rgba(34,197,94,0.5)' : 'rgba(226,232,240,0.6)',
-                                                                        background: isSelected ? 'rgba(34,197,94,0.06)' : '#fff',
+                                                                        borderColor: isSelected ? 'rgba(34,197,94,0.5)' : 'var(--border-light)',
+                                                                        background: isSelected ? 'rgba(34,197,94,0.08)' : 'var(--bg-card)',
                                                                         boxShadow: isSelected ? '0 0 0 1px rgba(34,197,94,0.3)' : 'none'
                                                                     }}
                                                                 >
@@ -1568,14 +1568,14 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                                                                 className="flex-shrink-0"
                                                                                 style={{
                                                                                     width: '16px', height: '16px', borderRadius: '50%',
-                                                                                    border: isSelected ? '5px solid #22c55e' : '2px solid #cbd5e1',
-                                                                                    background: '#fff',
+                                                                                    border: isSelected ? '5px solid #22c55e' : '2px solid var(--border-medium)',
+                                                                                    background: 'var(--bg-secondary)',
                                                                                     transition: 'all 0.15s ease'
                                                                                 }}
                                                                             />
                                                                             {/* Device info */}
                                                                             <div className="min-w-0">
-                                                                                <p className="text-[11px] font-bold truncate" style={{ color: '#1e293b' }}>
+                                                                                <p className="text-[11px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>
                                                                                     {spare.make || 'Unknown'}
                                                                                     {spare.model ? ` ${spare.model}` : ''}
                                                                                 </p>
@@ -1590,12 +1590,12 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                                                                 {(spare.assetType || spare.deviceType) && (
                                                                                     <div className="flex items-center gap-1.5 mt-1.5">
                                                                                         {spare.assetType && (
-                                                                                            <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-px rounded" style={{ background: '#f1f5f9', color: '#475569' }}>
+                                                                                            <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-px rounded" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
                                                                                                 {spare.assetType}
                                                                                             </span>
                                                                                         )}
                                                                                         {spare.deviceType && (
-                                                                                            <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-px rounded" style={{ background: '#ecfeff', color: '#0891b2' }}>
+                                                                                            <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-px rounded" style={{ background: 'rgba(8,145,178,0.12)', color: 'var(--accent-cyan)' }}>
                                                                                                 {spare.deviceType}
                                                                                             </span>
                                                                                         )}
@@ -1605,7 +1605,7 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                                                         </div>
                                                                         {/* Stock location badge */}
                                                                         {spare.stockLocation && (
-                                                                            <span className="flex-shrink-0 text-[9px] font-medium px-2 py-0.5 rounded-full" style={{ background: '#f1f5f9', color: '#64748b' }}>
+                                                                            <span className="flex-shrink-0 text-[9px] font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
                                                                                 {spare.stockLocation}
                                                                             </span>
                                                                         )}

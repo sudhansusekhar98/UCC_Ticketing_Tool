@@ -94,6 +94,7 @@
   --input-border: rgba(148, 163, 184, 0.2);
   --input-text: #f8fafc;
   --input-placeholder: #64748b;
+  --warning-500-40: rgba(245, 158, 11, 0.4);
 }
 
 /* Light Theme */
@@ -172,6 +173,8 @@
   --shadow-glow: 0 0 15px rgba(59, 130, 246, 0.25);
   --shadow-glow-success: 0 0 15px rgba(16, 185, 129, 0.25);
   --shadow-glow-danger: 0 0 15px rgba(239, 68, 68, 0.25);
+  --shadow-glow-warning: 0 0 15px rgba(245, 158, 11, 0.25);
+  --warning-500-40: rgba(217, 119, 6, 0.4);
 
   /* Gradients */
   --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
@@ -462,12 +465,34 @@ h6 {
 
 .btn-warning {
   background: var(--gradient-warning);
-  color: white;
+  color: #fff !important;
 }
 
 .btn-warning:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg), var(--shadow-glow-warning);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-medium);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--primary-400);
+  color: var(--primary-400);
+}
+
+.btn-info {
+  background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+  color: #fff;
+}
+
+.btn-info:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg), 0 0 15px rgba(8, 145, 178, 0.3);
 }
 
 .btn-outline-danger {
@@ -681,6 +706,24 @@ select option {
 .priority-p4 {
   background: rgba(34, 197, 94, 0.2);
   color: #86efac;
+}
+
+/* Light-mode priority overrides — pastel hues are unreadable on white */
+[data-theme="light"] .priority-p1 {
+  background: rgba(220, 38, 38, 0.1);
+  color: #b91c1c;
+}
+[data-theme="light"] .priority-p2 {
+  background: rgba(194, 65, 12, 0.1);
+  color: #c2410c;
+}
+[data-theme="light"] .priority-p3 {
+  background: rgba(146, 64, 14, 0.1);
+  color: #92400e;
+}
+[data-theme="light"] .priority-p4 {
+  background: rgba(22, 101, 52, 0.1);
+  color: #166534;
 }
 
 /* SLA Status */
@@ -1122,6 +1165,37 @@ select option {
   color: var(--text-muted);
   margin-bottom: var(--space-4);
   line-height: 1.5;
+}
+
+/* Dark mode — solid opaque modal, clear contrast layers */
+[data-theme="dark"] .modal {
+  background: #1e293b;
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+/* Prevent glass-card hover effect from flickering the modal background */
+[data-theme="dark"] .modal.glass-card:hover {
+  background: #1e293b;
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+/* Option sections inside dark modals get a lighter shade so they stand out */
+[data-theme="dark"] .option-section {
+  background: #334155;
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+/* Modal header/footer separators more visible in dark mode */
+[data-theme="dark"] .modal-header,
+[data-theme="dark"] .modal-footer,
+[data-theme="dark"] .modal-actions {
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+/* Light mode — solid white, stop hover flicker */
+[data-theme="light"] .modal.glass-card:hover {
+  background: #ffffff;
+  border-color: #e2e8f0;
 }
 
 

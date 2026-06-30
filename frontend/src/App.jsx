@@ -1,4 +1,4 @@
-﻿import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+﻿import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useEffect } from 'react';
 import useAuthStore from './context/authStore';
@@ -85,9 +85,10 @@ import MyActivities from './pages/fieldops/MyActivities';
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles, requiredRight }) {
   const { isAuthenticated, user, hasRole, hasRightForAnySite } = useAuthStore();
+  const location = useLocation();
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 
   if (allowedRoles || requiredRight) {

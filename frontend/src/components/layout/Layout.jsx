@@ -22,6 +22,7 @@ import {
     UserCheck,
     Loader,
     FolderKanban,
+    Clock,
 } from 'lucide-react';
 import useAuthStore from '../../context/authStore';
 import { PERMISSIONS } from '../../constants/permissions';
@@ -58,6 +59,15 @@ export default function Layout({ children }) {
     const navigate = useNavigate();
     const { user, logout, hasRightForAnySite, hasRole, accessToken } = useAuthStore();
     const userMenuRef = useRef(null);
+
+    // IST clock
+    const [istTime, setIstTime] = useState(() => new Date());
+    useEffect(() => {
+        const timer = setInterval(() => setIstTime(new Date()), 1000);
+        return () => clearInterval(timer);
+    }, []);
+    const istDate = istTime.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+    const istClock = istTime.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
     // Global search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -453,6 +463,15 @@ export default function Layout({ children }) {
                     </div>
 
                     <div className="header-right">
+                        {/* IST Clock */}
+                        <div className="header-clock">
+                            <Clock size={13} className="header-clock-icon" />
+                            <div className="header-clock-text">
+                                <span className="header-clock-time">{istClock} IST</span>
+                                <span className="header-clock-date">{istDate}</span>
+                            </div>
+                        </div>
+
                         {/* Notifications */}
                         <NotificationBell />
 
