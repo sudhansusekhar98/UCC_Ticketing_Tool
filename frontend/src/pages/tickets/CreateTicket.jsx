@@ -60,6 +60,7 @@ export default function TicketForm() {
     const [selectedAssetType, setSelectedAssetType] = useState('');
     const [selectedDeviceType, setSelectedDeviceType] = useState('');
     const [slaPolicies, setSlaPolicies] = useState([]);
+    const [slaLoaded, setSlaLoaded] = useState(false);
     const [calculatedTargets, setCalculatedTargets] = useState({ response: null, resolution: null });
 
     // File attachments (only for new tickets)
@@ -133,39 +134,48 @@ export default function TicketForm() {
     }, [selectedSiteId, selectedLocationName, selectedAssetType, selectedDeviceType]);
 
     const loadDropdowns = async () => {
-        try {
-            const [categoriesRes, sitesRes, engineersRes, usersRes, lookupsRes] = await Promise.all([
-                lookupsApi.getCategories(),
-                sitesApi.getDropdown(),
-                usersApi.getEngineers(),
-                usersApi.getDropdown(),
-                lookupsApi.getAll()
-            ]);
-            const catData = categoriesRes.data.data || categoriesRes.data || [];
-            setCategories(catData);
+        const [categoriesResult, sitesResult, engineersResult, usersResult, lookupsResult] = await Promise.allSettled([
+            lookupsApi.getCategories(),
+            sitesApi.getDropdown(),
+            usersApi.getEngineers(),
+            usersApi.getDropdown(),
+            lookupsApi.getAll()
+        ]);
 
-            const lookupData = lookupsRes.data.data || lookupsRes.data || {};
+        if (categoriesResult.status === 'fulfilled') {
+            setCategories(categoriesResult.value.data.data || categoriesResult.value.data || []);
+        }
+
+        if (lookupsResult.status === 'fulfilled') {
+            const lookupData = lookupsResult.value.data.data || lookupsResult.value.data || {};
             setSlaPolicies(lookupData.slaPolicies || []);
+        } else {
+            console.error('Failed to load SLA policies', lookupsResult.reason);
+        }
+        setSlaLoaded(true);
 
-            const siteData = sitesRes.data.data || sitesRes.data || [];
+        if (sitesResult.status === 'fulfilled') {
+            const siteData = sitesResult.value.data.data || sitesResult.value.data || [];
             setSites(siteData.map(s => ({
                 value: s._id || s.value || s.siteId,
                 label: s.siteName || s.label
             })));
+        }
 
-            const engData = engineersRes.data.data || engineersRes.data || [];
+        if (engineersResult.status === 'fulfilled') {
+            const engData = engineersResult.value.data.data || engineersResult.value.data || [];
             setEngineers(engData.map(e => ({
                 value: e._id || e.value || e.userId,
                 label: e.fullName || e.label
             })));
+        }
 
-            const userData = usersRes.data.data || usersRes.data || [];
+        if (usersResult.status === 'fulfilled') {
+            const userData = usersResult.value.data.data || usersResult.value.data || [];
             setAllUsers(userData.map(u => ({
                 value: u._id || u.value || u.userId,
                 label: u.fullName || u.label
             })));
-        } catch (error) {
-            console.error('Failed to load dropdowns', error);
         }
     };
 
@@ -813,7 +823,7 @@ export default function TicketForm() {
                                             </>
                                         ) : (
                                             <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                                {slaPolicies.length === 0 ? 'Loading SLA data...' : 'No SLA policy configured'}
+                                                {!slaLoaded ? 'Loading SLA data...' : 'No SLA policy configured'}
                                             </div>
                                         )}
                                     </div>
@@ -834,7 +844,7 @@ export default function TicketForm() {
                                             </>
                                         ) : (
                                             <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                                {slaPolicies.length === 0 ? 'Loading SLA data...' : 'No SLA policy configured'}
+                                                {!slaLoaded ? 'Loading SLA data...' : 'No SLA policy configured'}
                                             </div>
                                         )}
                                     </div>
