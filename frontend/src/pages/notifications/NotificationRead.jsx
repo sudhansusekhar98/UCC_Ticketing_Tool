@@ -17,6 +17,7 @@ import {
 import { notificationsApi } from '../../services/api';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import DOMPurify from 'dompurify';
 import './NotificationRead.css';
 
 const getNotificationIcon = (type) => {
@@ -121,7 +122,7 @@ export default function NotificationRead() {
                     <h1 className="notification-title">{notification.title}</h1>
                     <div
                         className="notification-message notification-message--rich"
-                        dangerouslySetInnerHTML={{ __html: notification.message }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(notification.message) }}
                     />
                 </div>
 

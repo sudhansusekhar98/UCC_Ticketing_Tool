@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { generateSequentialId } from '../utils/idGenerator.js';
 
 const projectSchema = new mongoose.Schema({
   projectNumber: {
@@ -154,20 +155,7 @@ projectSchema.index({ projectNumber: 1 });
 // Pre-save hook for auto-generating project number
 projectSchema.pre('save', async function(next) {
   if (this.isNew && !this.projectNumber) {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-
-    const lastProject = await this.constructor.findOne({
-      projectNumber: new RegExp(`^PRJ-${dateStr}-`)
-    }).sort({ projectNumber: -1 });
-
-    let sequence = 1;
-    if (lastProject) {
-      const lastSequence = parseInt(lastProject.projectNumber.split('-')[2]);
-      sequence = lastSequence + 1;
-    }
-
-    this.projectNumber = `PRJ-${dateStr}-${sequence.toString().padStart(4, '0')}`;
+    this.projectNumber = await generateSequentialId(this.constructor, 'projectNumber', 'PRJ');
   }
   next();
 });

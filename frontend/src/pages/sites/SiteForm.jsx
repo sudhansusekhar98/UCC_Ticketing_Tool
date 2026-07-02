@@ -21,6 +21,13 @@ const PRIORITY_COLORS = {
     P4: { bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', label: 'Low', color: '#6b7280' },
 };
 
+const SLA_FIELDS = [
+    { key: 'responseTimeMinutes', label: 'Response (min)' },
+    { key: 'restoreTimeMinutes', label: 'Restore (min)' },
+    { key: 'escalationLevel1Minutes', label: 'Escalation L1 (min)' },
+    { key: 'escalationLevel2Minutes', label: 'Escalation L2 (min)' },
+];
+
 function formatMinutes(min) {
     if (!min && min !== 0) return '-';
     if (min < 60) return `${min}m`;
@@ -491,50 +498,19 @@ export default function SiteForm() {
                                             </div>
 
                                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                                                <div className="form-group" style={{ marginBottom: 0 }}>
-                                                    <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>
-                                                        Response (min)
-                                                    </label>
-                                                    <input
-                                                        type="number" min="0" className="form-input"
-                                                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.5rem' }}
-                                                        value={policy.responseTimeMinutes}
-                                                        onChange={(e) => handleSLAChange(policy.priority, 'responseTimeMinutes', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="form-group" style={{ marginBottom: 0 }}>
-                                                    <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>
-                                                        Restore (min)
-                                                    </label>
-                                                    <input
-                                                        type="number" min="0" className="form-input"
-                                                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.5rem' }}
-                                                        value={policy.restoreTimeMinutes}
-                                                        onChange={(e) => handleSLAChange(policy.priority, 'restoreTimeMinutes', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="form-group" style={{ marginBottom: 0 }}>
-                                                    <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>
-                                                        Escalation L1 (min)
-                                                    </label>
-                                                    <input
-                                                        type="number" min="0" className="form-input"
-                                                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.5rem' }}
-                                                        value={policy.escalationLevel1Minutes}
-                                                        onChange={(e) => handleSLAChange(policy.priority, 'escalationLevel1Minutes', e.target.value)}
-                                                    />
-                                                </div>
-                                                <div className="form-group" style={{ marginBottom: 0 }}>
-                                                    <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>
-                                                        Escalation L2 (min)
-                                                    </label>
-                                                    <input
-                                                        type="number" min="0" className="form-input"
-                                                        style={{ fontSize: '0.85rem', padding: '0.4rem 0.5rem' }}
-                                                        value={policy.escalationLevel2Minutes}
-                                                        onChange={(e) => handleSLAChange(policy.priority, 'escalationLevel2Minutes', e.target.value)}
-                                                    />
-                                                </div>
+                                                {SLA_FIELDS.map(f => (
+                                                    <div key={f.key} className="form-group" style={{ marginBottom: 0 }}>
+                                                        <label style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block' }}>
+                                                            {f.label}
+                                                        </label>
+                                                        <input
+                                                            type="number" min="0" className="form-input"
+                                                            style={{ fontSize: '0.85rem', padding: '0.4rem 0.5rem' }}
+                                                            value={policy[f.key]}
+                                                            onChange={(e) => handleSLAChange(policy.priority, f.key, e.target.value)}
+                                                        />
+                                                    </div>
+                                                ))}
                                             </div>
 
                                             <div style={{

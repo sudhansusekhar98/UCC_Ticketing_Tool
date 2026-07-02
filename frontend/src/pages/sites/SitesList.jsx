@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
     Plus,
     Search,
@@ -10,7 +10,6 @@ import {
     Edit,
     Trash2,
     Eye,
-    ExternalLink,
     Warehouse,
 } from 'lucide-react';
 import { sitesApi } from '../../services/api';
@@ -28,7 +27,6 @@ export default function SitesList() {
     const [cities, setCities] = useState([]);
     const [page, setPage] = useState(1);
     const pageSize = 50;
-    const navigate = useNavigate();
     const { hasRole } = useAuthStore();
 
     const canCreate = hasRole(['Admin', 'Supervisor']);
@@ -92,11 +90,6 @@ export default function SitesList() {
         }
     };
 
-    const handleSearch = () => {
-        setPage(1);
-        fetchSites();
-    };
-
     const handleDelete = async (id, name) => {
         if (!confirm(`Are you sure you want to delete site "${name}"?`)) return;
 
@@ -108,9 +101,6 @@ export default function SitesList() {
             toast.error(error.response?.data?.message || 'Failed to delete site');
         }
     };
-
-    // No client-side filtering needed
-    const displayedSites = sites;
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -169,7 +159,7 @@ export default function SitesList() {
                     <div className="loading-state">
                         <div className="spinner"></div>
                     </div>
-                ) : displayedSites.length === 0 ? (
+                ) : sites.length === 0 ? (
                     <div className="empty-state">
                         <MapPin size={48} />
                         <p>No sites found</p>
@@ -190,7 +180,7 @@ export default function SitesList() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {displayedSites.map((site) => (
+                                {sites.map((site) => (
                                     <tr key={site.siteId}>
                                         <td>
                                             <div className="cell-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

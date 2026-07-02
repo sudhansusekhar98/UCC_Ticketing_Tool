@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 import {
     ArrowRightLeft, PackagePlus, Truck, CheckCircle2, AlertCircle,
-    Clock, Filter, Building2, Box, Calendar, User, FileText,
+    Clock, Building2, Box, Calendar, User, FileText,
     ChevronLeft, ChevronRight, RefreshCw, History, Cable
 } from 'lucide-react';
 import { stockApi, sitesApi } from '../../services/api';

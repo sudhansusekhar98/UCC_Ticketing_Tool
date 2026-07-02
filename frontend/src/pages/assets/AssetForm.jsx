@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save, Loader, Eye, EyeOff, History, Clock, CheckCircle } from 'lucide-react';
 import { assetsApi, sitesApi, lookupsApi, rmaApi, assetUpdateRequestApi } from '../../services/api';
-import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import '../sites/Sites.css';
 
@@ -12,7 +11,6 @@ export default function AssetForm() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const isEditing = Boolean(id);
-    const { hasRole, getSitesWithRight } = useAuthStore();
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -666,8 +664,6 @@ export default function AssetForm() {
                                         disabled={!isFieldEditable('model')}
                                     />
                                 </div>
-
-
 
                                 <div className="form-group">
                                     <label className="form-label">SL Number</label>

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Package, Warehouse, MapPin, TrendingUp, Clock,
   Download, Calendar, ChevronRight, MoreVertical,
-  Truck, Video, Router, Cable, History, Inbox
+  Truck, Video, Router, Cable, Inbox
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,

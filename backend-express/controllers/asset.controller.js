@@ -317,6 +317,18 @@ export const getAssetById = async (req, res, next) => {
       });
     }
 
+    // Restrict access to the asset's site, matching the scoping already used for the asset list (buildAssetQuery)
+    if (req.user.role !== 'Admin') {
+      const assetSiteId = (asset.siteId?._id || asset.siteId)?.toString();
+      const hasAccess = req.user.assignedSites?.some(s => s.toString() === assetSiteId);
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied to this site'
+        });
+      }
+    }
+
     res.json({
       success: true,
       data: processAssetForResponse(asset)

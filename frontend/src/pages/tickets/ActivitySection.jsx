@@ -308,6 +308,24 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
             );
         }
 
+        // SLA Extension request/approval/rejection/cancellation entries
+        if (activityType === 'SLAExtension') {
+            const variant = content.startsWith('SLA Extension Approved') ? 'approved'
+                : content.startsWith('SLA Extension Rejected') ? 'rejected'
+                : content.startsWith('SLA extension request auto-cancelled') ? 'cancelled'
+                : 'requested';
+            const variantLabel = { requested: 'SLA Extension Requested', approved: 'SLA Extension Approved', rejected: 'SLA Extension Rejected', cancelled: 'SLA Extension Cancelled' }[variant];
+            return (
+                <div className={`sla-extension-card sla-extension-${variant}`}>
+                    <div className="sla-extension-header">
+                        <Clock size={14} className="sla-extension-icon" />
+                        <span className="sla-extension-title">{variantLabel}</span>
+                    </div>
+                    <div className="sla-extension-body">{content}</div>
+                </div>
+            );
+        }
+
         // Check if this is an RMA/Device Replacement Request
         if (content.includes('RMA/Device Replacement Request Submitted')) {
             const lines = content.split('\n');
@@ -421,7 +439,7 @@ export default function ActivitySection({ ticketId, ticketStatus }) {
                     activities.map((activity) => (
                         <div
                             key={activity.activityId}
-                            className={`activity-item ${!activity.isSystem && activity.userId === user?.userId ? 'own' : ''} ${activity.isInternal ? 'internal' : ''} ${activity.activityType === 'SLABreach' ? 'sla-breach' : ''}`}
+                            className={`activity-item ${!activity.isSystem && activity.userId === user?.userId ? 'own' : ''} ${activity.isInternal ? 'internal' : ''} ${activity.activityType === 'SLABreach' ? 'sla-breach' : ''} ${activity.activityType === 'SLAExtension' ? 'sla-extension' : ''}`}
                         >
                             <div className={`activity-avatar${activity.isSystem ? ' system-avatar' : ''}`} data-initial={(activity.userName || 'S').charAt(0).toUpperCase()}>
                                 {activity.isSystem ? (

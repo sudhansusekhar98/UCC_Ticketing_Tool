@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { generateSequentialId } from '../utils/idGenerator.js';
 
 const workOrderSchema = new mongoose.Schema({
   workOrderNumber: {
@@ -82,20 +83,7 @@ workOrderSchema.index({ status: 1 });
 // Pre-save hook to generate work order number
 workOrderSchema.pre('save', async function(next) {
   if (this.isNew && !this.workOrderNumber) {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-    
-    const lastWO = await this.constructor.findOne({
-      workOrderNumber: new RegExp(`^WO-${dateStr}-`)
-    }).sort({ workOrderNumber: -1 });
-    
-    let sequence = 1;
-    if (lastWO) {
-      const lastSequence = parseInt(lastWO.workOrderNumber.split('-')[2]);
-      sequence = lastSequence + 1;
-    }
-    
-    this.workOrderNumber = `WO-${dateStr}-${sequence.toString().padStart(4, '0')}`;
+    this.workOrderNumber = await generateSequentialId(this.constructor, 'workOrderNumber', 'WO');
   }
   next();
 });

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { generateSequentialId } from '../utils/idGenerator.js';
 
 const taskWorkEntrySchema = new mongoose.Schema({
   taskId:      { type: mongoose.Schema.Types.ObjectId, required: true },
@@ -191,20 +192,7 @@ pmDailyLogSchema.index(
 // Pre-save hook for auto-generating log number
 pmDailyLogSchema.pre('save', async function(next) {
   if (this.isNew && !this.logNumber) {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-
-    const lastLog = await this.constructor.findOne({
-      logNumber: new RegExp(`^LOG-${dateStr}-`)
-    }).sort({ logNumber: -1 });
-
-    let sequence = 1;
-    if (lastLog) {
-      const lastSequence = parseInt(lastLog.logNumber.split('-')[2]);
-      sequence = lastSequence + 1;
-    }
-
-    this.logNumber = `LOG-${dateStr}-${sequence.toString().padStart(4, '0')}`;
+    this.logNumber = await generateSequentialId(this.constructor, 'logNumber', 'LOG');
   }
   next();
 });

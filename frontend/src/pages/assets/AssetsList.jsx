@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
     Plus,
     Search,
@@ -10,9 +10,6 @@ import {
     Monitor,
     Edit,
     Trash2,
-    Camera,
-    HardDrive,
-    Network,
     Download,
     Upload,
     FileSpreadsheet,
@@ -28,13 +25,15 @@ import toast from 'react-hot-toast';
 import '../sites/Sites.css';
 import './AssetsBulk.css';
 
-const getAssetIcon = (type) => {
-    switch (type) {
-        case 'Camera': return <Camera size={14} />;
-        case 'NVR': return <HardDrive size={14} />;
-        case 'Switch': return <Network size={14} />;
-        default: return <Monitor size={14} />;
-    }
+const downloadXlsxBlob = (data, filename) => {
+    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { window.URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
 };
 
 export default function AssetsList() {
@@ -56,7 +55,6 @@ export default function AssetsList() {
     const [page, setPage] = useState(1);
     const pageSize = 15;
     const [statusCounts, setStatusCounts] = useState({ online: 0, offline: 0, passive: 0 });
-    const navigate = useNavigate();
     const { hasRole, hasRight, hasRightForAnySite, refreshUserRights } = useAuthStore();
 
     // Bulk import/export state
@@ -222,16 +220,7 @@ export default function AssetsList() {
     const handleDownloadTemplate = async () => {
         try {
             const response = await assetsApi.downloadTemplate();
-            const blob = new Blob([response.data], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'assets_import_template.xlsx';
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => { window.URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
+            downloadXlsxBlob(response.data, 'assets_import_template.xlsx');
             toast.success('Template downloaded successfully');
         } catch (error) {
             console.error('Download error:', error);
@@ -248,16 +237,7 @@ export default function AssetsList() {
                 assetType: typeFilter || undefined,
                 status: statusFilter || undefined,
             });
-            const blob = new Blob([response.data], {
-                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `assets_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => { window.URL.revokeObjectURL(url); document.body.removeChild(a); }, 100);
+            downloadXlsxBlob(response.data, `assets_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
             toast.success('Assets exported successfully');
         } catch (error) {
             console.error('Export error:', error);
@@ -314,8 +294,6 @@ export default function AssetsList() {
         setImportResult(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
     };
-
-
 
     const getStatusClass = (status) => {
         switch (status) {

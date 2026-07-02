@@ -4,7 +4,7 @@ import User from './models/User.model.js';
 import Project from './models/Project.model.js';
 import PMDailyLog from './models/PMDailyLog.model.js';
 import TicketActivity from './models/TicketActivity.model.js';
-import { sendBreachWarningEmail, sendSlaBreachedEmail, sendGeneralNotificationEmail } from './utils/email.utils.js';
+import { sendBreachWarningEmail, sendSlaBreachedEmail, sendGeneralNotificationEmail, sendSlaOverdueReminderEmail } from './utils/email.utils.js';
 import { createSystemNotification } from './controllers/notification.controller.js';
 
 // Setup Cron Jobs
@@ -213,7 +213,58 @@ export const setupCronJobs = (io) => {
         }
     });
 
-    // 3. PM Daily Log Reminder Job
+    // 3. SLA Overdue Reminder — every 15 min, only within 10:00-19:00 IST, throttled to 3h per ticket.
+    // Skips tickets with a pending SLA extension request (don't nag while it's under review).
+    cron.schedule('*/15 * * * *', async () => {
+        const now = new Date();
+        const istHour = parseInt(
+            new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', hour12: false }).format(now),
+            10
+        );
+        if (istHour < 10 || istHour >= 19) return;
+
+        const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+
+        try {
+            const dueTickets = await Ticket.find({
+                status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] },
+                isSLARestoreBreached: true,
+                'slaExtension.status': { $ne: 'Pending' },
+                $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }],
+                $and: [
+                    { $or: [{ lastSlaReminderSentAt: null }, { lastSlaReminderSentAt: { $lte: threeHoursAgo } }] }
+                ]
+            }).populate('assignedTo', 'fullName email _id').limit(200).lean();
+
+            if (dueTickets.length) {
+                const remindedIds = [];
+                for (const ticket of dueTickets) {
+                    if (!ticket.assignedTo?.email) continue;
+                    const sent = await sendSlaOverdueReminderEmail(ticket, ticket.assignedTo);
+                    if (sent) {
+                        remindedIds.push(ticket._id);
+                        if (io) {
+                            await createSystemNotification(io, {
+                                userId: ticket.assignedTo._id,
+                                title: '⏰ SLA Still Overdue',
+                                message: `Ticket ${ticket.ticketNumber} is past its SLA deadline. Please update it or request an extension.`,
+                                type: 'error',
+                                link: `/tickets/${ticket._id}`
+                            }).catch(() => {});
+                        }
+                    }
+                }
+                if (remindedIds.length) {
+                    await Ticket.updateMany({ _id: { $in: remindedIds } }, { $set: { lastSlaReminderSentAt: now } });
+                    console.log(`⏰ SLA Reminder: ${remindedIds.length} ticket(s) reminded`);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error in SLA Reminder Cron:', error);
+        }
+    });
+
+    // 4. PM Daily Log Reminder Job
     // Runs at 7 PM (19:00) daily to remind PMs who haven't submitted their daily log
     cron.schedule('0 19 * * *', async () => {
         console.log('⏰ Running PM Daily Log Reminder Check...');
@@ -273,7 +324,7 @@ export const setupCronJobs = (io) => {
         }
     });
 
-    // 4. Auto-Lock PM Daily Logs after 24 hours
+    // 5. Auto-Lock PM Daily Logs after 24 hours
     // Runs every hour to lock logs that are older than 24 hours
     cron.schedule('0 * * * *', async () => {
         console.log('⏰ Running PM Daily Log Auto-Lock...');

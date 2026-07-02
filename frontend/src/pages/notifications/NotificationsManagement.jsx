@@ -30,15 +30,16 @@ import {
 import { notificationsApi, usersApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import DOMPurify from 'dompurify';
 import NotificationLogs from './NotificationLogs';
 import './NotificationsManagement.css';
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 
+// Strips all markup for a plain-text preview. Uses DOMPurify (not raw innerHTML
+// parsing) so a malicious notification body can't trigger onerror/onload handlers.
 function stripHtml(html) {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html || '';
-    return tmp.textContent || tmp.innerText || '';
+    return DOMPurify.sanitize(html || '', { ALLOWED_TAGS: [] });
 }
 
 function RichMessageEditor({ value, onChange }) {

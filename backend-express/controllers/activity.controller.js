@@ -1,8 +1,21 @@
 import TicketActivity from '../models/TicketActivity.model.js';
 import TicketAttachment from '../models/TicketAttachment.model.js';
+import Ticket from '../models/Ticket.model.js';
 import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary.js';
 import path from 'path';
 import fs from 'fs';
+
+// Mirrors the restriction enforced in ticket.controller.js's getTicketById:
+// SiteClient users may only access tickets they created themselves.
+const assertTicketAccess = async (ticketId, user) => {
+  if (user.role !== 'SiteClient') return null;
+  const ticket = await Ticket.findById(ticketId).select('createdBy');
+  if (!ticket) return { status: 404, message: 'Ticket not found' };
+  if (ticket.createdBy.toString() !== user._id.toString()) {
+    return { status: 403, message: 'Access denied' };
+  }
+  return null;
+};
 
 // @desc    Get activities for a ticket
 // @route   GET /api/tickets/:ticketId/activities
@@ -10,6 +23,9 @@ import fs from 'fs';
 export const getActivities = async (req, res, next) => {
   try {
     const { ticketId } = req.params;
+
+    const denied = await assertTicketAccess(ticketId, req.user);
+    if (denied) return res.status(denied.status).json({ success: false, message: denied.message });
 
     const activities = await TicketActivity.find({ ticketId })
       .populate('userId', 'fullName username role profilePicture')
@@ -102,6 +118,9 @@ export const createActivity = async (req, res, next) => {
     const { ticketId } = req.params;
     const { content, activityType = 'Comment', isInternal = false } = req.body;
 
+    const denied = await assertTicketAccess(ticketId, req.user);
+    if (denied) return res.status(denied.status).json({ success: false, message: denied.message });
+
     const activity = await TicketActivity.create({
       ticketId,
       userId: req.user._id,
@@ -147,6 +166,9 @@ export const uploadAttachment = async (req, res, next) => {
   try {
     const { ticketId } = req.params;
     const { activityId } = req.query;
+
+    const denied = await assertTicketAccess(ticketId, req.user);
+    if (denied) return res.status(denied.status).json({ success: false, message: denied.message });
 
     if (!req.file) {
       return res.status(400).json({
@@ -281,6 +303,9 @@ export const downloadAttachment = async (req, res, next) => {
       });
     }
 
+    const denied = await assertTicketAccess(attachment.ticketId, req.user);
+    if (denied) return res.status(denied.status).json({ success: false, message: denied.message });
+
     // If Cloudinary, redirect to URL
     if (attachment.storageType === 'Cloudinary' && attachment.cloudinaryUrl) {
       return res.redirect(attachment.cloudinaryUrl);
@@ -316,6 +341,9 @@ export const deleteAttachment = async (req, res, next) => {
         message: 'Attachment not found'
       });
     }
+
+    const denied = await assertTicketAccess(attachment.ticketId, req.user);
+    if (denied) return res.status(denied.status).json({ success: false, message: denied.message });
 
     // Delete from Cloudinary if stored there
     if (attachment.storageType === 'Cloudinary' && attachment.cloudinaryPublicId) {

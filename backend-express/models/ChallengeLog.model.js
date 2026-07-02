@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { generateSequentialId } from '../utils/idGenerator.js';
 
 const challengeLogSchema = new mongoose.Schema({
   challengeNumber: {
@@ -194,20 +195,7 @@ challengeLogSchema.index({ createdAt: -1 });
 // Pre-save hook for auto-generating challenge number
 challengeLogSchema.pre('save', async function(next) {
   if (this.isNew && !this.challengeNumber) {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-
-    const lastChallenge = await this.constructor.findOne({
-      challengeNumber: new RegExp(`^CHL-${dateStr}-`)
-    }).sort({ challengeNumber: -1 });
-
-    let sequence = 1;
-    if (lastChallenge) {
-      const lastSequence = parseInt(lastChallenge.challengeNumber.split('-')[2]);
-      sequence = lastSequence + 1;
-    }
-
-    this.challengeNumber = `CHL-${dateStr}-${sequence.toString().padStart(4, '0')}`;
+    this.challengeNumber = await generateSequentialId(this.constructor, 'challengeNumber', 'CHL');
   }
 
   // Auto-set escalatedAt when escalating

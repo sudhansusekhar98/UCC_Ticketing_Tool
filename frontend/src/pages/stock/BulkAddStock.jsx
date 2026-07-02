@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
     Upload, ArrowLeft, FileSpreadsheet, AlertCircle, Package, X, CheckCircle2, XCircle
 } from 'lucide-react';
@@ -10,7 +10,6 @@ import './AddStock.css';
 import './BulkAddStock.css';
 
 export default function BulkAddStock() {
-    const navigate = useNavigate();
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [results, setResults] = useState(null);

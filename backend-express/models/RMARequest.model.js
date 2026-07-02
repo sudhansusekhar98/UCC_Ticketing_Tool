@@ -1,4 +1,15 @@
 import mongoose from 'mongoose';
+import { generateSequentialId } from '../utils/idGenerator.js';
+
+// Shared shape for a single shipping leg (carrier/tracking/dates)
+const logisticsLegSchema = {
+  carrier: String,
+  trackingNumber: String,
+  courierName: String,
+  dispatchDate: Date,
+  receivedDate: Date,
+  remarks: String
+};
 
 const rmaRequestSchema = new mongoose.Schema({
   rmaNumber: {
@@ -81,14 +92,7 @@ const rmaRequestSchema = new mongoose.Schema({
     ref: 'Requisition'
   },
   // Logistics for replacement dispatch to site
-  logisticsReplacementToSite: {
-    carrier: String,
-    trackingNumber: String,
-    courierName: String,
-    dispatchDate: Date,
-    receivedDate: Date,
-    remarks: String
-  },
+  logisticsReplacementToSite: { ...logisticsLegSchema },
   // Admin who arranged the replacement
   replacementArrangedBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -210,14 +214,7 @@ const rmaRequestSchema = new mongoose.Schema({
     default: null
   },
   // Logistics details for each shipping leg
-  logisticsToHO: {
-    carrier: String,
-    trackingNumber: String,
-    courierName: String,
-    dispatchDate: Date,
-    receivedDate: Date,
-    remarks: String
-  },
+  logisticsToHO: { ...logisticsLegSchema },
   logisticsToServiceCenter: {
     carrier: String,
     trackingNumber: String,
@@ -226,14 +223,7 @@ const rmaRequestSchema = new mongoose.Schema({
     serviceCenterTicketRef: String,  // Reference ticket from service center (out of scope)
     remarks: String
   },
-  logisticsReturnToSite: {
-    carrier: String,
-    trackingNumber: String,
-    courierName: String,
-    dispatchDate: Date,
-    receivedDate: Date,
-    remarks: String
-  },
+  logisticsReturnToSite: { ...logisticsLegSchema },
   // Admin confirmation at HO
   receivedAtHOBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -321,26 +311,7 @@ const rmaRequestSchema = new mongoose.Schema({
 // Pre-save hook to generate RMA number
 rmaRequestSchema.pre('save', async function (next) {
   if (this.isNew && !this.rmaNumber) {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-
-    // Find the last RMA created today
-    const lastRMA = await this.constructor.findOne({
-      rmaNumber: new RegExp(`^RMA-${dateStr}-`)
-    }).sort({ rmaNumber: -1 });
-
-    let sequence = 1;
-    if (lastRMA && lastRMA.rmaNumber) {
-      const parts = lastRMA.rmaNumber.split('-');
-      if (parts.length >= 3) {
-        const lastSequence = parseInt(parts[2]);
-        if (!isNaN(lastSequence)) {
-          sequence = lastSequence + 1;
-        }
-      }
-    }
-
-    this.rmaNumber = `RMA-${dateStr}-${sequence.toString().padStart(4, '0')}`;
+    this.rmaNumber = await generateSequentialId(this.constructor, 'rmaNumber', 'RMA');
   }
   next();
 });

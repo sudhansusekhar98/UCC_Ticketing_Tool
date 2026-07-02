@@ -23,7 +23,6 @@ import {
     Settings
 } from 'lucide-react';
 import { rmaApi, sitesApi } from '../../services/api';
-import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import './RMARecords.css';
@@ -78,7 +77,6 @@ export default function RMARecords() {
     const [activeTab, setActiveTab] = useState('ongoing');
     const [viewMode, setViewMode] = useState(localStorage.getItem('rmaViewMode') || 'grid');
     const navigate = useNavigate();
-    const { hasRole } = useAuthStore();
 
     useEffect(() => {
         localStorage.setItem('rmaViewMode', viewMode);

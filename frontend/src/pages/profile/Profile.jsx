@@ -21,10 +21,15 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import './Profile.css';
 
+const PASSWORD_FIELDS = [
+    { key: 'current', field: 'currentPassword', label: 'Current Password', placeholder: 'Enter your current password' },
+    { key: 'new', field: 'newPassword', label: 'New Password', placeholder: 'Enter your new password' },
+    { key: 'confirm', field: 'confirmPassword', label: 'Confirm New Password', placeholder: 'Confirm your new password' },
+];
+
 export default function Profile() {
     const { user, setProfilePicture } = useAuthStore();
     const [activeSection, setActiveSection] = useState('info');
-    const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
 
     // Profile Info State
@@ -383,92 +388,36 @@ export default function Profile() {
                             </div>
 
                             <form className="password-form" onSubmit={handlePasswordChange}>
-                                <div className="form-group">
-                                    <label>Current Password</label>
-                                    <div className="password-input-wrapper">
-                                        <input
-                                            type={showPasswords.current ? 'text' : 'password'}
-                                            className={`form-input ${passwordErrors.currentPassword ? 'error' : ''}`}
-                                            value={passwordData.currentPassword}
-                                            onChange={(e) => setPasswordData(prev => ({
-                                                ...prev,
-                                                currentPassword: e.target.value
-                                            }))}
-                                            placeholder="Enter your current password"
-                                        />
-                                        <button
-                                            type="button"
-                                            className="password-toggle"
-                                            onClick={() => setShowPasswords(prev => ({
-                                                ...prev,
-                                                current: !prev.current
-                                            }))}
-                                        >
-                                            {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
-                                        </button>
+                                {PASSWORD_FIELDS.map(({ key, field, label, placeholder }) => (
+                                    <div className="form-group" key={key}>
+                                        <label>{label}</label>
+                                        <div className="password-input-wrapper">
+                                            <input
+                                                type={showPasswords[key] ? 'text' : 'password'}
+                                                className={`form-input ${passwordErrors[field] ? 'error' : ''}`}
+                                                value={passwordData[field]}
+                                                onChange={(e) => setPasswordData(prev => ({
+                                                    ...prev,
+                                                    [field]: e.target.value
+                                                }))}
+                                                placeholder={placeholder}
+                                            />
+                                            <button
+                                                type="button"
+                                                className="password-toggle"
+                                                onClick={() => setShowPasswords(prev => ({
+                                                    ...prev,
+                                                    [key]: !prev[key]
+                                                }))}
+                                            >
+                                                {showPasswords[key] ? <EyeOff size={16} /> : <Eye size={16} />}
+                                            </button>
+                                        </div>
+                                        {passwordErrors[field] && (
+                                            <span className="error-message">{passwordErrors[field]}</span>
+                                        )}
                                     </div>
-                                    {passwordErrors.currentPassword && (
-                                        <span className="error-message">{passwordErrors.currentPassword}</span>
-                                    )}
-                                </div>
-
-                                <div className="form-group">
-                                    <label>New Password</label>
-                                    <div className="password-input-wrapper">
-                                        <input
-                                            type={showPasswords.new ? 'text' : 'password'}
-                                            className={`form-input ${passwordErrors.newPassword ? 'error' : ''}`}
-                                            value={passwordData.newPassword}
-                                            onChange={(e) => setPasswordData(prev => ({
-                                                ...prev,
-                                                newPassword: e.target.value
-                                            }))}
-                                            placeholder="Enter your new password"
-                                        />
-                                        <button
-                                            type="button"
-                                            className="password-toggle"
-                                            onClick={() => setShowPasswords(prev => ({
-                                                ...prev,
-                                                new: !prev.new
-                                            }))}
-                                        >
-                                            {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
-                                        </button>
-                                    </div>
-                                    {passwordErrors.newPassword && (
-                                        <span className="error-message">{passwordErrors.newPassword}</span>
-                                    )}
-                                </div>
-
-                                <div className="form-group">
-                                    <label>Confirm New Password</label>
-                                    <div className="password-input-wrapper">
-                                        <input
-                                            type={showPasswords.confirm ? 'text' : 'password'}
-                                            className={`form-input ${passwordErrors.confirmPassword ? 'error' : ''}`}
-                                            value={passwordData.confirmPassword}
-                                            onChange={(e) => setPasswordData(prev => ({
-                                                ...prev,
-                                                confirmPassword: e.target.value
-                                            }))}
-                                            placeholder="Confirm your new password"
-                                        />
-                                        <button
-                                            type="button"
-                                            className="password-toggle"
-                                            onClick={() => setShowPasswords(prev => ({
-                                                ...prev,
-                                                confirm: !prev.confirm
-                                            }))}
-                                        >
-                                            {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                                        </button>
-                                    </div>
-                                    {passwordErrors.confirmPassword && (
-                                        <span className="error-message">{passwordErrors.confirmPassword}</span>
-                                    )}
-                                </div>
+                                ))}
 
                                 <div className="password-requirements">
                                     <h4>Password Requirements:</h4>

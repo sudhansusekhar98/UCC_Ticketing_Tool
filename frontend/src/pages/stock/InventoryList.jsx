@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
     Package, Search, Warehouse, ArrowLeft, MapPin, ChevronDown, ChevronUp,
     AlertCircle, Eye, Edit, X, Download, CheckSquare, Square, Ruler, Trash2, Save, FolderInput, FileBarChart
@@ -11,8 +11,18 @@ import ProjectAllocationModal from './ProjectAllocationModal';
 import './StockCommon.css';
 import './InventoryList.css';
 
+const downloadBlob = (data, filename, mimeType) => {
+    const url = window.URL.createObjectURL(mimeType ? new Blob([data], { type: mimeType }) : new Blob([data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+};
+
 export default function InventoryList() {
-    const navigate = useNavigate();
     const { hasRole } = useAuthStore();
     const canManageStock = hasRole(['Admin', 'Supervisor']);
 
@@ -165,14 +175,7 @@ export default function InventoryList() {
             setExporting(true);
             const ids = Array.from(selectedAssets);
             const response = await stockApi.exportSelectedAssets(ids, format);
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `selected_assets.${format}`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            downloadBlob(response.data, `selected_assets.${format}`);
             toast.success(`Exported ${selectedAssets.size} asset(s) successfully`);
         } catch (err) {
             console.error('Export failed:', err);
@@ -191,14 +194,7 @@ export default function InventoryList() {
             });
             const ext = format === 'html' ? 'html' : 'xlsx';
             const mimeType = format === 'html' ? 'text/html' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-            const url = window.URL.createObjectURL(new Blob([response.data], { type: mimeType }));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `stock_summary_${new Date().toISOString().slice(0, 10)}.${ext}`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            downloadBlob(response.data, `stock_summary_${new Date().toISOString().slice(0, 10)}.${ext}`, mimeType);
             toast.success('Summary report downloaded successfully');
         } catch (err) {
             console.error('Summary export failed:', err);
@@ -469,10 +465,8 @@ export default function InventoryList() {
                                     <th className="col-model">Model</th>
                                     <th className="col-mac">MAC Address</th>
                                     <th className="col-serial">Serial Number</th>
-                                    {/* <th className="col-location">Shelf/Bin</th> */}
                                     <th className="col-qty">Qty</th>
                                     <th className="col-unit">Unit</th>
-                                    {/* <th className="col-remarks">Remarks</th> */}
                                     <th className="col-actions">Actions</th>
                                 </tr>
                             </thead>
@@ -552,9 +546,6 @@ export default function InventoryList() {
                                                         {asset.serialNumber || '-'}
                                                     </span>
                                                 </td>
-                                                {/* <td className="col-location">
-                                                    <span className="location-text">{asset.stockLocation || '-'}</span>
-                                                </td> */}
                                                 <td className="col-qty">
                                                     {asset.isMeterUnit ? (
                                                         <span className="meter-qty-badge" title={`${asset.quantity} meters of wire/cable - not counted in stock total`}>
@@ -571,11 +562,6 @@ export default function InventoryList() {
                                                         asset.unit || 'Nos'
                                                     )}
                                                 </td>
-                                                {/* <td className="col-remarks">
-                                                    <span className="remarks-text" title={asset.remarks || asset.remark}>
-                                                        {asset.remarks || asset.remark || '-'}
-                                                    </span>
-                                                </td> */}
                                                 <td className="col-actions">
                                                     <div className="action-buttons-direct">
                                                         <button
@@ -831,19 +817,6 @@ export default function InventoryList() {
                                             placeholder="e.g. SN-00123"
                                         />
                                     </div>
-                                    {/* Shelf / Bin location */}
-                                    {/* <div className="detail-item full-width">
-                                        <label htmlFor="edit-stockLocation">Shelf / Bin Location</label>
-                                        <input
-                                            id="edit-stockLocation"
-                                            name="stockLocation"
-                                            type="text"
-                                            className="form-input"
-                                            value={editForm.stockLocation}
-                                            onChange={handleEditChange}
-                                            placeholder="e.g. Rack-A / Shelf-2"
-                                        />
-                                    </div> */}
                                     {/* Quantity */}
                                     <div className="detail-item">
                                         <label htmlFor="edit-quantity">Quantity</label>
@@ -876,20 +849,6 @@ export default function InventoryList() {
                                             <option value="Roll">Roll</option>
                                         </select>
                                     </div>
-                                    {/* Remarks */}
-                                    {/* <div className="detail-item full-width">
-                                        <label htmlFor="edit-remarks">Remarks</label>
-                                        <textarea
-                                            id="edit-remarks"
-                                            name="remarks"
-                                            className="form-input"
-                                            rows={2}
-                                            value={editForm.remarks}
-                                            onChange={handleEditChange}
-                                            placeholder="Optional notes..."
-                                            style={{ resize: 'vertical', minHeight: '60px' }}
-                                        />
-                                    </div> */}
                                 </div>
                             </div>
                             <div className="modal-footer">

@@ -39,6 +39,22 @@ import AssetUpdateApproval from './AssetUpdateApproval';
 import { createPortal } from 'react-dom';
 import './Tickets.css';
 
+const Modal = ({ icon: Icon, title, onClose, footer, children }) => createPortal(
+    <div className="modal-overlay animate-fade-in" onClick={onClose}>
+        <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+                <h3 className="flex items-center gap-2">
+                    {Icon && <Icon size={16} />}
+                    {title}
+                </h3>
+            </div>
+            <div className="modal-body">{children}</div>
+            <div className="modal-footer">{footer}</div>
+        </div>
+    </div>,
+    document.body
+);
+
 const safeFormatDate = (date, formatStr) => {
     try {
         if (!date) return '-';
@@ -75,7 +91,13 @@ export default function TicketDetail() {
     const [showAcceptEscalationModal, setShowAcceptEscalationModal] = useState(false);
     const [escalationUsers, setEscalationUsers] = useState([]);
     const [selectedEscalationUser, setSelectedEscalationUser] = useState('');
+    const [showRequestExtensionModal, setShowRequestExtensionModal] = useState(false);
+    const [extensionReason, setExtensionReason] = useState('');
+    const [showReviewExtensionModal, setShowReviewExtensionModal] = useState(false);
+    const [newSlaDateTime, setNewSlaDateTime] = useState('');
+    const [extensionRejectionReason, setExtensionRejectionReason] = useState('');
 
+    const FINAL_STATUSES = ['Resolved', 'Verified', 'Closed', 'Cancelled'];
     const isLocked = ['InProgress', 'OnHold', 'Installed', 'Repaired', 'Replaced', 'SentToSite', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
     const CABLE_KEYWORDS = ['fibre', 'fiber', 'cable cut', 'cable damage', 'cable'];
     const isCableCutTicket = ticket && CABLE_KEYWORDS.some(kw => (ticket.subCategory || '').toLowerCase().includes(kw));
@@ -111,7 +133,7 @@ export default function TicketDetail() {
         : hasRole(['L1Engineer', 'L2Engineer', 'Supervisor'])))
         && (!ticket?.rmaNumber || ticket?.rmaVerified || ticket?.rmaFinalized);
     const canClose = isAdmin || hasRole(['Supervisor', 'Dispatcher']) || (isEscalationAccepted ? isAssignedToMe : hasRight('DELETE_TICKET', ticketSiteId));
-    const canEscalate = ticket?.escalationLevel < 3 && ticket?.status !== 'Escalated' && !['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status) && (isAssignedToMe || hasRole(['Admin', 'Supervisor', 'Dispatcher']));
+    const canEscalate = ticket?.escalationLevel < 3 && ticket?.status !== 'Escalated' && !FINAL_STATUSES.includes(ticket?.status) && (isAssignedToMe || hasRole(['Admin', 'Supervisor', 'Dispatcher']));
     const canAcceptEscalation = ticket?.status === 'Escalated' && (
         hasRole(['Admin', 'Supervisor', 'Dispatcher']) ||
         (ticket?.escalationLevel === 1 && (hasRight('ESCALATION_L1', ticketSiteId) || hasRight('ESCALATION_L2', ticketSiteId) || hasRight('ESCALATION_L3', ticketSiteId))) ||
@@ -119,6 +141,11 @@ export default function TicketDetail() {
         (ticket?.escalationLevel === 3 && hasRight('ESCALATION_L3', ticketSiteId))
     );
     const canDelegateEscalation = hasRole(['Admin', 'Supervisor', 'Dispatcher']);
+
+    // SLA extension: requestable by the assignee or management once breached; reviewable by Admin/Supervisor
+    const canRequestSlaExtension = (isAssignedToMe || hasRole(['Admin', 'Supervisor', 'Dispatcher']))
+        && ticket?.isSLARestoreBreached && ticket?.slaExtension?.status !== 'Pending' && !FINAL_STATUSES.includes(ticket?.status);
+    const canReviewSlaExtension = hasRole(['Admin', 'Supervisor']) && ticket?.slaExtension?.status === 'Pending';
 
     useEffect(() => {
         fetchTicket();
@@ -211,162 +238,86 @@ export default function TicketDetail() {
         }
     };
 
-    const handleAssign = async () => {
-        if (!assignData.assignedTo) {
-            toast.error('Please select an employee');
-            return;
-        }
+    // Shared runner for ticket actions: handles loading state, success/error toasts, and refresh.
+    const runAction = async (apiCall, { successMsg, errorMsg, onSuccess, useServerError } = {}) => {
         setActionLoading(true);
         try {
-            await ticketsApi.assign(id, assignData);
-            toast.success('Ticket assigned successfully');
-            setShowAssignModal(false);
+            await apiCall();
+            toast.success(successMsg);
+            onSuccess?.();
             fetchTicket();
             fetchAuditTrail();
         } catch (error) {
-            toast.error('Failed to assign ticket');
+            toast.error(useServerError ? (error.response?.data?.message || errorMsg) : errorMsg);
         } finally {
             setActionLoading(false);
         }
     };
 
-    const handleAcknowledge = async () => {
-        setActionLoading(true);
-        try {
-            await ticketsApi.acknowledge(id);
-            toast.success('Ticket acknowledged');
-            fetchTicket();
-            fetchAuditTrail();
-        } catch (error) {
-            toast.error('Failed to acknowledge ticket');
-        } finally {
-            setActionLoading(false);
-        }
+    const handleAssign = () => {
+        if (!assignData.assignedTo) return toast.error('Please select an employee');
+        runAction(() => ticketsApi.assign(id, assignData), {
+            successMsg: 'Ticket assigned successfully',
+            errorMsg: 'Failed to assign ticket',
+            onSuccess: () => setShowAssignModal(false)
+        });
     };
 
-    const handleStart = async () => {
-        setActionLoading(true);
-        try {
-            await ticketsApi.start(id);
-            toast.success('Work started on ticket');
-            fetchTicket();
-            fetchAuditTrail();
-        } catch (error) {
-            toast.error('Failed to start ticket');
-        } finally {
-            setActionLoading(false);
-        }
+    const handleAcknowledge = () => runAction(() => ticketsApi.acknowledge(id), {
+        successMsg: 'Ticket acknowledged',
+        errorMsg: 'Failed to acknowledge ticket'
+    });
+
+    const handleStart = () => runAction(() => ticketsApi.start(id), {
+        successMsg: 'Work started on ticket',
+        errorMsg: 'Failed to start ticket'
+    });
+
+    const handleResolve = () => {
+        if (!resolveData.rootCause || !resolveData.resolutionSummary) return toast.error('Please fill in root cause and resolution');
+        runAction(() => ticketsApi.resolve(id, resolveData), {
+            successMsg: 'Ticket resolved',
+            errorMsg: 'Failed to resolve ticket',
+            onSuccess: () => setShowResolveModal(false)
+        });
     };
 
-    const handleResolve = async () => {
-        if (!resolveData.rootCause || !resolveData.resolutionSummary) {
-            toast.error('Please fill in root cause and resolution');
-            return;
-        }
-        setActionLoading(true);
-        try {
-            await ticketsApi.resolve(id, resolveData);
-            toast.success('Ticket resolved');
-            setShowResolveModal(false);
-            fetchTicket();
-            fetchAuditTrail();
-        } catch (error) {
-            toast.error('Failed to resolve ticket');
-        } finally {
-            setActionLoading(false);
-        }
+    const handleClose = () => runAction(() => ticketsApi.close(id, {}), {
+        successMsg: 'Ticket closed',
+        errorMsg: 'Failed to close ticket'
+    });
+
+    const handleReopen = () => {
+        if (!reopenReason.trim()) return toast.error('Please provide a reason for reopening');
+        runAction(() => ticketsApi.reopen(id, reopenReason.trim()), {
+            successMsg: 'Ticket reopened',
+            errorMsg: 'Failed to reopen ticket',
+            onSuccess: () => { setShowReopenModal(false); setReopenReason(''); }
+        });
     };
 
-    const handleClose = async () => {
-        setActionLoading(true);
-        try {
-            await ticketsApi.close(id, {});
-            toast.success('Ticket closed');
-            fetchTicket();
-            fetchAuditTrail();
-        } catch (error) {
-            toast.error('Failed to close ticket');
-        } finally {
-            setActionLoading(false);
-        }
+    const handleRejectResolution = () => {
+        if (!rejectReason.trim()) return toast.error('Please provide a reason for rejecting the resolution');
+        runAction(() => ticketsApi.rejectResolution(id, rejectReason.trim()), {
+            successMsg: 'Resolution rejected. The assigned user has been notified.',
+            errorMsg: 'Failed to reject resolution',
+            onSuccess: () => { setShowRejectModal(false); setRejectReason(''); }
+        });
     };
 
-    const handleReopen = async () => {
-        if (!reopenReason.trim()) {
-            toast.error('Please provide a reason for reopening');
-            return;
-        }
-        setActionLoading(true);
-        try {
-            await ticketsApi.reopen(id, reopenReason.trim());
-            toast.success('Ticket reopened');
-            setShowReopenModal(false);
-            setReopenReason('');
-            fetchTicket();
-            fetchAuditTrail();
-        } catch (error) {
-            toast.error('Failed to reopen ticket');
-        } finally {
-            setActionLoading(false);
-        }
-    };
+    const handleAcknowledgeRejection = () => runAction(() => ticketsApi.acknowledgeRejection(id), {
+        successMsg: 'Rejection acknowledged. You can now resume work on this ticket.',
+        errorMsg: 'Failed to acknowledge rejection'
+    });
 
-    const handleRejectResolution = async () => {
-        if (!rejectReason.trim()) {
-            toast.error('Please provide a reason for rejecting the resolution');
-            return;
-        }
-        setActionLoading(true);
-        try {
-            await ticketsApi.rejectResolution(id, rejectReason.trim());
-            toast.success('Resolution rejected. The assigned user has been notified.');
-            setShowRejectModal(false);
-            setRejectReason('');
-            fetchTicket();
-            fetchAuditTrail();
-        } catch (error) {
-            toast.error('Failed to reject resolution');
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    const handleAcknowledgeRejection = async () => {
-        setActionLoading(true);
-        try {
-            await ticketsApi.acknowledgeRejection(id);
-            toast.success('Rejection acknowledged. You can now resume work on this ticket.');
-            fetchTicket();
-            fetchAuditTrail();
-        } catch (error) {
-            toast.error('Failed to acknowledge rejection');
-        } finally {
-            setActionLoading(false);
-        }
-    };
-
-    const handleEscalate = async () => {
-        if (!escalationReason.trim()) {
-            toast.error('Please provide a reason for escalation');
-            return;
-        }
-        setActionLoading(true);
-        try {
-            await ticketsApi.escalate(id, {
-                reason: escalationReason.trim(),
-                assignedTo: selectedEscalationUser
-            });
-            toast.success('Ticket escalated successfully');
-            setShowEscalateModal(false);
-            setEscalationReason('');
-            setSelectedEscalationUser('');
-            fetchTicket();
-            fetchAuditTrail();
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to escalate ticket');
-        } finally {
-            setActionLoading(false);
-        }
+    const handleEscalate = () => {
+        if (!escalationReason.trim()) return toast.error('Please provide a reason for escalation');
+        runAction(() => ticketsApi.escalate(id, { reason: escalationReason.trim(), assignedTo: selectedEscalationUser }), {
+            successMsg: 'Ticket escalated successfully',
+            errorMsg: 'Failed to escalate ticket',
+            useServerError: true,
+            onSuccess: () => { setShowEscalateModal(false); setEscalationReason(''); setSelectedEscalationUser(''); }
+        });
     };
 
     const loadEscalationUsers = async (level = null) => {
@@ -383,19 +334,44 @@ export default function TicketDetail() {
         }
     };
 
-    const handleAcceptEscalation = async (assignedTo = null) => {
-        setActionLoading(true);
-        try {
-            await ticketsApi.acceptEscalation(id, assignedTo ? { assignedTo } : {});
-            toast.success(assignedTo ? 'Escalation accepted and assigned' : 'Escalation accepted. You are now assigned.');
-            setShowAcceptEscalationModal(false);
-            fetchTicket();
-            fetchAuditTrail();
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to accept escalation');
-        } finally {
-            setActionLoading(false);
+    const handleAcceptEscalation = (assignedTo = null) => runAction(
+        () => ticketsApi.acceptEscalation(id, assignedTo ? { assignedTo } : {}),
+        {
+            successMsg: assignedTo ? 'Escalation accepted and assigned' : 'Escalation accepted. You are now assigned.',
+            errorMsg: 'Failed to accept escalation',
+            useServerError: true,
+            onSuccess: () => setShowAcceptEscalationModal(false)
         }
+    );
+
+    const handleRequestSlaExtension = () => {
+        if (!extensionReason.trim()) return toast.error('Please provide a reason for the delay');
+        runAction(() => ticketsApi.requestSlaExtension(id, extensionReason.trim()), {
+            successMsg: 'SLA extension request submitted',
+            errorMsg: 'Failed to submit SLA extension request',
+            useServerError: true,
+            onSuccess: () => { setShowRequestExtensionModal(false); setExtensionReason(''); }
+        });
+    };
+
+    const handleApproveSlaExtension = () => {
+        if (!newSlaDateTime) return toast.error('Please select a new SLA deadline');
+        runAction(() => ticketsApi.approveSlaExtension(id, new Date(newSlaDateTime).toISOString()), {
+            successMsg: 'SLA extension approved',
+            errorMsg: 'Failed to approve SLA extension',
+            useServerError: true,
+            onSuccess: () => { setShowReviewExtensionModal(false); setNewSlaDateTime(''); }
+        });
+    };
+
+    const handleRejectSlaExtension = () => {
+        if (!extensionRejectionReason.trim()) return toast.error('Please provide a reason for rejecting the request');
+        runAction(() => ticketsApi.rejectSlaExtension(id, extensionRejectionReason.trim()), {
+            successMsg: 'SLA extension rejected',
+            errorMsg: 'Failed to reject SLA extension',
+            useServerError: true,
+            onSuccess: () => { setShowReviewExtensionModal(false); setExtensionRejectionReason(''); }
+        });
     };
 
     const getPriorityClass = (priority) => priority ? `priority-${priority.toLowerCase()}` : '';
@@ -501,7 +477,7 @@ export default function TicketDetail() {
                         </button>
                     )}
 
-                    {canResolve && (['InProgress', 'Installed', 'Repaired', 'Replaced'].includes(ticket.status) || (isRmaCompleted && !['Closed', 'Cancelled', 'Resolved', 'Verified'].includes(ticket.status))) && (
+                    {canResolve && (['InProgress', 'Installed', 'Repaired', 'Replaced'].includes(ticket.status) || (isRmaCompleted && !FINAL_STATUSES.includes(ticket.status))) && (
                         <button className="btn btn-success" onClick={() => setShowResolveModal(true)}>
                             <CheckCircle size={14} />
                             Resolve
@@ -525,6 +501,20 @@ export default function TicketDetail() {
                         >
                             <AlertTriangle size={14} />
                             Escalate
+                        </button>
+                    )}
+
+                    {canRequestSlaExtension && (
+                        <button className="btn btn-warning" onClick={() => setShowRequestExtensionModal(true)}>
+                            <Clock size={14} />
+                            Request SLA Extension
+                        </button>
+                    )}
+
+                    {canReviewSlaExtension && (
+                        <button className="btn btn-warning" onClick={() => setShowReviewExtensionModal(true)}>
+                            <AlertTriangle size={14} />
+                            Review Extension Request
                         </button>
                     )}
 
@@ -554,7 +544,7 @@ export default function TicketDetail() {
                     )}
 
                     {/* Admin can close directly when RMA is completed */}
-                    {canClose && isRmaCompleted && !['Closed', 'Cancelled', 'Resolved', 'Verified'].includes(ticket.status) && (
+                    {canClose && isRmaCompleted && !FINAL_STATUSES.includes(ticket.status) && (
                         <button className="btn btn-success" onClick={handleClose} disabled={actionLoading}>
                             <CheckCircle size={14} />
                             Close Ticket
@@ -707,7 +697,7 @@ export default function TicketDetail() {
                                     siteId={ticketSiteId}
                                     assetId={ticket.assetId?._id || ticket.assetId}
                                     ticketStatus={ticket.status}
-                                    isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
+                                    isLocked={FINAL_STATUSES.includes(ticket.status)}
                                     onUpdate={() => {
                                         fetchTicket();
                                         fetchAuditTrail();
@@ -721,7 +711,7 @@ export default function TicketDetail() {
                                     ticketId={ticket.ticketId}
                                     siteId={ticketSiteId}
                                     ticketStatus={ticket.status}
-                                    isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
+                                    isLocked={FINAL_STATUSES.includes(ticket.status)}
                                     onUpdate={() => {
                                         fetchTicket();
                                         fetchAuditTrail();
@@ -736,7 +726,7 @@ export default function TicketDetail() {
                                     siteId={ticketSiteId}
                                     assetId={ticket.assetId?._id || ticket.assetId}
                                     ticketStatus={ticket.status}
-                                    isLocked={['Resolved', 'Verified', 'Closed', 'Cancelled'].includes(ticket.status)}
+                                    isLocked={FINAL_STATUSES.includes(ticket.status)}
                                     onUpdate={() => {
                                         fetchTicket();
                                         fetchAuditTrail();
@@ -977,286 +967,336 @@ export default function TicketDetail() {
             </div>
 
             {/* Assign Modal */}
-            {showAssignModal && createPortal(
-                <div className="modal-overlay animate-fade-in" onClick={() => setShowAssignModal(false)}>
-                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="flex items-center gap-2">
-                                <UserPlus size={16} />
-                                Assign Ticket
-                            </h3>
-                        </div>
-                        <div className="modal-body">
-                            <div className="form-group">
-                                <label className="form-label">Select Employee</label>
-                                <select
-                                    className="form-select"
-                                    value={assignData.assignedTo}
-                                    onChange={(e) => setAssignData({ ...assignData, assignedTo: e.target.value })}
-                                >
-                                    <option value="">Choose employee...</option>
-                                    {engineers.map((eng) => (
-                                        <option key={eng.value} value={eng.value}>{eng.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Remarks (optional)</label>
-                                <textarea
-                                    className="form-textarea"
-                                    value={assignData.remarks}
-                                    onChange={(e) => setAssignData({ ...assignData, remarks: e.target.value })}
-                                    placeholder="Add any notes..."
-                                />
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setShowAssignModal(false)}>Cancel</button>
-                            <button className="btn btn-primary" onClick={handleAssign} disabled={actionLoading}>
-                                {actionLoading ? 'Assigning...' : 'Assign'}
-                            </button>
-                        </div>
+            {showAssignModal && (
+                <Modal
+                    icon={UserPlus}
+                    title="Assign Ticket"
+                    onClose={() => setShowAssignModal(false)}
+                    footer={<>
+                        <button className="btn btn-ghost" onClick={() => setShowAssignModal(false)}>Cancel</button>
+                        <button className="btn btn-primary" onClick={handleAssign} disabled={actionLoading}>
+                            {actionLoading ? 'Assigning...' : 'Assign'}
+                        </button>
+                    </>}
+                >
+                    <div className="form-group">
+                        <label className="form-label">Select Employee</label>
+                        <select
+                            className="form-select"
+                            value={assignData.assignedTo}
+                            onChange={(e) => setAssignData({ ...assignData, assignedTo: e.target.value })}
+                        >
+                            <option value="">Choose employee...</option>
+                            {engineers.map((eng) => (
+                                <option key={eng.value} value={eng.value}>{eng.label}</option>
+                            ))}
+                        </select>
                     </div>
-                </div>,
-                document.body
+                    <div className="form-group">
+                        <label className="form-label">Remarks (optional)</label>
+                        <textarea
+                            className="form-textarea"
+                            value={assignData.remarks}
+                            onChange={(e) => setAssignData({ ...assignData, remarks: e.target.value })}
+                            placeholder="Add any notes..."
+                        />
+                    </div>
+                </Modal>
             )}
 
             {/* Resolve Modal */}
-            {showResolveModal && createPortal(
-                <div className="modal-overlay animate-fade-in" onClick={() => setShowResolveModal(false)}>
-                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="flex items-center gap-2">
-                                <CheckCircle size={16} />
-                                Resolve Ticket
-                            </h3>
-                        </div>
-                        <div className="modal-body">
-                            <div className="form-group">
-                                <label className="form-label">Root Cause *</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    value={resolveData.rootCause}
-                                    onChange={(e) => setResolveData({ ...resolveData, rootCause: e.target.value })}
-                                    placeholder="What caused the issue?"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label className="form-label">Resolution Summary *</label>
-                                <textarea
-                                    className="form-textarea"
-                                    value={resolveData.resolutionSummary}
-                                    onChange={(e) => setResolveData({ ...resolveData, resolutionSummary: e.target.value })}
-                                    placeholder="Describe how the issue was resolved..."
-                                />
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setShowResolveModal(false)}>Cancel</button>
-                            <button className="btn btn-success" onClick={handleResolve} disabled={actionLoading}>
-                                {actionLoading ? 'Resolving...' : 'Resolve Ticket'}
-                            </button>
-                        </div>
+            {showResolveModal && (
+                <Modal
+                    icon={CheckCircle}
+                    title="Resolve Ticket"
+                    onClose={() => setShowResolveModal(false)}
+                    footer={<>
+                        <button className="btn btn-ghost" onClick={() => setShowResolveModal(false)}>Cancel</button>
+                        <button className="btn btn-success" onClick={handleResolve} disabled={actionLoading}>
+                            {actionLoading ? 'Resolving...' : 'Resolve Ticket'}
+                        </button>
+                    </>}
+                >
+                    <div className="form-group">
+                        <label className="form-label">Root Cause *</label>
+                        <input
+                            type="text"
+                            className="form-input"
+                            value={resolveData.rootCause}
+                            onChange={(e) => setResolveData({ ...resolveData, rootCause: e.target.value })}
+                            placeholder="What caused the issue?"
+                        />
                     </div>
-                </div>,
-                document.body
+                    <div className="form-group">
+                        <label className="form-label">Resolution Summary *</label>
+                        <textarea
+                            className="form-textarea"
+                            value={resolveData.resolutionSummary}
+                            onChange={(e) => setResolveData({ ...resolveData, resolutionSummary: e.target.value })}
+                            placeholder="Describe how the issue was resolved..."
+                        />
+                    </div>
+                </Modal>
             )}
 
             {/* Re-open Modal */}
-            {showReopenModal && createPortal(
-                <div className="modal-overlay animate-fade-in" onClick={() => setShowReopenModal(false)}>
-                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="flex items-center gap-2">
-                                <RotateCcw size={16} />
-                                Re-open Ticket
-                            </h3>
-                        </div>
-                        <div className="modal-body">
-                            <p className="modal-description">
-                                This ticket is currently closed. Provide a reason to re-open it for further action.
-                            </p>
-                            <div className="form-group">
-                                <label className="form-label">Reason for Re-opening *</label>
-                                <textarea
-                                    className="form-textarea"
-                                    value={reopenReason}
-                                    onChange={(e) => setReopenReason(e.target.value)}
-                                    placeholder="Why does this ticket need to be re-opened?"
-                                    rows={3}
-                                />
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setShowReopenModal(false)}>Cancel</button>
-                            <button className="btn btn-warning" onClick={handleReopen} disabled={actionLoading}>
-                                {actionLoading ? 'Re-opening...' : 'Re-open Ticket'}
-                            </button>
-                        </div>
+            {showReopenModal && (
+                <Modal
+                    icon={RotateCcw}
+                    title="Re-open Ticket"
+                    onClose={() => setShowReopenModal(false)}
+                    footer={<>
+                        <button className="btn btn-ghost" onClick={() => setShowReopenModal(false)}>Cancel</button>
+                        <button className="btn btn-warning" onClick={handleReopen} disabled={actionLoading}>
+                            {actionLoading ? 'Re-opening...' : 'Re-open Ticket'}
+                        </button>
+                    </>}
+                >
+                    <p className="modal-description">
+                        This ticket is currently closed. Provide a reason to re-open it for further action.
+                    </p>
+                    <div className="form-group">
+                        <label className="form-label">Reason for Re-opening *</label>
+                        <textarea
+                            className="form-textarea"
+                            value={reopenReason}
+                            onChange={(e) => setReopenReason(e.target.value)}
+                            placeholder="Why does this ticket need to be re-opened?"
+                            rows={3}
+                        />
                     </div>
-                </div>,
-                document.body
+                </Modal>
             )}
 
             {/* Reject Resolution Modal */}
-            {showRejectModal && createPortal(
-                <div className="modal-overlay animate-fade-in" onClick={() => setShowRejectModal(false)}>
-                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="flex items-center gap-2">
-                                <XCircle size={16} />
-                                Reject Resolution
-                            </h3>
-                        </div>
-                        <div className="modal-body">
-                            <p className="modal-description">
-                                The issue is still ongoing. Rejecting the resolution will notify the assigned user
-                                to reinvestigate and provide an update.
-                            </p>
-                            <div className="form-group">
-                                <label className="form-label">Reason for Rejection *</label>
-                                <textarea
-                                    className="form-textarea"
-                                    value={rejectReason}
-                                    onChange={(e) => setRejectReason(e.target.value)}
-                                    placeholder="Explain why the resolution is being rejected and what needs to be investigated..."
-                                    rows={4}
-                                />
-                            </div>
-                        </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setShowRejectModal(false)}>Cancel</button>
-                            <button className="btn btn-danger" onClick={handleRejectResolution} disabled={actionLoading}>
-                                {actionLoading ? 'Rejecting...' : 'Reject Resolution'}
-                            </button>
-                        </div>
+            {showRejectModal && (
+                <Modal
+                    icon={XCircle}
+                    title="Reject Resolution"
+                    onClose={() => setShowRejectModal(false)}
+                    footer={<>
+                        <button className="btn btn-ghost" onClick={() => setShowRejectModal(false)}>Cancel</button>
+                        <button className="btn btn-danger" onClick={handleRejectResolution} disabled={actionLoading}>
+                            {actionLoading ? 'Rejecting...' : 'Reject Resolution'}
+                        </button>
+                    </>}
+                >
+                    <p className="modal-description">
+                        The issue is still ongoing. Rejecting the resolution will notify the assigned user
+                        to reinvestigate and provide an update.
+                    </p>
+                    <div className="form-group">
+                        <label className="form-label">Reason for Rejection *</label>
+                        <textarea
+                            className="form-textarea"
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                            placeholder="Explain why the resolution is being rejected and what needs to be investigated..."
+                            rows={4}
+                        />
                     </div>
-                </div>,
-                document.body
+                </Modal>
             )}
 
             {/* Escalate Modal */}
-            {showEscalateModal && createPortal(
-                <div className="modal-overlay animate-fade-in" onClick={() => setShowEscalateModal(false)}>
-                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3 className="flex items-center gap-2">
-                                <AlertTriangle size={16} />
-                                Escalate Ticket
-                            </h3>
+            {showEscalateModal && (
+                <Modal
+                    icon={AlertTriangle}
+                    title="Escalate Ticket"
+                    onClose={() => setShowEscalateModal(false)}
+                    footer={<>
+                        <button className="btn btn-ghost" onClick={() => setShowEscalateModal(false)}>Cancel</button>
+                        <button className="btn btn-warning" onClick={handleEscalate} disabled={actionLoading}>
+                            {actionLoading ? 'Escalating...' : 'Escalate Ticket'}
+                        </button>
+                    </>}
+                >
+                    <p className="modal-description">
+                        Escalating this ticket will notify the specialized Escalation Team.
+                        Please provide a clear reason describing why this issue requires higher-level expertise.
+                    </p>
+                    <div className="form-group">
+                        <label className="form-label">Reason for Escalation *</label>
+                        <textarea
+                            className="form-textarea"
+                            value={escalationReason}
+                            onChange={(e) => setEscalationReason(e.target.value)}
+                            placeholder="Describe the technical complexity or roadblock requiring escalation..."
+                            rows={4}
+                        />
+                    </div>
+
+                    <div className="form-group mt-4">
+                        <label className="form-label">Assign To (Escalation User)</label>
+                        <select
+                            className="form-select"
+                            value={selectedEscalationUser}
+                            onChange={(e) => setSelectedEscalationUser(e.target.value)}
+                        >
+                            <option value="">Awaiting Acceptance (Open Escalation)</option>
+                            {escalationUsers.map((u) => (
+                                <option key={u.value} value={u.value}>{u.label}</option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-muted mt-1 italic">
+                            Leave blank if you want any available escalation user to accept it.
+                        </p>
+                    </div>
+                </Modal>
+            )}
+
+            {/* Accept Escalation Modal */}
+            {showAcceptEscalationModal && (
+                <Modal
+                    title={`Manage Escalation (Level ${ticket?.escalationLevel})`}
+                    onClose={() => setShowAcceptEscalationModal(false)}
+                    footer={<button className="btn btn-ghost" onClick={() => setShowAcceptEscalationModal(false)}>Cancel</button>}
+                >
+                    <p className="modal-description">
+                        You can either accept this escalated ticket yourself or assign it to a specialized escalation user.
+                    </p>
+
+                    <div className="escalation-options space-y-6">
+                        <div className="option-section p-4 bg-secondary/10 rounded-lg">
+                            <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Option 1: Work on it yourself</h4>
+                            <button
+                                className="btn btn-primary w-full"
+                                onClick={() => handleAcceptEscalation()}
+                                disabled={actionLoading}
+                            >
+                                Accept & Start Working
+                            </button>
                         </div>
-                        <div className="modal-body">
-                            <p className="modal-description">
-                                Escalating this ticket will notify the specialized Escalation Team.
-                                Please provide a clear reason describing why this issue requires higher-level expertise.
-                            </p>
-                            <div className="form-group">
-                                <label className="form-label">Reason for Escalation *</label>
-                                <textarea
-                                    className="form-textarea"
-                                    value={escalationReason}
-                                    onChange={(e) => setEscalationReason(e.target.value)}
-                                    placeholder="Describe the technical complexity or roadblock requiring escalation..."
-                                    rows={4}
+
+                        {canDelegateEscalation && (
+                            <>
+                                <div className="relative py-2">
+                                    <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>
+                                    <div className="relative flex justify-center text-xs uppercase"><span className="bg-bg-card px-2 text-muted">OR</span></div>
+                                </div>
+
+                                <div className="option-section p-4 bg-secondary/10 rounded-lg">
+                                    <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Option 2: Assign to escalation user</h4>
+                                    <div className="form-group mb-4">
+                                        <label className="form-label">Select Escalation User</label>
+                                        <select
+                                            className="form-select"
+                                            value={selectedEscalationUser}
+                                            onChange={(e) => setSelectedEscalationUser(e.target.value)}
+                                        >
+                                            <option value="">Choose user...</option>
+                                            {escalationUsers.map((u) => (
+                                                <option key={u.value} value={u.value}>{u.label}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <button
+                                        className="btn btn-success w-full"
+                                        onClick={() => handleAcceptEscalation(selectedEscalationUser)}
+                                        disabled={actionLoading || !selectedEscalationUser}
+                                    >
+                                        Assign & Acknowledge
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </Modal>
+            )}
+
+            {/* Request SLA Extension Modal */}
+            {showRequestExtensionModal && (
+                <Modal
+                    icon={Clock}
+                    title="Request SLA Extension"
+                    onClose={() => setShowRequestExtensionModal(false)}
+                    footer={<>
+                        <button className="btn btn-ghost" onClick={() => setShowRequestExtensionModal(false)}>Cancel</button>
+                        <button className="btn btn-warning" onClick={handleRequestSlaExtension} disabled={actionLoading}>
+                            {actionLoading ? 'Submitting...' : 'Submit Request'}
+                        </button>
+                    </>}
+                >
+                    <p className="modal-description">
+                        This ticket has breached its SLA resolution deadline. Explain the reason for the delay —
+                        Admins and Supervisors will be notified and can approve a new deadline.
+                    </p>
+                    <div className="form-group">
+                        <label className="form-label">Reason for Delay *</label>
+                        <textarea
+                            className="form-textarea"
+                            value={extensionReason}
+                            onChange={(e) => setExtensionReason(e.target.value)}
+                            placeholder="Explain why the ticket could not be resolved within the SLA window..."
+                            rows={4}
+                        />
+                    </div>
+                </Modal>
+            )}
+
+            {/* Review SLA Extension Request Modal */}
+            {showReviewExtensionModal && (
+                <Modal
+                    icon={AlertTriangle}
+                    title="Review SLA Extension Request"
+                    onClose={() => setShowReviewExtensionModal(false)}
+                    footer={<button className="btn btn-ghost" onClick={() => setShowReviewExtensionModal(false)}>Cancel</button>}
+                >
+                    <p className="modal-description">
+                        <strong>{ticket?.slaExtension?.requestedBy?.fullName || 'The assignee'}</strong> requested more time on this ticket:
+                    </p>
+                    <div className="form-group">
+                        <p className="detail-value" style={{ whiteSpace: 'pre-wrap' }}>{ticket?.slaExtension?.reason}</p>
+                    </div>
+
+                    <div className="escalation-options space-y-6">
+                        <div className="option-section p-4 bg-secondary/10 rounded-lg">
+                            <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Approve &amp; Set New Deadline</h4>
+                            <div className="form-group mb-4">
+                                <label className="form-label">New SLA Resolution Deadline *</label>
+                                <input
+                                    type="datetime-local"
+                                    className="form-input"
+                                    value={newSlaDateTime}
+                                    onChange={(e) => setNewSlaDateTime(e.target.value)}
                                 />
                             </div>
-
-                            <div className="form-group mt-4">
-                                <label className="form-label">Assign To (Escalation User)</label>
-                                <select
-                                    className="form-select"
-                                    value={selectedEscalationUser}
-                                    onChange={(e) => setSelectedEscalationUser(e.target.value)}
-                                >
-                                    <option value="">Awaiting Acceptance (Open Escalation)</option>
-                                    {escalationUsers.map((u) => (
-                                        <option key={u.value} value={u.value}>{u.label}</option>
-                                    ))}
-                                </select>
-                                <p className="text-xs text-muted mt-1 italic">
-                                    Leave blank if you want any available escalation user to accept it.
-                                </p>
-                            </div>
+                            <button
+                                className="btn btn-success w-full"
+                                onClick={handleApproveSlaExtension}
+                                disabled={actionLoading || !newSlaDateTime}
+                            >
+                                Approve Extension
+                            </button>
                         </div>
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setShowEscalateModal(false)}>Cancel</button>
-                            <button className="btn btn-warning" onClick={handleEscalate} disabled={actionLoading}>
-                                {actionLoading ? 'Escalating...' : 'Escalate Ticket'}
+
+                        <div className="relative py-2">
+                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>
+                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-bg-card px-2 text-muted">OR</span></div>
+                        </div>
+
+                        <div className="option-section p-4 bg-secondary/10 rounded-lg">
+                            <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Reject Request</h4>
+                            <div className="form-group mb-4">
+                                <label className="form-label">Reason for Rejection *</label>
+                                <textarea
+                                    className="form-textarea"
+                                    value={extensionRejectionReason}
+                                    onChange={(e) => setExtensionRejectionReason(e.target.value)}
+                                    placeholder="Explain why the extension isn't warranted..."
+                                    rows={3}
+                                />
+                            </div>
+                            <button
+                                className="btn btn-danger w-full"
+                                onClick={handleRejectSlaExtension}
+                                disabled={actionLoading || !extensionRejectionReason.trim()}
+                            >
+                                Reject Extension
                             </button>
                         </div>
                     </div>
-                </div>,
-                document.body
-            )}
-
-
-
-            {/* Accept Escalation Modal */}
-            {showAcceptEscalationModal && createPortal(
-                <div className="modal-overlay animate-fade-in" onClick={() => setShowAcceptEscalationModal(false)}>
-                    <div className="modal glass-card animate-slide-up" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3>Manage Escalation (Level {ticket?.escalationLevel})</h3>
-                        </div>
-                        <div className="modal-body">
-                            <p className="modal-description">
-                                You can either accept this escalated ticket yourself or assign it to a specialized escalation user.
-                            </p>
-
-                            <div className="escalation-options space-y-6">
-                                <div className="option-section p-4 bg-secondary/10 rounded-lg">
-                                    <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Option 1: Work on it yourself</h4>
-                                    <button
-                                        className="btn btn-primary w-full"
-                                        onClick={() => handleAcceptEscalation()}
-                                        disabled={actionLoading}
-                                    >
-                                        Accept & Start Working
-                                    </button>
-                                </div>
-
-                                {canDelegateEscalation && (
-                                    <>
-                                        <div className="relative py-2">
-                                            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>
-                                            <div className="relative flex justify-center text-xs uppercase"><span className="bg-bg-card px-2 text-muted">OR</span></div>
-                                        </div>
-
-                                        <div className="option-section p-4 bg-secondary/10 rounded-lg">
-                                            <h4 className="text-sm font-bold mb-3 uppercase tracking-wider opacity-70">Option 2: Assign to escalation user</h4>
-                                            <div className="form-group mb-4">
-                                                <label className="form-label">Select Escalation User</label>
-                                                <select
-                                                    className="form-select"
-                                                    value={selectedEscalationUser}
-                                                    onChange={(e) => setSelectedEscalationUser(e.target.value)}
-                                                >
-                                                    <option value="">Choose user...</option>
-                                                    {escalationUsers.map((u) => (
-                                                        <option key={u.value} value={u.value}>{u.label}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <button
-                                                className="btn btn-success w-full"
-                                                onClick={() => handleAcceptEscalation(selectedEscalationUser)}
-                                                disabled={actionLoading || !selectedEscalationUser}
-                                            >
-                                                Assign & Acknowledge
-                                            </button>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="modal-footer">
-                            <button className="btn btn-ghost" onClick={() => setShowAcceptEscalationModal(false)}>Cancel</button>
-                        </div>
-                    </div>
-                </div>,
-                document.body
+                </Modal>
             )}
         </div>
     );

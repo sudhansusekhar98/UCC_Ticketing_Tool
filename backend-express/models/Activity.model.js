@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { generateSequentialId } from '../utils/idGenerator.js';
 
 const activityTaskSchema = new mongoose.Schema({
   title: {
@@ -151,20 +152,7 @@ activitySchema.index({ createdAt: -1 });
 // Pre-save hook for auto-generating activity number
 activitySchema.pre('save', async function(next) {
   if (this.isNew && !this.activityNumber) {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-
-    const last = await this.constructor.findOne({
-      activityNumber: new RegExp(`^ACT-${dateStr}-`)
-    }).sort({ activityNumber: -1 });
-
-    let sequence = 1;
-    if (last) {
-      const lastSequence = parseInt(last.activityNumber.split('-')[2]);
-      sequence = lastSequence + 1;
-    }
-
-    this.activityNumber = `ACT-${dateStr}-${sequence.toString().padStart(4, '0')}`;
+    this.activityNumber = await generateSequentialId(this.constructor, 'activityNumber', 'ACT');
   }
 
   // Auto-manage actualStart / actualEnd based on status transitions

@@ -4,14 +4,10 @@ import {
     ArrowLeft,
     Edit,
     MapPin,
-    Info,
-    Calendar,
     Phone,
     User,
     Building2,
     Warehouse,
-    CheckCircle2,
-    XCircle,
     Monitor,
     Clock
 } from 'lucide-react';
@@ -27,11 +23,9 @@ export default function SiteView() {
     const { hasRole } = useAuthStore();
 
     const [site, setSite] = useState(null);
-    const [assets, setAssets] = useState([]);
     const [totalAssets, setTotalAssets] = useState(0);
     const [statusCounts, setStatusCounts] = useState({ online: 0, offline: 0, passive: 0 });
     const [loading, setLoading] = useState(true);
-    const [assetsLoading, setAssetsLoading] = useState(false);
     const [slaPolicies, setSlaPolicies] = useState([]);
     const [slaSource, setSlaSource] = useState('global');
 
@@ -82,17 +76,12 @@ export default function SiteView() {
     };
 
     const loadAssets = async () => {
-        setAssetsLoading(true);
         try {
-            // Fetch first 10 assets for the preview but get full counts
             const response = await assetsApi.getAll({ siteId: id, limit: 10 });
-            setAssets(response.data.data || []);
             setTotalAssets(response.data.pagination?.total || 0);
             setStatusCounts(response.data.statusCounts || { online: 0, offline: 0, passive: 0 });
         } catch (error) {
             console.error('Failed to load site assets', error);
-        } finally {
-            setAssetsLoading(false);
         }
     };
 
@@ -177,8 +166,6 @@ export default function SiteView() {
                             <p>{format(new Date(site.createdAt), 'MMM dd, yyyy')}</p>
                         </div>
                     </div>
-
-                    {/* <div className="separator"></div> */}
 
                     <h3 className="section-subtitle">
                         <MapPin size={16} />
@@ -307,57 +294,6 @@ export default function SiteView() {
                 </div>
             </div>
 
-            {/* Assets Preview Section */}
-            {/* <div className="info-card glass-card">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="section-title">
-                        <Monitor size={20} />
-                        Installed Assets
-                    </h2>
-                    <span className="text-xs text-muted">Showing recent 10 of {totalAssets} assets</span>
-                </div>
-
-                {assetsLoading ? (
-                    <div style={{ padding: '2rem 0', textAlign: 'center' }}><div className="spinner" style={{ margin: '0 auto' }}></div></div>
-                ) : assets.length === 0 ? (
-                    <div className="text-muted" style={{ padding: '3rem 0', textAlign: 'center' }}>No assets found at this site.</div>
-                ) : (
-                    <div className="table-mini-wrapper">
-                        <table className="data-table compact">
-                            <thead>
-                                <tr>
-                                    <th>Asset Code</th>
-                                    <th>Type</th>
-                                    <th>Device</th>
-                                    <th>Status</th>
-                                    <th>IP Address</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {assets.map(asset => (
-                                    <tr key={asset._id}>
-                                        <td><span className="font-mono font-bold">{asset.assetCode}</span></td>
-                                        <td>{asset.assetType}</td>
-                                        <td>{asset.deviceType}</td>
-                                        <td>
-                                            <span className={`badge ${asset.status === 'Operational' || asset.status === 'Online' ? 'badge-success' : 'badge-danger'}`}>
-                                                {asset.status}
-                                            </span>
-                                        </td>
-                                        <td><span className="font-mono text-xs">{asset.ipAddress || '-'}</span></td>
-                                        <td className="text-right">
-                                            <Link to={`/assets/${asset._id}`} className="btn btn-icon btn-ghost btn-sm" title="View Asset">
-                                                <Info size={14} />
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div> */}
         </div >
     );
 }

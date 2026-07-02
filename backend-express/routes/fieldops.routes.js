@@ -90,17 +90,21 @@ const router = express.Router();
 // Apply authentication to all routes
 router.use(protect);
 
+// Shared access-control middleware instances (allowAccess is a pure factory, safe to reuse)
+const adminSupervisorOnly = allowAccess({ roles: ['Admin', 'Supervisor'] });
+const projectPortalAccess = allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' });
+
 // ==================== SURVEY INTEGRATION (PROXY) ====================
 
 // GET /api/fieldops/surveys - List available (completed) surveys
 router.get('/surveys',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   getAvailableSurveys
 );
 
 // GET /api/fieldops/surveys/:surveyId/requirements - Get device counts
 router.get('/surveys/:surveyId/requirements',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   getSurveyDeviceRequirements
 );
 
@@ -108,25 +112,25 @@ router.get('/surveys/:surveyId/requirements',
 
 // GET /api/fieldops/projects - List all projects
 router.get('/projects',
-  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
+  projectPortalAccess,
   getProjects
 );
 
 // POST /api/fieldops/projects - Create project (Admin, Supervisor only)
 router.post('/projects',
-  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
+  projectPortalAccess,
   createProject
 );
 
 // GET /api/fieldops/projects/:id - Get single project
 router.get('/projects/:id',
-  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
+  projectPortalAccess,
   getProjectById
 );
 
 // PUT /api/fieldops/projects/:id - Update project (Admin, Supervisor only)
 router.put('/projects/:id',
-  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
+  projectPortalAccess,
   updateProject
 );
 
@@ -146,19 +150,19 @@ router.get('/projects/:projectId/zones', getProjectZones);
 
 // POST /api/fieldops/projects/:projectId/zones - Add zone
 router.post('/projects/:projectId/zones',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   createProjectZone
 );
 
 // PUT /api/fieldops/zones/:id - Update zone
 router.put('/zones/:id',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   updateProjectZone
 );
 
 // DELETE /api/fieldops/zones/:id - Delete zone
 router.delete('/zones/:id',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   deleteProjectZone
 );
 
@@ -213,7 +217,7 @@ router.post('/devices/bulk', createBulkDeviceInstallations);
 
 // POST /api/fieldops/devices/bulk-assign - Bulk assign devices to engineer
 router.post('/devices/bulk-assign',
-  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
+  projectPortalAccess,
   bulkAssignDevices
 );
 
@@ -231,19 +235,19 @@ router.patch('/devices/:id/status', updateDeviceStatus);
 
 // POST /api/fieldops/devices/:id/assign - Assign device to engineer
 router.post('/devices/:id/assign',
-  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
+  projectPortalAccess,
   assignDeviceToEngineer
 );
 
 // POST /api/fieldops/devices/:id/unassign - Unassign device
 router.post('/devices/:id/unassign',
-  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
+  projectPortalAccess,
   unassignDevice
 );
 
 // POST /api/fieldops/devices/:id/skip-config - Skip configuration for non-IT/passive items
 router.post('/devices/:id/skip-config',
-  allowAccess({ roles: ['Admin', 'Supervisor'], right: 'PROJECT_MANAGEMENT_PORTAL' }),
+  projectPortalAccess,
   skipDeviceConfiguration
 );
 
@@ -271,7 +275,7 @@ router.get('/challenges', getChallengeLogs);
 
 // GET /api/fieldops/challenges/escalated - Get escalated challenges (Admin)
 router.get('/challenges/escalated',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   getEscalatedChallenges
 );
 
@@ -300,7 +304,7 @@ router.get('/projects/:projectId/reconciliation/devices', getReconciliationDevic
 
 // POST /api/fieldops/projects/:projectId/resync-survey - Re-sync from external survey API
 router.post('/projects/:projectId/resync-survey',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   resyncSurveyRequirements
 );
 
@@ -308,7 +312,7 @@ router.post('/projects/:projectId/resync-survey',
 
 // GET /api/fieldops/device-mappings/unmapped-items - Get unmapped survey items (must be before :id route)
 router.get('/device-mappings/unmapped-items',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   getUnmappedSurveyItems
 );
 
@@ -317,19 +321,19 @@ router.get('/device-mappings', getDeviceMappings);
 
 // POST /api/fieldops/device-mappings - Create mapping
 router.post('/device-mappings',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   createDeviceMapping
 );
 
 // PUT /api/fieldops/device-mappings/:id - Update mapping
 router.put('/device-mappings/:id',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   updateDeviceMapping
 );
 
 // DELETE /api/fieldops/device-mappings/:id - Delete mapping
 router.delete('/device-mappings/:id',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   deleteDeviceMapping
 );
 
@@ -375,19 +379,19 @@ router.delete('/activities/:id/tasks/:taskId', deleteProjectActivityTask);
 
 // GET /api/fieldops/reports/project/:id - Generate report data
 router.get('/reports/project/:id',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   getProjectReport
 );
 
 // GET /api/fieldops/reports/project/:id/export/pdf - Export PDF
 router.get('/reports/project/:id/export/pdf',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   exportProjectReportPDF
 );
 
 // GET /api/fieldops/reports/project/:id/export/excel - Export Excel
 router.get('/reports/project/:id/export/excel',
-  allowAccess({ roles: ['Admin', 'Supervisor'] }),
+  adminSupervisorOnly,
   exportProjectReportExcel
 );
 

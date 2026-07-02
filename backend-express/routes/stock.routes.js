@@ -46,6 +46,11 @@ const router = express.Router();
 // All routes require authentication
 router.use(protect);
 
+// Shared access-control middleware instances (allowAccess is a pure factory, safe to reuse)
+const manageSiteStockAccess = allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] });
+const adminSupervisorOnly = allowAccess({ roles: ['Admin', 'Supervisor'] });
+const adminOnly = allowAccess({ roles: ['Admin'] });
+
 // Inventory routes
 router.get('/inventory', getInventory);
 router.get('/availability/:ticketId', getStockAvailability);
@@ -57,22 +62,22 @@ router.get('/asset-types', getStockAssetTypes);
 router.get('/device-types', getStockDeviceTypes);
 router.get('/models', getStockModels);
 router.post('/export-selected', exportSelectedAssets);
-router.get('/export-summary', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), exportStockSummary);
+router.get('/export-summary', manageSiteStockAccess, exportStockSummary);
 
 // Project Stock Allocation routes
-router.post('/allocations', allowAccess({ roles: ['Admin', 'Supervisor'] }), allocateStockToProject);
+router.post('/allocations', adminSupervisorOnly, allocateStockToProject);
 router.get('/allocations', getProjectAllocations);
 router.get('/allocations/for-device-form', getProjectAllocatedStock);
 router.get('/allocations/cables', getProjectCableAllocations);
-router.put('/allocations/:id', allowAccess({ roles: ['Admin'] }), updateAllocation);
-router.delete('/allocations/:id', allowAccess({ roles: ['Admin'] }), deleteAllocation);
+router.put('/allocations/:id', adminOnly, updateAllocation);
+router.delete('/allocations/:id', adminOnly, deleteAllocation);
 
 // Stock management (Admin OR users with MANAGE_SITE_STOCK right)
-router.post('/add', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), addStock);
-router.post('/bulk-upload', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), simpleUpload.single('file'), bulkUpload);
-router.get('/export-template', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), exportStockTemplate);
-router.put('/:assetId', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), updateStock);
-router.delete('/:assetId', allowAccess({ roles: ['Admin', 'Supervisor'], rights: ['MANAGE_SITE_STOCK'] }), deleteStock);
+router.post('/add', manageSiteStockAccess, addStock);
+router.post('/bulk-upload', manageSiteStockAccess, simpleUpload.single('file'), bulkUpload);
+router.get('/export-template', manageSiteStockAccess, exportStockTemplate);
+router.put('/:assetId', manageSiteStockAccess, updateStock);
+router.delete('/:assetId', manageSiteStockAccess, deleteStock);
 
 // Cable usage for ticket-based repairs
 router.get('/cables', getCableStockForSite);
@@ -88,16 +93,16 @@ router.route('/requisitions')
     .get(getRequisitions)
     .post(createRequisition);
 
-router.put('/requisitions/:id/approve', allowAccess({ roles: ['Admin', 'Supervisor'] }), approveRequisition);
+router.put('/requisitions/:id/approve', adminSupervisorOnly, approveRequisition);
 router.put('/requisitions/:id/fulfill', fulfillRequisition);
-router.put('/requisitions/:id/reject', allowAccess({ roles: ['Admin', 'Supervisor'] }), rejectRequisition);
+router.put('/requisitions/:id/reject', adminSupervisorOnly, rejectRequisition);
 
 // Transfer routes
 router.route('/transfers')
     .get(getTransfers)
-    .post(allowAccess({ roles: ['Admin'] }), initiateTransfer);
+    .post(adminOnly, initiateTransfer);
 
-router.put('/transfers/:id/dispatch', allowAccess({ roles: ['Admin'] }), dispatchTransfer);
+router.put('/transfers/:id/dispatch', adminOnly, dispatchTransfer);
 router.put('/transfers/:id/receive', receiveTransfer);
 router.get('/transfers/dispatched-for-site/:siteId', getDispatchedTransfersForSite);
 

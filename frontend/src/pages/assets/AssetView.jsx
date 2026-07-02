@@ -30,6 +30,106 @@ const RMA_STATUS_CONFIG = {
     'Discarded': { color: 'danger', icon: XCircle, label: 'Discarded' }
 };
 
+const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Copied to clipboard');
+};
+
+// Removed/Installed hardware card used in the Replacement History modal
+function HardwareCard({ label, details, variant }) {
+    const colors = variant === 'removed'
+        ? { border: '#ef4444', badgeBg: '#fef2f2', badgeColor: '#dc2626' }
+        : { border: '#22c55e', badgeBg: '#f0fdf4', badgeColor: '#16a34a' };
+    return (
+        <div style={{
+            flex: 1, background: '#fafafa', borderRadius: '8px', border: '1px solid #e5e7eb',
+            borderLeft: `4px solid ${colors.border}`, padding: '16px 20px', display: 'flex', flexDirection: 'column'
+        }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <span style={{
+                    background: colors.badgeBg, color: colors.badgeColor, padding: '4px 8px', borderRadius: '4px',
+                    fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px'
+                }}>{label}</span>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Serial Number</span>
+                    <button
+                        onClick={() => copyToClipboard(details?.serialNumber || '')}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '2px' }}
+                        title="Copy to clipboard"
+                    >
+                        <Copy size={12} />
+                    </button>
+                </div>
+                <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: '15px', fontWeight: '600', color: '#1f2937', letterSpacing: '0.2px' }}>
+                    {details?.serialNumber || 'N/A'}
+                </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                    <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '500', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+                        MAC Address
+                        <button
+                            onClick={() => copyToClipboard(details?.mac || '')}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', padding: '1px' }}
+                            title="Copy"
+                        >
+                            <Copy size={10} />
+                        </button>
+                    </span>
+                    <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: '13px', color: '#4b5563' }}>
+                        {details?.mac || 'N/A'}
+                    </span>
+                </div>
+                <div>
+                    <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '500', textTransform: 'uppercase', marginBottom: '2px', display: 'block' }}>Model</span>
+                    <span style={{ fontSize: '13px', color: '#4b5563' }}>
+                        {details?.model || 'N/A'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// Original/Replacement device card used in the RMA History modal
+function RmaDeviceCard({ label, details, variant }) {
+    if (!details) return null;
+    const colors = variant === 'original'
+        ? { border: '#ef4444', badgeBg: '#fef2f2', badgeColor: '#dc2626' }
+        : { border: '#22c55e', badgeBg: '#f0fdf4', badgeColor: '#16a34a' };
+    const rows = [
+        (details.make || details.model) ? { key: 'mm', label: 'Make/Model', value: [details.make, details.model].filter(Boolean).join(' '), mono: false } : null,
+        details.serialNumber ? { key: 'sn', label: 'S/N', value: details.serialNumber, mono: true } : null,
+        details.mac ? { key: 'mac', label: 'MAC', value: details.mac, mono: true } : null,
+        details.ipAddress ? { key: 'ip', label: 'IP', value: details.ipAddress, mono: true } : null,
+    ].filter(Boolean);
+
+    return (
+        <div style={{
+            flex: 1, background: '#fafafa', borderRadius: '8px', border: '1px solid #e5e7eb',
+            borderLeft: `4px solid ${colors.border}`, padding: '12px 16px'
+        }}>
+            <span style={{
+                background: colors.badgeBg, color: colors.badgeColor, padding: '4px 8px', borderRadius: '4px',
+                fontSize: '10px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px',
+                marginBottom: '8px', display: 'inline-block'
+            }}>{label}</span>
+            <div style={{ marginTop: '8px' }}>
+                {rows.map((r, idx) => (
+                    <div key={r.key} style={{ marginBottom: idx < rows.length - 1 ? '4px' : 0 }}>
+                        <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>{r.label}: </span>
+                        <span style={{ fontSize: '12px', fontFamily: r.mono ? 'monospace' : undefined, color: '#374151' }}>{r.value}</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function AssetView() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -751,12 +851,6 @@ export default function AssetView() {
                                     h.performedBy?.toLowerCase().includes(historySearch.toLowerCase())
                                 );
 
-                                // Copy to clipboard helper
-                                const copyToClipboard = (text) => {
-                                    navigator.clipboard.writeText(text);
-                                    toast.success('Copied to clipboard');
-                                };
-
                                 if (filtered.length === 0) {
                                     return (
                                         <div style={{ textAlign: 'center', padding: '48px 24px', background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
@@ -766,6 +860,7 @@ export default function AssetView() {
                                         </div>
                                     );
                                 }
+
 
                                 return (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -839,144 +934,11 @@ export default function AssetView() {
 
                                                 {/* Hardware Cards Section */}
                                                 <div style={{ padding: '20px', display: 'flex', gap: '24px', alignItems: 'stretch' }}>
-                                                    {/* Hardware Removed Card */}
-                                                    <div style={{
-                                                        flex: 1,
-                                                        background: '#fafafa',
-                                                        borderRadius: '8px',
-                                                        border: '1px solid #e5e7eb',
-                                                        borderLeft: '4px solid #ef4444',
-                                                        padding: '16px 20px',
-                                                        display: 'flex',
-                                                        flexDirection: 'column'
-                                                    }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                                                            <span style={{
-                                                                background: '#fef2f2',
-                                                                color: '#dc2626',
-                                                                padding: '4px 8px',
-                                                                borderRadius: '4px',
-                                                                fontSize: '10px',
-                                                                fontWeight: '700',
-                                                                textTransform: 'uppercase',
-                                                                letterSpacing: '0.5px'
-                                                            }}>Removed</span>
-                                                        </div>
-
-                                                        {/* Serial Number - Primary */}
-                                                        <div style={{ marginBottom: '16px' }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                                                <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Serial Number</span>
-                                                                <button
-                                                                    onClick={() => copyToClipboard(item.oldDetails?.serialNumber || '')}
-                                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '2px' }}
-                                                                    title="Copy to clipboard"
-                                                                >
-                                                                    <Copy size={12} />
-                                                                </button>
-                                                            </div>
-                                                            <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: '15px', fontWeight: '600', color: '#1f2937', letterSpacing: '0.2px' }}>
-                                                                {item.oldDetails?.serialNumber || 'N/A'}
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Secondary Details */}
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                                            <div>
-                                                                <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '500', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                                                                    MAC Address
-                                                                    <button
-                                                                        onClick={() => copyToClipboard(item.oldDetails?.mac || '')}
-                                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', padding: '1px' }}
-                                                                        title="Copy"
-                                                                    >
-                                                                        <Copy size={10} />
-                                                                    </button>
-                                                                </span>
-                                                                <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: '13px', color: '#4b5563' }}>
-                                                                    {item.oldDetails?.mac || 'N/A'}
-                                                                </span>
-                                                            </div>
-                                                            <div>
-                                                                <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '500', textTransform: 'uppercase', marginBottom: '2px', display: 'block' }}>Model</span>
-                                                                <span style={{ fontSize: '13px', color: '#4b5563' }}>
-                                                                    {item.oldDetails?.model || 'N/A'}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Arrow Connector */}
+                                                    <HardwareCard label="Removed" details={item.oldDetails} variant="removed" />
                                                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1' }}>
                                                         <ArrowRight size={24} />
                                                     </div>
-
-                                                    {/* Hardware Installed Card */}
-                                                    <div style={{
-                                                        flex: 1,
-                                                        background: '#fafafa',
-                                                        borderRadius: '8px',
-                                                        border: '1px solid #e5e7eb',
-                                                        borderLeft: '4px solid #22c55e',
-                                                        padding: '16px 20px',
-                                                        display: 'flex',
-                                                        flexDirection: 'column'
-                                                    }}>
-                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                                                            <span style={{
-                                                                background: '#f0fdf4',
-                                                                color: '#16a34a',
-                                                                padding: '4px 8px',
-                                                                borderRadius: '4px',
-                                                                fontSize: '10px',
-                                                                fontWeight: '700',
-                                                                textTransform: 'uppercase',
-                                                                letterSpacing: '0.5px'
-                                                            }}>Installed</span>
-                                                        </div>
-
-                                                        {/* Serial Number - Primary */}
-                                                        <div style={{ marginBottom: '16px' }}>
-                                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                                                                <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Serial Number</span>
-                                                                <button
-                                                                    onClick={() => copyToClipboard(item.newDetails?.serialNumber || '')}
-                                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: '2px' }}
-                                                                    title="Copy to clipboard"
-                                                                >
-                                                                    <Copy size={12} />
-                                                                </button>
-                                                            </div>
-                                                            <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: '15px', fontWeight: '600', color: '#1f2937', letterSpacing: '0.2px' }}>
-                                                                {item.newDetails?.serialNumber || 'N/A'}
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Secondary Details */}
-                                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                                                            <div>
-                                                                <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '500', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-                                                                    MAC Address
-                                                                    <button
-                                                                        onClick={() => copyToClipboard(item.newDetails?.mac || '')}
-                                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#d1d5db', padding: '1px' }}
-                                                                        title="Copy"
-                                                                    >
-                                                                        <Copy size={10} />
-                                                                    </button>
-                                                                </span>
-                                                                <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: '13px', color: '#4b5563' }}>
-                                                                    {item.newDetails?.mac || 'N/A'}
-                                                                </span>
-                                                            </div>
-                                                            <div>
-                                                                <span style={{ fontSize: '10px', color: '#9ca3af', fontWeight: '500', textTransform: 'uppercase', marginBottom: '2px', display: 'block' }}>Model</span>
-                                                                <span style={{ fontSize: '13px', color: '#4b5563' }}>
-                                                                    {item.newDetails?.model || 'N/A'}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                    <HardwareCard label="Installed" details={item.newDetails} variant="installed" />
                                                 </div>
 
                                                 {/* Replacement Reason - Structured */}
@@ -1229,113 +1191,14 @@ export default function AssetView() {
 
                                                     {/* Device Comparison */}
                                                     <div style={{ display: 'flex', gap: '16px', alignItems: 'stretch' }}>
-                                                        {/* Original Device */}
-                                                        {rma.originalDetailsSnapshot && (
-                                                            <div style={{
-                                                                flex: 1,
-                                                                background: '#fafafa',
-                                                                borderRadius: '8px',
-                                                                border: '1px solid #e5e7eb',
-                                                                borderLeft: '4px solid #ef4444',
-                                                                padding: '12px 16px'
-                                                            }}>
-                                                                <span style={{
-                                                                    background: '#fef2f2',
-                                                                    color: '#dc2626',
-                                                                    padding: '4px 8px',
-                                                                    borderRadius: '4px',
-                                                                    fontSize: '10px',
-                                                                    fontWeight: '700',
-                                                                    textTransform: 'uppercase',
-                                                                    letterSpacing: '0.5px',
-                                                                    marginBottom: '8px',
-                                                                    display: 'inline-block'
-                                                                }}>Original</span>
-                                                                <div style={{ marginTop: '8px' }}>
-                                                                    {(rma.originalDetailsSnapshot.make || rma.originalDetailsSnapshot.model) && (
-                                                                        <div style={{ marginBottom: '4px' }}>
-                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>Make/Model: </span>
-                                                                            <span style={{ fontSize: '12px', color: '#374151' }}>{[rma.originalDetailsSnapshot.make, rma.originalDetailsSnapshot.model].filter(Boolean).join(' ')}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {rma.originalDetailsSnapshot.serialNumber && (
-                                                                        <div style={{ marginBottom: '4px' }}>
-                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>S/N: </span>
-                                                                            <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151' }}>{rma.originalDetailsSnapshot.serialNumber}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {rma.originalDetailsSnapshot.mac && (
-                                                                        <div style={{ marginBottom: '4px' }}>
-                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>MAC: </span>
-                                                                            <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151' }}>{rma.originalDetailsSnapshot.mac}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {rma.originalDetailsSnapshot.ipAddress && (
-                                                                        <div>
-                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>IP: </span>
-                                                                            <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151' }}>{rma.originalDetailsSnapshot.ipAddress}</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Arrow */}
-                                                        {rma.replacementDetails && rma.replacementDetails.serialNumber && (
+                                                        <RmaDeviceCard label="Original" details={rma.originalDetailsSnapshot} variant="original" />
+                                                        {rma.replacementDetails?.serialNumber && (
                                                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#cbd5e1' }}>
                                                                 <ArrowRight size={20} />
                                                             </div>
                                                         )}
-
-                                                        {/* Replacement Device */}
-                                                        {rma.replacementDetails && rma.replacementDetails.serialNumber && (
-                                                            <div style={{
-                                                                flex: 1,
-                                                                background: '#fafafa',
-                                                                borderRadius: '8px',
-                                                                border: '1px solid #e5e7eb',
-                                                                borderLeft: '4px solid #22c55e',
-                                                                padding: '12px 16px'
-                                                            }}>
-                                                                <span style={{
-                                                                    background: '#f0fdf4',
-                                                                    color: '#16a34a',
-                                                                    padding: '4px 8px',
-                                                                    borderRadius: '4px',
-                                                                    fontSize: '10px',
-                                                                    fontWeight: '700',
-                                                                    textTransform: 'uppercase',
-                                                                    letterSpacing: '0.5px',
-                                                                    marginBottom: '8px',
-                                                                    display: 'inline-block'
-                                                                }}>Replacement</span>
-                                                                <div style={{ marginTop: '8px' }}>
-                                                                    {(rma.replacementDetails.make || rma.replacementDetails.model) && (
-                                                                        <div style={{ marginBottom: '4px' }}>
-                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>Make/Model: </span>
-                                                                            <span style={{ fontSize: '12px', color: '#374151' }}>{[rma.replacementDetails.make, rma.replacementDetails.model].filter(Boolean).join(' ')}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {rma.replacementDetails.serialNumber && (
-                                                                        <div style={{ marginBottom: '4px' }}>
-                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>S/N: </span>
-                                                                            <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151' }}>{rma.replacementDetails.serialNumber}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {rma.replacementDetails.mac && (
-                                                                        <div style={{ marginBottom: '4px' }}>
-                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>MAC: </span>
-                                                                            <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151' }}>{rma.replacementDetails.mac}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {rma.replacementDetails.ipAddress && (
-                                                                        <div>
-                                                                            <span style={{ fontSize: '10px', color: '#9ca3af', textTransform: 'uppercase' }}>IP: </span>
-                                                                            <span style={{ fontSize: '12px', fontFamily: 'monospace', color: '#374151' }}>{rma.replacementDetails.ipAddress}</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
+                                                        {rma.replacementDetails?.serialNumber && (
+                                                            <RmaDeviceCard label="Replacement" details={rma.replacementDetails} variant="replacement" />
                                                         )}
                                                     </div>
 

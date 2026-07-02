@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 
+// Strips all markup for a plain-text preview. Uses DOMPurify (not raw innerHTML
+// parsing) so a malicious notification body can't trigger onerror/onload handlers.
 function stripHtml(html) {
-    const tmp = document.createElement('div');
-    tmp.innerHTML = html || '';
-    return tmp.textContent || tmp.innerText || '';
+    return DOMPurify.sanitize(html || '', { ALLOWED_TAGS: [] });
 }
 import { Bell, X, Check, CheckCheck, Trash2, Info, AlertTriangle, AlertCircle, Megaphone, Ticket, Settings } from 'lucide-react';
 import { notificationsApi } from '../../services/api';

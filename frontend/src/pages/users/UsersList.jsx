@@ -13,7 +13,7 @@ import {
     Phone,
     GitBranch,
 } from 'lucide-react';
-import { usersApi, lookupsApi, sitesApi } from '../../services/api';
+import { usersApi, lookupsApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -254,9 +254,6 @@ export default function UsersList() {
                                                     ) : (
                                                         user.fullName.charAt(0).toUpperCase()
                                                     )}
-                                                    {/* <div className={`status-indicator ${user.isOnline ? 'online' : user.isActiveToday ? 'active-today' : 'offline'}`}
-                                                        title={user.isOnline ? 'Online' : user.isActiveToday ? 'Active Today' : 'Offline'}>
-                                                    </div> */}
                                                 </div>
                                                 <div className="user-info">
                                                     <span className="user-name">{user.fullName}</span>

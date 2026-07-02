@@ -177,7 +177,18 @@ export default function WorkLog() {
             setSites(results[0].data.data || []);
             setTickets(results[1].data.data || []);
             if (isAdmin && results[2]) {
-                setTeamUsers(results[2].data.data || []);
+                // Mirror the backend's work-log confidentiality rule so the picker never
+                // lists someone whose logs the current user isn't allowed to open:
+                // - Admin logs are private to that Admin only.
+                // - Supervisor logs are visible to Admins (and that Supervisor) only.
+                const allUsers = results[2].data.data || [];
+                const visibleUsers = allUsers.filter(u => {
+                    if (u._id === user?.userId) return true;
+                    if (u.role === 'Admin') return false;
+                    if (u.role === 'Supervisor') return user?.role === 'Admin';
+                    return true;
+                });
+                setTeamUsers(visibleUsers);
             }
         } catch (error) {
             console.error('Failed to fetch options:', error);

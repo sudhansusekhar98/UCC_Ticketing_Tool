@@ -33,6 +33,9 @@ router.use(protect);
 // Configure upload - using simpleUpload which handles Vercel/local environments
 const upload = simpleUpload;
 
+// Allow by role OR by MANAGE_ASSETS right (allowAccess is a pure factory, safe to reuse)
+const manageAssetsAccess = allowAccess({ roles: ['Admin', 'Supervisor', 'Dispatcher'], right: 'MANAGE_ASSETS' });
+
 // Utility routes (before :id routes)
 router.get('/dropdown', getAssetsDropdown);
 router.get('/locations', getLocationNames);
@@ -51,17 +54,17 @@ router.post('/import', authorize('Admin'), upload.single('file'), bulkImportAsse
 // CRUD routes — allow by role OR by MANAGE_ASSETS right
 router.route('/')
   .get(getAssets)
-  .post(allowAccess({ roles: ['Admin', 'Supervisor', 'Dispatcher'], right: 'MANAGE_ASSETS' }), createAsset);
+  .post(manageAssetsAccess, createAsset);
 
 router.route('/:id')
   .get(getAssetById)
-  .put(allowAccess({ roles: ['Admin', 'Supervisor', 'Dispatcher'], right: 'MANAGE_ASSETS' }), updateAsset)
+  .put(manageAssetsAccess, updateAsset)
   .delete(allowAccess({ roles: ['Admin', 'Supervisor'], right: 'MANAGE_ASSETS' }), deleteAsset);
 
 // Secure credentials endpoint - Admin/Supervisor only with rate limiting
 router.get('/:id/credentials', sensitiveLimiter, authorize('Admin', 'Supervisor'), getAssetCredentials);
 
-router.patch('/:id/status', allowAccess({ roles: ['Admin', 'Supervisor', 'Dispatcher'], right: 'MANAGE_ASSETS' }), updateAssetStatus);
+router.patch('/:id/status', manageAssetsAccess, updateAssetStatus);
 
 export default router;
 

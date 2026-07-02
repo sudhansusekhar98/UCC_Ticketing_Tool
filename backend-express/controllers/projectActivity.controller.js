@@ -7,6 +7,8 @@ import { sendActivityAssignmentEmail } from '../utils/email.utils.js';
 
 // ==================== HELPERS ====================
 
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const canAccessProject = (user, project) => {
   if (['Admin', 'Supervisor'].includes(user.role)) return true;
   const uid = user._id.toString();
@@ -93,9 +95,10 @@ export const getProjectActivities = async (req, res, next) => {
     if (type) query.type = type;
     if (leadEngineer) query.leadEngineer = leadEngineer;
     if (search) {
+      const safeSearch = escapeRegex(search);
       query.$or = [
-        { title: new RegExp(search, 'i') },
-        { activityNumber: new RegExp(search, 'i') }
+        { title: new RegExp(safeSearch, 'i') },
+        { activityNumber: new RegExp(safeSearch, 'i') }
       ];
     }
 

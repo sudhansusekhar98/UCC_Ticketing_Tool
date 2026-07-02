@@ -634,6 +634,46 @@ export const sendSlaBreachedEmail = async (ticket, user, admins) => {
   }
 };
 
+// Recurring "still overdue" reminder to the assignee — sent every 3h within working
+// hours by the reminder cron, distinct copy from the one-time breach notification above.
+export const sendSlaOverdueReminderEmail = async (ticket, user) => {
+  try {
+    if (!user?.email) return false;
+
+    const content = `
+      <p>Hello <strong>${user.fullName || user.username}</strong>,</p>
+      <p>This ticket is still <strong>past its SLA Resolution Deadline</strong>. Please update it or request an extension if you need more time.</p>
+
+      <table class="data-table">
+        <tr><th>Ticket ID</th><td>${ticket.ticketNumber}</td></tr>
+        <tr><th>Subject</th><td>${ticket.title}</td></tr>
+        <tr><th>SLA Deadline</th><td><span style="color: #dc3545;">${ticket.slaRestoreDue ? new Date(ticket.slaRestoreDue).toLocaleString() : 'N/A'}</span></td></tr>
+      </table>
+
+      <p><strong style="color: #dc3545;">Immediate action is required.</strong></p>
+
+      <div style="text-align: center;">
+        <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none; background-color: #dc3545;">View Ticket</a>
+      </div>
+
+      <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
+    `;
+
+    await sendViaBrevo({
+      to: user.email,
+      subject: `⏰ Reminder: Ticket ${ticket.ticketNumber} is still SLA-overdue`,
+      html: emailTemplate(content, 'SLA Overdue Reminder'),
+    });
+    await logNotification(user.email, `⏰ Reminder: Ticket ${ticket.ticketNumber} is still SLA-overdue`, content, 'Other', ticket._id, 'Sent', null, user._id);
+
+    return true;
+  } catch (error) {
+    console.error('Error sending SLA overdue reminder email:', error);
+    await logNotification(user?.email || 'Unknown', 'SLA Overdue Reminder', 'Failed', 'Other', ticket._id, 'Failed', error.message);
+    return false;
+  }
+};
+
 /**
  * Send RMA Milestone notifications (role-based targeting)
  * @param {Object} rma - RMA request object

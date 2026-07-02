@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
     Package, Warehouse, ArrowRightLeft, ClipboardList, Plus, Building2, MapPin, Upload, ChevronRight, Inbox, History
 } from 'lucide-react';
-import { stockApi, sitesApi } from '../../services/api';
+import { stockApi } from '../../services/api';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../context/authStore';
 import { PERMISSIONS } from '../../constants/permissions';
@@ -16,29 +16,12 @@ export default function StockDashboard() {
     const [pendingRequisitions, setPendingRequisitions] = useState([]);
     const [pendingTransfers, setPendingTransfers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [sites, setSites] = useState([]);
     const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
     // Permission checks - get user from store to react to changes
-    const { hasRightForAnySite, hasRole, refreshUserRights, user } = useAuthStore();
+    const { hasRightForAnySite, hasRole, refreshUserRights } = useAuthStore();
     const isAdminOrSupervisor = hasRole(['Admin', 'Supervisor']);
     const canManageStock = isAdminOrSupervisor || hasRightForAnySite(PERMISSIONS.MANAGE_SITE_STOCK);
-
-    // Debug log for troubleshooting
-    useEffect(() => {
-        if (permissionsLoaded) {
-            console.log('Stock Permission Check:', {
-                isAdminOrSupervisor,
-                canManageStock,
-                userRole: user?.role,
-                globalRights: user?.rights?.globalRights,
-                siteRights: user?.rights?.siteRights?.map(sr => ({
-                    siteId: sr.site?._id || sr.site,
-                    rights: sr.rights
-                }))
-            });
-        }
-    }, [permissionsLoaded, user]);
 
     useEffect(() => {
         const loadPermissionsAndData = async () => {
@@ -53,17 +36,15 @@ export default function StockDashboard() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [invRes, reqRes, transRes, sitesRes] = await Promise.all([
+            const [invRes, reqRes, transRes] = await Promise.all([
                 stockApi.getInventory(),
                 stockApi.getRequisitions({ status: 'Pending', limit: 5 }),
-                stockApi.getTransfers({ status: 'Pending,InTransit', limit: 5 }),
-                sitesApi.getDropdown()
+                stockApi.getTransfers({ status: 'Pending,InTransit', limit: 5 })
             ]);
 
             setInventory(invRes.data.data || []);
             setPendingRequisitions(reqRes.data.data || []);
             setPendingTransfers(transRes.data.data || []);
-            setSites(sitesRes.data.data || sitesRes.data || []);
         } catch (error) {
             console.error('Failed to fetch stock data:', error);
             toast.error('Failed to load stock data');
@@ -212,16 +193,6 @@ export default function StockDashboard() {
                         </div>
                         <ChevronRight size={20} className="tile-arrow" />
                     </Link>
-                    {/* <Link to="/stock/analytics" className="quick-action-tile analytics-tile highlight-tile">
-                        <div className="tile-icon">
-                            <BarChart3 size={24} className="text-blue-600" />
-                        </div>
-                        <div className="tile-content">
-                            <span className="tile-title">Stock Analytics</span>
-                            <span className="tile-desc">Inventory Intelligence</span>
-                        </div>
-                        <ChevronRight size={20} className="tile-arrow" />
-                    </Link> */}
                 </section>
 
                 {/* Main Content Grid */}

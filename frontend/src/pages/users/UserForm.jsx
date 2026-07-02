@@ -138,7 +138,7 @@ export default function UserForm() {
     };
 
     // useActionState replaces manual saving + server-error state
-    const [state, formAction, isPending] = useActionState(async (prevState) => {
+    const [, formAction, isPending] = useActionState(async () => {
         const validationErrors = validateForm();
         if (Object.keys(validationErrors).length > 0) {
             setErrors(validationErrors);

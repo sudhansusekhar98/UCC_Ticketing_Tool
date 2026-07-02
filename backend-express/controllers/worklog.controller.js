@@ -22,6 +22,37 @@ const parseLocalEndOfDay = (dateStr) => {
     return new Date(dateStr + 'T23:59:59.999');
 };
 
+// Work log confidentiality rules:
+// - Admin logs are private to that Admin only (no one else, not even other Admins).
+// - Supervisor logs are visible to that Supervisor and to Admins only (not other Supervisors).
+// - L1/L2 Engineer (and other) logs are visible to Supervisors and Admins, as before.
+const canViewUserLogs = (requester, targetRole) => {
+    if (targetRole === 'Admin') return false;
+    if (targetRole === 'Supervisor') return requester.role === 'Admin';
+    return true;
+};
+
+// Builds a Mongo filter that excludes work-log authors the requester isn't allowed to see,
+// for use in aggregate/team views where there's no single target user.
+const getWorklogVisibilityFilter = async (requester) => {
+    if (requester.role === 'Admin') {
+        const otherAdmins = await User.find({ role: 'Admin', _id: { $ne: requester._id } }).select('_id');
+        return { userId: { $nin: otherAdmins.map(u => u._id) } };
+    }
+    if (requester.role === 'Supervisor') {
+        const excluded = await User.find({
+            $or: [
+                { role: 'Admin' },
+                { role: 'Supervisor', _id: { $ne: requester._id } }
+            ]
+        }).select('_id');
+        return { userId: { $nin: excluded.map(u => u._id) } };
+    }
+    // Route-level authorize('Admin', 'Supervisor') means we shouldn't reach here,
+    // but default to "own logs only" as a safe fallback.
+    return { userId: requester._id };
+};
+
 // @desc    Get current user's work logs (paginated, date-filtered)
 // @route   GET /api/worklogs/my
 // @access  Private
@@ -101,8 +132,20 @@ export const getMyToday = async (req, res, next) => {
 // @access  Private (Admin, Supervisor)
 export const getUserLogs = async (req, res, next) => {
     try {
+        const { userId } = req.params;
         const { startDate, endDate, page = 1, limit = 10 } = req.query;
-        const query = { userId: req.params.userId };
+
+        if (userId !== req.user._id.toString()) {
+            const targetUser = await User.findById(userId).select('role');
+            if (!targetUser) {
+                return res.status(404).json({ success: false, message: 'User not found' });
+            }
+            if (!canViewUserLogs(req.user, targetUser.role)) {
+                return res.status(403).json({ success: false, message: 'Not authorized to view this user\'s work logs' });
+            }
+        }
+
+        const query = { userId };
 
         if (startDate || endDate) {
             query.date = {};
@@ -143,7 +186,7 @@ export const getUserLogs = async (req, res, next) => {
 export const getTeamLogs = async (req, res, next) => {
     try {
         const { startDate, endDate, page = 1, limit = 20 } = req.query;
-        const query = {};
+        const query = await getWorklogVisibilityFilter(req.user);
 
         const dateFilter = {};
         if (startDate) dateFilter.$gte = parseLocalDate(startDate);

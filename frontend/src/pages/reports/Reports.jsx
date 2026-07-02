@@ -10,15 +10,6 @@ import './Reports.css';
 import toast from 'react-hot-toast';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7c43'];
-const RMA_COLORS = {
-    'Requested': '#f59e0b',
-    'Approved': '#3b82f6',
-    'Ordered': '#8b5cf6',
-    'Dispatched': '#06b6d4',
-    'Received': '#14b8a6',
-    'Installed': '#22c55e',
-    'Rejected': '#ef4444'
-};
 
 const REPORT_TYPES = [
     { id: 'tickets', label: 'Tickets Report', icon: FileText, description: 'Export all tickets with status, priority, and SLA information' },
@@ -29,6 +20,28 @@ const REPORT_TYPES = [
     { id: 'work-activity', label: 'Work Activity Report', icon: Activity, description: 'Export all user activities including manual logs and automated tracking' },
     { id: 'user-activities', label: 'User Activities Report', icon: UserCheck, description: 'Export per-user ticket activities: comments, status changes, escalations, and more' },
 ];
+
+// Maps each report type to its Excel/HTML export API calls and output filename base.
+const EXPORT_MAP = {
+    tickets: { name: 'tickets_report', xlsx: reportingApi.exportReport, html: reportingApi.exportTicketsHtml },
+    employees: { name: 'employee_status_report', xlsx: reportingApi.exportEmployeeStatus, html: reportingApi.exportEmployeesHtml },
+    assets: { name: 'asset_status_report', xlsx: reportingApi.exportAssetStatus, html: reportingApi.exportAssetsHtml },
+    rma: { name: 'rma_report', xlsx: reportingApi.exportRMA, html: reportingApi.exportRMAHtml },
+    'spare-stock': { name: 'spare_stock_report', xlsx: reportingApi.exportSpareStock, html: reportingApi.exportSpareStockHtml },
+    'work-activity': { name: 'work_activity_report', xlsx: reportingApi.exportWorkActivity, html: reportingApi.exportWorkActivityHtml },
+    'user-activities': { name: 'user_activities_report', xlsx: reportingApi.exportUserActivities, html: reportingApi.exportUserActivitiesHtml },
+};
+
+const downloadBlob = (data, filename, mimeType) => {
+    const url = window.URL.createObjectURL(mimeType ? new Blob([data], { type: mimeType }) : new Blob([data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+};
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -136,114 +149,38 @@ export default function Reports() {
         setFilters(newFilters);
     };
 
-    const handleExport = async () => {
-        setExporting(true);
+    // Shared runner for both Excel and HTML report exports.
+    const runExport = async (format) => {
+        const isHtml = format === 'html';
+        const setBusy = isHtml ? setExportingHtml : setExporting;
+        setBusy(true);
         try {
-            let response;
-            let filename;
+            const entry = EXPORT_MAP[selectedReportType];
+            if (!entry) { toast.error('Export not available for this report type'); return; }
+
             const exportParams = {
                 siteId: exportSiteId,
                 startDate: filters.startDate,
                 endDate: filters.endDate
             };
+            const response = await (isHtml ? entry.html : entry.xlsx)(exportParams);
+            const filename = `${entry.name}_${new Date().toISOString().slice(0, 10)}.${isHtml ? 'html' : 'xlsx'}`;
+            downloadBlob(response.data, filename, isHtml ? 'text/html' : undefined);
 
-            switch (selectedReportType) {
-                case 'employees':
-                    response = await reportingApi.exportEmployeeStatus(exportParams);
-                    filename = `employee_status_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                    break;
-                case 'assets':
-                    response = await reportingApi.exportAssetStatus(exportParams);
-                    filename = `asset_status_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                    break;
-                case 'rma':
-                    response = await reportingApi.exportRMA(exportParams);
-                    filename = `rma_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                    break;
-                case 'spare-stock':
-                    response = await reportingApi.exportSpareStock(exportParams);
-                    filename = `spare_stock_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                    break;
-                case 'work-activity':
-                    response = await reportingApi.exportWorkActivity(exportParams);
-                    filename = `work_activity_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                    break;
-                case 'user-activities':
-                    response = await reportingApi.exportUserActivities(exportParams);
-                    filename = `user_activities_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                    break;
-                case 'tickets':
-                default:
-                    response = await reportingApi.exportReport(exportParams);
-                    filename = `tickets_report_${new Date().toISOString().slice(0, 10)}.xlsx`;
-                    break;
-            }
-
-            // Create download link
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-
-            toast.success('Report exported successfully!');
+            toast.success(isHtml
+                ? 'Interactive HTML report downloaded! Open in browser to view charts.'
+                : 'Report exported successfully!');
             setShowExportPanel(false);
         } catch (error) {
-            console.error('Export failed:', error);
-            toast.error('Failed to export report');
+            console.error(`${format} export failed:`, error);
+            toast.error(isHtml ? 'Failed to generate HTML report' : 'Failed to export report');
         } finally {
-            setExporting(false);
+            setBusy(false);
         }
     };
 
-    const handleHtmlExport = async () => {
-        setExportingHtml(true);
-        try {
-            let response;
-            let filename;
-            const exportParams = {
-                siteId: exportSiteId,
-                startDate: filters.startDate,
-                endDate: filters.endDate
-            };
-
-            const htmlApiMap = {
-                tickets: { fn: reportingApi.exportTicketsHtml, name: 'tickets_report' },
-                employees: { fn: reportingApi.exportEmployeesHtml, name: 'employee_status_report' },
-                assets: { fn: reportingApi.exportAssetsHtml, name: 'asset_status_report' },
-                rma: { fn: reportingApi.exportRMAHtml, name: 'rma_report' },
-                'spare-stock': { fn: reportingApi.exportSpareStockHtml, name: 'spare_stock_report' },
-                'work-activity': { fn: reportingApi.exportWorkActivityHtml, name: 'work_activity_report' },
-                'user-activities': { fn: reportingApi.exportUserActivitiesHtml, name: 'user_activities_report' },
-            };
-
-            const entry = htmlApiMap[selectedReportType];
-            if (!entry) { toast.error('HTML export not available for this report type'); return; }
-
-            response = await entry.fn(exportParams);
-            filename = `${entry.name}_${new Date().toISOString().slice(0, 10)}.html`;
-
-            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'text/html' }));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-
-            toast.success('Interactive HTML report downloaded! Open in browser to view charts.');
-            setShowExportPanel(false);
-        } catch (error) {
-            console.error('HTML export failed:', error);
-            toast.error('Failed to generate HTML report');
-        } finally {
-            setExportingHtml(false);
-        }
-    };
+    const handleExport = () => runExport('xlsx');
+    const handleHtmlExport = () => runExport('html');
 
     if (loading && !ticketStats) {
         return <div className="loading-container"><div className="spinner"></div></div>;
@@ -251,9 +188,8 @@ export default function Reports() {
 
     const selectedReport = REPORT_TYPES.find(r => r.id === selectedReportType);
 
-    // Calculate dynamic heights for vertical charts
+    // Calculate dynamic height for the vertical priority chart
     const priorityChartHeight = Math.max(250, (ticketStats?.priority?.length || 0) * 40 + 60);
-    const assetTypeChartHeight = Math.max(300, (assetStats?.byType?.length || 0) * 35 + 60);
 
     return (
         <div className="reports-page animate-fade-in">
@@ -583,42 +519,6 @@ export default function Reports() {
                         </ResponsiveContainer>
                     </div>
                 </div>
-
-                {/* Asset by Type */}
-                {/* <div className="chart-card">
-                    <h3>Assets by Type</h3>
-                    <div className="chart-container" style={{ minHeight: assetTypeChartHeight }}>
-                        <ResponsiveContainer width="100%" height={assetTypeChartHeight}>
-                            <BarChart data={assetStats?.byType} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" horizontal={true} stroke="#e2e8f0" />
-                                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-                                <YAxis dataKey="_id" type="category" width={100} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(139, 92, 246, 0.1)' }} />
-                                <Bar dataKey="count" fill="#8b5cf6" name="Assets" radius={[0, 4, 4, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div> */}
-
-                {/* RMA by Status */}
-                {/* <div className="chart-card">
-                    <h3>RMA Requests by Status</h3>
-                    <div className="chart-container">
-                        <ResponsiveContainer width="100%" height={250}>
-                            <BarChart data={rmaStats?.byStatus}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="_id" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
-                                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(249, 115, 22, 0.1)' }} />
-                                <Bar dataKey="count" name="RMAs" radius={[4, 4, 0, 0]}>
-                                    {rmaStats?.byStatus?.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={RMA_COLORS[entry._id] || COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div> */}
 
                 {/* RMA Trend */}
                 <div className="chart-card">

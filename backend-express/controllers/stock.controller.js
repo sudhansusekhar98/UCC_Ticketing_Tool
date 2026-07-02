@@ -17,6 +17,7 @@ import fs from 'fs';
 import path from 'path';
 import { buildStockSummaryExcel } from '../utils/excelStyler.js';
 import { generateStockSummaryReport } from '../utils/reportHtmlGenerator.js';
+import asyncHandler from '../utils/asyncHandler.js';
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -35,962 +36,902 @@ const hasRightForSite = (user, rightName, siteId) => {
 // @desc    Get inventory summary (stock counts by asset type)
 // @route   GET /api/stock/inventory
 // @access  Private
-export const getInventory = async (req, res, next) => {
-    try {
-        const { siteId, assetType, search } = req.query;
-        const user = req.user;
+export const getInventory = asyncHandler(async (req, res, next) => {
+    const { siteId, assetType, search } = req.query;
+    const user = req.user;
 
-        let matchQuery = { status: 'Spare' };
+    let matchQuery = { status: 'Spare' };
 
-        // Site filter
-        if (siteId) {
-            matchQuery.siteId = new mongoose.Types.ObjectId(siteId);
-        } else if (user.role !== 'Admin') {
-            matchQuery.siteId = { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) };
-        }
+    // Site filter
+    if (siteId) {
+        matchQuery.siteId = new mongoose.Types.ObjectId(siteId);
+    } else if (user.role !== 'Admin') {
+        matchQuery.siteId = { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) };
+    }
 
-        if (assetType) {
-            matchQuery.assetType = assetType;
-        }
+    if (assetType) {
+        matchQuery.assetType = assetType;
+    }
 
-        if (search) {
-            matchQuery.$or = [
-                { assetCode: { $regex: escapeRegex(search), $options: 'i' } },
-                { mac: { $regex: escapeRegex(search), $options: 'i' } },
-                { serialNumber: { $regex: escapeRegex(search), $options: 'i' } }
-            ];
-        }
+    if (search) {
+        matchQuery.$or = [
+            { assetCode: { $regex: escapeRegex(search), $options: 'i' } },
+            { mac: { $regex: escapeRegex(search), $options: 'i' } },
+            { serialNumber: { $regex: escapeRegex(search), $options: 'i' } }
+        ];
+    }
 
-        // Aggregate by site and asset type.
-        // Items measured in meters (unit case-insensitively equals 'meter' or 'm')
-        // are listed individually but are EXCLUDED from the numeric count.
-        const METER_UNITS = ['meter', 'meters', 'm'];
+    // Aggregate by site and asset type.
+    // Items measured in meters (unit case-insensitively equals 'meter' or 'm')
+    // are listed individually but are EXCLUDED from the numeric count.
+    const METER_UNITS = ['meter', 'meters', 'm'];
 
-        let inventory = await Asset.aggregate([
-            { $match: matchQuery },
-            {
-                $group: {
-                    _id: { siteId: '$siteId', assetType: '$assetType' },
-                    // Count only assets whose unit is NOT a meter unit
-                    count: {
-                        $sum: {
-                            $cond: [
-                                {
-                                    $in: [
-                                        { $toLower: { $ifNull: ['$unit', 'nos'] } },
-                                        METER_UNITS
-                                    ]
-                                },
-                                0,  // meter-unit items contribute 0 to count
-                                { $ifNull: ['$quantity', 1] }
-                            ]
-                        }
-                    },
-                    // Sum total meters for display in the group header
-                    meterTotalLength: {
-                        $sum: {
-                            $cond: [
-                                {
-                                    $in: [
-                                        { $toLower: { $ifNull: ['$unit', 'nos'] } },
-                                        METER_UNITS
-                                    ]
-                                },
-                                { $ifNull: ['$quantity', 0] },
-                                0
-                            ]
-                        }
-                    },
-                    assets: {
-                        $push: {
-                            _id: '$_id',
-                            mac: '$mac',
-                            assetType: '$assetType',
-                            deviceType: '$deviceType',
-                            make: '$make',
-                            model: '$model',
-                            serialNumber: '$serialNumber',
-                            stockLocation: '$stockLocation',
-                            quantity: '$quantity',
-                            unit: '$unit',
-                            remarks: '$remarks',
-                            // Flag so the frontend can distinguish meter items
-                            isMeterUnit: {
+    let inventory = await Asset.aggregate([
+        { $match: matchQuery },
+        {
+            $group: {
+                _id: { siteId: '$siteId', assetType: '$assetType' },
+                // Count only assets whose unit is NOT a meter unit
+                count: {
+                    $sum: {
+                        $cond: [
+                            {
                                 $in: [
                                     { $toLower: { $ifNull: ['$unit', 'nos'] } },
                                     METER_UNITS
                                 ]
-                            }
+                            },
+                            0,  // meter-unit items contribute 0 to count
+                            { $ifNull: ['$quantity', 1] }
+                        ]
+                    }
+                },
+                // Sum total meters for display in the group header
+                meterTotalLength: {
+                    $sum: {
+                        $cond: [
+                            {
+                                $in: [
+                                    { $toLower: { $ifNull: ['$unit', 'nos'] } },
+                                    METER_UNITS
+                                ]
+                            },
+                            { $ifNull: ['$quantity', 0] },
+                            0
+                        ]
+                    }
+                },
+                assets: {
+                    $push: {
+                        _id: '$_id',
+                        mac: '$mac',
+                        assetType: '$assetType',
+                        deviceType: '$deviceType',
+                        make: '$make',
+                        model: '$model',
+                        serialNumber: '$serialNumber',
+                        stockLocation: '$stockLocation',
+                        quantity: '$quantity',
+                        unit: '$unit',
+                        remarks: '$remarks',
+                        // Flag so the frontend can distinguish meter items
+                        isMeterUnit: {
+                            $in: [
+                                { $toLower: { $ifNull: ['$unit', 'nos'] } },
+                                METER_UNITS
+                            ]
                         }
                     }
                 }
-            },
+            }
+        },
 
-            {
-                $lookup: {
-                    from: 'sites',
-                    localField: '_id.siteId',
-                    foreignField: '_id',
-                    as: 'site'
-                }
-            },
-            { $unwind: '$site' },
-            {
-                $project: {
-                    siteId: '$_id.siteId',
-                    siteName: '$site.siteName',
-                    isHeadOffice: '$site.isHeadOffice',
-                    assetType: '$_id.assetType',
-                    count: 1,
-                    meterTotalLength: 1,
-                    assets: 1
-                }
-            },
-            { $sort: { 'isHeadOffice': -1, 'siteName': 1, 'assetType': 1 } }
-        ]);
+        {
+            $lookup: {
+                from: 'sites',
+                localField: '_id.siteId',
+                foreignField: '_id',
+                as: 'site'
+            }
+        },
+        { $unwind: '$site' },
+        {
+            $project: {
+                siteId: '$_id.siteId',
+                siteName: '$site.siteName',
+                isHeadOffice: '$site.isHeadOffice',
+                assetType: '$_id.assetType',
+                count: 1,
+                meterTotalLength: 1,
+                assets: 1
+            }
+        },
+        { $sort: { 'isHeadOffice': -1, 'siteName': 1, 'assetType': 1 } }
+    ]);
 
-        // Decrypt sensitive fields (mac, serialNumber) for all users
-        // Stock is already scoped to the user's assigned sites via the matchQuery above
-        inventory = inventory.map(group => ({
-            ...group,
-            assets: group.assets.map(asset => Asset.decryptSensitiveFields(asset))
-        }));
+    // Decrypt sensitive fields (mac, serialNumber) for all users
+    // Stock is already scoped to the user's assigned sites via the matchQuery above
+    inventory = inventory.map(group => ({
+        ...group,
+        assets: group.assets.map(asset => Asset.decryptSensitiveFields(asset))
+    }));
 
-        res.json({
-            success: true,
-            data: inventory
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+    res.json({
+        success: true,
+        data: inventory
+    });
+});
 
 // @desc    Get stock availability for a ticket
 // @route   GET /api/stock/availability/:ticketId
 // @access  Private
-export const getStockAvailability = async (req, res, next) => {
-    try {
-        const { ticketId } = req.params;
-        const user = req.user;
+export const getStockAvailability = asyncHandler(async (req, res, next) => {
+    const { ticketId } = req.params;
+    const user = req.user;
 
-        const ticket = await Ticket.findById(ticketId).populate('assetId', 'assetType deviceType');
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket not found' });
-        }
-
-        const assetType = ticket.assetId?.assetType;
-        const deviceType = ticket.assetId?.deviceType;
-        if (!assetType) {
-            return res.json({
-                success: true,
-                data: { localStock: 0, hoStock: 0, assetType: null, deviceType: null, allSitesStock: [] }
-            });
-        }
-
-        // Build base filter: match assetType and deviceType (if available) for specificity
-        const baseFilter = { assetType, status: 'Spare' };
-        if (deviceType) {
-            baseFilter.deviceType = deviceType;
-        }
-
-        const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
-
-        // Get Head Office site
-        const hoSite = await Site.findOne({ isHeadOffice: true });
-
-        if (isAdminOrSupervisor) {
-            // ADMIN/SUPERVISOR: See stock from ALL sites with per-site breakdown
-            const allSites = await Site.find({ isActive: true }).select('siteName isHeadOffice').lean();
-
-            // Get all spares matching the asset/device type across all sites
-            const allSpares = await Asset.find(baseFilter)
-                .select('assetCode mac serialNumber make model stockLocation siteId deviceType assetType')
-                .lean();
-
-            // Group by siteId
-            const siteMap = {};
-            for (const site of allSites) {
-                siteMap[site._id.toString()] = {
-                    siteId: site._id,
-                    siteName: site.siteName,
-                    isHeadOffice: site.isHeadOffice || false,
-                    isTicketSite: site._id.toString() === ticket.siteId?.toString(),
-                    count: 0,
-                    spares: []
-                };
-            }
-
-            for (const spare of allSpares) {
-                const sid = spare.siteId?.toString();
-                if (siteMap[sid]) {
-                    siteMap[sid].count++;
-                    siteMap[sid].spares.push(spare);
-                }
-            }
-
-            // Convert to array and sort: ticket site first, then HO, then others
-            const allSitesStock = Object.values(siteMap)
-                .filter(s => s.count > 0)
-                .sort((a, b) => {
-                    if (a.isTicketSite && !b.isTicketSite) return -1;
-                    if (!a.isTicketSite && b.isTicketSite) return 1;
-                    if (a.isHeadOffice && !b.isHeadOffice) return -1;
-                    if (!a.isHeadOffice && b.isHeadOffice) return 1;
-                    return a.siteName.localeCompare(b.siteName);
-                });
-
-            // Also compute local and HO for backward compatibility
-            const localSpares = allSpares.filter(s => s.siteId?.toString() === ticket.siteId?.toString());
-            const hoSpares = hoSite ? allSpares.filter(s => s.siteId?.toString() === hoSite._id.toString() && s.siteId?.toString() !== ticket.siteId?.toString()) : [];
-
-            // Decrypt sensitive fields for all spares
-            const decryptSpares = (spares) => spares.map(s => Asset.decryptSensitiveFields(s));
-
-            // Apply decryption to grouped stock
-            allSitesStock.forEach(site => {
-                if (site.spares) {
-                    site.spares = decryptSpares(site.spares);
-                }
-            });
-
-            res.json({
-                success: true,
-                data: {
-                    assetType,
-                    deviceType: deviceType || null,
-                    localStock: localSpares.length,
-                    hoStock: hoSpares.length,
-                    localSpares: decryptSpares(localSpares),
-                    hoSpares: decryptSpares(hoSpares),
-                    hoSiteId: hoSite?._id,
-                    allSitesStock,
-                    totalAvailable: allSpares.length,
-                    viewScope: 'all'
-                }
-            });
-        } else {
-            // ENGINEER: See only stock from the ticket's site
-            let localSpares = await Asset.find({
-                ...baseFilter,
-                siteId: ticket.siteId
-            }).select('assetCode mac serialNumber make model stockLocation deviceType assetType');
-
-            // Decrypt local spares
-            localSpares = localSpares.map(s => Asset.decryptSensitiveFields(s));
-
-            res.json({
-                success: true,
-                data: {
-                    assetType,
-                    deviceType: deviceType || null,
-                    localStock: localSpares.length,
-                    hoStock: 0,
-                    localSpares,
-                    hoSpares: [],
-                    hoSiteId: null,
-                    allSitesStock: [],
-                    totalAvailable: localSpares.length,
-                    viewScope: 'site'
-                }
-            });
-        }
-    } catch (error) {
-        next(error);
+    const ticket = await Ticket.findById(ticketId).populate('assetId', 'assetType deviceType');
+    if (!ticket) {
+        return res.status(404).json({ success: false, message: 'Ticket not found' });
     }
-};
+
+    const assetType = ticket.assetId?.assetType;
+    const deviceType = ticket.assetId?.deviceType;
+    if (!assetType) {
+        return res.json({
+            success: true,
+            data: { localStock: 0, hoStock: 0, assetType: null, deviceType: null, allSitesStock: [] }
+        });
+    }
+
+    // Build base filter: match assetType and deviceType (if available) for specificity
+    const baseFilter = { assetType, status: 'Spare' };
+    if (deviceType) {
+        baseFilter.deviceType = deviceType;
+    }
+
+    const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
+
+    // Get Head Office site
+    const hoSite = await Site.findOne({ isHeadOffice: true });
+
+    if (isAdminOrSupervisor) {
+        // ADMIN/SUPERVISOR: See stock from ALL sites with per-site breakdown
+        const allSites = await Site.find({ isActive: true }).select('siteName isHeadOffice').lean();
+
+        // Get all spares matching the asset/device type across all sites
+        const allSpares = await Asset.find(baseFilter)
+            .select('assetCode mac serialNumber make model stockLocation siteId deviceType assetType')
+            .lean();
+
+        // Group by siteId
+        const siteMap = {};
+        for (const site of allSites) {
+            siteMap[site._id.toString()] = {
+                siteId: site._id,
+                siteName: site.siteName,
+                isHeadOffice: site.isHeadOffice || false,
+                isTicketSite: site._id.toString() === ticket.siteId?.toString(),
+                count: 0,
+                spares: []
+            };
+        }
+
+        for (const spare of allSpares) {
+            const sid = spare.siteId?.toString();
+            if (siteMap[sid]) {
+                siteMap[sid].count++;
+                siteMap[sid].spares.push(spare);
+            }
+        }
+
+        // Convert to array and sort: ticket site first, then HO, then others
+        const allSitesStock = Object.values(siteMap)
+            .filter(s => s.count > 0)
+            .sort((a, b) => {
+                if (a.isTicketSite && !b.isTicketSite) return -1;
+                if (!a.isTicketSite && b.isTicketSite) return 1;
+                if (a.isHeadOffice && !b.isHeadOffice) return -1;
+                if (!a.isHeadOffice && b.isHeadOffice) return 1;
+                return a.siteName.localeCompare(b.siteName);
+            });
+
+        // Also compute local and HO for backward compatibility
+        const localSpares = allSpares.filter(s => s.siteId?.toString() === ticket.siteId?.toString());
+        const hoSpares = hoSite ? allSpares.filter(s => s.siteId?.toString() === hoSite._id.toString() && s.siteId?.toString() !== ticket.siteId?.toString()) : [];
+
+        // Decrypt sensitive fields for all spares
+        const decryptSpares = (spares) => spares.map(s => Asset.decryptSensitiveFields(s));
+
+        // Apply decryption to grouped stock
+        allSitesStock.forEach(site => {
+            if (site.spares) {
+                site.spares = decryptSpares(site.spares);
+            }
+        });
+
+        res.json({
+            success: true,
+            data: {
+                assetType,
+                deviceType: deviceType || null,
+                localStock: localSpares.length,
+                hoStock: hoSpares.length,
+                localSpares: decryptSpares(localSpares),
+                hoSpares: decryptSpares(hoSpares),
+                hoSiteId: hoSite?._id,
+                allSitesStock,
+                totalAvailable: allSpares.length,
+                viewScope: 'all'
+            }
+        });
+    } else {
+        // ENGINEER: See only stock from the ticket's site
+        let localSpares = await Asset.find({
+            ...baseFilter,
+            siteId: ticket.siteId
+        }).select('assetCode mac serialNumber make model stockLocation deviceType assetType');
+
+        // Decrypt local spares
+        localSpares = localSpares.map(s => Asset.decryptSensitiveFields(s));
+
+        res.json({
+            success: true,
+            data: {
+                assetType,
+                deviceType: deviceType || null,
+                localStock: localSpares.length,
+                hoStock: 0,
+                localSpares,
+                hoSpares: [],
+                hoSiteId: null,
+                allSitesStock: [],
+                totalAvailable: localSpares.length,
+                viewScope: 'site'
+            }
+        });
+    }
+});
 
 // @desc    Create a requisition request
 // @route   POST /api/stock/requisitions
 // @access  Private
-export const createRequisition = async (req, res, next) => {
-    try {
-        const { ticketId, sourceSiteId, assetType, quantity = 1, comments } = req.body;
-        const user = req.user;
+export const createRequisition = asyncHandler(async (req, res, next) => {
+    const { ticketId, sourceSiteId, assetType, quantity = 1, comments } = req.body;
+    const user = req.user;
 
-        const ticket = await Ticket.findById(ticketId);
-        if (!ticket) {
-            return res.status(404).json({ success: false, message: 'Ticket not found' });
-        }
-
-        // Verify stock availability
-        const availableStock = await Asset.countDocuments({
-            siteId: sourceSiteId,
-            assetType: assetType,
-            status: 'Spare'
-        });
-
-        if (availableStock < quantity) {
-            return res.status(400).json({
-                success: false,
-                message: `Insufficient stock. Only ${availableStock} available.`
-            });
-        }
-
-        const requisition = await Requisition.create({
-            ticketId,
-            siteId: ticket.siteId,
-            sourceSiteId,
-            requestedBy: user._id,
-            assetType,
-            quantity,
-            comments,
-            status: 'Pending'
-        });
-
-        // Log activity
-        await TicketActivity.create({
-            ticketId,
-            userId: user._id,
-            activityType: 'RequisitionCreated',
-            description: `Requisition created for ${quantity} ${assetType}`,
-            metadata: { requisitionId: requisition._id }
-        });
-
-        res.status(201).json({
-            success: true,
-            data: requisition,
-            message: 'Requisition created successfully'
-        });
-
-        // Fire-and-forget: log activity
-        DailyWorkLog.logActivity(user._id, {
-            category: 'RequisitionCreated',
-            description: `Created requisition for ${quantity} ${assetType}`,
-            refModel: 'Requisition',
-            refId: requisition._id,
-            metadata: { quantity, assetType, ticketId }
-        }).catch(() => { });
-    } catch (error) {
-        next(error);
+    const ticket = await Ticket.findById(ticketId);
+    if (!ticket) {
+        return res.status(404).json({ success: false, message: 'Ticket not found' });
     }
-};
+
+    // Verify stock availability
+    const availableStock = await Asset.countDocuments({
+        siteId: sourceSiteId,
+        assetType: assetType,
+        status: 'Spare'
+    });
+
+    if (availableStock < quantity) {
+        return res.status(400).json({
+            success: false,
+            message: `Insufficient stock. Only ${availableStock} available.`
+        });
+    }
+
+    const requisition = await Requisition.create({
+        ticketId,
+        siteId: ticket.siteId,
+        sourceSiteId,
+        requestedBy: user._id,
+        assetType,
+        quantity,
+        comments,
+        status: 'Pending'
+    });
+
+    // Log activity
+    await TicketActivity.create({
+        ticketId,
+        userId: user._id,
+        activityType: 'RequisitionCreated',
+        description: `Requisition created for ${quantity} ${assetType}`,
+        metadata: { requisitionId: requisition._id }
+    });
+
+    res.status(201).json({
+        success: true,
+        data: requisition,
+        message: 'Requisition created successfully'
+    });
+
+    // Fire-and-forget: log activity
+    DailyWorkLog.logActivity(user._id, {
+        category: 'RequisitionCreated',
+        description: `Created requisition for ${quantity} ${assetType}`,
+        refModel: 'Requisition',
+        refId: requisition._id,
+        metadata: { quantity, assetType, ticketId }
+    }).catch(() => { });
+});
 
 // @desc    Get requisitions
 // @route   GET /api/stock/requisitions
 // @access  Private
-export const getRequisitions = async (req, res, next) => {
-    try {
-        const { status, siteId, ticketId, requisitionType, page = 1, limit = 20 } = req.query;
-        const user = req.user;
+export const getRequisitions = asyncHandler(async (req, res, next) => {
+    const { status, siteId, ticketId, requisitionType, page = 1, limit = 20 } = req.query;
+    const user = req.user;
 
-        let query = {};
+    let query = {};
 
-        if (status) query.status = status;
-        if (ticketId) query.ticketId = ticketId;
-        if (siteId) query.siteId = siteId;
-        if (requisitionType) query.requisitionType = requisitionType;
+    if (status) query.status = status;
+    if (ticketId) query.ticketId = ticketId;
+    if (siteId) query.siteId = siteId;
+    if (requisitionType) query.requisitionType = requisitionType;
 
-        // Non-admins see only their sites
-        if (user.role !== 'Admin') {
-            query.$or = [
-                { siteId: { $in: user.assignedSites || [] } },
-                { sourceSiteId: { $in: user.assignedSites || [] } },
-                { requestedBy: user._id }
-            ];
-        }
-
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        const [requisitions, total] = await Promise.all([
-            Requisition.find(query)
-                .populate('ticketId', 'ticketNumber title')
-                .populate('rmaId', 'rmaNumber status replacementSource')
-                .populate('siteId', 'siteName isHeadOffice')
-                .populate('sourceSiteId', 'siteName isHeadOffice')
-                .populate('requestedBy', 'fullName')
-                .populate('approvedBy', 'fullName')
-                .populate('assetId', 'assetCode assetType serialNumber')
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(parseInt(limit)),
-            Requisition.countDocuments(query)
-        ]);
-
-        // Get counts by type for dashboard
-        const typeCounts = await Requisition.aggregate([
-            { $match: user.role === 'Admin' ? {} : query },
-            { $group: { _id: '$requisitionType', count: { $sum: 1 } } }
-        ]);
-
-        res.json({
-            success: true,
-            data: requisitions,
-            typeCounts: typeCounts.reduce((acc, tc) => {
-                acc[tc._id || 'StockRequest'] = tc.count;
-                return acc;
-            }, {}),
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / parseInt(limit))
-            }
-        });
-    } catch (error) {
-        next(error);
+    // Non-admins see only their sites
+    if (user.role !== 'Admin') {
+        query.$or = [
+            { siteId: { $in: user.assignedSites || [] } },
+            { sourceSiteId: { $in: user.assignedSites || [] } },
+            { requestedBy: user._id }
+        ];
     }
-};
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [requisitions, total] = await Promise.all([
+        Requisition.find(query)
+            .populate('ticketId', 'ticketNumber title')
+            .populate('rmaId', 'rmaNumber status replacementSource')
+            .populate('siteId', 'siteName isHeadOffice')
+            .populate('sourceSiteId', 'siteName isHeadOffice')
+            .populate('requestedBy', 'fullName')
+            .populate('approvedBy', 'fullName')
+            .populate('assetId', 'assetCode assetType serialNumber')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit)),
+        Requisition.countDocuments(query)
+    ]);
+
+    // Get counts by type for dashboard
+    const typeCounts = await Requisition.aggregate([
+        { $match: user.role === 'Admin' ? {} : query },
+        { $group: { _id: '$requisitionType', count: { $sum: 1 } } }
+    ]);
+
+    res.json({
+        success: true,
+        data: requisitions,
+        typeCounts: typeCounts.reduce((acc, tc) => {
+            acc[tc._id || 'StockRequest'] = tc.count;
+            return acc;
+        }, {}),
+        pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            pages: Math.ceil(total / parseInt(limit))
+        }
+    });
+});
 
 // @desc    Approve a requisition
 // @route   PUT /api/stock/requisitions/:id/approve
 // @access  Private (Admin/Manager)
-export const approveRequisition = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const user = req.user;
+export const approveRequisition = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const user = req.user;
 
-        const requisition = await Requisition.findById(id);
-        if (!requisition) {
-            return res.status(404).json({ success: false, message: 'Requisition not found' });
-        }
-
-        if (requisition.status !== 'Pending') {
-            return res.status(400).json({ success: false, message: 'Requisition is not pending' });
-        }
-
-        requisition.status = 'Approved';
-        requisition.approvedBy = user._id;
-        requisition.approvedOn = new Date();
-        await requisition.save();
-
-        res.json({
-            success: true,
-            data: requisition,
-            message: 'Requisition approved'
-        });
-    } catch (error) {
-        next(error);
+    const requisition = await Requisition.findById(id);
+    if (!requisition) {
+        return res.status(404).json({ success: false, message: 'Requisition not found' });
     }
-};
+
+    if (requisition.status !== 'Pending') {
+        return res.status(400).json({ success: false, message: 'Requisition is not pending' });
+    }
+
+    requisition.status = 'Approved';
+    requisition.approvedBy = user._id;
+    requisition.approvedOn = new Date();
+    await requisition.save();
+
+    res.json({
+        success: true,
+        data: requisition,
+        message: 'Requisition approved'
+    });
+});
 
 // @desc    Fulfill a requisition (assign asset)
 // @route   PUT /api/stock/requisitions/:id/fulfill
 // @access  Private
-export const fulfillRequisition = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { assetId } = req.body;
-        const user = req.user;
+export const fulfillRequisition = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const { assetId } = req.body;
+    const user = req.user;
 
-        const requisition = await Requisition.findById(id);
-        if (!requisition) {
-            return res.status(404).json({ success: false, message: 'Requisition not found' });
-        }
-
-        if (requisition.status !== 'Approved' && requisition.status !== 'Pending') {
-            return res.status(400).json({
-                success: false,
-                message: `Cannot fulfill requisition with status: ${requisition.status}`
-            });
-        }
-
-        const asset = await Asset.findById(assetId);
-        if (!asset || asset.status !== 'Spare') {
-            return res.status(400).json({
-                success: false,
-                message: 'Asset is not available (must be Spare status)'
-            });
-        }
-
-        // Update asset status and site
-        asset.status = 'Operational';
-        asset.siteId = requisition.siteId;
-        asset.stockLocation = null;
-        await asset.save();
-
-        // Mark old ticket asset as damaged (if exists)
-        const ticket = await Ticket.findById(requisition.ticketId);
-        if (ticket && ticket.assetId) {
-            await Asset.findByIdAndUpdate(ticket.assetId, { status: 'Damaged' });
-        }
-
-        // Update ticket with new asset
-        if (ticket) {
-            ticket.assetId = asset._id;
-            await ticket.save();
-        }
-
-        // Update requisition
-        requisition.status = 'Fulfilled';
-        requisition.fulfilledAssetId = asset._id;
-        requisition.fulfilledOn = new Date();
-        if (!requisition.approvedBy) {
-            requisition.approvedBy = user._id;
-            requisition.approvedOn = new Date();
-        }
-        await requisition.save();
-
-        // Log activity
-        await TicketActivity.create({
-            ticketId: requisition.ticketId,
-            userId: user._id,
-            activityType: 'RequisitionFulfilled',
-            description: `Requisition fulfilled with asset ${asset.assetCode}`,
-            metadata: { requisitionId: requisition._id, assetId: asset._id }
-        });
-
-        res.json({
-            success: true,
-            data: requisition,
-            message: 'Requisition fulfilled successfully'
-        });
-    } catch (error) {
-        next(error);
+    const requisition = await Requisition.findById(id);
+    if (!requisition) {
+        return res.status(404).json({ success: false, message: 'Requisition not found' });
     }
-};
+
+    if (requisition.status !== 'Approved' && requisition.status !== 'Pending') {
+        return res.status(400).json({
+            success: false,
+            message: `Cannot fulfill requisition with status: ${requisition.status}`
+        });
+    }
+
+    const asset = await Asset.findById(assetId);
+    if (!asset || asset.status !== 'Spare') {
+        return res.status(400).json({
+            success: false,
+            message: 'Asset is not available (must be Spare status)'
+        });
+    }
+
+    // Update asset status and site
+    asset.status = 'Operational';
+    asset.siteId = requisition.siteId;
+    asset.stockLocation = null;
+    await asset.save();
+
+    // Mark old ticket asset as damaged (if exists)
+    const ticket = await Ticket.findById(requisition.ticketId);
+    if (ticket && ticket.assetId) {
+        await Asset.findByIdAndUpdate(ticket.assetId, { status: 'Damaged' });
+    }
+
+    // Update ticket with new asset
+    if (ticket) {
+        ticket.assetId = asset._id;
+        await ticket.save();
+    }
+
+    // Update requisition
+    requisition.status = 'Fulfilled';
+    requisition.fulfilledAssetId = asset._id;
+    requisition.fulfilledOn = new Date();
+    if (!requisition.approvedBy) {
+        requisition.approvedBy = user._id;
+        requisition.approvedOn = new Date();
+    }
+    await requisition.save();
+
+    // Log activity
+    await TicketActivity.create({
+        ticketId: requisition.ticketId,
+        userId: user._id,
+        activityType: 'RequisitionFulfilled',
+        description: `Requisition fulfilled with asset ${asset.assetCode}`,
+        metadata: { requisitionId: requisition._id, assetId: asset._id }
+    });
+
+    res.json({
+        success: true,
+        data: requisition,
+        message: 'Requisition fulfilled successfully'
+    });
+});
 
 // @desc    Reject a requisition
 // @route   PUT /api/stock/requisitions/:id/reject
 // @access  Private (Admin/Manager)
-export const rejectRequisition = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { reason } = req.body;
-        const user = req.user;
+export const rejectRequisition = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const user = req.user;
 
-        const requisition = await Requisition.findById(id);
-        if (!requisition) {
-            return res.status(404).json({ success: false, message: 'Requisition not found' });
-        }
-
-        requisition.status = 'Rejected';
-        requisition.rejectionReason = reason;
-        requisition.approvedBy = user._id;
-        requisition.approvedOn = new Date();
-        await requisition.save();
-
-        res.json({
-            success: true,
-            data: requisition,
-            message: 'Requisition rejected'
-        });
-    } catch (error) {
-        next(error);
+    const requisition = await Requisition.findById(id);
+    if (!requisition) {
+        return res.status(404).json({ success: false, message: 'Requisition not found' });
     }
-};
+
+    requisition.status = 'Rejected';
+    requisition.rejectionReason = reason;
+    requisition.approvedBy = user._id;
+    requisition.approvedOn = new Date();
+    await requisition.save();
+
+    res.json({
+        success: true,
+        data: requisition,
+        message: 'Requisition rejected'
+    });
+});
 
 // @desc    Add new stock (create spare assets)
 // @route   POST /api/stock/add
 // @access  Private (Admin or users with MANAGE_SITE_STOCK right for the site)
-export const addStock = async (req, res, next) => {
-    try {
-        const {
-            siteId, assetType, stockLocation, make, model,
-            deviceType, serialNumber,
-            quantity, unit, remarks, remark
-        } = req.body;
-        const user = req.user;
+export const addStock = asyncHandler(async (req, res, next) => {
+    const {
+        siteId, assetType, stockLocation, make, model,
+        deviceType, serialNumber,
+        quantity, unit, remarks, remark
+    } = req.body;
+    const user = req.user;
 
-        const site = await Site.findById(siteId);
-        if (!site) {
-            return res.status(404).json({ success: false, message: 'Site not found' });
-        }
-
-        // Permission check: Non-admin/supervisor users must have MANAGE_SITE_STOCK right for this specific site
-        const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
-        if (!isAdminOrSupervisor) {
-            const hasGlobalRight = user.rights?.globalRights?.includes('MANAGE_SITE_STOCK');
-            const hasSiteRight = user.rights?.siteRights?.some(sr => {
-                const srSiteId = (sr.site?._id || sr.site)?.toString();
-                return srSiteId === siteId.toString() && sr.rights?.includes('MANAGE_SITE_STOCK');
-            });
-            if (!hasGlobalRight && !hasSiteRight) {
-                return res.status(403).json({
-                    success: false,
-                    message: 'You do not have permission to add stock to this site'
-                });
-            }
-        }
-
-        // Auto-generate assetCode for stock items (not user-facing)
-        const finalAssetCode = `SPR-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-
-        const asset = await Asset.create({
-            assetCode: finalAssetCode,
-            mac: req.body.mac || '',
-            serialNumber,
-            assetType,
-            siteId,
-            status: 'Spare',
-            stockLocation,
-            make,
-            model,
-            deviceType,
-            quantity: quantity || 1,
-            unit: unit || 'Nos',
-            remarks: remarks || remark || '',
-            remark: remarks || remark || '', // For backward compatibility
-            criticality: 2 // Default criticality for spares
-        });
-
-        // Log the stock addition
-        await StockMovementLog.logMovement({
-            asset,
-            movementType: 'Added',
-            toSiteId: siteId,
-            toStatus: 'Spare',
-            performedBy: req.user._id,
-            notes: `New stock added to ${site.siteName}${site.isHeadOffice ? ' (HO)' : ''} - ${stockLocation || 'No location specified'}`
-        });
-
-        res.status(201).json({
-            success: true,
-            data: asset,
-            message: `Spare ${assetType} (${asset.assetCode}) added to stock`
-        });
-
-        // Fire-and-forget: log activity
-        DailyWorkLog.logActivity(user._id, {
-            category: 'StockAdded',
-            description: `Added ${assetType} (${asset.assetCode}) to stock at ${site.siteName}`,
-            refModel: 'Asset',
-            refId: asset._id,
-            metadata: { assetCode: asset.assetCode, siteId: site._id }
-        }).catch(() => { });
-    } catch (error) {
-        next(error);
+    const site = await Site.findById(siteId);
+    if (!site) {
+        return res.status(404).json({ success: false, message: 'Site not found' });
     }
-};
+
+    // Permission check: Non-admin/supervisor users must have MANAGE_SITE_STOCK right for this specific site
+    const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
+    if (!isAdminOrSupervisor) {
+        const hasGlobalRight = user.rights?.globalRights?.includes('MANAGE_SITE_STOCK');
+        const hasSiteRight = user.rights?.siteRights?.some(sr => {
+            const srSiteId = (sr.site?._id || sr.site)?.toString();
+            return srSiteId === siteId.toString() && sr.rights?.includes('MANAGE_SITE_STOCK');
+        });
+        if (!hasGlobalRight && !hasSiteRight) {
+            return res.status(403).json({
+                success: false,
+                message: 'You do not have permission to add stock to this site'
+            });
+        }
+    }
+
+    // Auto-generate assetCode for stock items (not user-facing)
+    const finalAssetCode = `SPR-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+
+    const asset = await Asset.create({
+        assetCode: finalAssetCode,
+        mac: req.body.mac || '',
+        serialNumber,
+        assetType,
+        siteId,
+        status: 'Spare',
+        stockLocation,
+        make,
+        model,
+        deviceType,
+        quantity: quantity || 1,
+        unit: unit || 'Nos',
+        remarks: remarks || remark || '',
+        remark: remarks || remark || '', // For backward compatibility
+        criticality: 2 // Default criticality for spares
+    });
+
+    // Log the stock addition
+    await StockMovementLog.logMovement({
+        asset,
+        movementType: 'Added',
+        toSiteId: siteId,
+        toStatus: 'Spare',
+        performedBy: req.user._id,
+        notes: `New stock added to ${site.siteName}${site.isHeadOffice ? ' (HO)' : ''} - ${stockLocation || 'No location specified'}`
+    });
+
+    res.status(201).json({
+        success: true,
+        data: asset,
+        message: `Spare ${assetType} (${asset.assetCode}) added to stock`
+    });
+
+    // Fire-and-forget: log activity
+    DailyWorkLog.logActivity(user._id, {
+        category: 'StockAdded',
+        description: `Added ${assetType} (${asset.assetCode}) to stock at ${site.siteName}`,
+        refModel: 'Asset',
+        refId: asset._id,
+        metadata: { assetCode: asset.assetCode, siteId: site._id }
+    }).catch(() => { });
+});
 
 // @desc    Update stock-specific fields on a spare asset
 // @route   PUT /api/stock/:assetId
 // @access  Private (Admin/Supervisor or MANAGE_SITE_STOCK right)
-export const updateStock = async (req, res, next) => {
-    try {
-        const { assetId } = req.params;
-        const user = req.user;
+export const updateStock = asyncHandler(async (req, res, next) => {
+    const { assetId } = req.params;
+    const user = req.user;
 
-        // Only allow editing these stock-specific fields
-        const allowedFields = ['assetType', 'deviceType', 'make', 'model', 'mac', 'serialNumber', 'stockLocation', 'quantity', 'unit', 'remarks', 'remark'];
-        const updateData = {};
-        for (const field of allowedFields) {
-            if (req.body[field] !== undefined) {
-                updateData[field] = req.body[field];
-            }
+    // Only allow editing these stock-specific fields
+    const allowedFields = ['assetType', 'deviceType', 'make', 'model', 'mac', 'serialNumber', 'stockLocation', 'quantity', 'unit', 'remarks', 'remark'];
+    const updateData = {};
+    for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+            updateData[field] = req.body[field];
         }
-
-        if (updateData.quantity !== undefined) {
-            updateData.quantity = Number(updateData.quantity) || 1;
-        }
-
-        // Keep remarks & remark in sync for backward compatibility
-        if (updateData.remarks !== undefined) {
-            updateData.remark = updateData.remarks;
-        } else if (updateData.remark !== undefined) {
-            updateData.remarks = updateData.remark;
-        }
-
-        const asset = await Asset.findOne({ _id: assetId, status: 'Spare' });
-        if (!asset) {
-            return res.status(404).json({ success: false, message: 'Stock item not found or is not a spare asset' });
-        }
-
-        // Permission check
-        const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
-        if (!isAdminOrSupervisor) {
-            const siteId = asset.siteId?.toString();
-            const hasRight = hasRightForSite(user, 'MANAGE_SITE_STOCK', siteId);
-            if (!hasRight) {
-                return res.status(403).json({ success: false, message: 'You do not have permission to edit stock at this site' });
-            }
-        }
-
-        // Apply update — encryption middleware handles mac/serialNumber automatically
-        const updated = await Asset.findByIdAndUpdate(
-            assetId,
-            { $set: updateData },
-            { new: true, runValidators: true }
-        );
-
-        res.json({
-            success: true,
-            data: updated,
-            message: 'Stock item updated successfully'
-        });
-
-        // Fire-and-forget: log activity
-        DailyWorkLog.logActivity(user._id, {
-            category: 'StockAdded',
-            description: `Updated stock item (${asset.assetType || 'Unknown'}) at site`,
-            refModel: 'Asset',
-            refId: asset._id,
-            metadata: { assetId: asset._id, changes: Object.keys(updateData) }
-        }).catch(() => { });
-
-    } catch (error) {
-        next(error);
     }
-};
+
+    if (updateData.quantity !== undefined) {
+        updateData.quantity = Number(updateData.quantity) || 1;
+    }
+
+    // Keep remarks & remark in sync for backward compatibility
+    if (updateData.remarks !== undefined) {
+        updateData.remark = updateData.remarks;
+    } else if (updateData.remark !== undefined) {
+        updateData.remarks = updateData.remark;
+    }
+
+    const asset = await Asset.findOne({ _id: assetId, status: 'Spare' });
+    if (!asset) {
+        return res.status(404).json({ success: false, message: 'Stock item not found or is not a spare asset' });
+    }
+
+    // Permission check
+    const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
+    if (!isAdminOrSupervisor) {
+        const siteId = asset.siteId?.toString();
+        const hasRight = hasRightForSite(user, 'MANAGE_SITE_STOCK', siteId);
+        if (!hasRight) {
+            return res.status(403).json({ success: false, message: 'You do not have permission to edit stock at this site' });
+        }
+    }
+
+    // Apply update — encryption middleware handles mac/serialNumber automatically
+    const updated = await Asset.findByIdAndUpdate(
+        assetId,
+        { $set: updateData },
+        { new: true, runValidators: true }
+    );
+
+    res.json({
+        success: true,
+        data: updated,
+        message: 'Stock item updated successfully'
+    });
+
+    // Fire-and-forget: log activity
+    DailyWorkLog.logActivity(user._id, {
+        category: 'StockAdded',
+        description: `Updated stock item (${asset.assetType || 'Unknown'}) at site`,
+        refModel: 'Asset',
+        refId: asset._id,
+        metadata: { assetId: asset._id, changes: Object.keys(updateData) }
+    }).catch(() => { });
+
+});
 
 // @desc    Delete a spare stock asset
 // @route   DELETE /api/stock/:assetId
 // @access  Private (Admin/Supervisor or MANAGE_SITE_STOCK right)
-export const deleteStock = async (req, res, next) => {
-    try {
-        const { assetId } = req.params;
-        const user = req.user;
+export const deleteStock = asyncHandler(async (req, res, next) => {
+    const { assetId } = req.params;
+    const user = req.user;
 
-        const asset = await Asset.findOne({ _id: assetId, status: 'Spare' });
-        if (!asset) {
-            return res.status(404).json({ success: false, message: 'Stock item not found or is not a spare asset' });
-        }
-
-        const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
-        if (!isAdminOrSupervisor) {
-            const hasRight = hasRightForSite(user, 'MANAGE_SITE_STOCK', asset.siteId?.toString());
-            if (!hasRight) {
-                return res.status(403).json({ success: false, message: 'You do not have permission to delete stock at this site' });
-            }
-        }
-
-        await Asset.findByIdAndDelete(assetId);
-
-        res.json({ success: true, message: 'Stock item deleted successfully' });
-
-        // Fire-and-forget: log activity
-        DailyWorkLog.logActivity(user._id, {
-            category: 'StockDeleted',
-            description: `Deleted stock item (${asset.assetType || 'Unknown'}) - ${asset.serialNumber || asset.mac || 'No identifier'}`,
-            refModel: 'Asset',
-            refId: asset._id,
-            metadata: { assetId: asset._id }
-        }).catch(() => { });
-
-    } catch (error) {
-        next(error);
+    const asset = await Asset.findOne({ _id: assetId, status: 'Spare' });
+    if (!asset) {
+        return res.status(404).json({ success: false, message: 'Stock item not found or is not a spare asset' });
     }
-};
+
+    const isAdminOrSupervisor = ['Admin', 'Supervisor'].includes(user.role);
+    if (!isAdminOrSupervisor) {
+        const hasRight = hasRightForSite(user, 'MANAGE_SITE_STOCK', asset.siteId?.toString());
+        if (!hasRight) {
+            return res.status(403).json({ success: false, message: 'You do not have permission to delete stock at this site' });
+        }
+    }
+
+    await Asset.findByIdAndDelete(assetId);
+
+    res.json({ success: true, message: 'Stock item deleted successfully' });
+
+    // Fire-and-forget: log activity
+    DailyWorkLog.logActivity(user._id, {
+        category: 'StockDeleted',
+        description: `Deleted stock item (${asset.assetType || 'Unknown'}) - ${asset.serialNumber || asset.mac || 'No identifier'}`,
+        refModel: 'Asset',
+        refId: asset._id,
+        metadata: { assetId: asset._id }
+    }).catch(() => { });
+
+});
 
 // @desc    Get stock transfers
 // @route   GET /api/stock/transfers
 // @access  Private
-export const getTransfers = async (req, res, next) => {
-    try {
-        const { status, siteId, page = 1, limit = 20 } = req.query;
-        const user = req.user;
+export const getTransfers = asyncHandler(async (req, res, next) => {
+    const { status, siteId, page = 1, limit = 20 } = req.query;
+    const user = req.user;
 
-        let query = {};
+    let query = {};
 
-        if (status) query.status = status;
-        if (siteId) {
-            query.$or = [
-                { sourceSiteId: siteId },
-                { destinationSiteId: siteId }
-            ];
-        }
-
-        // Non-admins see only transfers involving their sites
-        if (user.role !== 'Admin') {
-            const userSites = user.assignedSites || [];
-            query.$or = [
-                { sourceSiteId: { $in: userSites } },
-                { destinationSiteId: { $in: userSites } }
-            ];
-        }
-
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        const [transfers, total] = await Promise.all([
-            StockTransfer.find(query)
-                .populate('sourceSiteId', 'siteName isHeadOffice')
-                .populate('destinationSiteId', 'siteName isHeadOffice')
-                .populate('initiatedBy', 'fullName')
-                .populate('approvedBy', 'fullName')
-                .populate('assetIds', 'assetCode assetType deviceType make model')
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(parseInt(limit)),
-            StockTransfer.countDocuments(query)
-        ]);
-
-        res.json({
-            success: true,
-            data: transfers,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / parseInt(limit))
-            }
-        });
-    } catch (error) {
-        next(error);
+    if (status) query.status = status;
+    if (siteId) {
+        query.$or = [
+            { sourceSiteId: siteId },
+            { destinationSiteId: siteId }
+        ];
     }
-};
+
+    // Non-admins see only transfers involving their sites
+    if (user.role !== 'Admin') {
+        const userSites = user.assignedSites || [];
+        query.$or = [
+            { sourceSiteId: { $in: userSites } },
+            { destinationSiteId: { $in: userSites } }
+        ];
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [transfers, total] = await Promise.all([
+        StockTransfer.find(query)
+            .populate('sourceSiteId', 'siteName isHeadOffice')
+            .populate('destinationSiteId', 'siteName isHeadOffice')
+            .populate('initiatedBy', 'fullName')
+            .populate('approvedBy', 'fullName')
+            .populate('assetIds', 'assetCode assetType deviceType make model')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit)),
+        StockTransfer.countDocuments(query)
+    ]);
+
+    res.json({
+        success: true,
+        data: transfers,
+        pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            pages: Math.ceil(total / parseInt(limit))
+        }
+    });
+});
 
 // @desc    Initiate a stock transfer
 // @route   POST /api/stock/transfers
 // @access  Private (Admin)
-export const initiateTransfer = async (req, res, next) => {
-    try {
-        const { sourceSiteId, destinationSiteId, assetIds, notes, transferName } = req.body;
-        const user = req.user;
+export const initiateTransfer = asyncHandler(async (req, res, next) => {
+    const { sourceSiteId, destinationSiteId, assetIds, notes, transferName } = req.body;
+    const user = req.user;
 
-        // Validate assets are spare and belong to source site
-        const assets = await Asset.find({
-            _id: { $in: assetIds },
-            siteId: sourceSiteId,
-            status: 'Spare'
+    // Validate assets are spare and belong to source site
+    const assets = await Asset.find({
+        _id: { $in: assetIds },
+        siteId: sourceSiteId,
+        status: 'Spare'
+    });
+
+    if (assets.length !== assetIds.length) {
+        return res.status(400).json({
+            success: false,
+            message: 'Some assets are not available for transfer'
         });
-
-        if (assets.length !== assetIds.length) {
-            return res.status(400).json({
-                success: false,
-                message: 'Some assets are not available for transfer'
-            });
-        }
-
-        // Auto-generate transfer name if not provided
-        let finalTransferName = transferName;
-        if (!finalTransferName) {
-            const [srcSite, destSite] = await Promise.all([
-                Site.findById(sourceSiteId).select('siteName isHeadOffice'),
-                Site.findById(destinationSiteId).select('siteName isHeadOffice')
-            ]);
-            const srcLabel = srcSite?.isHeadOffice ? 'HO' : (srcSite?.siteName || 'Unknown');
-            const destLabel = destSite?.isHeadOffice ? 'HO' : (destSite?.siteName || 'Unknown');
-            finalTransferName = `${srcLabel} → ${destLabel}`;
-        }
-
-        const transfer = await StockTransfer.create({
-            transferName: finalTransferName,
-            sourceSiteId,
-            destinationSiteId,
-            assetIds,
-            initiatedBy: user._id,
-            notes,
-            status: 'Pending'
-        });
-
-        res.status(201).json({
-            success: true,
-            data: transfer,
-            message: 'Transfer initiated'
-        });
-
-        // Fire-and-forget: log activity
-        DailyWorkLog.logActivity(user._id, {
-            category: 'StockTransferred',
-            description: `Initiated stock transfer: ${finalTransferName}`,
-            refModel: 'StockTransfer',
-            refId: transfer._id,
-            metadata: { sourceSiteId, destinationSiteId, assetCount: assetIds.length }
-        }).catch(() => { });
-    } catch (error) {
-        next(error);
     }
-};
+
+    // Auto-generate transfer name if not provided
+    let finalTransferName = transferName;
+    if (!finalTransferName) {
+        const [srcSite, destSite] = await Promise.all([
+            Site.findById(sourceSiteId).select('siteName isHeadOffice'),
+            Site.findById(destinationSiteId).select('siteName isHeadOffice')
+        ]);
+        const srcLabel = srcSite?.isHeadOffice ? 'HO' : (srcSite?.siteName || 'Unknown');
+        const destLabel = destSite?.isHeadOffice ? 'HO' : (destSite?.siteName || 'Unknown');
+        finalTransferName = `${srcLabel} → ${destLabel}`;
+    }
+
+    const transfer = await StockTransfer.create({
+        transferName: finalTransferName,
+        sourceSiteId,
+        destinationSiteId,
+        assetIds,
+        initiatedBy: user._id,
+        notes,
+        status: 'Pending'
+    });
+
+    res.status(201).json({
+        success: true,
+        data: transfer,
+        message: 'Transfer initiated'
+    });
+
+    // Fire-and-forget: log activity
+    DailyWorkLog.logActivity(user._id, {
+        category: 'StockTransferred',
+        description: `Initiated stock transfer: ${finalTransferName}`,
+        refModel: 'StockTransfer',
+        refId: transfer._id,
+        metadata: { sourceSiteId, destinationSiteId, assetCount: assetIds.length }
+    }).catch(() => { });
+});
 
 // @desc    Approve and dispatch a transfer
 // @route   PUT /api/stock/transfers/:id/dispatch
 // @access  Private (Admin)
-export const dispatchTransfer = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { carrier, trackingNumber, courierName, remarks } = req.body;
-        const user = req.user;
+export const dispatchTransfer = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const { carrier, trackingNumber, courierName, remarks } = req.body;
+    const user = req.user;
 
-        const transfer = await StockTransfer.findById(id);
-        if (!transfer) {
-            return res.status(404).json({ success: false, message: 'Transfer not found' });
-        }
-
-        if (transfer.status !== 'Pending' && transfer.status !== 'Approved') {
-            return res.status(400).json({ success: false, message: 'Transfer cannot be dispatched' });
-        }
-
-        // Update assets to InTransit
-        await Asset.updateMany(
-            { _id: { $in: transfer.assetIds } },
-            { status: 'InTransit' }
-        );
-
-        transfer.status = 'Dispatched';
-        transfer.approvedBy = user._id;
-        transfer.transferDate = new Date();
-        transfer.shippingDetails = {
-            carrier: carrier || '',
-            trackingNumber: trackingNumber || '',
-            courierName: courierName || '',
-            remarks: remarks || '',
-            dispatchDate: new Date()
-        };
-        await transfer.save();
-
-        res.json({
-            success: true,
-            data: transfer,
-            message: 'Transfer dispatched'
-        });
-    } catch (error) {
-        next(error);
+    const transfer = await StockTransfer.findById(id);
+    if (!transfer) {
+        return res.status(404).json({ success: false, message: 'Transfer not found' });
     }
-};
+
+    if (transfer.status !== 'Pending' && transfer.status !== 'Approved') {
+        return res.status(400).json({ success: false, message: 'Transfer cannot be dispatched' });
+    }
+
+    // Update assets to InTransit
+    await Asset.updateMany(
+        { _id: { $in: transfer.assetIds } },
+        { status: 'InTransit' }
+    );
+
+    transfer.status = 'Dispatched';
+    transfer.approvedBy = user._id;
+    transfer.transferDate = new Date();
+    transfer.shippingDetails = {
+        carrier: carrier || '',
+        trackingNumber: trackingNumber || '',
+        courierName: courierName || '',
+        remarks: remarks || '',
+        dispatchDate: new Date()
+    };
+    await transfer.save();
+
+    res.json({
+        success: true,
+        data: transfer,
+        message: 'Transfer dispatched'
+    });
+});
 
 // @desc    Receive a transfer
 // @route   PUT /api/stock/transfers/:id/receive
 // @access  Private
-export const receiveTransfer = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const user = req.user;
+export const receiveTransfer = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const user = req.user;
 
-        const transfer = await StockTransfer.findById(id);
-        if (!transfer) {
-            return res.status(404).json({ success: false, message: 'Transfer not found' });
-        }
-
-        if (transfer.status !== 'InTransit' && transfer.status !== 'Dispatched') {
-            return res.status(400).json({ success: false, message: 'Transfer is not in transit / dispatched' });
-        }
-
-        // Update assets to Spare at destination
-        await Asset.updateMany(
-            { _id: { $in: transfer.assetIds } },
-            { status: 'Spare', siteId: transfer.destinationSiteId }
-        );
-
-        transfer.status = 'Completed';
-        transfer.receivedDate = new Date();
-        transfer.receivedBy = user._id;
-        await transfer.save();
-
-        res.json({
-            success: true,
-            data: transfer,
-            message: 'Transfer received'
-        });
-    } catch (error) {
-        next(error);
+    const transfer = await StockTransfer.findById(id);
+    if (!transfer) {
+        return res.status(404).json({ success: false, message: 'Transfer not found' });
     }
-};
+
+    if (transfer.status !== 'InTransit' && transfer.status !== 'Dispatched') {
+        return res.status(400).json({ success: false, message: 'Transfer is not in transit / dispatched' });
+    }
+
+    // Update assets to Spare at destination
+    await Asset.updateMany(
+        { _id: { $in: transfer.assetIds } },
+        { status: 'Spare', siteId: transfer.destinationSiteId }
+    );
+
+    transfer.status = 'Completed';
+    transfer.receivedDate = new Date();
+    transfer.receivedBy = user._id;
+    await transfer.save();
+
+    res.json({
+        success: true,
+        data: transfer,
+        message: 'Transfer received'
+    });
+});
 
 // @desc    Get dispatched stock transfers for a destination site (for RMA dropdown)
 // @route   GET /api/stock/transfers/dispatched-for-site/:siteId
 // @access  Private
-export const getDispatchedTransfersForSite = async (req, res, next) => {
-    try {
-        const { siteId } = req.params;
+export const getDispatchedTransfersForSite = asyncHandler(async (req, res, next) => {
+    const { siteId } = req.params;
 
-        // Find transfers that are dispatched / in-transit and heading to this site
-        const transfers = await StockTransfer.find({
-            destinationSiteId: siteId,
-            status: { $in: ['Dispatched', 'InTransit'] }
-        })
-            .populate('sourceSiteId', 'siteName isHeadOffice')
-            .populate('destinationSiteId', 'siteName isHeadOffice')
-            .populate('assetIds', 'assetCode assetType deviceType make model')
-            .populate('initiatedBy', 'fullName')
-            .sort({ createdAt: -1 });
+    // Find transfers that are dispatched / in-transit and heading to this site
+    const transfers = await StockTransfer.find({
+        destinationSiteId: siteId,
+        status: { $in: ['Dispatched', 'InTransit'] }
+    })
+        .populate('sourceSiteId', 'siteName isHeadOffice')
+        .populate('destinationSiteId', 'siteName isHeadOffice')
+        .populate('assetIds', 'assetCode assetType deviceType make model')
+        .populate('initiatedBy', 'fullName')
+        .sort({ createdAt: -1 });
 
-        res.json({
-            success: true,
-            data: transfers
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+    res.json({
+        success: true,
+        data: transfers
+    });
+});
 
 // @desc    Bulk upload stock from Excel/CSV
 // @route   POST /api/stock/bulk-upload
@@ -1296,968 +1237,896 @@ export const bulkUpload = async (req, res, next) => {
 // @desc    Export stock import template
 // @route   GET /api/stock/export-template
 // @access  Private (Admin)
-export const exportStockTemplate = async (req, res, next) => {
-    try {
-        const { format } = req.query;
+export const exportStockTemplate = asyncHandler(async (req, res, next) => {
+    const { format } = req.query;
 
-        const headers = [
-            'MAC Address',
-            'Asset Type',
-            'Device Type',
-            'Site Name',
-            'Abbreviation',
-            'Spare Code',
-            'Serial Number',
-            'Make',
-            'Model',
-            'Stock Location',
-            'Quantity',
-            'Unit',
-            'Remarks',
-            'Project Number'
-        ];
+    const headers = [
+        'MAC Address',
+        'Asset Type',
+        'Device Type',
+        'Site Name',
+        'Abbreviation',
+        'Spare Code',
+        'Serial Number',
+        'Make',
+        'Model',
+        'Stock Location',
+        'Quantity',
+        'Unit',
+        'Remarks',
+        'Project Number'
+    ];
 
-        const sampleData = [
-            {
-                'MAC Address': '00:1A:2B:3C:4D:5E',
-                'Asset Type': 'Camera',
-                'Device Type': 'Fixed Dome',
-                'Site Name': 'Head Office',
-                'Abbreviation': 'HO',
-                'Spare Code': 'HO-CAM-001',
-                'Serial Number': 'HK12345678',
-                'Make': 'Hikvision',
-                'Model': 'DS-2CD2143G2-I',
-                'Stock Location': 'Rack A - Shelf 1',
-                'Quantity': 1,
-                'Unit': 'Nos',
-                'Remarks': 'Sample remark',
-                'Project Number': ''
-            }
-        ];
-
-        const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Inventory Template');
-
-        if (format === 'csv') {
-            const csv = XLSX.utils.sheet_to_csv(ws);
-            res.setHeader('Content-Type', 'text/csv');
-            res.setHeader('Content-Disposition', 'attachment; filename=stock_import_template.csv');
-            return res.status(200).send(csv);
-        } else {
-            const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            res.setHeader('Content-Disposition', 'attachment; filename=stock_import_template.xlsx');
-            return res.status(200).send(buffer);
+    const sampleData = [
+        {
+            'MAC Address': '00:1A:2B:3C:4D:5E',
+            'Asset Type': 'Camera',
+            'Device Type': 'Fixed Dome',
+            'Site Name': 'Head Office',
+            'Abbreviation': 'HO',
+            'Spare Code': 'HO-CAM-001',
+            'Serial Number': 'HK12345678',
+            'Make': 'Hikvision',
+            'Model': 'DS-2CD2143G2-I',
+            'Stock Location': 'Rack A - Shelf 1',
+            'Quantity': 1,
+            'Unit': 'Nos',
+            'Remarks': 'Sample remark',
+            'Project Number': ''
         }
-    } catch (error) {
-        next(error);
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(sampleData, { header: headers });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Inventory Template');
+
+    if (format === 'csv') {
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=stock_import_template.csv');
+        return res.status(200).send(csv);
+    } else {
+        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=stock_import_template.xlsx');
+        return res.status(200).send(buffer);
     }
-};
+});
 
 // @desc    Perform stock replacement for a ticket
 // @route   POST /api/stock/replace
 // @access  Private
-export const performStockReplacement = async (req, res, next) => {
-    try {
-        const { ticketId, defectiveAssetId, spareAssetId, newIp } = req.body;
+export const performStockReplacement = asyncHandler(async (req, res, next) => {
+    const { ticketId, defectiveAssetId, spareAssetId, newIp } = req.body;
 
-        if (!ticketId || !defectiveAssetId || !spareAssetId) {
-            return res.status(400).json({ success: false, message: 'Missing required fields' });
-        }
-
-        const [ticket, defectiveAsset, spareAsset] = await Promise.all([
-            Ticket.findById(ticketId),
-            Asset.findById(defectiveAssetId),
-            Asset.findById(spareAssetId)
-        ]);
-
-        if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
-        if (!defectiveAsset) return res.status(404).json({ success: false, message: 'Defective asset not found' });
-        if (!spareAsset) return res.status(404).json({ success: false, message: 'Spare asset not found' });
-
-        if (spareAsset.status !== 'Spare') {
-            return res.status(400).json({ success: false, message: 'Selected item is not a spare' });
-        }
-
-        // Keep track of old details for logging
-        const oldDetails = {
-            assetCode: defectiveAsset.assetCode,
-            serialNumber: defectiveAsset.serialNumber || 'N/A',
-            mac: defectiveAsset.mac || 'N/A',
-            ipAddress: defectiveAsset.ipAddress || 'N/A',
-            make: defectiveAsset.make || 'N/A',
-            model: defectiveAsset.model || 'N/A'
-        };
-
-        // Update ONLY the hardware-specific fields on the EXISTING asset.
-        // assetCode is a FIXED IDENTIFIER and must NEVER change.
-        // This preserves the full RMA history against the same asset code.
-        defectiveAsset.serialNumber = spareAsset.serialNumber;
-        defectiveAsset.mac = spareAsset.mac;
-        defectiveAsset.ipAddress = newIp || defectiveAsset.ipAddress;
-        defectiveAsset.make = spareAsset.make;
-        defectiveAsset.model = spareAsset.model;
-        defectiveAsset.status = 'Operational'; // Ensure it's back to operational
-
-        await defectiveAsset.save();
-
-        // Mark the spare asset as Decommissioned (NOT deleted) so we keep a record
-        spareAsset.status = 'Decommissioned';
-        spareAsset.remark = `Consumed as replacement for ${defectiveAsset.assetCode} (Ticket: ${ticketId})`;
-        spareAsset.isActive = false;
-        await spareAsset.save();
-
-        // Create StockReplacement record
-        await StockReplacement.create({
-            ticketId,
-            assetId: defectiveAssetId,
-            spareAssetId: spareAssetId,
-            oldDetails,
-            newDetails: {
-                assetCode: defectiveAsset.assetCode, // unchanged — same asset code
-                serialNumber: spareAsset.serialNumber,
-                mac: spareAsset.mac,
-                ipAddress: newIp || defectiveAsset.ipAddress,
-                make: spareAsset.make,
-                model: spareAsset.model
-            },
-            replacedBy: req.user._id,
-            replacedOn: new Date()
-        });
-
-        // Record activity
-        await TicketActivity.create({
-            ticketId,
-            userId: req.user._id,
-            activityType: 'Resolution',
-            content: `Item replacement performed using stock.\nOld Hardware: [SN: ${oldDetails.serialNumber}, MAC: ${oldDetails.mac}]\nNew Hardware: [SN: ${spareAsset.serialNumber}, MAC: ${spareAsset.mac}]\nNew IP Address: ${newIp || oldDetails.ipAddress}`
-        });
-
-        // Optionally update ticket status if needed, but let's keep it handled by UI
-
-        res.status(200).json({
-            success: true,
-            message: 'Stock replacement successful',
-            data: defectiveAsset
-        });
-
-    } catch (error) {
-        next(error);
+    if (!ticketId || !defectiveAssetId || !spareAssetId) {
+        return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
-};
+
+    const [ticket, defectiveAsset, spareAsset] = await Promise.all([
+        Ticket.findById(ticketId),
+        Asset.findById(defectiveAssetId),
+        Asset.findById(spareAssetId)
+    ]);
+
+    if (!ticket) return res.status(404).json({ success: false, message: 'Ticket not found' });
+    if (!defectiveAsset) return res.status(404).json({ success: false, message: 'Defective asset not found' });
+    if (!spareAsset) return res.status(404).json({ success: false, message: 'Spare asset not found' });
+
+    if (spareAsset.status !== 'Spare') {
+        return res.status(400).json({ success: false, message: 'Selected item is not a spare' });
+    }
+
+    // Keep track of old details for logging
+    const oldDetails = {
+        assetCode: defectiveAsset.assetCode,
+        serialNumber: defectiveAsset.serialNumber || 'N/A',
+        mac: defectiveAsset.mac || 'N/A',
+        ipAddress: defectiveAsset.ipAddress || 'N/A',
+        make: defectiveAsset.make || 'N/A',
+        model: defectiveAsset.model || 'N/A'
+    };
+
+    // Update ONLY the hardware-specific fields on the EXISTING asset.
+    // assetCode is a FIXED IDENTIFIER and must NEVER change.
+    // This preserves the full RMA history against the same asset code.
+    defectiveAsset.serialNumber = spareAsset.serialNumber;
+    defectiveAsset.mac = spareAsset.mac;
+    defectiveAsset.ipAddress = newIp || defectiveAsset.ipAddress;
+    defectiveAsset.make = spareAsset.make;
+    defectiveAsset.model = spareAsset.model;
+    defectiveAsset.status = 'Operational'; // Ensure it's back to operational
+
+    await defectiveAsset.save();
+
+    // Mark the spare asset as Decommissioned (NOT deleted) so we keep a record
+    spareAsset.status = 'Decommissioned';
+    spareAsset.remark = `Consumed as replacement for ${defectiveAsset.assetCode} (Ticket: ${ticketId})`;
+    spareAsset.isActive = false;
+    await spareAsset.save();
+
+    // Create StockReplacement record
+    await StockReplacement.create({
+        ticketId,
+        assetId: defectiveAssetId,
+        spareAssetId: spareAssetId,
+        oldDetails,
+        newDetails: {
+            assetCode: defectiveAsset.assetCode, // unchanged — same asset code
+            serialNumber: spareAsset.serialNumber,
+            mac: spareAsset.mac,
+            ipAddress: newIp || defectiveAsset.ipAddress,
+            make: spareAsset.make,
+            model: spareAsset.model
+        },
+        replacedBy: req.user._id,
+        replacedOn: new Date()
+    });
+
+    // Record activity
+    await TicketActivity.create({
+        ticketId,
+        userId: req.user._id,
+        activityType: 'Resolution',
+        content: `Item replacement performed using stock.\nOld Hardware: [SN: ${oldDetails.serialNumber}, MAC: ${oldDetails.mac}]\nNew Hardware: [SN: ${spareAsset.serialNumber}, MAC: ${spareAsset.mac}]\nNew IP Address: ${newIp || oldDetails.ipAddress}`
+    });
+
+    // Optionally update ticket status if needed, but let's keep it handled by UI
+
+    res.status(200).json({
+        success: true,
+        message: 'Stock replacement successful',
+        data: defectiveAsset
+    });
+
+});
 
 // @desc    Get replacement history for an asset (Unified RMA + Stock)
 // @route   GET /api/stock/asset/:assetId/history
 // @access  Private
-export const getAssetReplacementHistory = async (req, res, next) => {
-    try {
-        const { assetId } = req.params;
+export const getAssetReplacementHistory = asyncHandler(async (req, res, next) => {
+    const { assetId } = req.params;
 
-        const [stockHistory, rmaHistory] = await Promise.all([
-            StockReplacement.find({ assetId })
-                .populate('ticketId', 'ticketNumber')
-                .populate('replacedBy', 'fullName')
-                .sort({ replacedOn: -1 }),
-            RMARequest.find({ originalAssetId: assetId, status: 'Installed' })
-                .populate('ticketId', 'ticketNumber')
-                .populate('installedBy', 'fullName')
-                .sort({ installedOn: -1 })
-        ]);
+    const [stockHistory, rmaHistory] = await Promise.all([
+        StockReplacement.find({ assetId })
+            .populate('ticketId', 'ticketNumber')
+            .populate('replacedBy', 'fullName')
+            .sort({ replacedOn: -1 }),
+        RMARequest.find({ originalAssetId: assetId, status: 'Installed' })
+            .populate('ticketId', 'ticketNumber')
+            .populate('installedBy', 'fullName')
+            .sort({ installedOn: -1 })
+    ]);
 
-        // Combine and format
-        const combined = [
-            ...stockHistory.map(h => ({
-                id: h._id,
-                type: 'Stock',
-                date: h.replacedOn,
-                ticketNumber: h.ticketId?.ticketNumber,
-                oldDetails: h.oldDetails,
-                newDetails: h.newDetails,
-                performedBy: h.replacedBy?.fullName,
-                remarks: 'Replaced from local/HO stock'
-            })),
-            ...rmaHistory.map(h => ({
-                id: h._id,
-                type: 'RMA',
-                date: h.installedOn,
-                ticketNumber: h.ticketId?.ticketNumber,
-                oldDetails: h.originalDetailsSnapshot,
-                newDetails: h.replacementDetails,
-                performedBy: h.installedBy?.fullName,
-                remarks: h.requestReason
-            }))
-        ].sort((a, b) => new Date(b.date) - new Date(a.date));
+    // Combine and format
+    const combined = [
+        ...stockHistory.map(h => ({
+            id: h._id,
+            type: 'Stock',
+            date: h.replacedOn,
+            ticketNumber: h.ticketId?.ticketNumber,
+            oldDetails: h.oldDetails,
+            newDetails: h.newDetails,
+            performedBy: h.replacedBy?.fullName,
+            remarks: 'Replaced from local/HO stock'
+        })),
+        ...rmaHistory.map(h => ({
+            id: h._id,
+            type: 'RMA',
+            date: h.installedOn,
+            ticketNumber: h.ticketId?.ticketNumber,
+            oldDetails: h.originalDetailsSnapshot,
+            newDetails: h.replacementDetails,
+            performedBy: h.installedBy?.fullName,
+            remarks: h.requestReason
+        }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
-        res.json({
-            success: true,
-            data: combined
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+    res.json({
+        success: true,
+        data: combined
+    });
+});
 
 // @desc    Get stock movement logs
 // @route   GET /api/stock/movement-logs
 // @access  Private
-export const getStockMovementLogs = async (req, res, next) => {
-    try {
-        const {
-            siteId,
-            assetId,
-            assetType,
-            movementType,
-            fromDate,
-            toDate,
-            page = 1,
-            limit = 50
-        } = req.query;
-        const user = req.user;
+export const getStockMovementLogs = asyncHandler(async (req, res, next) => {
+    const {
+        siteId,
+        assetId,
+        assetType,
+        movementType,
+        fromDate,
+        toDate,
+        page = 1,
+        limit = 50
+    } = req.query;
+    const user = req.user;
 
-        let query = {};
+    let query = {};
 
-        // Filter by site (either source or destination)
-        if (siteId) {
-            query.$or = [
-                { fromSiteId: new mongoose.Types.ObjectId(siteId) },
-                { toSiteId: new mongoose.Types.ObjectId(siteId) }
-            ];
-        } else if (user.role !== 'Admin') {
-            // Non-admins see only their sites
-            const userSites = (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s));
-            query.$or = [
-                { fromSiteId: { $in: userSites } },
-                { toSiteId: { $in: userSites } }
-            ];
-        }
-
-        if (assetId) {
-            query.assetId = new mongoose.Types.ObjectId(assetId);
-        }
-
-        if (assetType) {
-            query['assetSnapshot.assetType'] = assetType;
-        }
-
-        if (movementType) {
-            query.movementType = movementType;
-        }
-
-        // Date range filter
-        if (fromDate || toDate) {
-            query.createdAt = {};
-            if (fromDate) query.createdAt.$gte = new Date(fromDate);
-            if (toDate) query.createdAt.$lte = new Date(toDate);
-        }
-
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        const [logs, total] = await Promise.all([
-            StockMovementLog.find(query)
-                .populate('assetId', 'assetCode assetType serialNumber')
-                .populate('fromSiteId', 'siteName isHeadOffice')
-                .populate('toSiteId', 'siteName isHeadOffice')
-                .populate('performedBy', 'fullName')
-                .populate('rmaId', 'rmaNumber')
-                .populate('requisitionId', 'requisitionNumber')
-                .populate('ticketId', 'ticketNumber')
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(parseInt(limit)),
-            StockMovementLog.countDocuments(query)
-        ]);
-
-        // Get counts by movement type for dashboard
-        const typeCounts = await StockMovementLog.aggregate([
-            { $match: query },
-            { $group: { _id: '$movementType', count: { $sum: 1 } } }
-        ]);
-
-        res.json({
-            success: true,
-            data: logs,
-            typeCounts: typeCounts.reduce((acc, tc) => {
-                acc[tc._id] = tc.count;
-                return acc;
-            }, {}),
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / parseInt(limit))
-            }
-        });
-    } catch (error) {
-        next(error);
+    // Filter by site (either source or destination)
+    if (siteId) {
+        query.$or = [
+            { fromSiteId: new mongoose.Types.ObjectId(siteId) },
+            { toSiteId: new mongoose.Types.ObjectId(siteId) }
+        ];
+    } else if (user.role !== 'Admin') {
+        // Non-admins see only their sites
+        const userSites = (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s));
+        query.$or = [
+            { fromSiteId: { $in: userSites } },
+            { toSiteId: { $in: userSites } }
+        ];
     }
-};
+
+    if (assetId) {
+        query.assetId = new mongoose.Types.ObjectId(assetId);
+    }
+
+    if (assetType) {
+        query['assetSnapshot.assetType'] = assetType;
+    }
+
+    if (movementType) {
+        query.movementType = movementType;
+    }
+
+    // Date range filter
+    if (fromDate || toDate) {
+        query.createdAt = {};
+        if (fromDate) query.createdAt.$gte = new Date(fromDate);
+        if (toDate) query.createdAt.$lte = new Date(toDate);
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [logs, total] = await Promise.all([
+        StockMovementLog.find(query)
+            .populate('assetId', 'assetCode assetType serialNumber')
+            .populate('fromSiteId', 'siteName isHeadOffice')
+            .populate('toSiteId', 'siteName isHeadOffice')
+            .populate('performedBy', 'fullName')
+            .populate('rmaId', 'rmaNumber')
+            .populate('requisitionId', 'requisitionNumber')
+            .populate('ticketId', 'ticketNumber')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(parseInt(limit)),
+        StockMovementLog.countDocuments(query)
+    ]);
+
+    // Get counts by movement type for dashboard
+    const typeCounts = await StockMovementLog.aggregate([
+        { $match: query },
+        { $group: { _id: '$movementType', count: { $sum: 1 } } }
+    ]);
+
+    res.json({
+        success: true,
+        data: logs,
+        typeCounts: typeCounts.reduce((acc, tc) => {
+            acc[tc._id] = tc.count;
+            return acc;
+        }, {}),
+        pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            pages: Math.ceil(total / parseInt(limit))
+        }
+    });
+});
 
 // @desc    Get movement stats for dashboard
 // @route   GET /api/stock/movement-stats
 // @access  Private
-export const getMovementStats = async (req, res, next) => {
-    try {
-        const { siteId, days = 30 } = req.query;
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - parseInt(days));
+export const getMovementStats = asyncHandler(async (req, res, next) => {
+    const { siteId, days = 30 } = req.query;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - parseInt(days));
 
-        let matchQuery = { createdAt: { $gte: startDate } };
+    let matchQuery = { createdAt: { $gte: startDate } };
 
-        if (siteId) {
-            matchQuery.$or = [
-                { fromSiteId: new mongoose.Types.ObjectId(siteId) },
-                { toSiteId: new mongoose.Types.ObjectId(siteId) }
-            ];
-        }
-
-        const stats = await StockMovementLog.aggregate([
-            { $match: matchQuery },
-            {
-                $group: {
-                    _id: '$movementType',
-                    count: { $sum: 1 }
-                }
-            }
-        ]);
-
-        // Get recent movements
-        const recentMovements = await StockMovementLog.find(matchQuery)
-            .populate('assetId', 'assetCode assetType')
-            .populate('toSiteId', 'siteName isHeadOffice')
-            .populate('fromSiteId', 'siteName isHeadOffice')
-            .populate('performedBy', 'fullName')
-            .sort({ createdAt: -1 })
-            .limit(10);
-
-        res.json({
-            success: true,
-            data: {
-                stats: stats.reduce((acc, s) => { acc[s._id] = s.count; return acc; }, {}),
-                recentMovements
-            }
-        });
-    } catch (error) {
-        next(error);
+    if (siteId) {
+        matchQuery.$or = [
+            { fromSiteId: new mongoose.Types.ObjectId(siteId) },
+            { toSiteId: new mongoose.Types.ObjectId(siteId) }
+        ];
     }
-};
+
+    const stats = await StockMovementLog.aggregate([
+        { $match: matchQuery },
+        {
+            $group: {
+                _id: '$movementType',
+                count: { $sum: 1 }
+            }
+        }
+    ]);
+
+    // Get recent movements
+    const recentMovements = await StockMovementLog.find(matchQuery)
+        .populate('assetId', 'assetCode assetType')
+        .populate('toSiteId', 'siteName isHeadOffice')
+        .populate('fromSiteId', 'siteName isHeadOffice')
+        .populate('performedBy', 'fullName')
+        .sort({ createdAt: -1 })
+        .limit(10);
+
+    res.json({
+        success: true,
+        data: {
+            stats: stats.reduce((acc, s) => { acc[s._id] = s.count; return acc; }, {}),
+            recentMovements
+        }
+    });
+});
 
 // @desc    Get distinct asset types from Spare (stock) assets only
 // @route   GET /api/stock/asset-types
 // @access  Private
-export const getStockAssetTypes = async (req, res, next) => {
-    try {
-        const assetTypes = await Asset.distinct('assetType', { status: 'Spare' });
-        const formatted = assetTypes
-            .filter(t => t && t.trim() !== '')
-            .sort()
-            .map(t => ({ value: t, label: t }));
-        res.json({ success: true, data: formatted });
-    } catch (error) {
-        next(error);
-    }
-};
+export const getStockAssetTypes = asyncHandler(async (req, res, next) => {
+    const assetTypes = await Asset.distinct('assetType', { status: 'Spare' });
+    const formatted = assetTypes
+        .filter(t => t && t.trim() !== '')
+        .sort()
+        .map(t => ({ value: t, label: t }));
+    res.json({ success: true, data: formatted });
+});
 
 // @desc    Get distinct device types from Spare (stock) assets, optionally filtered by assetType
 // @route   GET /api/stock/device-types
 // @access  Private
-export const getStockDeviceTypes = async (req, res, next) => {
-    try {
-        const { assetType } = req.query;
-        const query = { status: 'Spare' };
-        if (assetType) query.assetType = assetType;
-        const deviceTypes = await Asset.distinct('deviceType', query);
-        const formatted = deviceTypes
-            .filter(dt => dt && dt.trim() !== '')
-            .sort()
-            .map(dt => ({ value: dt, label: dt }));
-        res.json({ success: true, data: formatted });
-    } catch (error) {
-        next(error);
-    }
-};
+export const getStockDeviceTypes = asyncHandler(async (req, res, next) => {
+    const { assetType } = req.query;
+    const query = { status: 'Spare' };
+    if (assetType) query.assetType = assetType;
+    const deviceTypes = await Asset.distinct('deviceType', query);
+    const formatted = deviceTypes
+        .filter(dt => dt && dt.trim() !== '')
+        .sort()
+        .map(dt => ({ value: dt, label: dt }));
+    res.json({ success: true, data: formatted });
+});
 
 // @desc    Get distinct models from Spare (stock) assets, filtered by assetType/deviceType
 // @route   GET /api/stock/models
 // @access  Private
-export const getStockModels = async (req, res, next) => {
-    try {
-        const { assetType, deviceType } = req.query;
-        const query = { status: 'Spare' };
-        if (assetType) query.assetType = assetType;
-        if (deviceType) query.deviceType = deviceType;
-        const models = await Asset.distinct('model', query);
-        const formatted = models
-            .filter(m => m && m.trim() !== '')
-            .sort()
-            .map(m => ({ value: m, label: m }));
-        res.json({ success: true, data: formatted });
-    } catch (error) {
-        next(error);
-    }
-};
+export const getStockModels = asyncHandler(async (req, res, next) => {
+    const { assetType, deviceType } = req.query;
+    const query = { status: 'Spare' };
+    if (assetType) query.assetType = assetType;
+    if (deviceType) query.deviceType = deviceType;
+    const models = await Asset.distinct('model', query);
+    const formatted = models
+        .filter(m => m && m.trim() !== '')
+        .sort()
+        .map(m => ({ value: m, label: m }));
+    res.json({ success: true, data: formatted });
+});
 
 // @desc    Export selected inventory assets to Excel/CSV
 // @route   POST /api/stock/export-selected
 // @access  Private
-export const exportSelectedAssets = async (req, res, next) => {
-    try {
-        const { assetIds, format = 'xlsx' } = req.body;
+export const exportSelectedAssets = asyncHandler(async (req, res, next) => {
+    const { assetIds, format = 'xlsx' } = req.body;
 
-        if (!assetIds || !Array.isArray(assetIds) || assetIds.length === 0) {
-            return res.status(400).json({ success: false, message: 'No asset IDs provided' });
-        }
-
-        const assets = await Asset.find({
-            _id: { $in: assetIds },
-            status: 'Spare'
-        }).populate('siteId', 'siteName isHeadOffice').lean();
-
-        if (assets.length === 0) {
-            return res.status(404).json({ success: false, message: 'No matching stock assets found' });
-        }
-
-        // Get project allocations for these assets
-        const allocations = await ProjectStockAllocation.find({
-            stockItemId: { $in: assetIds }
-        }).populate('projectId', 'projectNumber').lean();
-
-        // Create a map of asset ID to project number
-        const assetProjectMap = new Map();
-        allocations.forEach(alloc => {
-            if (alloc.projectId?.projectNumber) {
-                assetProjectMap.set(alloc.stockItemId.toString(), alloc.projectId.projectNumber);
-            }
-        });
-
-        const rows = assets.map(a => {
-            // Decrypt sensitive fields (MAC and Serial Number)
-            const decrypted = Asset.decryptSensitiveFields(a);
-            return {
-                'Asset Type': a.assetType || '',
-                'Device Type': a.deviceType || '',
-                'Make': a.make || '',
-                'Model': a.model || '',
-                'MAC Address': decrypted.mac || '',
-                'Serial Number': decrypted.serialNumber || '',
-                'Stock Location': a.stockLocation || '',
-                'Quantity': a.quantity || 1,
-                'Unit': a.unit || 'Nos',
-                'Remarks': a.remarks || a.remark || '',
-                'Site': a.siteId?.siteName || '',
-                'Head Office': a.siteId?.isHeadOffice ? 'Yes' : 'No',
-                'Project Number': assetProjectMap.get(a._id.toString()) || ''
-            };
-        });
-
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Selected Assets');
-
-        if (format === 'csv') {
-            const csv = XLSX.utils.sheet_to_csv(ws);
-            res.setHeader('Content-Type', 'text/csv');
-            res.setHeader('Content-Disposition', 'attachment; filename=selected_assets.csv');
-            return res.status(200).send(csv);
-        } else {
-            const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-            res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            res.setHeader('Content-Disposition', 'attachment; filename=selected_assets.xlsx');
-            return res.status(200).send(buffer);
-        }
-    } catch (error) {
-        next(error);
+    if (!assetIds || !Array.isArray(assetIds) || assetIds.length === 0) {
+        return res.status(400).json({ success: false, message: 'No asset IDs provided' });
     }
-};
+
+    const assets = await Asset.find({
+        _id: { $in: assetIds },
+        status: 'Spare'
+    }).populate('siteId', 'siteName isHeadOffice').lean();
+
+    if (assets.length === 0) {
+        return res.status(404).json({ success: false, message: 'No matching stock assets found' });
+    }
+
+    // Get project allocations for these assets
+    const allocations = await ProjectStockAllocation.find({
+        stockItemId: { $in: assetIds }
+    }).populate('projectId', 'projectNumber').lean();
+
+    // Create a map of asset ID to project number
+    const assetProjectMap = new Map();
+    allocations.forEach(alloc => {
+        if (alloc.projectId?.projectNumber) {
+            assetProjectMap.set(alloc.stockItemId.toString(), alloc.projectId.projectNumber);
+        }
+    });
+
+    const rows = assets.map(a => {
+        // Decrypt sensitive fields (MAC and Serial Number)
+        const decrypted = Asset.decryptSensitiveFields(a);
+        return {
+            'Asset Type': a.assetType || '',
+            'Device Type': a.deviceType || '',
+            'Make': a.make || '',
+            'Model': a.model || '',
+            'MAC Address': decrypted.mac || '',
+            'Serial Number': decrypted.serialNumber || '',
+            'Stock Location': a.stockLocation || '',
+            'Quantity': a.quantity || 1,
+            'Unit': a.unit || 'Nos',
+            'Remarks': a.remarks || a.remark || '',
+            'Site': a.siteId?.siteName || '',
+            'Head Office': a.siteId?.isHeadOffice ? 'Yes' : 'No',
+            'Project Number': assetProjectMap.get(a._id.toString()) || ''
+        };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Selected Assets');
+
+    if (format === 'csv') {
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename=selected_assets.csv');
+        return res.status(200).send(csv);
+    } else {
+        const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=selected_assets.xlsx');
+        return res.status(200).send(buffer);
+    }
+});
 
 // ==================== PROJECT STOCK ALLOCATION CONTROLLERS ====================
 
 // @desc    Allocate stock items to a project
 // @route   POST /api/stock/allocations
 // @access  Private (Admin, Supervisor)
-export const allocateStockToProject = async (req, res, next) => {
-    try {
-        const { projectId, stockItemId, allocatedQty, notes } = req.body;
-        const user = req.user;
+export const allocateStockToProject = asyncHandler(async (req, res, next) => {
+    const { projectId, stockItemId, allocatedQty, notes } = req.body;
+    const user = req.user;
 
-        // Validate project
-        const project = await Project.findById(projectId);
-        if (!project || !project.isActive) {
-            return res.status(404).json({ success: false, message: 'Project not found or inactive' });
-        }
-
-        // Validate stock item
-        const stockItem = await Asset.findById(stockItemId);
-        if (!stockItem) {
-            return res.status(404).json({ success: false, message: 'Stock item not found' });
-        }
-        if (stockItem.status !== 'Spare') {
-            return res.status(400).json({ success: false, message: 'Only spare stock items can be allocated' });
-        }
-
-        // Validate site-project relationship
-        // Stock can only be allocated to a project if:
-        // 1. Project has no linkedSiteId (any stock allowed), OR
-        // 2. Stock's siteId matches project's linkedSiteId
-        if (project.linkedSiteId && stockItem.siteId?.toString() !== project.linkedSiteId?.toString()) {
-            return res.status(400).json({
-                success: false,
-                message: 'Stock item site does not match the project site. Stock can only be allocated to projects linked to the same site.'
-            });
-        }
-
-        // Calculate already allocated qty for this stock item across all projects
-        const existingAllocations = await ProjectStockAllocation.find({
-            stockItemId,
-            status: { $ne: 'FullyInstalled' }
-        });
-        const totalAllocated = existingAllocations.reduce((sum, a) => sum + (a.allocatedQty - a.installedQty - a.faultyQty), 0);
-        const availableQty = (stockItem.quantity || 1) - totalAllocated;
-
-        if (allocatedQty > availableQty) {
-            return res.status(400).json({
-                success: false,
-                message: `Insufficient stock. Only ${availableQty} available (Total: ${stockItem.quantity || 1}, Already allocated: ${totalAllocated})`
-            });
-        }
-
-        const allocation = await ProjectStockAllocation.create({
-            projectId,
-            stockItemId,
-            allocatedQty,
-            allocatedBy: user._id,
-            notes
-        });
-
-        const populated = await ProjectStockAllocation.findById(allocation._id)
-            .populate('projectId', 'projectNumber projectName')
-            .populate('stockItemId', 'assetType deviceType make model serialNumber quantity unit')
-            .populate('allocatedBy', 'name');
-
-        res.status(201).json({
-            success: true,
-            data: populated,
-            message: `${allocatedQty} unit(s) allocated to project ${project.projectNumber}`
-        });
-    } catch (error) {
-        next(error);
+    // Validate project
+    const project = await Project.findById(projectId);
+    if (!project || !project.isActive) {
+        return res.status(404).json({ success: false, message: 'Project not found or inactive' });
     }
-};
+
+    // Validate stock item
+    const stockItem = await Asset.findById(stockItemId);
+    if (!stockItem) {
+        return res.status(404).json({ success: false, message: 'Stock item not found' });
+    }
+    if (stockItem.status !== 'Spare') {
+        return res.status(400).json({ success: false, message: 'Only spare stock items can be allocated' });
+    }
+
+    // Validate site-project relationship
+    // Stock can only be allocated to a project if:
+    // 1. Project has no linkedSiteId (any stock allowed), OR
+    // 2. Stock's siteId matches project's linkedSiteId
+    if (project.linkedSiteId && stockItem.siteId?.toString() !== project.linkedSiteId?.toString()) {
+        return res.status(400).json({
+            success: false,
+            message: 'Stock item site does not match the project site. Stock can only be allocated to projects linked to the same site.'
+        });
+    }
+
+    // Calculate already allocated qty for this stock item across all projects
+    const existingAllocations = await ProjectStockAllocation.find({
+        stockItemId,
+        status: { $ne: 'FullyInstalled' }
+    });
+    const totalAllocated = existingAllocations.reduce((sum, a) => sum + (a.allocatedQty - a.installedQty - a.faultyQty), 0);
+    const availableQty = (stockItem.quantity || 1) - totalAllocated;
+
+    if (allocatedQty > availableQty) {
+        return res.status(400).json({
+            success: false,
+            message: `Insufficient stock. Only ${availableQty} available (Total: ${stockItem.quantity || 1}, Already allocated: ${totalAllocated})`
+        });
+    }
+
+    const allocation = await ProjectStockAllocation.create({
+        projectId,
+        stockItemId,
+        allocatedQty,
+        allocatedBy: user._id,
+        notes
+    });
+
+    const populated = await ProjectStockAllocation.findById(allocation._id)
+        .populate('projectId', 'projectNumber projectName')
+        .populate('stockItemId', 'assetType deviceType make model serialNumber quantity unit')
+        .populate('allocatedBy', 'name');
+
+    res.status(201).json({
+        success: true,
+        data: populated,
+        message: `${allocatedQty} unit(s) allocated to project ${project.projectNumber}`
+    });
+});
 
 // @desc    Get allocations for a project (or all)
 // @route   GET /api/stock/allocations
 // @access  Private
-export const getProjectAllocations = async (req, res, next) => {
-    try {
-        const { projectId, stockItemId, status, page = 1, limit = 50 } = req.query;
-        const query = {};
+export const getProjectAllocations = asyncHandler(async (req, res, next) => {
+    const { projectId, stockItemId, status, page = 1, limit = 50 } = req.query;
+    const query = {};
 
-        if (projectId) query.projectId = projectId;
-        if (stockItemId) query.stockItemId = stockItemId;
-        if (status) query.status = status;
+    if (projectId) query.projectId = projectId;
+    if (stockItemId) query.stockItemId = stockItemId;
+    if (status) query.status = status;
 
-        const limitNum = Math.min(parseInt(limit) || 50, 1000); // hard limit to prevent timeouts
-        const skip = (parseInt(page) - 1) * limitNum;
+    const limitNum = Math.min(parseInt(limit) || 50, 1000); // hard limit to prevent timeouts
+    const skip = (parseInt(page) - 1) * limitNum;
 
-        const [allocations, total] = await Promise.all([
-            ProjectStockAllocation.find(query)
-                .select('-changeLog')
-                .populate('projectId', 'projectNumber projectName')
-                .populate('stockItemId', 'assetType deviceType make model serialNumber macAddress quantity unit assetCode')
-                .populate('allocatedBy', 'fullName')
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(limitNum)
-                .lean()
-                .maxTimeMS(15000),
-            ProjectStockAllocation.countDocuments(query).maxTimeMS(5000)
-        ]);
+    const [allocations, total] = await Promise.all([
+        ProjectStockAllocation.find(query)
+            .select('-changeLog')
+            .populate('projectId', 'projectNumber projectName')
+            .populate('stockItemId', 'assetType deviceType make model serialNumber macAddress quantity unit assetCode')
+            .populate('allocatedBy', 'fullName')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limitNum)
+            .lean()
+            .maxTimeMS(15000),
+        ProjectStockAllocation.countDocuments(query).maxTimeMS(5000)
+    ]);
 
-        const decryptedAllocations = allocations.map(alloc => {
-            const allocObj = alloc;
-            if (allocObj.stockItemId) {
-                if (allocObj.stockItemId.serialNumber && allocObj.stockItemId.serialNumber.startsWith('enc:')) {
-                    try { allocObj.stockItemId.serialNumber = decrypt(allocObj.stockItemId.serialNumber); } catch (e) {}
-                }
-                if (allocObj.stockItemId.macAddress && allocObj.stockItemId.macAddress.startsWith('enc:')) {
-                    try { allocObj.stockItemId.macAddress = decrypt(allocObj.stockItemId.macAddress); } catch (e) {}
-                }
+    const decryptedAllocations = allocations.map(alloc => {
+        const allocObj = alloc;
+        if (allocObj.stockItemId) {
+            if (allocObj.stockItemId.serialNumber && allocObj.stockItemId.serialNumber.startsWith('enc:')) {
+                try { allocObj.stockItemId.serialNumber = decrypt(allocObj.stockItemId.serialNumber); } catch (e) {}
             }
-            return allocObj;
-        });
-
-        res.json({
-            success: true,
-            data: decryptedAllocations,
-            pagination: {
-                page: parseInt(page),
-                limit: parseInt(limit),
-                total,
-                pages: Math.ceil(total / parseInt(limit))
+            if (allocObj.stockItemId.macAddress && allocObj.stockItemId.macAddress.startsWith('enc:')) {
+                try { allocObj.stockItemId.macAddress = decrypt(allocObj.stockItemId.macAddress); } catch (e) {}
             }
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+        }
+        return allocObj;
+    });
+
+    res.json({
+        success: true,
+        data: decryptedAllocations,
+        pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            pages: Math.ceil(total / parseInt(limit))
+        }
+    });
+});
 
 // @desc    Update an allocation (Admin only, with audit trail)
 // @route   PUT /api/stock/allocations/:id
 // @access  Private (Admin)
-export const updateAllocation = async (req, res, next) => {
-    try {
-        const { id } = req.params;
-        const { allocatedQty, notes, reason } = req.body;
-        const user = req.user;
+export const updateAllocation = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const { allocatedQty, notes, reason } = req.body;
+    const user = req.user;
 
-        const allocation = await ProjectStockAllocation.findById(id);
-        if (!allocation) {
-            return res.status(404).json({ success: false, message: 'Allocation not found' });
-        }
+    const allocation = await ProjectStockAllocation.findById(id);
+    if (!allocation) {
+        return res.status(404).json({ success: false, message: 'Allocation not found' });
+    }
 
-        // Cannot reduce below installed qty
-        const usedQty = allocation.installedQty + allocation.faultyQty;
-        if (allocatedQty !== undefined && allocatedQty < usedQty) {
+    // Cannot reduce below installed qty
+    const usedQty = allocation.installedQty + allocation.faultyQty;
+    if (allocatedQty !== undefined && allocatedQty < usedQty) {
+        return res.status(400).json({
+            success: false,
+            message: `Cannot reduce allocation below used qty (${usedQty} already installed/faulty)`
+        });
+    }
+
+    // Validate new qty against available stock
+    if (allocatedQty !== undefined && allocatedQty !== allocation.allocatedQty) {
+        const stockItem = await Asset.findById(allocation.stockItemId);
+        const otherAllocations = await ProjectStockAllocation.find({
+            stockItemId: allocation.stockItemId,
+            _id: { $ne: allocation._id },
+            status: { $ne: 'FullyInstalled' }
+        });
+        const otherAllocated = otherAllocations.reduce((sum, a) => sum + (a.allocatedQty - a.installedQty - a.faultyQty), 0);
+        const available = (stockItem?.quantity || 1) - otherAllocated;
+
+        if (allocatedQty > available + usedQty) {
             return res.status(400).json({
                 success: false,
-                message: `Cannot reduce allocation below used qty (${usedQty} already installed/faulty)`
+                message: `Cannot allocate ${allocatedQty}. Only ${available} available in stock.`
             });
         }
 
-        // Validate new qty against available stock
-        if (allocatedQty !== undefined && allocatedQty !== allocation.allocatedQty) {
-            const stockItem = await Asset.findById(allocation.stockItemId);
-            const otherAllocations = await ProjectStockAllocation.find({
-                stockItemId: allocation.stockItemId,
-                _id: { $ne: allocation._id },
-                status: { $ne: 'FullyInstalled' }
-            });
-            const otherAllocated = otherAllocations.reduce((sum, a) => sum + (a.allocatedQty - a.installedQty - a.faultyQty), 0);
-            const available = (stockItem?.quantity || 1) - otherAllocated;
-
-            if (allocatedQty > available + usedQty) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Cannot allocate ${allocatedQty}. Only ${available} available in stock.`
-                });
-            }
-
-            // Audit trail
-            allocation.changeLog.push({
-                changedBy: user._id,
-                previousQty: allocation.allocatedQty,
-                newQty: allocatedQty,
-                reason: reason || 'Admin adjustment'
-            });
-            allocation.allocatedQty = allocatedQty;
-        }
-
-        if (notes !== undefined) allocation.notes = notes;
-
-        await allocation.save();
-
-        const populated = await ProjectStockAllocation.findById(allocation._id)
-            .populate('projectId', 'projectNumber projectName')
-            .populate('stockItemId', 'assetType deviceType make model serialNumber quantity unit')
-            .populate('allocatedBy', 'name')
-            .populate('changeLog.changedBy', 'name');
-
-        res.json({
-            success: true,
-            data: populated,
-            message: 'Allocation updated successfully'
+        // Audit trail
+        allocation.changeLog.push({
+            changedBy: user._id,
+            previousQty: allocation.allocatedQty,
+            newQty: allocatedQty,
+            reason: reason || 'Admin adjustment'
         });
-    } catch (error) {
-        next(error);
+        allocation.allocatedQty = allocatedQty;
     }
-};
+
+    if (notes !== undefined) allocation.notes = notes;
+
+    await allocation.save();
+
+    const populated = await ProjectStockAllocation.findById(allocation._id)
+        .populate('projectId', 'projectNumber projectName')
+        .populate('stockItemId', 'assetType deviceType make model serialNumber quantity unit')
+        .populate('allocatedBy', 'name')
+        .populate('changeLog.changedBy', 'name');
+
+    res.json({
+        success: true,
+        data: populated,
+        message: 'Allocation updated successfully'
+    });
+});
 
 // @desc    Delete an allocation (Admin only)
 // @route   DELETE /api/stock/allocations/:id
 // @access  Private (Admin)
-export const deleteAllocation = async (req, res, next) => {
-    try {
-        const { id } = req.params;
+export const deleteAllocation = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
 
-        const allocation = await ProjectStockAllocation.findById(id);
-        if (!allocation) {
-            return res.status(404).json({ success: false, message: 'Allocation not found' });
-        }
-
-        if (allocation.installedQty > 0 || allocation.faultyQty > 0) {
-            return res.status(400).json({
-                success: false,
-                message: `Cannot delete allocation with ${allocation.installedQty} installed and ${allocation.faultyQty} faulty items. Adjust the qty instead.`
-            });
-        }
-
-        await ProjectStockAllocation.findByIdAndDelete(id);
-
-        res.json({ success: true, message: 'Allocation removed' });
-    } catch (error) {
-        next(error);
+    const allocation = await ProjectStockAllocation.findById(id);
+    if (!allocation) {
+        return res.status(404).json({ success: false, message: 'Allocation not found' });
     }
-};
+
+    if (allocation.installedQty > 0 || allocation.faultyQty > 0) {
+        return res.status(400).json({
+            success: false,
+            message: `Cannot delete allocation with ${allocation.installedQty} installed and ${allocation.faultyQty} faulty items. Adjust the qty instead.`
+        });
+    }
+
+    await ProjectStockAllocation.findByIdAndDelete(id);
+
+    res.json({ success: true, message: 'Allocation removed' });
+});
 
 // @desc    Get project allocated stock for device selection dropdown
 // @route   GET /api/stock/allocations/for-device-form
 // @access  Private
-export const getProjectAllocatedStock = async (req, res, next) => {
-    try {
-        const { projectId } = req.query;
-        if (!projectId) {
-            return res.status(400).json({ success: false, message: 'projectId is required' });
-        }
-
-        const allocations = await ProjectStockAllocation.find({
-            projectId,
-            status: { $in: ['Allocated', 'PartiallyInstalled'] }
-        })
-            .populate('stockItemId', 'assetType deviceType make model serialNumber mac quantity unit assetCode')
-            .populate('allocatedBy', 'name')
-            .lean();
-
-        // Cable keywords for filtering out cables
-        const cableKeywords = ['cable', 'cabling', 'cat5', 'cat6', 'fiber', 'coaxial'];
-
-        // Enrich each allocation with remaining qty, decrypt sensitive fields, and filter out cables
-        const items = allocations
-            .filter(a => {
-                if (!a.stockItemId) return false; // guard against deleted stock items
-
-                // Filter out cable items
-                const assetType = (a.stockItemId.assetType || '').toLowerCase();
-                const deviceType = (a.stockItemId.deviceType || '').toLowerCase();
-                const unit = (a.stockItemId.unit || '').toLowerCase();
-
-                const isCable = cableKeywords.some(kw =>
-                    assetType.includes(kw) || deviceType.includes(kw)
-                ) || ['meters', 'mtrs', 'mtr', 'm'].includes(unit);
-
-                return !isCable; // Only include non-cable items
-            })
-            .map(a => {
-                // Decrypt sensitive fields
-                let serialNumber = a.stockItemId.serialNumber;
-                let mac = a.stockItemId.mac;
-
-                try {
-                    if (serialNumber) serialNumber = decrypt(serialNumber);
-                } catch (e) { /* use original value if decryption fails */ }
-
-                try {
-                    if (mac) mac = decrypt(mac);
-                } catch (e) { /* use original value if decryption fails */ }
-
-                return {
-                    allocationId: a._id,
-                    stockItemId: a.stockItemId._id,
-                    assetType: a.stockItemId.assetType,
-                    deviceType: a.stockItemId.deviceType,
-                    make: a.stockItemId.make,
-                    model: a.stockItemId.model,
-                    serialNumber,
-                    mac,
-                    unit: a.stockItemId.unit,
-                    assetCode: a.stockItemId.assetCode,
-                    allocatedQty: a.allocatedQty,
-                    installedQty: a.installedQty,
-                    faultyQty: a.faultyQty,
-                    remainingQty: Math.max(0, a.allocatedQty - a.installedQty - a.faultyQty),
-                    status: a.status,
-                    label: `${a.stockItemId.deviceType || a.stockItemId.assetType} - ${a.stockItemId.make || ''} ${a.stockItemId.model || ''}`.trim()
-                };
-            });
-
-        res.json({ success: true, data: items });
-    } catch (error) {
-        next(error);
+export const getProjectAllocatedStock = asyncHandler(async (req, res, next) => {
+    const { projectId } = req.query;
+    if (!projectId) {
+        return res.status(400).json({ success: false, message: 'projectId is required' });
     }
-};
 
-// @desc    Get project allocated cables for device cable selection
-// @route   GET /api/stock/allocations/cables
-// @access  Private
-export const getProjectCableAllocations = async (req, res, next) => {
-    try {
-        const { projectId, cableType } = req.query;
-        if (!projectId) {
-            return res.status(400).json({ success: false, message: 'projectId is required' });
-        }
+    const allocations = await ProjectStockAllocation.find({
+        projectId,
+        status: { $in: ['Allocated', 'PartiallyInstalled'] }
+    })
+        .populate('stockItemId', 'assetType deviceType make model serialNumber mac quantity unit assetCode')
+        .populate('allocatedBy', 'name')
+        .lean();
 
-        // Build query to find cable-type allocations
-        const allocations = await ProjectStockAllocation.find({
-            projectId,
-            status: { $in: ['Allocated', 'PartiallyInstalled'] }
-        })
-            .populate('stockItemId', 'assetType deviceType make model serialNumber quantity unit assetCode')
-            .lean();
+    // Cable keywords for filtering out cables
+    const cableKeywords = ['cable', 'cabling', 'cat5', 'cat6', 'fiber', 'coaxial'];
 
-        // Filter to only cable-related items
-        // Cables can be identified by: assetType containing 'Cable' or 'Cabling',
-        // deviceType containing cable keywords, or unit being 'Meters'/'Mtrs'/'Mtr'
-        const cableKeywords = ['cable', 'cabling', 'cat5', 'cat6', 'fiber', 'coaxial'];
+    // Enrich each allocation with remaining qty, decrypt sensitive fields, and filter out cables
+    const items = allocations
+        .filter(a => {
+            if (!a.stockItemId) return false; // guard against deleted stock items
 
-        const cableAllocations = allocations.filter(a => {
-            if (!a.stockItemId) return false;
-
+            // Filter out cable items
             const assetType = (a.stockItemId.assetType || '').toLowerCase();
             const deviceType = (a.stockItemId.deviceType || '').toLowerCase();
             const unit = (a.stockItemId.unit || '').toLowerCase();
 
-            // Check if it's a cable item
             const isCable = cableKeywords.some(kw =>
                 assetType.includes(kw) || deviceType.includes(kw)
             ) || ['meters', 'mtrs', 'mtr', 'm'].includes(unit);
 
-            if (!isCable) return false;
+            return !isCable; // Only include non-cable items
+        })
+        .map(a => {
+            // Decrypt sensitive fields
+            let serialNumber = a.stockItemId.serialNumber;
+            let mac = a.stockItemId.mac;
 
-            // If cableType filter is provided, match against deviceType
-            if (cableType) {
-                const normalizedCableType = cableType.toLowerCase();
-                return deviceType.includes(normalizedCableType) ||
-                       assetType.includes(normalizedCableType);
-            }
+            try {
+                if (serialNumber) serialNumber = decrypt(serialNumber);
+            } catch (e) { /* use original value if decryption fails */ }
 
-            return true;
+            try {
+                if (mac) mac = decrypt(mac);
+            } catch (e) { /* use original value if decryption fails */ }
+
+            return {
+                allocationId: a._id,
+                stockItemId: a.stockItemId._id,
+                assetType: a.stockItemId.assetType,
+                deviceType: a.stockItemId.deviceType,
+                make: a.stockItemId.make,
+                model: a.stockItemId.model,
+                serialNumber,
+                mac,
+                unit: a.stockItemId.unit,
+                assetCode: a.stockItemId.assetCode,
+                allocatedQty: a.allocatedQty,
+                installedQty: a.installedQty,
+                faultyQty: a.faultyQty,
+                remainingQty: Math.max(0, a.allocatedQty - a.installedQty - a.faultyQty),
+                status: a.status,
+                label: `${a.stockItemId.deviceType || a.stockItemId.assetType} - ${a.stockItemId.make || ''} ${a.stockItemId.model || ''}`.trim()
+            };
         });
 
-        const items = cableAllocations.map(a => ({
-            allocationId: a._id,
-            stockItemId: a.stockItemId._id,
-            assetType: a.stockItemId.assetType,
-            deviceType: a.stockItemId.deviceType,
-            make: a.stockItemId.make,
-            model: a.stockItemId.model,
-            unit: a.stockItemId.unit,
-            assetCode: a.stockItemId.assetCode,
-            allocatedQty: a.allocatedQty,
-            installedQty: a.installedQty,
-            faultyQty: a.faultyQty,
-            remainingQty: Math.max(0, a.allocatedQty - a.installedQty - a.faultyQty),
-            status: a.status,
-            label: `${a.stockItemId.deviceType || a.stockItemId.assetType} - ${a.stockItemId.make || ''} ${a.stockItemId.model || ''}`.trim()
-        }));
+    res.json({ success: true, data: items });
+});
 
-        res.json({ success: true, data: items });
-    } catch (error) {
-        next(error);
+// @desc    Get project allocated cables for device cable selection
+// @route   GET /api/stock/allocations/cables
+// @access  Private
+export const getProjectCableAllocations = asyncHandler(async (req, res, next) => {
+    const { projectId, cableType } = req.query;
+    if (!projectId) {
+        return res.status(400).json({ success: false, message: 'projectId is required' });
     }
-};
+
+    // Build query to find cable-type allocations
+    const allocations = await ProjectStockAllocation.find({
+        projectId,
+        status: { $in: ['Allocated', 'PartiallyInstalled'] }
+    })
+        .populate('stockItemId', 'assetType deviceType make model serialNumber quantity unit assetCode')
+        .lean();
+
+    // Filter to only cable-related items
+    // Cables can be identified by: assetType containing 'Cable' or 'Cabling',
+    // deviceType containing cable keywords, or unit being 'Meters'/'Mtrs'/'Mtr'
+    const cableKeywords = ['cable', 'cabling', 'cat5', 'cat6', 'fiber', 'coaxial'];
+
+    const cableAllocations = allocations.filter(a => {
+        if (!a.stockItemId) return false;
+
+        const assetType = (a.stockItemId.assetType || '').toLowerCase();
+        const deviceType = (a.stockItemId.deviceType || '').toLowerCase();
+        const unit = (a.stockItemId.unit || '').toLowerCase();
+
+        // Check if it's a cable item
+        const isCable = cableKeywords.some(kw =>
+            assetType.includes(kw) || deviceType.includes(kw)
+        ) || ['meters', 'mtrs', 'mtr', 'm'].includes(unit);
+
+        if (!isCable) return false;
+
+        // If cableType filter is provided, match against deviceType
+        if (cableType) {
+            const normalizedCableType = cableType.toLowerCase();
+            return deviceType.includes(normalizedCableType) ||
+                   assetType.includes(normalizedCableType);
+        }
+
+        return true;
+    });
+
+    const items = cableAllocations.map(a => ({
+        allocationId: a._id,
+        stockItemId: a.stockItemId._id,
+        assetType: a.stockItemId.assetType,
+        deviceType: a.stockItemId.deviceType,
+        make: a.stockItemId.make,
+        model: a.stockItemId.model,
+        unit: a.stockItemId.unit,
+        assetCode: a.stockItemId.assetCode,
+        allocatedQty: a.allocatedQty,
+        installedQty: a.installedQty,
+        faultyQty: a.faultyQty,
+        remainingQty: Math.max(0, a.allocatedQty - a.installedQty - a.faultyQty),
+        status: a.status,
+        label: `${a.stockItemId.deviceType || a.stockItemId.assetType} - ${a.stockItemId.make || ''} ${a.stockItemId.model || ''}`.trim()
+    }));
+
+    res.json({ success: true, data: items });
+});
 
 // @desc    Get cable/wire items in stock for a site (unit=meter or cable keywords)
 // @route   GET /api/stock/cables
 // @access  Private
-export const getCableStockForSite = async (req, res, next) => {
-    try {
-        const { siteId } = req.query;
-        const user = req.user;
+export const getCableStockForSite = asyncHandler(async (req, res, next) => {
+    const { siteId } = req.query;
+    const user = req.user;
 
-        const CABLE_KEYWORDS = ['cable', 'cabling', 'cat5', 'cat6', 'fiber', 'fibre', 'coaxial', 'wire'];
-        const METER_UNITS = ['meter', 'meters', 'm', 'mtr', 'mtrs'];
+    const CABLE_KEYWORDS = ['cable', 'cabling', 'cat5', 'cat6', 'fiber', 'fibre', 'coaxial', 'wire'];
+    const METER_UNITS = ['meter', 'meters', 'm', 'mtr', 'mtrs'];
 
-        let matchQuery = { status: 'Spare' };
+    let matchQuery = { status: 'Spare' };
 
-        if (siteId) {
-            matchQuery.siteId = new mongoose.Types.ObjectId(siteId);
-        } else if (user.role !== 'Admin') {
-            matchQuery.siteId = { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) };
-        }
-
-        const assets = await Asset.find(matchQuery)
-            .select('assetCode assetType deviceType make model quantity unit locationDescription siteId')
-            .lean();
-
-        const cables = assets.filter(a => {
-            const assetType = (a.assetType || '').toLowerCase();
-            const deviceType = (a.deviceType || '').toLowerCase();
-            const unit = (a.unit || '').toLowerCase();
-            return METER_UNITS.includes(unit) ||
-                CABLE_KEYWORDS.some(kw => assetType.includes(kw) || deviceType.includes(kw));
-        });
-
-        res.json({ success: true, data: cables });
-    } catch (error) {
-        next(error);
+    if (siteId) {
+        matchQuery.siteId = new mongoose.Types.ObjectId(siteId);
+    } else if (user.role !== 'Admin') {
+        matchQuery.siteId = { $in: (user.assignedSites || []).map(s => new mongoose.Types.ObjectId(s)) };
     }
-};
+
+    const assets = await Asset.find(matchQuery)
+        .select('assetCode assetType deviceType make model quantity unit locationDescription siteId')
+        .lean();
+
+    const cables = assets.filter(a => {
+        const assetType = (a.assetType || '').toLowerCase();
+        const deviceType = (a.deviceType || '').toLowerCase();
+        const unit = (a.unit || '').toLowerCase();
+        return METER_UNITS.includes(unit) ||
+            CABLE_KEYWORDS.some(kw => assetType.includes(kw) || deviceType.includes(kw));
+    });
+
+    res.json({ success: true, data: cables });
+});
 
 // @desc    Record cable usage for a ticket (deducts from asset quantity)
 // @route   POST /api/stock/cable-usage
 // @access  Private
-export const recordCableUsage = async (req, res, next) => {
-    try {
-        const { ticketId, cableAssetId, quantityUsed, notes } = req.body;
+export const recordCableUsage = asyncHandler(async (req, res, next) => {
+    const { ticketId, cableAssetId, quantityUsed, notes } = req.body;
 
-        if (!ticketId || !cableAssetId || quantityUsed == null) {
-            return res.status(400).json({ success: false, message: 'ticketId, cableAssetId, and quantityUsed are required' });
-        }
-
-        const qty = parseFloat(quantityUsed);
-        if (isNaN(qty) || qty <= 0) {
-            return res.status(400).json({ success: false, message: 'quantityUsed must be a positive number' });
-        }
-
-        const asset = await Asset.findById(cableAssetId);
-        if (!asset) {
-            return res.status(404).json({ success: false, message: 'Cable asset not found' });
-        }
-        if (asset.status !== 'Spare') {
-            return res.status(400).json({ success: false, message: 'Asset is not available in stock' });
-        }
-
-        const currentQty = asset.quantity ?? 0;
-        if (qty > currentQty) {
-            return res.status(400).json({
-                success: false,
-                message: `Cannot use ${qty} ${asset.unit || 'units'}. Only ${currentQty} ${asset.unit || 'units'} available.`
-            });
-        }
-
-        asset.quantity = Math.max(0, currentQty - qty);
-        await asset.save();
-
-        const log = await StockMovementLog.logMovement({
-            asset,
-            movementType: 'CableUsed',
-            fromSiteId: asset.siteId,
-            toSiteId: asset.siteId,
-            fromStatus: 'Spare',
-            toStatus: 'Spare',
-            performedBy: req.user._id,
-            ticketId,
-            notes: notes || null,
-            quantityChange: -qty
-        });
-
-        res.json({
-            success: true,
-            message: `${qty} ${asset.unit || 'units'} deducted from stock`,
-            data: { asset, log }
-        });
-    } catch (error) {
-        next(error);
+    if (!ticketId || !cableAssetId || quantityUsed == null) {
+        return res.status(400).json({ success: false, message: 'ticketId, cableAssetId, and quantityUsed are required' });
     }
-};
+
+    const qty = parseFloat(quantityUsed);
+    if (isNaN(qty) || qty <= 0) {
+        return res.status(400).json({ success: false, message: 'quantityUsed must be a positive number' });
+    }
+
+    const asset = await Asset.findById(cableAssetId);
+    if (!asset) {
+        return res.status(404).json({ success: false, message: 'Cable asset not found' });
+    }
+    if (asset.status !== 'Spare') {
+        return res.status(400).json({ success: false, message: 'Asset is not available in stock' });
+    }
+
+    const currentQty = asset.quantity ?? 0;
+    if (qty > currentQty) {
+        return res.status(400).json({
+            success: false,
+            message: `Cannot use ${qty} ${asset.unit || 'units'}. Only ${currentQty} ${asset.unit || 'units'} available.`
+        });
+    }
+
+    asset.quantity = Math.max(0, currentQty - qty);
+    await asset.save();
+
+    const log = await StockMovementLog.logMovement({
+        asset,
+        movementType: 'CableUsed',
+        fromSiteId: asset.siteId,
+        toSiteId: asset.siteId,
+        fromStatus: 'Spare',
+        toStatus: 'Spare',
+        performedBy: req.user._id,
+        ticketId,
+        notes: notes || null,
+        quantityChange: -qty
+    });
+
+    res.json({
+        success: true,
+        message: `${qty} ${asset.unit || 'units'} deducted from stock`,
+        data: { asset, log }
+    });
+});
 
 // @desc    Get cable usage history for a ticket
 // @route   GET /api/stock/cable-usage/:ticketId
 // @access  Private
-export const getCableUsageForTicket = async (req, res, next) => {
-    try {
-        const { ticketId } = req.params;
+export const getCableUsageForTicket = asyncHandler(async (req, res, next) => {
+    const { ticketId } = req.params;
 
-        const logs = await StockMovementLog.find({ ticketId, movementType: 'CableUsed' })
-            .populate('performedBy', 'name email')
-            .sort({ createdAt: -1 })
-            .lean();
+    const logs = await StockMovementLog.find({ ticketId, movementType: 'CableUsed' })
+        .populate('performedBy', 'name email')
+        .sort({ createdAt: -1 })
+        .lean();
 
-        res.json({ success: true, data: logs });
-    } catch (error) {
-        next(error);
-    }
-};
+    res.json({ success: true, data: logs });
+});
 
 // @desc    Export inventory stock summary (grouped by deviceType, make, model)
 // @route   GET /api/stock/export-summary

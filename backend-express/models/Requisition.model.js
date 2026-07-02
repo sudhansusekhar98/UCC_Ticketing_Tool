@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { generateSequentialId } from '../utils/idGenerator.js';
 
 const requisitionSchema = new mongoose.Schema({
     // Auto-generated requisition number
@@ -106,31 +107,12 @@ const requisitionSchema = new mongoose.Schema({
 // Pre-save hook to generate requisition number
 requisitionSchema.pre('save', async function (next) {
     if (this.isNew && !this.requisitionNumber) {
-        const date = new Date();
-        const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-
         // Determine prefix based on type
         let prefix = 'REQ';
         if (this.requisitionType === 'RMATransfer') prefix = 'RMT';
         else if (this.requisitionType === 'RepairedItemTransfer') prefix = 'RPT';
 
-        // Find the last requisition created today with same prefix
-        const lastReq = await this.constructor.findOne({
-            requisitionNumber: new RegExp(`^${prefix}-${dateStr}-`)
-        }).sort({ requisitionNumber: -1 });
-
-        let sequence = 1;
-        if (lastReq && lastReq.requisitionNumber) {
-            const parts = lastReq.requisitionNumber.split('-');
-            if (parts.length >= 3) {
-                const lastSequence = parseInt(parts[2]);
-                if (!isNaN(lastSequence)) {
-                    sequence = lastSequence + 1;
-                }
-            }
-        }
-
-        this.requisitionNumber = `${prefix}-${dateStr}-${sequence.toString().padStart(4, '0')}`;
+        this.requisitionNumber = await generateSequentialId(this.constructor, 'requisitionNumber', prefix);
     }
     next();
 });

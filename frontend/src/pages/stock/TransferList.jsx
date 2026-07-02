@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import {
     ArrowRightLeft, Plus, ArrowLeft, CheckCircle2, Truck,
@@ -11,7 +11,6 @@ import './StockCommon.css';
 import './StockTransfers.css';
 
 export default function TransferList() {
-    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [transfers, setTransfers] = useState([]);
     const [statusFilter, setStatusFilter] = useState('');

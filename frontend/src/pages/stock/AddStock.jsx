@@ -19,8 +19,7 @@ export default function AddStock() {
     const [models, setModels] = useState([]);
 
     // Permission checks
-    const { hasRole, hasRight, getSitesWithRight, refreshUserRights } = useAuthStore();
-    const isAdminOrSupervisor = hasRole(['Admin', 'Supervisor']);
+    const { hasRole, getSitesWithRight, refreshUserRights } = useAuthStore();
 
     const [formData, setFormData] = useState({
         siteId: '',

@@ -37,3 +37,8 @@ Thumbs.db
 dist/
 build/
 
+.claude
+.agent
+.code-review-graph
+.specify
+.github

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { generateSequentialId } from '../utils/idGenerator.js';
 
 const ticketSchema = new mongoose.Schema({
   ticketNumber: {
@@ -116,6 +117,29 @@ const ticketSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  // SLA Extension — current state only; TicketActivity is the authoritative history
+  // (a ticket can cycle through request → approve → re-breach → request again)
+  slaExtension: {
+    status: {
+      type: String,
+      enum: ['None', 'Pending', 'Approved', 'Rejected', 'Cancelled'],
+      default: 'None'
+    },
+    reason: String,
+    requestedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    requestedOn: Date,
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    reviewedOn: Date,
+    rejectionReason: String,
+    previousSlaRestoreDue: Date
+  },
+  lastSlaReminderSentAt: Date,
   escalationLevel: {
     type: Number,
     default: 0,
@@ -195,6 +219,7 @@ ticketSchema.index({ createdAt: -1 });
 // Compound indexes for cron job SLA queries
 ticketSchema.index({ status: 1, slaRestoreDue: 1, isBreachWarningSent: 1 });
 ticketSchema.index({ status: 1, slaRestoreDue: 1, isSlaBreachedNotificationSent: 1 });
+ticketSchema.index({ isSLARestoreBreached: 1, lastSlaReminderSentAt: 1 });
 
 // Virtual for activities
 ticketSchema.virtual('activities', {
@@ -221,21 +246,7 @@ ticketSchema.virtual('workOrders', {
 ticketSchema.pre('save', async function (next) {
   // 1. Generate Ticket Number
   if (this.isNew && !this.ticketNumber) {
-    const date = new Date();
-    const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-
-    // Find the last ticket created today
-    const lastTicket = await this.constructor.findOne({
-      ticketNumber: new RegExp(`^TKT-${dateStr}-`)
-    }).sort({ ticketNumber: -1 });
-
-    let sequence = 1;
-    if (lastTicket) {
-      const lastSequence = parseInt(lastTicket.ticketNumber.split('-')[2]);
-      sequence = lastSequence + 1;
-    }
-
-    this.ticketNumber = `TKT-${dateStr}-${sequence.toString().padStart(4, '0')}`;
+    this.ticketNumber = await generateSequentialId(this.constructor, 'ticketNumber', 'TKT');
   }
 
   // 2. Calculate priority score if not set

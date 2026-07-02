@@ -26,6 +26,7 @@ import {
     Map,
     Activity
 } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import './Help.css';
 
 const HELP_SECTIONS = [
@@ -1806,7 +1807,7 @@ export default function Help() {
                 <main className="help-content" ref={contentRef}>
                     <article
                         className={`help-article ${isTransitioning ? 'transitioning' : ''}`}
-                        dangerouslySetInnerHTML={{ __html: getCurrentContent() }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(getCurrentContent()) }}
                     />
                 </main>
             </div>

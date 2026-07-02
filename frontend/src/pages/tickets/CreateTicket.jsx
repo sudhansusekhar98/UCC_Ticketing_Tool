@@ -18,6 +18,13 @@ const SUBCATEGORY_SUGGESTIONS = {
 
 const CABLE_SUBCATEGORIES = ['fibre cut', 'cable cut', 'cable damage', 'cable'];
 
+const DEFAULT_SLA = {
+    P1: { responseTimeMinutes: 15, restoreTimeMinutes: 60 },
+    P2: { responseTimeMinutes: 30, restoreTimeMinutes: 240 },
+    P3: { responseTimeMinutes: 60, restoreTimeMinutes: 480 },
+    P4: { responseTimeMinutes: 120, restoreTimeMinutes: 1440 },
+};
+
 export default function TicketForm() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -179,35 +186,30 @@ export default function TicketForm() {
         }
     };
 
-    const loadDeviceTypesForSite = async (siteId, locationName = '', assetType = '') => {
+    // Shared loader: fetches a dropdown list and pushes it into the given setter, resetting to [] on failure.
+    const loadInto = async (setter, apiCall, label) => {
         try {
-            const response = await assetsApi.getDeviceTypesForSite(siteId, locationName || undefined, assetType || undefined);
-            setDeviceTypes(response.data.data || response.data || []);
+            const response = await apiCall();
+            setter(response.data.data || response.data || []);
         } catch (error) {
-            console.error('Failed to load device types', error);
-            setDeviceTypes([]);
+            console.error(`Failed to load ${label}`, error);
+            setter([]);
         }
     };
 
-    const loadAssetTypesForSite = async (siteId, locationName = '') => {
-        try {
-            const response = await assetsApi.getAssetTypesForSite(siteId, locationName || undefined);
-            setAssetTypes(response.data.data || response.data || []);
-        } catch (error) {
-            console.error('Failed to load asset types', error);
-            setAssetTypes([]);
-        }
-    };
+    const loadDeviceTypesForSite = (siteId, locationName = '', assetType = '') => loadInto(
+        setDeviceTypes,
+        () => assetsApi.getDeviceTypesForSite(siteId, locationName || undefined, assetType || undefined),
+        'device types'
+    );
 
-    const loadLocationNames = async (siteId) => {
-        try {
-            const response = await assetsApi.getLocationNames(siteId);
-            setLocationNames(response.data.data || response.data || []);
-        } catch (error) {
-            console.error('Failed to load location names', error);
-            setLocationNames([]);
-        }
-    };
+    const loadAssetTypesForSite = (siteId, locationName = '') => loadInto(
+        setAssetTypes,
+        () => assetsApi.getAssetTypesForSite(siteId, locationName || undefined),
+        'asset types'
+    );
+
+    const loadLocationNames = (siteId) => loadInto(setLocationNames, () => assetsApi.getLocationNames(siteId), 'location names');
 
     const loadAssets = async (siteId, locationName = '', assetType = '', deviceType = '') => {
         try {
@@ -226,12 +228,6 @@ export default function TicketForm() {
     };
 
     useEffect(() => {
-        const DEFAULT_SLA = {
-            P1: { responseTimeMinutes: 15, restoreTimeMinutes: 60 },
-            P2: { responseTimeMinutes: 30, restoreTimeMinutes: 240 },
-            P3: { responseTimeMinutes: 60, restoreTimeMinutes: 480 },
-            P4: { responseTimeMinutes: 120, restoreTimeMinutes: 1440 },
-        };
         const calculateSLA = () => {
             const selectedAsset = assets.find(a => a.value === formData.assetId);
             const criticality = selectedAsset?.criticality || 2;
@@ -786,21 +782,21 @@ export default function TicketForm() {
 
                     {/* Priority & SLA Preview */}
                     {!isSiteClient && (() => {
-                        const DEFAULT_SLA_DISPLAY = {
-                            P1: { responseTimeMinutes: 15, restoreTimeMinutes: 60 },
-                            P2: { responseTimeMinutes: 30, restoreTimeMinutes: 240 },
-                            P3: { responseTimeMinutes: 60, restoreTimeMinutes: 480 },
-                            P4: { responseTimeMinutes: 120, restoreTimeMinutes: 1440 },
-                        };
                         const assetCriticality = assets.find(a => a.value === formData.assetId)?.criticality || 2;
                         const score = Number(formData.impact) * Number(formData.urgency) * assetCriticality;
                         const priority = getPriorityFromScore(score);
-                        const policy = slaPolicies.find(p => p.priority === priority) || DEFAULT_SLA_DISPLAY[priority];
+                        const policy = slaPolicies.find(p => p.priority === priority) || DEFAULT_SLA[priority];
 
                         const fmtDate = (d) => d ? d.toLocaleString('en-GB', {
                             weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
                             hour: '2-digit', minute: '2-digit', hour12: false
                         }) : null;
+
+                        const targetLabelStyle = { fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: '6px' };
+                        const targets = [
+                            { key: 'response', label: 'Predicted Response Target', value: calculatedTargets.response, minutes: policy?.responseTimeMinutes },
+                            { key: 'resolution', label: 'Predicted Resolution Target', value: calculatedTargets.resolution, minutes: policy?.restoreTimeMinutes },
+                        ];
 
                         return (
                             <>
@@ -818,48 +814,27 @@ export default function TicketForm() {
                                     backgroundColor: 'var(--bg-secondary)', borderRadius: '8px',
                                     border: '1px solid var(--border-light)'
                                 }}>
-                                    <div>
-                                        <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                                            Predicted Response Target
-                                        </div>
-                                        {calculatedTargets.response ? (
-                                            <>
-                                                <div style={{ fontWeight: '700', color: 'var(--primary-500)', fontSize: '14px' }}>
-                                                    {fmtDate(calculatedTargets.response)}
-                                                </div>
-                                                {policy && (
-                                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                                                        {formatDuration(policy.responseTimeMinutes)} after ticket submission
+                                    {targets.map(t => (
+                                        <div key={t.key}>
+                                            <div style={targetLabelStyle}>{t.label}</div>
+                                            {t.value ? (
+                                                <>
+                                                    <div style={{ fontWeight: '700', color: 'var(--primary-500)', fontSize: '14px' }}>
+                                                        {fmtDate(t.value)}
                                                     </div>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                                {!slaLoaded ? 'Loading SLA data...' : 'No SLA policy configured'}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div>
-                                        <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: '6px' }}>
-                                            Predicted Resolution Target
-                                        </div>
-                                        {calculatedTargets.resolution ? (
-                                            <>
-                                                <div style={{ fontWeight: '700', color: 'var(--primary-500)', fontSize: '14px' }}>
-                                                    {fmtDate(calculatedTargets.resolution)}
+                                                    {policy && (
+                                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
+                                                            {formatDuration(t.minutes)} after ticket submission
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                                    {!slaLoaded ? 'Loading SLA data...' : 'No SLA policy configured'}
                                                 </div>
-                                                {policy && (
-                                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
-                                                        {formatDuration(policy.restoreTimeMinutes)} after ticket submission
-                                                    </div>
-                                                )}
-                                            </>
-                                        ) : (
-                                            <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                                                {!slaLoaded ? 'Loading SLA data...' : 'No SLA policy configured'}
-                                            </div>
-                                        )}
-                                    </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
 
                                 <div style={{
