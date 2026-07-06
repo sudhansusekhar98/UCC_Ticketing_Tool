@@ -31,7 +31,7 @@ async function crossPlatformPing(ipAddress, timeoutMs = 3000) {
   const octets = ipAddress.split('.').map(Number);
   if (octets.some(o => o > 255)) return false;
 
-  // Windows: native ping.exe (execFile — no shell interpretation)
+  // Windows: native ping.exe (execFile - no shell interpretation)
   if (process.platform === 'win32') {
     try {
       const { stdout } = await execFileAsync('ping', ['-n', '1', '-w', String(timeoutMs), ipAddress], { timeout: timeoutMs + 3000 });
@@ -41,14 +41,14 @@ async function crossPlatformPing(ipAddress, timeoutMs = 3000) {
     }
   }
 
-  // Linux / macOS: native ping command (execFile — no shell interpretation)
+  // Linux / macOS: native ping command (execFile - no shell interpretation)
   try {
     const timeoutSec = Math.max(1, Math.ceil(timeoutMs / 1000));
     const flag = process.platform === 'darwin' ? '-t' : '-W';
     const { stdout } = await execFileAsync('ping', ['-c', '1', flag, String(timeoutSec), ipAddress], { timeout: timeoutMs + 3000 });
     return /ttl=/i.test(stdout);
   } catch {
-    // ping command failed or not available — fall through to TCP probe
+    // ping command failed or not available - fall through to TCP probe
   }
 
   // Last resort: TCP connect probe on common ports
@@ -77,7 +77,7 @@ const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const PRIVILEGED_ROLES = ['Admin', 'Supervisor'];
 
 /**
- * Process asset for API response — always decrypt sensitive fields.
+ * Process asset for API response - always decrypt sensitive fields.
  * Data remains encrypted at rest in MongoDB; decrypted only for display.
  */
 const processAssetForResponse = (asset) => {
@@ -1085,7 +1085,7 @@ export const updateBulkStatus = async (req, res, next) => {
 
     const stats = { total: results.length, online: 0, offline: 0, passive: 0, processed: 0 };
 
-    // Batch update — trust the status from the client's local ping script
+    // Batch update - trust the status from the client's local ping script
     for (const item of results) {
       if (!item.id || !item.status) continue;
 

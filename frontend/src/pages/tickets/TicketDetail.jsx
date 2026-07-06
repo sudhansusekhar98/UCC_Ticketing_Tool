@@ -96,6 +96,9 @@ export default function TicketDetail() {
     const [showReviewExtensionModal, setShowReviewExtensionModal] = useState(false);
     const [newSlaDateTime, setNewSlaDateTime] = useState('');
     const [extensionRejectionReason, setExtensionRejectionReason] = useState('');
+    const [showHoldModal, setShowHoldModal] = useState(false);
+    const [holdReason, setHoldReason] = useState('');
+    const [holdEta, setHoldEta] = useState('');
 
     const FINAL_STATUSES = ['Resolved', 'Verified', 'Closed', 'Cancelled'];
     const isLocked = ['InProgress', 'OnHold', 'Installed', 'Repaired', 'Replaced', 'SentToSite', 'Resolved', 'ResolutionRejected', 'Verified', 'Closed', 'Cancelled'].includes(ticket?.status);
@@ -147,6 +150,10 @@ export default function TicketDetail() {
         && ticket?.isSLARestoreBreached && ticket?.slaExtension?.status !== 'Pending' && !FINAL_STATUSES.includes(ticket?.status);
     const canReviewSlaExtension = hasRole(['Admin', 'Supervisor']) && ticket?.slaExtension?.status === 'Pending';
 
+    // On Hold: Admin/Supervisor only, pauses SLA
+    const canHold = hasRole(['Admin', 'Supervisor']) && ticket?.status && !FINAL_STATUSES.includes(ticket.status) && ticket.status !== 'OnHold';
+    const canResume = hasRole(['Admin', 'Supervisor']) && ticket?.status === 'OnHold';
+
     useEffect(() => {
         fetchTicket();
         fetchAuditTrail();
@@ -193,6 +200,7 @@ export default function TicketDetail() {
                 assignedToName: ticketData.assignedTo?.fullName || ticketData.assignedToName,
                 assignedTo: typeof ticketData.assignedTo === 'object' ? ticketData.assignedTo?._id : ticketData.assignedTo,
                 slaStatus: (() => {
+                    if (ticketData.status === 'OnHold') return 'Paused';
                     const restoreDue = ticketData.slaRestoreDue ? new Date(ticketData.slaRestoreDue) : null;
                     const now = new Date();
                     if (ticketData.isSLARestoreBreached || (restoreDue && restoreDue < now)) return 'Breached';
@@ -374,6 +382,22 @@ export default function TicketDetail() {
         });
     };
 
+    const handleHold = () => {
+        if (!holdReason.trim()) return toast.error('Please provide a reason for placing the ticket on hold');
+        runAction(() => ticketsApi.hold(id, { reason: holdReason.trim(), estimatedResolutionTime: holdEta ? new Date(holdEta).toISOString() : undefined }), {
+            successMsg: 'Ticket placed on hold',
+            errorMsg: 'Failed to place ticket on hold',
+            useServerError: true,
+            onSuccess: () => { setShowHoldModal(false); setHoldReason(''); setHoldEta(''); }
+        });
+    };
+
+    const handleResume = () => runAction(() => ticketsApi.resume(id), {
+        successMsg: 'Ticket resumed',
+        errorMsg: 'Failed to resume ticket',
+        useServerError: true
+    });
+
     const getPriorityClass = (priority) => priority ? `priority-${priority.toLowerCase()}` : '';
     const getSLAStatusClass = (status) => status ? `sla-${status.toLowerCase()}` : '';
 
@@ -383,6 +407,7 @@ export default function TicketDetail() {
             case 'Assigned': return 'badge-primary';
             case 'Acknowledged': return 'badge-warning';
             case 'InProgress': return 'badge-primary';
+            case 'OnHold': return 'badge-warning';
             case 'Escalated': return 'badge-danger';
             case 'Resolved': return 'badge-success';
             case 'Verified': return 'badge-success';
@@ -423,7 +448,12 @@ export default function TicketDetail() {
                                 {ticket.rmaNumber}
                             </span>
                         )}
-                        {hasActiveRma ? (
+                        {ticket.status === 'OnHold' ? (
+                            <span className="sla-indicator sla-ontrack" style={{ opacity: 0.8 }}>
+                                <Clock size={14} />
+                                SLA Paused (On Hold)
+                            </span>
+                        ) : hasActiveRma ? (
                             <span className="sla-indicator sla-ontrack" style={{ opacity: 0.8 }}>
                                 <Clock size={14} />
                                 TAT Paused (RMA)
@@ -481,6 +511,20 @@ export default function TicketDetail() {
                         <button className="btn btn-success" onClick={() => setShowResolveModal(true)}>
                             <CheckCircle size={14} />
                             Resolve
+                        </button>
+                    )}
+
+                    {canHold && (
+                        <button className="btn btn-secondary" onClick={() => setShowHoldModal(true)} disabled={actionLoading}>
+                            <Clock size={14} />
+                            Put On Hold
+                        </button>
+                    )}
+
+                    {canResume && (
+                        <button className="btn btn-primary" onClick={handleResume} disabled={actionLoading}>
+                            <Play size={14} />
+                            Resume Ticket
                         </button>
                     )}
 
@@ -566,6 +610,23 @@ export default function TicketDetail() {
                     )}
                 </div>
             </div>
+
+            {ticket.status === 'OnHold' && ticket.holdDetails && (
+                <div className="rma-finalization-alert status-in-repair animate-fade-in" style={{ marginBottom: '1rem' }}>
+                    <div className="rma-alert-info">
+                        <Clock size={20} className="text-warning-500" />
+                        <div className="rma-alert-text">
+                            <p className="alert-title">Ticket On Hold</p>
+                            <p className="alert-desc">
+                                Reason: {ticket.holdDetails.reason}
+                                {ticket.holdDetails.estimatedResolutionTime && (
+                                    <> - Estimated Resolution: {safeFormatDate(ticket.holdDetails.estimatedResolutionTime, 'dd MMM yyyy, HH:mm')}</>
+                                )}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="detail-grid">
                 <div className="detail-main">
@@ -1098,6 +1159,44 @@ export default function TicketDetail() {
                 </Modal>
             )}
 
+            {/* Hold Modal */}
+            {showHoldModal && (
+                <Modal
+                    icon={Clock}
+                    title="Put Ticket On Hold"
+                    onClose={() => setShowHoldModal(false)}
+                    footer={<>
+                        <button className="btn btn-ghost" onClick={() => setShowHoldModal(false)}>Cancel</button>
+                        <button className="btn btn-secondary" onClick={handleHold} disabled={actionLoading}>
+                            {actionLoading ? 'Placing on hold...' : 'Put On Hold'}
+                        </button>
+                    </>}
+                >
+                    <p className="modal-description">
+                        The SLA clock will pause while this ticket is on hold, and resume from where it left off once the ticket is resumed.
+                    </p>
+                    <div className="form-group">
+                        <label className="form-label">Reason for Hold *</label>
+                        <textarea
+                            className="form-textarea"
+                            value={holdReason}
+                            onChange={(e) => setHoldReason(e.target.value)}
+                            placeholder="Why is this ticket being put on hold?"
+                            rows={3}
+                        />
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Estimated Resolution Time</label>
+                        <input
+                            type="datetime-local"
+                            className="form-input"
+                            value={holdEta}
+                            onChange={(e) => setHoldEta(e.target.value)}
+                        />
+                    </div>
+                </Modal>
+            )}
+
             {/* Escalate Modal */}
             {showEscalateModal && (
                 <Modal
@@ -1218,7 +1317,7 @@ export default function TicketDetail() {
                     </>}
                 >
                     <p className="modal-description">
-                        This ticket has breached its SLA resolution deadline. Explain the reason for the delay —
+                        This ticket has breached its SLA resolution deadline. Explain the reason for the delay -
                         Admins and Supervisors will be notified and can approve a new deadline.
                     </p>
                     <div className="form-group">

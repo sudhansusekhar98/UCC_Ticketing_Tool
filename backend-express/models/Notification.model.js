@@ -16,7 +16,7 @@ const notificationSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Notification message is required'],
     trim: true
-    // No maxlength — message may contain base64-encoded inline images
+    // No maxlength - message may contain base64-encoded inline images
   },
   type: {
     type: String,

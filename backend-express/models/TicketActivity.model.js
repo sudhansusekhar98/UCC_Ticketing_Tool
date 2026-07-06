@@ -9,7 +9,7 @@ const ticketActivitySchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-    // optional — null for system-generated entries (SLABreach, etc.)
+    // optional - null for system-generated entries (SLABreach, etc.)
   },
   isSystem: {
     type: Boolean,

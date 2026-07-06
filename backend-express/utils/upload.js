@@ -4,7 +4,7 @@ import path from 'path';
 // Memory storage - files go directly to Cloudinary without touching disk
 const memoryStorage = multer.memoryStorage();
 
-// File filter — require BOTH extension AND mimetype to match
+// File filter - require BOTH extension AND mimetype to match
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt|csv|mp4|mov|avi|mkv|webm/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -16,7 +16,7 @@ const fileFilter = (req, file, cb) => {
   cb(new Error('Only images, videos, documents, and spreadsheets are allowed'));
 };
 
-// Import-specific filter — only spreadsheet formats
+// Import-specific filter - only spreadsheet formats
 const importFileFilter = (req, file, cb) => {
   const allowedTypes = /xls|xlsx|csv/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());

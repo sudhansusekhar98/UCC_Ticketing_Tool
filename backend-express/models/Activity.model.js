@@ -102,7 +102,7 @@ const activitySchema = new mongoose.Schema({
   // Sub-tasks / execution checklist
   tasks: [activityTaskSchema],
 
-  // Progress (0-100) — derived from the latest daily log entry or manual override
+  // Progress (0-100) - derived from the latest daily log entry or manual override
   progressPercentage: {
     type: Number,
     min: 0,

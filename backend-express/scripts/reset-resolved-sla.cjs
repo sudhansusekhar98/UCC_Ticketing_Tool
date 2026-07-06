@@ -95,7 +95,7 @@ async function run() {
         console.log('\n✅ Done. SLA compliance will calculate from scratch going forward.');
         console.log('   Dashboard will show no % until the first new ticket is resolved.');
     } else {
-        console.warn('\n⚠️  Some records were not cleaned — check manually.');
+        console.warn('\n⚠️  Some records were not cleaned - check manually.');
     }
 
     await client.close();

@@ -7,6 +7,8 @@ import {
   assignTicket,
   acknowledgeTicket,
   startTicket,
+  holdTicket,
+  resumeTicket,
   resolveTicket,
   verifyTicket,
   closeTicket,
@@ -57,6 +59,8 @@ router.route('/:id')
 router.post('/:id/assign', assignTicket);
 router.post('/:id/acknowledge', acknowledgeTicket); // Logic handled in controller for assignee
 router.post('/:id/start', startTicket); // Logic handled in controller for assignee
+router.post('/:id/hold', allowAccess({ roles: ['Admin', 'Supervisor'] }), holdTicket);
+router.post('/:id/resume', allowAccess({ roles: ['Admin', 'Supervisor'] }), resumeTicket);
 router.post('/:id/resolve', resolveTicket); // Logic handled in controller for assignee
 router.post('/:id/verify', editTicketAccess, verifyTicket);
 router.post('/:id/reject-resolution', editTicketAccess, rejectResolution);

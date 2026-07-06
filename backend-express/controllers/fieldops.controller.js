@@ -991,7 +991,7 @@ export const createDeviceInstallation = asyncHandler(async (req, res, next) => {
         }
       }
     } catch (e) {
-      // Non-critical — don't fail the creation
+      // Non-critical - don't fail the creation
     }
   }
 

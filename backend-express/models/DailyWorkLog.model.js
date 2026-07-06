@@ -186,7 +186,7 @@ dailyWorkLogSchema.statics.logActivity = async function (userId, {
         const User = mongoose.model('User');
         await User.findByIdAndUpdate(userId, { lastActivityAt: new Date() });
     } catch (err) {
-        // Fire-and-forget — never crash the calling operation
+        // Fire-and-forget - never crash the calling operation
         console.error('[WorkLog] Failed to log activity:', err.message);
     }
 };

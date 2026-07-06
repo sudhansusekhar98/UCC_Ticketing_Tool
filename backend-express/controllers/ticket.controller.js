@@ -84,7 +84,7 @@ export const getTickets = asyncHandler(async (req, res, next) => {
       query.isSLARestoreBreached = { $ne: true };
       query.status = { $nin: ['Closed', 'Cancelled', 'Resolved'] };
     } else if (slaStatus === 'Issues') {
-      // Breached OR At Risk — all tickets with SLA problems
+      // Breached OR At Risk - all tickets with SLA problems
       query.status = { $nin: ['Closed', 'Cancelled'] };
       query.$or = [
         { isSLARestoreBreached: true },
@@ -512,7 +512,7 @@ export const assignTicket = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Auto-cancel a pending SLA extension request if the ticket is moving to a different assignee —
+  // Auto-cancel a pending SLA extension request if the ticket is moving to a different assignee -
   // otherwise a stale request would be left pointing at whoever the new assignee is.
   const isReassignment = ticket.assignedTo && ticket.assignedTo.toString() !== String(assignedTo);
   const shouldCancelExtension = isReassignment && ticket.slaExtension?.status === 'Pending';
@@ -681,6 +681,100 @@ export const startTicket = asyncHandler(async (req, res, next) => {
   }).catch(() => { });
 });
 
+// @desc    Put a ticket on hold - pauses SLA until resumed
+// @route   POST /api/tickets/:id/hold
+// @access  Private (Admin, Supervisor)
+export const holdTicket = asyncHandler(async (req, res, next) => {
+  const { reason, estimatedResolutionTime } = req.body;
+  if (!reason?.trim()) {
+    return res.status(400).json({ success: false, message: 'A reason is required to place a ticket on hold' });
+  }
+
+  const parsedEta = estimatedResolutionTime ? new Date(estimatedResolutionTime) : null;
+  if (estimatedResolutionTime && isNaN(parsedEta?.getTime())) {
+    return res.status(400).json({ success: false, message: 'Invalid estimated resolution time' });
+  }
+
+  const ticket = await Ticket.findById(req.params.id);
+  if (!ticket) {
+    return res.status(404).json({ success: false, message: 'Ticket not found' });
+  }
+
+  const FINAL_STATUSES = ['Resolved', 'Verified', 'Closed', 'Cancelled'];
+  if (FINAL_STATUSES.includes(ticket.status)) {
+    return res.status(400).json({ success: false, message: `Cannot put a ${ticket.status.toLowerCase()} ticket on hold` });
+  }
+  if (ticket.status === 'OnHold') {
+    return res.status(400).json({ success: false, message: 'Ticket is already on hold' });
+  }
+
+  const now = new Date();
+  ticket.holdDetails = {
+    reason: reason.trim(),
+    estimatedResolutionTime: parsedEta,
+    heldBy: req.user._id,
+    heldOn: now,
+    previousStatus: ticket.status
+  };
+  ticket.status = 'OnHold';
+  await ticket.save();
+
+  await TicketActivity.create({
+    ticketId: ticket._id,
+    userId: req.user._id,
+    activityType: 'StatusChange',
+    content: `**Ticket Put On Hold** by ${req.user.fullName}\nReason: ${reason.trim()}${parsedEta ? `\nEstimated Resolution: ${parsedEta.toLocaleString()}` : ''}`
+  });
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+  }
+
+  res.json({ success: true, data: ticket, message: 'Ticket placed on hold' });
+});
+
+// @desc    Resume a ticket from hold - shifts SLA due dates by the held duration
+// @route   POST /api/tickets/:id/resume
+// @access  Private (Admin, Supervisor)
+export const resumeTicket = asyncHandler(async (req, res, next) => {
+  const ticket = await Ticket.findById(req.params.id);
+  if (!ticket) {
+    return res.status(404).json({ success: false, message: 'Ticket not found' });
+  }
+
+  if (ticket.status !== 'OnHold' || !ticket.holdDetails?.heldOn) {
+    return res.status(400).json({ success: false, message: 'Ticket is not currently on hold' });
+  }
+
+  const now = new Date();
+  const heldMs = now.getTime() - new Date(ticket.holdDetails.heldOn).getTime();
+
+  if (ticket.slaResponseDue) ticket.slaResponseDue = new Date(ticket.slaResponseDue.getTime() + heldMs);
+  if (ticket.slaRestoreDue) ticket.slaRestoreDue = new Date(ticket.slaRestoreDue.getTime() + heldMs);
+  ticket.totalHoldDurationMs = (ticket.totalHoldDurationMs || 0) + heldMs;
+
+  ticket.status = ticket.holdDetails.previousStatus || 'InProgress';
+  const holdReason = ticket.holdDetails.reason;
+  ticket.holdDetails = undefined;
+  await ticket.save();
+
+  const heldMinutes = Math.round(heldMs / 60000);
+  await TicketActivity.create({
+    ticketId: ticket._id,
+    userId: req.user._id,
+    activityType: 'StatusChange',
+    content: `**Ticket Resumed** by ${req.user.fullName} after being on hold for ${heldMinutes} minute(s) (Reason: ${holdReason}). SLA deadlines extended accordingly.`
+  });
+
+  const io = req.app.get('io');
+  if (io) {
+    io.to(`ticket_${ticket._id}`).emit('activity:created', { ticketId: ticket._id.toString() });
+  }
+
+  res.json({ success: true, data: ticket, message: 'Ticket resumed' });
+});
+
 // @desc    Resolve ticket
 // @route   POST /api/tickets/:id/resolve
 // @access  Private (Engineer)
@@ -689,7 +783,7 @@ export const resolveTicket = asyncHandler(async (req, res, next) => {
   const now = new Date();
 
   // Fetch SLA deadline and assignment time to stamp breach state accurately.
-  // A breach is only valid if the engineer was assigned BEFORE the SLA deadline —
+  // A breach is only valid if the engineer was assigned BEFORE the SLA deadline -
   // retroactively-set SLA dates (deadline already past when engineer was assigned) are excluded.
   const existing = await Ticket.findById(req.params.id).select('slaRestoreDue assignedOn').lean();
   const slaDeadline = existing?.slaRestoreDue ? new Date(existing.slaRestoreDue) : null;
@@ -1091,7 +1185,7 @@ export const escalateTicket = asyncHandler(async (req, res, next) => {
   const nextLevel = (ticket.escalationLevel || 0) + 1;
 
   // Auto-cancel a pending SLA extension request if the assignee is changing as part of this
-  // escalation — otherwise a stale request would be left pointing at the wrong person.
+  // escalation - otherwise a stale request would be left pointing at the wrong person.
   const previousAssignee = ticket.assignedTo ? ticket.assignedTo.toString() : null;
   const nextAssignee = assignedTo || null;
   const shouldCancelExtension = previousAssignee !== nextAssignee && ticket.slaExtension?.status === 'Pending';

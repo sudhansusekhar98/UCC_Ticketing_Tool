@@ -708,7 +708,7 @@ select option {
   color: #86efac;
 }
 
-/* Light-mode priority overrides — pastel hues are unreadable on white */
+/* Light-mode priority overrides - pastel hues are unreadable on white */
 [data-theme="light"] .priority-p1 {
   background: rgba(220, 38, 38, 0.1);
   color: #b91c1c;
@@ -1167,7 +1167,7 @@ select option {
   line-height: 1.5;
 }
 
-/* Dark mode — solid opaque modal, clear contrast layers */
+/* Dark mode - solid opaque modal, clear contrast layers */
 [data-theme="dark"] .modal {
   background: #1e293b;
   border-color: rgba(148, 163, 184, 0.25);
@@ -1192,7 +1192,7 @@ select option {
   border-color: rgba(148, 163, 184, 0.2);
 }
 
-/* Light mode — solid white, stop hover flicker */
+/* Light mode - solid white, stop hover flicker */
 [data-theme="light"] .modal.glass-card:hover {
   background: #ffffff;
   border-color: #e2e8f0;

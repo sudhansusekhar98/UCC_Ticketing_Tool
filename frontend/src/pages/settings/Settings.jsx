@@ -103,7 +103,7 @@ export default function Settings() {
         lowResponseTime: 120,
         lowRestoreTime: 480,
         enableAutoEscalation: true,
-        escalationL1Time: 30,
+        escalationL1Time: 240,
         escalationL2Time: 60,
     });
 
@@ -776,7 +776,7 @@ export default function Settings() {
 
             <div className="settings-grid">
                 <div className="form-group">
-                    <label>Level 1 Escalation (minutes after SLA warning)</label>
+                    <label>Level 1 Warning (minutes before SLA breach)</label>
                     <input
                         type="number"
                         className="form-input"
@@ -785,7 +785,7 @@ export default function Settings() {
                     />
                 </div>
                 <div className="form-group">
-                    <label>Level 2 Escalation (minutes after L1)</label>
+                    <label>Level 2 Warning (minutes before SLA breach, final alert)</label>
                     <input
                         type="number"
                         className="form-input"

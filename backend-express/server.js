@@ -23,7 +23,7 @@ validateJwtSecrets();
 // Initialize Express app
 const app = express();
 
-// Trust proxy — required behind Nginx reverse proxy
+// Trust proxy - required behind Nginx reverse proxy
 app.set('trust proxy', 1);
 
 // Create HTTP server and Socket.IO
@@ -48,7 +48,7 @@ const io = new Server(httpServer, {
   allowUpgrades: true,
 });
 
-// Socket.IO authentication middleware — verify JWT before allowing connection
+// Socket.IO authentication middleware - verify JWT before allowing connection
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) {
@@ -195,7 +195,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// Health check endpoint — only expose status publicly
+// Health check endpoint - only expose status publicly
 app.get('/api/health', (req, res) => {
   res.json({
     status: mongoose.connection.readyState === 1 ? 'OK' : 'DEGRADED',

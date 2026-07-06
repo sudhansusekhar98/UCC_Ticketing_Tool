@@ -663,7 +663,7 @@ export const updateStock = asyncHandler(async (req, res, next) => {
         }
     }
 
-    // Apply update — encryption middleware handles mac/serialNumber automatically
+    // Apply update - encryption middleware handles mac/serialNumber automatically
     const updated = await Asset.findByIdAndUpdate(
         assetId,
         { $set: updateData },
@@ -1049,7 +1049,7 @@ export const bulkUpload = async (req, res, next) => {
                     }
                 }
 
-                // Validation — only assetType and siteName are mandatory
+                // Validation - only assetType and siteName are mandatory
                 if (!assetType || !siteName) {
                     throw new Error(`Mandatory fields missing for row ${rowNum} (Need Asset Type and Site Name)`);
                 }
@@ -1352,7 +1352,7 @@ export const performStockReplacement = asyncHandler(async (req, res, next) => {
         spareAssetId: spareAssetId,
         oldDetails,
         newDetails: {
-            assetCode: defectiveAsset.assetCode, // unchanged — same asset code
+            assetCode: defectiveAsset.assetCode, // unchanged - same asset code
             serialNumber: spareAsset.serialNumber,
             mac: spareAsset.mac,
             ipAddress: newIp || defectiveAsset.ipAddress,

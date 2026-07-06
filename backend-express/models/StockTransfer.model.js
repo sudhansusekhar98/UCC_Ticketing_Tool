@@ -48,7 +48,7 @@ const stockTransferSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
-    // Link to ticket (optional — populated when selected in RMA)
+    // Link to ticket (optional - populated when selected in RMA)
     linkedTicketId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Ticket'

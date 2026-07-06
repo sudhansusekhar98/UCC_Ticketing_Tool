@@ -108,7 +108,19 @@
       "Bash(node -e \"let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const v=JSON.parse\\(d\\);console.log\\(v.slice\\(-5\\)\\)}\\);\")",
       "Bash(node -e \"console.log\\('mongoose:', require\\('./node_modules/mongoose/package.json'\\).version\\)\")",
       "Bash(node -e \"console.log\\('express-rate-limit:', require\\('./node_modules/express-rate-limit/package.json'\\).version\\)\")",
-      "Bash(node --check controllers/worklog.controller.js)"
+      "Bash(node --check controllers/worklog.controller.js)",
+      "Bash(grep -n '$nin: \\\\['\\\\''Closed'\\\\'', '\\\\''Resolved'\\\\'', '\\\\''Cancelled'\\\\'', '\\\\''Verified'\\\\''\\\\]' cron-jobs.js)",
+      "Bash(sed -i \"s/\\\\[Closed', 'Resolved', 'Cancelled', 'Verified'\\\\]/&/\" /dev/null)",
+      "Bash(node --check controllers/ticket.controller.js)",
+      "Bash(node --check routes/ticket.routes.js)",
+      "Bash(node --check models/Ticket.model.js)",
+      "Bash(node --check cron-jobs.js)",
+      "Bash(find frontend/src -iname \"*setting*\" -not -path \"*/node_modules/*\")",
+      "Bash(find backend-express *)",
+      "Bash(find backend-express/routes -iname \"*sla*\" -o -iname \"*setting*\")",
+      "Bash(find backend-express/controllers -iname \"*sla*\" -o -iname \"*setting*\")",
+      "Bash(node --check utils/sla.utils.js)",
+      "Bash(node --check utils/email.utils.js)"
     ]
   },
   "enableAllProjectMcpServers": true,

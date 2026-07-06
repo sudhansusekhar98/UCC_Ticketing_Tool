@@ -316,7 +316,7 @@ export async function buildTicketsExcel(tickets) {
   const breached = tickets.filter(t => t.isSLARestoreBreached).length;
 
   const summaryLines = [
-    { text: '📋  TICKETOPS — TICKETS REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
+    { text: '📋  TICKETOPS - TICKETS REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
     { text: `Generated: ${new Date().toLocaleString('en-IN')}   |   Total: ${total}   |   Resolved: ${resolved}   |   SLA Breached: ${breached}`, size: 10, bg: 'EFF6FF', color: '1E40AF', align: 'center', height: 20 },
     { text: '', bg: 'FFFFFF', height: 6 },
   ];
@@ -339,7 +339,7 @@ export async function buildTicketsExcel(tickets) {
       createdBy:    ticket.createdBy?.fullName || 'System',
       assignedTo:   ticket.assignedTo?.fullName || 'Unassigned',
       createdOn:    ticket.createdAt ? new Date(ticket.createdAt).toLocaleString('en-IN') : '',
-      resolvedOn:   ticket.resolvedOn ? new Date(ticket.resolvedOn).toLocaleString('en-IN') : '—',
+      resolvedOn:   ticket.resolvedOn ? new Date(ticket.resolvedOn).toLocaleString('en-IN') : '-',
       slaStatus:    ticket.isSLARestoreBreached ? 'Breached' : 'On Track',
     });
 
@@ -797,20 +797,20 @@ export async function buildWorkActivityExcel(logs) {
   let rowIdx = 0;
   logs.forEach(log => {
     const user    = log.userId || {};
-    const dateStr = log.date ? new Date(log.date).toLocaleDateString('en-IN') : '—';
+    const dateStr = log.date ? new Date(log.date).toLocaleDateString('en-IN') : '-';
 
     (log.activities || []).forEach(act => {
       const row = ws.addRow({
         date:        dateStr,
         employee:    user.fullName || 'Unknown',
-        role:        user.role || '—',
-        category:    act.category || '—',
+        role:        user.role || '-',
+        category:    act.category || '-',
         type:        act.type === 'auto' ? 'Automated' : 'Manual',
-        ticketRef:   act.ticketRef?.ticketNumber || '—',
-        site:        act.siteId?.siteName || '—',
+        ticketRef:   act.ticketRef?.ticketNumber || '-',
+        site:        act.siteId?.siteName || '-',
         description: (act.description || '').slice(0, 200),
-        duration:    act.duration ? `${act.duration} mins` : '—',
-        time:        act.timestamp ? new Date(act.timestamp).toLocaleTimeString('en-IN') : '—',
+        duration:    act.duration ? `${act.duration} mins` : '-',
+        time:        act.timestamp ? new Date(act.timestamp).toLocaleTimeString('en-IN') : '-',
       });
 
       const fillMap = {};
@@ -845,7 +845,7 @@ export async function buildStockSummaryExcel(summaryRows, siteLabel) {
   const uniqueDeviceTypes = [...new Set(summaryRows.map(r => r.deviceType))].length;
 
   const summaryLines = [
-    { text: '📦  TICKETOPS — INVENTORY STOCK SUMMARY', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
+    { text: '📦  TICKETOPS - INVENTORY STOCK SUMMARY', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
     { text: `Generated: ${new Date().toLocaleString('en-IN')}   |   Site: ${siteLabel}   |   ${uniqueDeviceTypes} Device Types   |   Total Qty: ${totalQty}`, size: 10, bg: 'EFF6FF', color: '1E40AF', align: 'center', height: 20 },
     { text: '', bg: 'FFFFFF', height: 6 },
   ];
@@ -911,7 +911,7 @@ export async function buildUserActivitiesExcel(activities) {
 
   const total = activities.length;
   const summaryLines = [
-    { text: '📝  TICKETOPS — USER ACTIVITIES REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
+    { text: '📝  TICKETOPS - USER ACTIVITIES REPORT', bold: true, size: 13, bg: '1E3A5F', color: 'FFFFFF', align: 'center', height: 28 },
     { text: `Generated: ${new Date().toLocaleString('en-IN')}   |   Total Activities: ${total}`, size: 10, bg: 'EFF6FF', color: '1E40AF', align: 'center', height: 20 },
     { text: '', bg: 'FFFFFF', height: 6 },
   ];
@@ -922,15 +922,15 @@ export async function buildUserActivitiesExcel(activities) {
 
   activities.forEach((act, i) => {
     const row = ws.addRow({
-      date:         act.createdOn ? new Date(act.createdOn).toLocaleDateString('en-IN') : '—',
-      time:         act.createdOn ? new Date(act.createdOn).toLocaleTimeString('en-IN') : '—',
+      date:         act.createdOn ? new Date(act.createdOn).toLocaleDateString('en-IN') : '-',
+      time:         act.createdOn ? new Date(act.createdOn).toLocaleTimeString('en-IN') : '-',
       user:         act.userId?.fullName || 'Unknown',
-      role:         act.userId?.role || '—',
-      ticketNo:     act.ticketId?.ticketNumber || '—',
+      role:         act.userId?.role || '-',
+      ticketNo:     act.ticketId?.ticketNumber || '-',
       ticketTitle:  (act.ticketId?.title || '').slice(0, 100),
-      category:     act.ticketId?.category || '—',
-      priority:     act.ticketId?.priority || '—',
-      ticketStatus: act.ticketId?.status || '—',
+      category:     act.ticketId?.category || '-',
+      priority:     act.ticketId?.priority || '-',
+      ticketStatus: act.ticketId?.status || '-',
       activityType: act.activityType,
       content:      (act.content || '').slice(0, 200),
       internal:     act.isInternal ? 'Yes' : 'No',

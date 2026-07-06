@@ -6,25 +6,33 @@ import PMDailyLog from './models/PMDailyLog.model.js';
 import TicketActivity from './models/TicketActivity.model.js';
 import { sendBreachWarningEmail, sendSlaBreachedEmail, sendGeneralNotificationEmail, sendSlaOverdueReminderEmail } from './utils/email.utils.js';
 import { createSystemNotification } from './controllers/notification.controller.js';
+import { resolveSlaPolicy, isAutoEscalationEnabled } from './utils/sla.utils.js';
+
+// Turns "a@x.com, b@y.com" into [{ email: 'a@x.com', fullName: 'Escalation Contact' }, ...]
+const parseEscalationEmails = (raw) => (raw || '')
+    .split(/[,;]/)
+    .map(e => e.trim())
+    .filter(Boolean)
+    .map(email => ({ email, fullName: 'Escalation Contact' }));
 
 // Setup Cron Jobs
 export const setupCronJobs = (io) => {
     console.log('⏰ Initializing Cron Jobs...');
 
-    // 1a. SLA Warning — 4 hours before breach (first reminder)
-    // 1b. SLA Warning — 1 hour before breach (final reminder)
-    // Both check every 10 minutes, 24/7 (no office-hours gate — VPS timezone may differ)
+    // 1a. SLA Warning - Level 1 (first reminder, per-priority/site escalationLevel1Minutes before breach)
+    // 1b. SLA Warning - Level 2 (final reminder, per-priority/site escalationLevel2Minutes before breach)
+    // Thresholds come from Settings → Global Default SLA (or a site's SLA override), not hardcoded.
+    // Both check every 10 minutes, 24/7 (no office-hours gate - VPS timezone may differ)
     cron.schedule('*/10 * * * *', async () => {
         const now = new Date();
         const in4h = new Date(now.getTime() + 4 * 60 * 60 * 1000);
-        const in1h = new Date(now.getTime() + 1 * 60 * 60 * 1000);
 
-        const ACTIVE_STATUSES = { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] };
+        const ACTIVE_STATUSES = { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified', 'OnHold'] };
         const NO_ACTIVE_RMA = { $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }] };
 
         try {
             // ── Auto-update At Risk flag ──────────────────────────────────────
-            // Mark tickets as At Risk when slaRestoreDue is within 4 hours
+            // Mark tickets as At Risk when slaRestoreDue is within 4 hours (fixed visual indicator, independent of escalation config)
             const atRiskResult = await Ticket.updateMany(
                 {
                     status: ACTIVE_STATUSES,
@@ -49,35 +57,46 @@ export const setupCronJobs = (io) => {
                 { $set: { isSLAResponseBreached: false } }
             );
 
-            // ── 4-hour warning ────────────────────────────────────────────────
-            const tickets4h = await Ticket.find({
+            // Escalation warnings are gated by the "Enable Auto-Escalation" setting
+            if (!(await isAutoEscalationEnabled())) return;
+
+            // Wide net: pull any active ticket due within 24h, then apply each ticket's own escalation
+            // thresholds (site override → global SLAPolicy → defaults) instead of one hardcoded window.
+            const maxLookahead = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+            const candidates = await Ticket.find({
                 status: ACTIVE_STATUSES,
-                slaRestoreDue: { $lt: in4h, $gt: now },
-                isBreachWarningSent: { $ne: true },
+                slaRestoreDue: { $lt: maxLookahead, $gt: now },
                 assignedTo: { $exists: true, $ne: null },
+                $or: [{ isBreachWarningSent: { $ne: true } }, { slaWarning1hSent: { $ne: true } }],
                 ...NO_ACTIVE_RMA
-            }).populate('assignedTo', 'fullName email _id').limit(200).lean();
+            }).populate('assignedTo', 'fullName email _id').limit(300).lean();
 
-            if (tickets4h.length) {
-                console.log(`⏰ SLA 4h Warning: ${tickets4h.length} ticket(s)`);
-                // Get supervisors & dispatchers to CC
-                const supervisors = await User.find({ role: { $in: ['Supervisor', 'Dispatcher'] }, isActive: true }).select('fullName email _id').lean();
+            if (!candidates.length) return;
 
-                const warned4hIds = [];
-                for (const ticket of tickets4h) {
-                    const minutesLeft = Math.round((new Date(ticket.slaRestoreDue) - now) / 60000);
+            const supervisors = await User.find({ role: { $in: ['Supervisor', 'Dispatcher'] }, isActive: true }).select('fullName email _id').lean();
+            const admins = await User.find({ role: { $in: ['Admin', 'Supervisor'] }, isActive: true }).select('fullName email _id').lean();
+
+            const warnedL1Ids = [];
+            const warnedL2Ids = [];
+
+            for (const ticket of candidates) {
+                const policy = await resolveSlaPolicy(ticket.priority, ticket.siteId);
+                const minutesLeft = Math.round((new Date(ticket.slaRestoreDue) - now) / 60000);
+
+                if (!ticket.isBreachWarningSent && minutesLeft <= policy.escalationLevel1Minutes) {
                     const sent = await sendBreachWarningEmail(ticket, ticket.assignedTo, minutesLeft);
                     if (sent) {
-                        warned4hIds.push(ticket._id);
-                        // Notify supervisors by email
+                        warnedL1Ids.push(ticket._id);
                         for (const sup of supervisors) {
                             await sendBreachWarningEmail(ticket, sup, minutesLeft).catch(() => {});
                         }
-                        // In-app notification to assigned engineer
+                        for (const contact of parseEscalationEmails(policy.escalationL1Emails)) {
+                            await sendBreachWarningEmail(ticket, contact, minutesLeft).catch(() => {});
+                        }
                         if (io && ticket.assignedTo?._id) {
                             await createSystemNotification(io, {
                                 userId: ticket.assignedTo._id,
-                                title: '⚠️ SLA Warning 4 Hours',
+                                title: '⚠️ SLA Warning',
                                 message: `Ticket ${ticket.ticketNumber} breaches SLA in ~${minutesLeft} min. Please act now.`,
                                 type: 'warning',
                                 link: `/tickets/${ticket._id}`
@@ -85,39 +104,21 @@ export const setupCronJobs = (io) => {
                         }
                     }
                 }
-                if (warned4hIds.length) {
-                    await Ticket.updateMany({ _id: { $in: warned4hIds } }, { $set: { isBreachWarningSent: true } });
-                }
-            }
 
-            // ── 1-hour final warning ──────────────────────────────────────────
-            const tickets1h = await Ticket.find({
-                status: ACTIVE_STATUSES,
-                slaRestoreDue: { $lt: in1h, $gt: now },
-                slaWarning1hSent: { $ne: true },
-                assignedTo: { $exists: true, $ne: null },
-                ...NO_ACTIVE_RMA
-            }).populate('assignedTo', 'fullName email _id').limit(200).lean();
-
-            if (tickets1h.length) {
-                console.log(`⏰ SLA 1h Warning: ${tickets1h.length} ticket(s)`);
-                const admins = await User.find({ role: { $in: ['Admin', 'Supervisor'] }, isActive: true }).select('fullName email _id').lean();
-
-                const warned1hIds = [];
-                for (const ticket of tickets1h) {
-                    const minutesLeft = Math.round((new Date(ticket.slaRestoreDue) - now) / 60000);
+                if (!ticket.slaWarning1hSent && minutesLeft <= policy.escalationLevel2Minutes) {
                     const sent = await sendBreachWarningEmail(ticket, ticket.assignedTo, minutesLeft);
                     if (sent) {
-                        warned1hIds.push(ticket._id);
-                        // Alert admins at 1-hour mark too
+                        warnedL2Ids.push(ticket._id);
                         for (const admin of admins) {
                             await sendBreachWarningEmail(ticket, admin, minutesLeft).catch(() => {});
                         }
-                        // Urgent in-app notification
+                        for (const contact of parseEscalationEmails(policy.escalationL2Emails)) {
+                            await sendBreachWarningEmail(ticket, contact, minutesLeft).catch(() => {});
+                        }
                         if (io && ticket.assignedTo?._id) {
                             await createSystemNotification(io, {
                                 userId: ticket.assignedTo._id,
-                                title: '🚨 SLA Critical 1 Hour Left',
+                                title: '🚨 SLA Critical',
                                 message: `Ticket ${ticket.ticketNumber} breaches SLA in ~${minutesLeft} min. Immediate action required!`,
                                 type: 'error',
                                 link: `/tickets/${ticket._id}`
@@ -125,22 +126,28 @@ export const setupCronJobs = (io) => {
                         }
                     }
                 }
-                if (warned1hIds.length) {
-                    await Ticket.updateMany({ _id: { $in: warned1hIds } }, { $set: { slaWarning1hSent: true } });
-                }
+            }
+
+            if (warnedL1Ids.length) {
+                console.log(`⏰ SLA Level 1 Warning: ${warnedL1Ids.length} ticket(s)`);
+                await Ticket.updateMany({ _id: { $in: warnedL1Ids } }, { $set: { isBreachWarningSent: true } });
+            }
+            if (warnedL2Ids.length) {
+                console.log(`⏰ SLA Level 2 Warning: ${warnedL2Ids.length} ticket(s)`);
+                await Ticket.updateMany({ _id: { $in: warnedL2Ids } }, { $set: { slaWarning1hSent: true } });
             }
         } catch (error) {
             console.error('❌ Error in SLA Warning Cron:', error);
         }
     });
 
-    // 2. SLA Breach Notification Job — checks every 10 minutes, 24/7
+    // 2. SLA Breach Notification Job - checks every 10 minutes, 24/7
     cron.schedule('*/10 * * * *', async () => {
         const now = new Date();
 
         try {
             const breachedTickets = await Ticket.find({
-                status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] },
+                status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified', 'OnHold'] },
                 slaRestoreDue: { $lt: now },
                 isSlaBreachedNotificationSent: { $ne: true },
                 $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }]
@@ -213,7 +220,7 @@ export const setupCronJobs = (io) => {
         }
     });
 
-    // 3. SLA Overdue Reminder — every 15 min, only within 10:00-19:00 IST, throttled to 3h per ticket.
+    // 3. SLA Overdue Reminder - every 15 min, only within 10:00-19:00 IST, throttled to 3h per ticket.
     // Skips tickets with a pending SLA extension request (don't nag while it's under review).
     cron.schedule('*/15 * * * *', async () => {
         const now = new Date();
@@ -227,7 +234,7 @@ export const setupCronJobs = (io) => {
 
         try {
             const dueTickets = await Ticket.find({
-                status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified'] },
+                status: { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified', 'OnHold'] },
                 isSLARestoreBreached: true,
                 'slaExtension.status': { $ne: 'Pending' },
                 $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }],

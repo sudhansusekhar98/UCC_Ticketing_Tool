@@ -154,7 +154,7 @@ const rmaRequestSchema = new mongoose.Schema({
   replacementTrackStatus: {
     type: String,
     enum: [
-      'NotRequired',           // RepairOnly — no replacement needed
+      'NotRequired',           // RepairOnly - no replacement needed
       'Pending',               // RepairAndReplace approved but not yet started
       'RequisitionRaised',     // Admin raised requisition
       'Dispatched',            // Replacement dispatched to site

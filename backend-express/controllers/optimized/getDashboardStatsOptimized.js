@@ -289,7 +289,7 @@ export const getTicketTrends = async (req, res, next) => {
         });
         const trends = Object.values(trendMap).sort((a, b) => a.date.localeCompare(b.date));
 
-        // Current period stats — all three use the same date bounds for coherent deltas
+        // Current period stats - all three use the same date bounds for coherent deltas
         const [currentTotal, currentResolved, currentOpen] = await Promise.all([
             Ticket.countDocuments({ ...baseMatch, createdAt: { $gte: start, $lte: end } }),
             Ticket.countDocuments({ ...baseMatch, resolvedOn: { $ne: null, $gte: start, $lte: end } }),
@@ -300,7 +300,7 @@ export const getTicketTrends = async (req, res, next) => {
             })
         ]);
 
-        // Previous period stats — same structure as current period
+        // Previous period stats - same structure as current period
         const [prevTotal, prevResolved, prevOpen] = await Promise.all([
             Ticket.countDocuments({ ...baseMatch, createdAt: { $gte: prevStart, $lte: prevEnd } }),
             Ticket.countDocuments({ ...baseMatch, resolvedOn: { $ne: null, $gte: prevStart, $lte: prevEnd } }),

@@ -51,7 +51,7 @@ router.delete('/ping-progress', authorize('Admin', 'Supervisor'), clearPingProgr
 router.post('/bulk-status-update', authorize('Admin', 'Supervisor'), updateBulkStatus);
 router.post('/import', authorize('Admin'), upload.single('file'), bulkImportAssets);
 
-// CRUD routes — allow by role OR by MANAGE_ASSETS right
+// CRUD routes - allow by role OR by MANAGE_ASSETS right
 router.route('/')
   .get(getAssets)
   .post(manageAssetsAccess, createAsset);

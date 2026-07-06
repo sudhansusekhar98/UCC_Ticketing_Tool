@@ -1,7 +1,7 @@
 /**
  * reportHtmlGenerator.js
  * Generates self-contained, interactive HTML reports with Chart.js charts.
- * Each function returns a complete HTML string — no dependencies beyond Chart.js CDN.
+ * Each function returns a complete HTML string - no dependencies beyond Chart.js CDN.
  */
 
 // ─── Shared palette ──────────────────────────────────────────────────────────
@@ -292,7 +292,7 @@ function tableRows(data, columns) {
     const cells = columns.map(col => {
       const val = row[col.key];
       if (col.badge) return `<td>${badgeHtml(val, col.colorMap)}</td>`;
-      return `<td>${val !== null && val !== undefined ? val : '—'}</td>`;
+      return `<td>${val !== null && val !== undefined ? val : '-'}</td>`;
     }).join('');
     return `<tr>${cells}</tr>`;
   }).join('');
@@ -484,7 +484,7 @@ export function generateTicketsReport({ tickets, filterInfo }) {
     assignedTo: t.assignedTo?.fullName || 'Unassigned',
     createdBy: t.createdBy?.fullName || 'System',
     createdAt: t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-IN') : '',
-    resolvedOn: t.resolvedOn ? new Date(t.resolvedOn).toLocaleDateString('en-IN') : '—',
+    resolvedOn: t.resolvedOn ? new Date(t.resolvedOn).toLocaleDateString('en-IN') : '-',
     slaStatus: t.isSLARestoreBreached ? 'Breached' : 'On Track',
   }));
 
@@ -555,7 +555,7 @@ export function generateEmployeesReport({ employees, statsMap, filterInfo }) {
       fullName: e.fullName,
       email: e.email,
       role: e.role,
-      designation: e.designation || '—',
+      designation: e.designation || '-',
       primarySite: e.siteId?.siteName || 'N/A',
       status: e.isActive ? '✅ Active' : '❌ Inactive',
       open: s.Open || 0,
@@ -636,15 +636,15 @@ export function generateAssetsReport({ assets, rmaMap, filterInfo }) {
     return {
       assetCode: a.assetCode,
       assetType: a.assetType,
-      deviceType: a.deviceType || '—',
+      deviceType: a.deviceType || '-',
       status: a.status,
-      make: a.make || '—',
-      model: a.model || '—',
+      make: a.make || '-',
+      model: a.model || '-',
       site: a.siteId?.siteName || 'N/A',
-      ipAddress: a.ipAddress || '—',
-      serialNumber: a.serialNumber || '—',
+      ipAddress: a.ipAddress || '-',
+      serialNumber: a.serialNumber || '-',
       rmaCount: rma.rmaCount || 0,
-      warrantyEnd: a.warrantyEndDate ? new Date(a.warrantyEndDate).toLocaleDateString('en-IN') : '—',
+      warrantyEnd: a.warrantyEndDate ? new Date(a.warrantyEndDate).toLocaleDateString('en-IN') : '-',
     };
   });
 
@@ -721,15 +721,15 @@ export function generateRMAReport({ rmaRequests, filterInfo }) {
 
   const tableData = rmaRequests.map(r => ({
     rmaId: r._id.toString().slice(-8).toUpperCase(),
-    ticketNo: r.ticketId?.ticketNumber || '—',
-    assetCode: r.originalAssetId?.assetCode || '—',
-    deviceType: r.originalAssetId?.deviceType || '—',
+    ticketNo: r.ticketId?.ticketNumber || '-',
+    assetCode: r.originalAssetId?.assetCode || '-',
+    deviceType: r.originalAssetId?.deviceType || '-',
     status: r.status,
-    site: r.siteId?.siteName || '—',
-    requestedBy: r.requestedBy?.fullName || '—',
-    requestedDate: r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN') : '—',
-    installedDate: (getTimelineDate(r.timeline, 'Installed') || r.installedOn) ? new Date(getTimelineDate(r.timeline, 'Installed') || r.installedOn).toLocaleDateString('en-IN') : '—',
-    vendor: r.vendorDetails?.vendorName || '—',
+    site: r.siteId?.siteName || '-',
+    requestedBy: r.requestedBy?.fullName || '-',
+    requestedDate: r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-IN') : '-',
+    installedDate: (getTimelineDate(r.timeline, 'Installed') || r.installedOn) ? new Date(getTimelineDate(r.timeline, 'Installed') || r.installedOn).toLocaleDateString('en-IN') : '-',
+    vendor: r.vendorDetails?.vendorName || '-',
   }));
 
   const chartScripts = [
@@ -795,12 +795,12 @@ export function generateSpareStockReport({ assets, filterInfo }) {
   const tableData = assets.map(a => ({
     assetCode: a.assetCode,
     assetType: a.assetType,
-    deviceType: a.deviceType || '—',
-    make: a.make || '—',
-    model: a.model || '—',
-    serialNumber: a.serialNumber || '—',
-    ipAddress: a.ipAddress || '—',
-    mac: a.mac || '—',
+    deviceType: a.deviceType || '-',
+    make: a.make || '-',
+    model: a.model || '-',
+    serialNumber: a.serialNumber || '-',
+    ipAddress: a.ipAddress || '-',
+    mac: a.mac || '-',
     site: a.siteId?.siteName || 'N/A',
   }));
 
@@ -870,7 +870,7 @@ export function generateWorkActivityReport({ logs, filterInfo }) {
   const tableRows2 = [];
   logs.forEach(log => {
     const user = log.userId || { fullName: 'Unknown', role: 'N/A' };
-    const dateStr = log.date ? new Date(log.date).toLocaleDateString('en-IN') : '—';
+    const dateStr = log.date ? new Date(log.date).toLocaleDateString('en-IN') : '-';
     log.activities.forEach(a => {
       tableRows2.push({
         date: dateStr,
@@ -879,8 +879,8 @@ export function generateWorkActivityReport({ logs, filterInfo }) {
         category: a.category,
         type: a.type === 'auto' ? 'Automated' : 'Manual',
         description: (a.description || '').slice(0, 120),
-        duration: a.duration ? `${a.duration} mins` : '—',
-        timestamp: a.timestamp ? new Date(a.timestamp).toLocaleTimeString('en-IN') : '—',
+        duration: a.duration ? `${a.duration} mins` : '-',
+        timestamp: a.timestamp ? new Date(a.timestamp).toLocaleTimeString('en-IN') : '-',
       });
     });
   });
@@ -958,14 +958,14 @@ export function generateUserActivitiesReport({ activities, filterInfo }) {
   ];
 
   const tableData = activities.map(a => ({
-    date: a.createdOn ? new Date(a.createdOn).toLocaleDateString('en-IN') : '—',
-    time: a.createdOn ? new Date(a.createdOn).toLocaleTimeString('en-IN') : '—',
+    date: a.createdOn ? new Date(a.createdOn).toLocaleDateString('en-IN') : '-',
+    time: a.createdOn ? new Date(a.createdOn).toLocaleTimeString('en-IN') : '-',
     user: a.userId?.fullName || 'Unknown',
-    role: a.userId?.role || '—',
-    ticketNo: a.ticketId?.ticketNumber || '—',
+    role: a.userId?.role || '-',
+    ticketNo: a.ticketId?.ticketNumber || '-',
     ticketTitle: (a.ticketId?.title || '').slice(0, 60),
-    category: a.ticketId?.category || '—',
-    priority: a.ticketId?.priority || '—',
+    category: a.ticketId?.category || '-',
+    priority: a.ticketId?.priority || '-',
     activityType: a.activityType,
     content: (a.content || '').slice(0, 100),
     internal: a.isInternal ? 'Yes' : 'No',

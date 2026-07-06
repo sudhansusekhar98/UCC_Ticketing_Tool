@@ -14,7 +14,7 @@
  * Usage (from backend-express/ directory):
  *   node scripts/reset-resolved-sla.js
  *
- * Safe to re-run — uses $unset / $set with explicit conditions.
+ * Safe to re-run - uses $unset / $set with explicit conditions.
  */
 
 import mongoose from 'mongoose';
@@ -98,7 +98,7 @@ const run = async () => {
             console.log('   The dashboard will show "N/A" (no data) until new tickets are resolved.');
             console.log('   As new tickets are resolved within their SLA, the % will build up correctly.');
         } else {
-            console.warn('\n⚠️  Some records were not cleaned — check manually.');
+            console.warn('\n⚠️  Some records were not cleaned - check manually.');
         }
 
         process.exit(0);

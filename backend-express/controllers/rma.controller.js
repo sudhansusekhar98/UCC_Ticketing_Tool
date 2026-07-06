@@ -226,6 +226,25 @@ export const createRMA = asyncHandler(async (req, res, next) => {
     replacementSource: effectiveSource,
     reservedAssetId: reservedAssetId || undefined,
     repairedItemDestination: 'BackToSite',
+    // Auto-approved (direct) RMAs skip the separate Approve step, so the parallel
+    // track statuses must be initialized here too, mirroring updateRMAStatus's 'Approved' branch -
+    // otherwise repairTrackStatus stays null and the UI never shows the next action.
+    ...(isDirectRMA ? {
+      repairTrackStatus: 'Pending',
+      replacementTrackStatus: effectiveSource === 'RepairAndReplace'
+        ? (reservedAssetId ? 'Received' : 'Pending')
+        : 'NotRequired',
+      ...(effectiveSource === 'RepairAndReplace' && reservedAssetId ? {
+        replacementStockSource: 'SiteStock',
+        replacementArrangedBy: req.user._id,
+        replacementArrangedOn: new Date(),
+        logisticsReplacementToSite: {
+          dispatchDate: new Date(),
+          receivedDate: new Date(),
+          remarks: 'Site stock selected by engineer - device already on-site (approved by admin)'
+        }
+      } : {})
+    } : {}),
     timeline: [{
       status: initialStatus,
       changedBy: req.user._id,
@@ -360,7 +379,7 @@ export const getRMAByTicket = asyncHandler(async (req, res, next) => {
       rma.logisticsReplacementToSite = {
         dispatchDate: rma.approvedOn || new Date(),
         receivedDate: rma.approvedOn || new Date(),
-        remarks: 'Site stock selected by engineer — device already on-site (auto-corrected)'
+        remarks: 'Site stock selected by engineer - device already on-site (auto-corrected)'
       };
     }
     await rma.save();
@@ -482,7 +501,7 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
         rma.logisticsReplacementToSite = {
           dispatchDate: new Date(),
           receivedDate: new Date(),
-          remarks: `Site stock selected by engineer — device already on-site (approved by admin)`
+          remarks: `Site stock selected by engineer - device already on-site (approved by admin)`
         };
       } else {
         rma.replacementTrackStatus = 'Pending';
@@ -633,7 +652,7 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
     rma.repairedItemReceivedAtHODate = new Date();
     rma.repairReceivedDate = new Date();
 
-    // Update asset status — use getFaultyAssetId to get the correct asset after swap
+    // Update asset status - use getFaultyAssetId to get the correct asset after swap
     const faultyId = getFaultyAssetId(rma);
     const repairedAsset = await Asset.findById(faultyId);
     if (repairedAsset) {
@@ -678,7 +697,7 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
       rma.overrideApprovedBy = req.user._id;
     }
 
-    // Handle HOStock destination — move asset to HO spare stock immediately
+    // Handle HOStock destination - move asset to HO spare stock immediately
     if (repairedItemDestination === 'HOStock') {
       const hoSite = await Site.findOne({ isHeadOffice: true });
       if (hoSite) {
@@ -715,7 +734,7 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
       // Only finalize RMA if replacement track is also done
       checkAndFinalizeRMA(rma);
       if (rma.status !== 'Installed') {
-        // Repair done but replacement still pending — keep a meaningful status
+        // Repair done but replacement still pending - keep a meaningful status
         rma.status = 'ItemRepairedAtHO';
       }
     }
@@ -766,13 +785,13 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
     rma.repairTrackStatus = 'RepairedReceivedAtSite';
     rma.repairReceivedDate = new Date();
 
-    // Update asset — it's now back at site (use faulty asset after swap)
+    // Update asset - it's now back at site (use faulty asset after swap)
     const faultyIdSC = getFaultyAssetId(rma);
     const repairedAsset = await Asset.findById(faultyIdSC);
     if (repairedAsset) {
       const fromStatus = repairedAsset.status;
       repairedAsset.status = 'Spare'; // Ready for installation or stock
-      repairedAsset.locationDescription = 'Received from service center — ready for installation';
+      repairedAsset.locationDescription = 'Received from service center - ready for installation';
       await repairedAsset.save();
 
       await StockMovementLog.logMovement({
@@ -831,7 +850,7 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
     if (rma.replacementSource !== 'RepairOnly' && rma.replacementSource !== 'Repair') {
       return res.status(400).json({
         success: false,
-        message: `Cannot modify — RMA is already set to ${rma.replacementSource}`
+        message: `Cannot modify - RMA is already set to ${rma.replacementSource}`
       });
     }
     if (['Rejected', 'Installed'].includes(rma.status)) {
@@ -861,7 +880,7 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
     if (['RequisitionRaised', 'Dispatched', 'Received', 'Installed'].includes(rma.replacementTrackStatus)) {
       return res.status(400).json({
         success: false,
-        message: `Cannot downgrade — replacement track is already in progress (${rma.replacementTrackStatus})`
+        message: `Cannot downgrade - replacement track is already in progress (${rma.replacementTrackStatus})`
       });
     }
 
@@ -1388,18 +1407,18 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
   const statusMessages = {
     'Approved': `**RMA Approved** by ${req.user.fullName}${rma.replacementStockSource ? `\n**Replacement Source:** ${rma.replacementStockSource}` : ''}${remarks ? `\n\nRemarks: ${remarks}` : ''}`,
     'Rejected': `**RMA Rejected** by ${req.user.fullName}${remarks ? `\n\nReason: ${remarks}` : ''}`,
-    'SentToServiceCenter': `**Item Sent to Service Center** — L1 dispatched the faulty item directly to the service center for repair.${remarks ? `\nRemarks: ${remarks}` : ''}`,
-    'SentToHO': `**Item Sent to Head Office** — The faulty item has been dispatched to HO.${rma.logisticsToHO?.trackingNumber ? `\nTracking: ${rma.logisticsToHO.trackingNumber}` : ''}${remarks ? `\nRemarks: ${remarks}` : ''}`,
-    'ReceivedAtHO': `**Item Received at HO** — Admin (${req.user.fullName}) has acknowledged receipt of the item at Head Office.${remarks ? `\nRemarks: ${remarks}` : ''}`,
-    'SentForRepairFromHO': `**Item Sent for Repair from HO** — Admin has forwarded the item from HO to the service center.${rma.logisticsToServiceCenter?.serviceCenterTicketRef ? `\nService Center Ref: ${rma.logisticsToServiceCenter.serviceCenterTicketRef}` : ''}${remarks ? `\nRemarks: ${remarks}` : ''}`,
-    'ItemRepairedAtHO': `**Repaired Item Received at HO** — Admin (${req.user.fullName}) confirms the repaired item has been received at HO.${remarks ? `\nRemarks: ${remarks}` : ''}`,
-    'ReturnShippedToSite': `**Item Shipped Back to Site** — Admin has dispatched the repaired item from HO to the site.${rma.logisticsReturnToSite?.trackingNumber ? `\nTracking: ${rma.logisticsReturnToSite.trackingNumber}` : ''}${remarks ? `\nRemarks: ${remarks}` : ''}`,
-    'ReceivedAtSite': `**Item Received at Site** — The repaired item has been received at the site and is ready for installation.${remarks ? `\nRemarks: ${remarks}` : ''}`,
-    'Installed': `**Device Installed** — The device has been installed and is operational.${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'SentToServiceCenter': `**Item Sent to Service Center** - L1 dispatched the faulty item directly to the service center for repair.${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'SentToHO': `**Item Sent to Head Office** - The faulty item has been dispatched to HO.${rma.logisticsToHO?.trackingNumber ? `\nTracking: ${rma.logisticsToHO.trackingNumber}` : ''}${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'ReceivedAtHO': `**Item Received at HO** - Admin (${req.user.fullName}) has acknowledged receipt of the item at Head Office.${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'SentForRepairFromHO': `**Item Sent for Repair from HO** - Admin has forwarded the item from HO to the service center.${rma.logisticsToServiceCenter?.serviceCenterTicketRef ? `\nService Center Ref: ${rma.logisticsToServiceCenter.serviceCenterTicketRef}` : ''}${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'ItemRepairedAtHO': `**Repaired Item Received at HO** - Admin (${req.user.fullName}) confirms the repaired item has been received at HO.${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'ReturnShippedToSite': `**Item Shipped Back to Site** - Admin has dispatched the repaired item from HO to the site.${rma.logisticsReturnToSite?.trackingNumber ? `\nTracking: ${rma.logisticsReturnToSite.trackingNumber}` : ''}${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'ReceivedAtSite': `**Item Received at Site** - The repaired item has been received at the site and is ready for installation.${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'Installed': `**Device Installed** - The device has been installed and is operational.${remarks ? `\nRemarks: ${remarks}` : ''}`,
     // Replacement workflow messages
-    'ReplacementRequisitionRaised': `**Replacement Requisition Raised** — Admin (${req.user.fullName}) has raised a requisition for stock replacement.\n**Source:** ${rma.replacementStockSource === 'HOStock' ? 'HO Stock' : rma.replacementStockSource === 'SiteStock' ? 'Site Stock' : 'Market Purchase'}${remarks ? `\nRemarks: ${remarks}` : ''}`,
-    'ReplacementDispatched': `**Replacement Dispatched** — Replacement stock has been dispatched to the site.${rma.logisticsReplacementToSite?.trackingNumber ? `\nTracking: ${rma.logisticsReplacementToSite.trackingNumber}` : ''}${remarks ? `\nRemarks: ${remarks}` : ''}`,
-    'ReplacementReceivedAtSite': `**Replacement Received at Site** — The replacement item has been received at the site and is ready for installation.${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'ReplacementRequisitionRaised': `**Replacement Requisition Raised** - Admin (${req.user.fullName}) has raised a requisition for stock replacement.\n**Source:** ${rma.replacementStockSource === 'HOStock' ? 'HO Stock' : rma.replacementStockSource === 'SiteStock' ? 'Site Stock' : 'Market Purchase'}${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'ReplacementDispatched': `**Replacement Dispatched** - Replacement stock has been dispatched to the site.${rma.logisticsReplacementToSite?.trackingNumber ? `\nTracking: ${rma.logisticsReplacementToSite.trackingNumber}` : ''}${remarks ? `\nRemarks: ${remarks}` : ''}`,
+    'ReplacementReceivedAtSite': `**Replacement Received at Site** - The replacement item has been received at the site and is ready for installation.${remarks ? `\nRemarks: ${remarks}` : ''}`,
     'ModifyToRepairAndReplace': `**RMA Type Changed: Repair Only → Repair & Replace** by ${req.user.fullName}${remarks ? `\nRemarks: ${remarks}` : ''}`,
     'ModifyToRepairOnly': `**RMA Type Changed: Repair & Replace → Repair Only** by ${req.user.fullName}${remarks ? `\nRemarks: ${remarks}` : ''}`,
   };
@@ -1541,7 +1560,7 @@ export const confirmInstallation = asyncHandler(async (req, res, next) => {
       replAsset.ipAddress = oldIpAddress;
       replAsset.status = 'In Repair';
       replAsset.reservedByRma = undefined;
-      replAsset.locationDescription = `Faulty item from ${originalAsset.assetCode || 'asset'} — sent for repair via RMA ${rma.rmaNumber}`;
+      replAsset.locationDescription = `Faulty item from ${originalAsset.assetCode || 'asset'} - sent for repair via RMA ${rma.rmaNumber}`;
       await replAsset.save();
 
       // Save final replacement details to RMA
@@ -1622,7 +1641,7 @@ export const confirmInstallation = asyncHandler(async (req, res, next) => {
   }
   await rma.save();
 
-  // Update ticket — only finalize when both tracks are complete
+  // Update ticket - only finalize when both tracks are complete
   if (rma.status === 'Installed') {
     const ticket = await Ticket.findById(rma.ticketId);
     if (ticket) {

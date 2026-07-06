@@ -117,7 +117,7 @@ const ticketSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  // SLA Extension — current state only; TicketActivity is the authoritative history
+  // SLA Extension - current state only; TicketActivity is the authoritative history
   // (a ticket can cycle through request → approve → re-breach → request again)
   slaExtension: {
     status: {
@@ -140,6 +140,22 @@ const ticketSchema = new mongoose.Schema({
     previousSlaRestoreDue: Date
   },
   lastSlaReminderSentAt: Date,
+  // On Hold - pauses SLA while active; slaResponseDue/slaRestoreDue are pushed
+  // out by the hold duration when resumed so held time isn't counted against SLA.
+  holdDetails: {
+    reason: String,
+    estimatedResolutionTime: Date,
+    heldBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    heldOn: Date,
+    previousStatus: String
+  },
+  totalHoldDurationMs: {
+    type: Number,
+    default: 0
+  },
   escalationLevel: {
     type: Number,
     default: 0,

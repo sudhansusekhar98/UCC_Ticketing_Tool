@@ -68,14 +68,23 @@ const emailTemplate = (content, title) => `
       overflow: hidden;
     }
     .email-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-color: #0f172a;
+      border-top: 3px solid #2563eb;
       color: #ffffff;
-      padding: 30px;
-      text-align: center;
+      padding: 16px 30px;
+      text-align: left;
+    }
+    .email-header .brand {
+      margin: 0 0 2px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #94a3b8;
     }
     .email-header h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 18px;
       font-weight: 600;
     }
     .email-body {
@@ -87,7 +96,7 @@ const emailTemplate = (content, title) => `
       display: inline-block;
       padding: 12px 24px;
       margin: 20px 0;
-      background-color: #667eea;
+      background-color: #2563eb;
       color: #ffffff !important;
       text-decoration: none;
       border-radius: 5px;
@@ -102,12 +111,22 @@ const emailTemplate = (content, title) => `
     }
     .info-box {
       background-color: #f8f9fa;
-      border-left: 4px solid #667eea;
+      border-left: 4px solid #2563eb;
       padding: 15px;
       margin: 15px 0;
     }
     .info-box strong {
-      color: #667eea;
+      color: #2563eb;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #ffffff;
     }
     .data-table {
       width: 100%;
@@ -133,6 +152,7 @@ const emailTemplate = (content, title) => `
 <body>
   <div class="email-container">
     <div class="email-header">
+      <p class="brand">TicketOps</p>
       <h1>${title}</h1>
     </div>
     <div class="email-body">
@@ -148,6 +168,9 @@ const emailTemplate = (content, title) => `
 `;
 
 import NotificationLog from '../models/NotificationLog.model.js';
+
+const PRIORITY_COLORS = { P1: '#dc2626', P2: '#ea580c', P3: '#ca8a04', P4: '#16a34a' };
+const priorityBadge = (priority) => `<span class="badge" style="background:${PRIORITY_COLORS[priority] || '#64748b'};">${priority || 'N/A'}</span>`;
 
 /**
  * Helper to log notifications to DB
@@ -272,13 +295,13 @@ export const sendTicketAssignmentEmail = async (ticket, assignedUser, assignedBy
       <table class="data-table">
         <tr><th>Ticket ID</th><td>${ticket.ticketNumber}</td></tr>
         <tr><th>Subject</th><td>${ticket.title}</td></tr>
-        <tr><th>Priority</th><td>${ticket.priority}</td></tr>
+        <tr><th>Priority</th><td>${priorityBadge(ticket.priority)}</td></tr>
         <tr><th>Status</th><td>${ticket.status}</td></tr>
         <tr><th>Site</th><td>${ticket.siteId?.siteName || ticket.site?.name || 'N/A'}</td></tr>
         <tr><th>Expected Resolution</th><td>${ticket.slaRestoreDue ? new Date(ticket.slaRestoreDue).toLocaleString() : 'N/A'}</td></tr>
         <tr><th>Assigned By</th><td>${assignedBy?.fullName || 'System'}</td></tr>
       </table>
-      
+
       <p><strong>Description:</strong></p>
       <div class="info-box">${ticket.description || 'No description provided'}</div>
       
@@ -319,7 +342,7 @@ export const sendTicketEscalationEmail = async (ticket, escalatedToUser, escalat
       <table class="data-table">
         <tr><th>Ticket ID</th><td>${ticket.ticketNumber}</td></tr>
         <tr><th>Subject</th><td>${ticket.title}</td></tr>
-        <tr><th>Priority</th><td>${ticket.priority}</td></tr>
+        <tr><th>Priority</th><td>${priorityBadge(ticket.priority)}</td></tr>
         <tr><th>Status</th><td>${ticket.status}</td></tr>
         <tr><th>Escalation Level</th><td><strong>Level ${ticket.escalationLevel}</strong></td></tr>
         <tr><th>Site</th><td>${ticket.siteId?.siteName || ticket.site?.name || 'N/A'}</td></tr>
@@ -342,7 +365,7 @@ export const sendTicketEscalationEmail = async (ticket, escalatedToUser, escalat
       <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
-    const subject = `🚨 ESCALATED: ${ticket.ticketNumber} - ${ticket.title}`;
+    const subject = `ESCALATED: ${ticket.ticketNumber} - ${ticket.title}`;
     await sendViaBrevo({
       to: escalatedToUser.email,
       subject,
@@ -524,12 +547,12 @@ export const sendBreachWarningEmail = async (ticket, user, minutesLeft) => {
       <table class="data-table">
         <tr><th>Ticket ID</th><td>${ticket.ticketNumber}</td></tr>
         <tr><th>Subject</th><td>${ticket.title}</td></tr>
-        <tr><th>Priority</th><td>${ticket.priority}</td></tr>
+        <tr><th>Priority</th><td>${priorityBadge(ticket.priority)}</td></tr>
         <tr><th>Expected Resolution</th><td><strong>${ticket.slaRestoreDue ? new Date(ticket.slaRestoreDue).toLocaleString() : 'N/A'}</strong></td></tr>
         <tr><th>Time Remaining</th><td style="color:${accentColor};font-weight:700;">${timeLabel}</td></tr>
       </table>
 
-      <p><strong style="color: ${accentColor};">${isUrgent ? '🚨 FINAL WARNING Immediate action required!' : 'Please prioritize this ticket to avoid a potential SLA breach.'}</strong></p>
+      <p><strong style="color: ${accentColor};">${isUrgent ? 'FINAL WARNING: Immediate action required!' : 'Please prioritize this ticket to avoid a potential SLA breach.'}</strong></p>
 
       <div style="text-align: center;">
         <a href="${process.env.FRONTEND_URL || 'https://ticketops.vluccc.com'}/tickets/${ticket._id}" class="btn" style="color: white !important; text-decoration: none; background-color: ${accentColor};">View Ticket Now</a>
@@ -539,8 +562,8 @@ export const sendBreachWarningEmail = async (ticket, user, minutesLeft) => {
     `;
 
     const subject = isUrgent
-      ? `🚨 FINAL SLA WARNING: Ticket ${ticket.ticketNumber} ${timeLabel} Remaining`
-      : `⚠️ SLA WARNING: Ticket ${ticket.ticketNumber} Approaching Breach`;
+      ? `FINAL SLA WARNING: Ticket ${ticket.ticketNumber} ${timeLabel} Remaining`
+      : `SLA WARNING: Ticket ${ticket.ticketNumber} Approaching Breach`;
     await sendViaBrevo({
       to: user.email,
       subject,
@@ -586,10 +609,10 @@ export const sendSlaBreachedEmail = async (ticket, user, admins) => {
 
       await sendViaBrevo({
         to: user.email,
-        subject: `🚨 SLA BREACHED: Ticket ${ticket.ticketNumber}`,
+        subject: `SLA BREACHED: Ticket ${ticket.ticketNumber}`,
         html: emailTemplate(userContent, 'SLA Breach Notification'),
       });
-      await logNotification(user.email, `🚨 SLA BREACHED: Ticket ${ticket.ticketNumber}`, userContent, 'SLABreach', ticket._id, 'Sent', null, user._id);
+      await logNotification(user.email, `SLA BREACHED: Ticket ${ticket.ticketNumber}`, userContent, 'SLABreach', ticket._id, 'Sent', null, user._id);
     }
 
     // 2. Send to Admins
@@ -614,14 +637,14 @@ export const sendSlaBreachedEmail = async (ticket, user, admins) => {
     if (adminEmails.length > 0) {
       await sendViaBrevo({
         to: adminEmails,
-        subject: `🚨 ADMIN ALERT: SLA Breach for ${ticket.ticketNumber}`,
+        subject: `ADMIN ALERT: SLA Breach for ${ticket.ticketNumber}`,
         html: emailTemplate(adminContent, 'SLA Breach Alert'),
       });
 
       // Log for each admin
       for (const admin of admins) {
         if (admin.email) {
-          await logNotification(admin.email, `🚨 ADMIN ALERT: SLA Breach for ${ticket.ticketNumber}`, adminContent, 'SLABreach', ticket._id, 'Sent', null, admin._id);
+          await logNotification(admin.email, `ADMIN ALERT: SLA Breach for ${ticket.ticketNumber}`, adminContent, 'SLABreach', ticket._id, 'Sent', null, admin._id);
         }
       }
     }
@@ -634,7 +657,7 @@ export const sendSlaBreachedEmail = async (ticket, user, admins) => {
   }
 };
 
-// Recurring "still overdue" reminder to the assignee — sent every 3h within working
+// Recurring "still overdue" reminder to the assignee - sent every 3h within working
 // hours by the reminder cron, distinct copy from the one-time breach notification above.
 export const sendSlaOverdueReminderEmail = async (ticket, user) => {
   try {
@@ -661,10 +684,10 @@ export const sendSlaOverdueReminderEmail = async (ticket, user) => {
 
     await sendViaBrevo({
       to: user.email,
-      subject: `⏰ Reminder: Ticket ${ticket.ticketNumber} is still SLA-overdue`,
+      subject: `Reminder: Ticket ${ticket.ticketNumber} is still SLA-overdue`,
       html: emailTemplate(content, 'SLA Overdue Reminder'),
     });
-    await logNotification(user.email, `⏰ Reminder: Ticket ${ticket.ticketNumber} is still SLA-overdue`, content, 'Other', ticket._id, 'Sent', null, user._id);
+    await logNotification(user.email, `Reminder: Ticket ${ticket.ticketNumber} is still SLA-overdue`, content, 'Other', ticket._id, 'Sent', null, user._id);
 
     return true;
   } catch (error) {
@@ -695,53 +718,54 @@ export const sendRMAMilestoneEmail = async (rma, milestone, recipients, addition
     // Define milestone-specific content
     const milestoneConfig = {
       'Dispatched': {
-        icon: '🚚',
+        color: '#2563eb',
         title: 'Replacement Device Dispatched',
         message: 'A replacement device has been dispatched and is on its way to the site.'
       },
       'Received': {
-        icon: '📥',
+        color: '#16a34a',
         title: 'Replacement Device Received',
         message: 'The replacement device has been received at the site.'
       },
       'Repaired': {
-        icon: '✨',
+        color: '#7c3aed',
         title: 'Item Repaired Successfully',
         message: 'The faulty item has been repaired and is ready for deployment.'
       },
       'StockInTransit': {
-        icon: '🚛',
+        color: '#2563eb',
         title: 'HO Stock In Transit',
         message: 'Stock from Head Office is being shipped to the site for RMA replacement.'
       },
       'StockReceived': {
-        icon: '📦',
+        color: '#16a34a',
         title: 'HO Stock Received & Installed',
         message: 'Stock from Head Office has been received and the hardware has been swapped.'
       },
       'RepairedItemEnRoute': {
-        icon: '🚚',
+        color: '#2563eb',
         title: 'Repaired Item En Route',
         message: 'The repaired item is being shipped back to the site for re-installation.'
       },
       'RepairedItemReceived': {
-        icon: '📥',
+        color: '#16a34a',
         title: 'Repaired Item Received',
         message: 'The repaired item has been received and is ready for re-installation.'
       }
     };
 
     const config = milestoneConfig[milestone] || {
-      icon: '🔔',
+      color: '#64748b',
       title: `RMA Update: ${milestone}`,
       message: `The RMA status has been updated to: ${milestone}`
     };
 
     const content = `
       <p>Hello,</p>
-      <p>${config.icon} <strong>${config.title}</strong></p>
+      <p><span class="badge" style="background:${config.color};">${milestone}</span></p>
+      <h3 style="margin: 10px 0 4px;">${config.title}</h3>
       <p>${config.message}</p>
-      
+
       <table class="data-table">
         <tr><th>RMA Number</th><td>${rma.rmaNumber}</td></tr>
         <tr><th>Asset Code</th><td>${rma.originalAssetId?.assetCode || 'N/A'}</td></tr>
@@ -764,7 +788,7 @@ export const sendRMAMilestoneEmail = async (rma, milestone, recipients, addition
       <p>Best regards,<br/><strong>TicketOps VLAccess Team</strong></p>
     `;
 
-    const subject = `${config.icon} RMA ${milestone}: ${rma.rmaNumber}`;
+    const subject = `RMA ${milestone}: ${rma.rmaNumber}`;
     await sendViaBrevo({
       to: recipientEmails,
       subject,

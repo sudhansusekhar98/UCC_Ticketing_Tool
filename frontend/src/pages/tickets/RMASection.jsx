@@ -2271,8 +2271,8 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                         value={modifyRemarks}
                                         onChange={e => setModifyRemarks(e.target.value)}
                                         placeholder={modifyTargetType === 'RepairAndReplace'
-                                            ? 'e.g., Stock available at HO — sending replacement while repair is in progress...'
-                                            : 'e.g., No replacement device available — repair only needed...'}
+                                            ? 'e.g., Stock available at HO - sending replacement while repair is in progress...'
+                                            : 'e.g., No replacement device available - repair only needed...'}
                                     />
                                 </div>
                             </div>
