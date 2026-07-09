@@ -38,7 +38,8 @@ const rmaRequestSchema = new mongoose.Schema({
     ipAddress: String,
     mac: String,
     model: String,
-    make: String
+    make: String,
+    deviceType: String
   },
   // Details of the new device replacing the old one
   replacementDetails: {
@@ -48,6 +49,7 @@ const rmaRequestSchema = new mongoose.Schema({
     mac: String,
     model: String,
     make: String,
+    deviceType: String,
     // Old faulty device identity (set after asset swap)
     oldSerialNumber: String,
     oldMac: String,

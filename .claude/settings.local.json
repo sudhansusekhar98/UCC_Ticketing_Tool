@@ -120,7 +120,8 @@
       "Bash(find backend-express/routes -iname \"*sla*\" -o -iname \"*setting*\")",
       "Bash(find backend-express/controllers -iname \"*sla*\" -o -iname \"*setting*\")",
       "Bash(node --check utils/sla.utils.js)",
-      "Bash(node --check utils/email.utils.js)"
+      "Bash(node --check utils/email.utils.js)",
+      "Bash(node --check controllers/rma.controller.js)"
     ]
   },
   "enableAllProjectMcpServers": true,

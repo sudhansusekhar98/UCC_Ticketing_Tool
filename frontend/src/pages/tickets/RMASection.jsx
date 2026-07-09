@@ -43,6 +43,9 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
     const [installRemarks, setInstallRemarks] = useState('');
     const [installSerialNumber, setInstallSerialNumber] = useState('');
     const [installMac, setInstallMac] = useState('');
+    const [installMake, setInstallMake] = useState('');
+    const [installModel, setInstallModel] = useState('');
+    const [installDeviceType, setInstallDeviceType] = useState('');
 
     const [rmaHistory, setRmaHistory] = useState([]);
     const [shippingDetails, setShippingDetails] = useState({ address: '', trackingNumber: '', carrier: '' });
@@ -267,6 +270,9 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                 newPassword: installPassword,
                 newSerialNumber: installSerialNumber,
                 newMac: installMac,
+                newMake: installMake,
+                newModel: installModel,
+                newDeviceType: installDeviceType,
                 installTrack
             });
             toast.success(`${installTrack === 'replacement' ? 'Replacement' : 'Repaired'} device installed successfully`);
@@ -293,12 +299,19 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
             setInstallMac(rma.replacementDetails.mac || '');
             setInstallIpAddress(rma?.originalDetailsSnapshot?.ipAddress || '');
             setInstallUserName(rma?.originalDetailsSnapshot?.userName || '');
+            // Make/model/type default to the incoming replacement device, editable if it differs (e.g. port count changed)
+            setInstallMake(rma.replacementDetails.make || rma?.reservedAssetId?.make || '');
+            setInstallModel(rma.replacementDetails.model || rma?.reservedAssetId?.model || '');
+            setInstallDeviceType(rma.replacementDetails.deviceType || rma?.reservedAssetId?.deviceType || '');
         } else {
             // Default: prefill from original snapshot (for repair track)
             setInstallIpAddress(rma?.originalDetailsSnapshot?.ipAddress || '');
             setInstallUserName(rma?.originalDetailsSnapshot?.userName || '');
             setInstallSerialNumber(rma?.originalDetailsSnapshot?.serialNumber || '');
             setInstallMac(rma?.originalDetailsSnapshot?.mac || '');
+            setInstallMake(rma?.originalDetailsSnapshot?.make || rma?.originalAssetId?.make || '');
+            setInstallModel(rma?.originalDetailsSnapshot?.model || rma?.originalAssetId?.model || '');
+            setInstallDeviceType(rma?.originalDetailsSnapshot?.deviceType || rma?.originalAssetId?.deviceType || '');
         }
         setInstallPassword('');
         setInstallRemarks('');
@@ -1862,6 +1875,39 @@ const RMASection = ({ ticketId, siteId, assetId, ticketStatus, isLocked, onUpdat
                                     <div className="font-mono font-bold text-sm text-primary-500">{rma?.originalDetailsSnapshot?.assetCode || rma?.originalAssetId || '-'}</div>
                                 </div>
 
+                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                    <div className="form-group mb-0">
+                                        <label className="form-label">Make</label>
+                                        <input
+                                            className="form-input"
+                                            type="text"
+                                            placeholder="e.g., Cisco"
+                                            value={installMake}
+                                            onChange={e => setInstallMake(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group mb-0">
+                                        <label className="form-label">Model</label>
+                                        <input
+                                            className="form-input"
+                                            type="text"
+                                            placeholder="e.g., Catalyst 2960"
+                                            value={installModel}
+                                            onChange={e => setInstallModel(e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="form-group mb-3">
+                                    <label className="form-label">Device Type</label>
+                                    <input
+                                        className="form-input"
+                                        type="text"
+                                        placeholder="e.g., 24-Port Switch"
+                                        value={installDeviceType}
+                                        onChange={e => setInstallDeviceType(e.target.value)}
+                                    />
+                                    <p className="text-[10px] text-muted mt-1">Change this if the installed device differs from the original (e.g. port count changed).</p>
+                                </div>
                                 <div className="grid grid-cols-2 gap-3 mb-3">
                                     <div className="form-group mb-0">
                                         <label className="form-label">Serial Number (SL)</label>

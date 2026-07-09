@@ -747,6 +747,12 @@ export const resumeTicket = asyncHandler(async (req, res, next) => {
     return res.status(400).json({ success: false, message: 'Ticket is not currently on hold' });
   }
 
+  const isOwner = ticket.assignedTo && ticket.assignedTo.toString() === req.user._id.toString();
+  const isPrivileged = ['Admin', 'Supervisor'].includes(req.user.role);
+  if (!isOwner && !isPrivileged) {
+    return res.status(403).json({ success: false, message: 'Not authorized to resume this ticket' });
+  }
+
   const now = new Date();
   const heldMs = now.getTime() - new Date(ticket.holdDetails.heldOn).getTime();
 

@@ -213,7 +213,8 @@ export const createRMA = asyncHandler(async (req, res, next) => {
       ipAddress: isEncrypted(asset.ipAddress) ? decrypt(asset.ipAddress) : asset.ipAddress,
       mac: isEncrypted(asset.mac) ? decrypt(asset.mac) : asset.mac,
       model: asset.model,
-      make: asset.make
+      make: asset.make,
+      deviceType: asset.deviceType
     },
     requestReason,
     shippingDetails,
@@ -357,6 +358,7 @@ export const getRMAByTicket = asyncHandler(async (req, res, next) => {
     .populate('receivedAtHOBy', 'fullName')
     .populate('repairedItemReceivedAtHOBy', 'fullName')
     .populate('timeline.changedBy', 'fullName')
+    .populate('originalAssetId', 'assetCode assetType deviceType make model')
     .populate('reservedAssetId', 'assetCode assetType deviceType serialNumber mac make model stockLocation')
     .populate('replacementRequisitionId', 'status comments createdAt')
     .populate('stockTransferId', 'transferName status sourceSiteId destinationSiteId createdAt assetIds')
@@ -1479,7 +1481,7 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/rma/:id/confirm-installation
 // @access  Private
 export const confirmInstallation = asyncHandler(async (req, res, next) => {
-  const { status, remarks, newIpAddress, newUserName, newPassword, newSerialNumber, newMac, installTrack } = req.body;
+  const { status, remarks, newIpAddress, newUserName, newPassword, newSerialNumber, newMac, newMake, newModel, newDeviceType, installTrack } = req.body;
 
   const rma = await RMARequest.findById(req.params.id);
   if (!rma) {
@@ -1540,8 +1542,9 @@ export const confirmInstallation = asyncHandler(async (req, res, next) => {
       // The original asset record stays in its location, now with the new device's SL/MAC
       originalAsset.serialNumber = newSerial || originalAsset.serialNumber;
       originalAsset.mac = newMacVal || originalAsset.mac;
-      originalAsset.make = replAsset.make || originalAsset.make;
-      originalAsset.model = replAsset.model || originalAsset.model;
+      originalAsset.make = newMake || replAsset.make || originalAsset.make;
+      originalAsset.model = newModel || replAsset.model || originalAsset.model;
+      originalAsset.deviceType = newDeviceType || replAsset.deviceType || originalAsset.deviceType;
       if (newIpAddress) originalAsset.ipAddress = newIpAddress;
       if (newUserName) originalAsset.userName = newUserName;
       if (newPassword) originalAsset.password = newPassword;
@@ -1572,7 +1575,8 @@ export const confirmInstallation = asyncHandler(async (req, res, next) => {
         oldSerialNumber: oldSerial,
         oldMac: oldMac,
         make: originalAsset.make,
-        model: originalAsset.model
+        model: originalAsset.model,
+        deviceType: originalAsset.deviceType
       };
 
       await StockMovementLog.logMovement({
@@ -1612,13 +1616,19 @@ export const confirmInstallation = asyncHandler(async (req, res, next) => {
       if (newPassword) asset.password = newPassword;
       if (newSerialNumber) asset.serialNumber = newSerialNumber;
       if (newMac) asset.mac = newMac;
+      if (newMake) asset.make = newMake;
+      if (newModel) asset.model = newModel;
+      if (newDeviceType) asset.deviceType = newDeviceType;
       await asset.save();
 
       rma.replacementDetails = {
         ...rma.replacementDetails,
         ipAddress: newIpAddress || asset.ipAddress,
         serialNumber: newSerialNumber || asset.serialNumber,
-        mac: newMac || asset.mac
+        mac: newMac || asset.mac,
+        make: newMake || asset.make,
+        model: newModel || asset.model,
+        deviceType: newDeviceType || asset.deviceType
       };
 
       await StockMovementLog.logMovement({

@@ -152,7 +152,7 @@ export default function TicketDetail() {
 
     // On Hold: Admin/Supervisor only, pauses SLA
     const canHold = hasRole(['Admin', 'Supervisor']) && ticket?.status && !FINAL_STATUSES.includes(ticket.status) && ticket.status !== 'OnHold';
-    const canResume = hasRole(['Admin', 'Supervisor']) && ticket?.status === 'OnHold';
+    const canResume = (hasRole(['Admin', 'Supervisor']) || isAssignedToMe) && ticket?.status === 'OnHold';
 
     useEffect(() => {
         fetchTicket();
