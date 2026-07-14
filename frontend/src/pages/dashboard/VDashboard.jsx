@@ -165,18 +165,13 @@ export default function VDashboard() {
         } catch (e) { /* silent */ }
     }, []);
 
-    const sendHeartbeat = useCallback(async () => {
-        try { await usersApi.heartbeat(); } catch (e) { /* silent */ }
-    }, []);
-
     useEffect(() => {
         fetchCore();
         fetchActiveUsers();
-        sendHeartbeat();
         refreshRef.current = setInterval(() => { fetchCore(); fetchTrends(); }, 60_000);
-        heartbeatRef.current = setInterval(() => { sendHeartbeat(); fetchActiveUsers(); }, 30_000);
+        heartbeatRef.current = setInterval(fetchActiveUsers, 30_000);
         return () => { clearInterval(refreshRef.current); clearInterval(heartbeatRef.current); };
-    }, [fetchCore, fetchTrends, fetchActiveUsers, sendHeartbeat]);
+    }, [fetchCore, fetchTrends, fetchActiveUsers]);
 
     useEffect(() => { fetchTrends(); }, [fetchTrends]);
 

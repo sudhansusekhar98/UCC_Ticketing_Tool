@@ -66,6 +66,14 @@ export default function Layout({ children }) {
         const timer = setInterval(() => setIstTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
+
+    // Presence heartbeat - runs on every authenticated page, not just the dashboard,
+    // so "last seen" reflects activity anywhere in the app.
+    useEffect(() => {
+        usersApi.heartbeat().catch(() => { });
+        const timer = setInterval(() => usersApi.heartbeat().catch(() => { }), 5 * 60 * 1000);
+        return () => clearInterval(timer);
+    }, []);
     const istDate = istTime.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
     const istClock = istTime.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
