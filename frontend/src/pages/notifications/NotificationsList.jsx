@@ -133,9 +133,6 @@ export default function NotificationsList() {
         <div className="notifications-list-page">
             <div className="page-header">
                 <div className="header-top-nav">
-                    <div className="header-icon">
-                        <Bell size={24} />
-                    </div>
                     <button className="back-btn" onClick={() => navigate(-1)}>
                         <ArrowLeft size={20} />
                     </button>

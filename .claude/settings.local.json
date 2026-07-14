@@ -121,7 +121,8 @@
       "Bash(find backend-express/controllers -iname \"*sla*\" -o -iname \"*setting*\")",
       "Bash(node --check utils/sla.utils.js)",
       "Bash(node --check utils/email.utils.js)",
-      "Bash(node --check controllers/rma.controller.js)"
+      "Bash(node --check controllers/rma.controller.js)",
+      "Bash(ssh administrator@VLAccess-cloud 'docker logs ticketops-backend --tail 100')"
     ]
   },
   "enableAllProjectMcpServers": true,

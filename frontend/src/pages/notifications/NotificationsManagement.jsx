@@ -367,9 +367,6 @@ export default function NotificationsManagement() {
         <div className="notifications-management">
             <div className="page-header">
                 <div className="header-content">
-                    <div className="header-icon">
-                        <Bell size={24} />
-                    </div>
                     <div>
                         <h1>Notifications Management</h1>
                         <p>Create and manage announcements and notifications</p>

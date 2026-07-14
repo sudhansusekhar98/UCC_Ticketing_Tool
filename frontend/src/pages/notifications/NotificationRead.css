@@ -140,8 +140,8 @@
 }
 
 .notification-title {
-    font-size: var(--text-2xl);
-    font-weight: 800;
+    font-size: var(--text-lg);
+    font-weight: 700;
     color: var(--text-primary);
     margin-bottom: var(--space-4);
     line-height: 1.2;
