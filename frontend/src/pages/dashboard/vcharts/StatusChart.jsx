@@ -10,10 +10,12 @@ const STATUS_COLORS = {
 const STATUS_LABELS = { InProgress: 'In Progress' };
 
 export default function StatusChart({ statuses = [] }) {
-    const data = (statuses || []).map((s) => ({
-        name: s.status || 'Unknown',
-        value: s.count ?? 0,
-    }));
+    const data = (statuses || [])
+        .filter((s) => s.status !== 'Closed') // Closed counts hidden
+        .map((s) => ({
+            name: s.status || 'Unknown',
+            value: s.count ?? 0,
+        }));
     const max = Math.max(...data.map((d) => d.value), 1);
 
     if (data.length === 0) {
