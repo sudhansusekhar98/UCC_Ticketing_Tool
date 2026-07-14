@@ -278,14 +278,24 @@ export const getTicketTrends = async (req, res, next) => {
             { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$resolvedOn' } }, count: { $sum: 1 } } }
         ]);
 
+        // Daily in-progress counts for current range (tickets started, i.e. moved to InProgress)
+        const inProgressTrends = await Ticket.aggregate([
+            { $match: { ...baseMatch, startedOn: { $ne: null, $gte: start, $lte: end } } },
+            { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$startedOn' } }, count: { $sum: 1 } } }
+        ]);
+
         // Merge into unified trends array keyed by date
         const trendMap = {};
         createdTrends.forEach(d => {
-            trendMap[d._id] = { date: d._id, created: d.count, resolved: 0 };
+            trendMap[d._id] = { date: d._id, created: d.count, resolved: 0, inProgress: 0 };
         });
         resolvedTrends.forEach(d => {
             if (trendMap[d._id]) trendMap[d._id].resolved = d.count;
-            else trendMap[d._id] = { date: d._id, created: 0, resolved: d.count };
+            else trendMap[d._id] = { date: d._id, created: 0, resolved: d.count, inProgress: 0 };
+        });
+        inProgressTrends.forEach(d => {
+            if (trendMap[d._id]) trendMap[d._id].inProgress = d.count;
+            else trendMap[d._id] = { date: d._id, created: 0, resolved: 0, inProgress: d.count };
         });
         const trends = Object.values(trendMap).sort((a, b) => a.date.localeCompare(b.date));
 

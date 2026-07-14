@@ -1,12 +1,14 @@
 import { VChart } from '@visactor/react-vchart';
 
-const CREATED_COLOR  = '#6366F1';   // vibrant indigo
-const RESOLVED_COLOR = '#10B981';   // emerald
+const CREATED_COLOR     = '#6366F1';   // vibrant indigo
+const RESOLVED_COLOR    = '#10B981';   // emerald
+const IN_PROGRESS_COLOR = '#F59E0B';   // amber
 
 function buildSpec(trends) {
     const flatData = trends.flatMap((d) => [
-        { date: d.date, series: 'Created',  count: d.created  ?? 0 },
-        { date: d.date, series: 'Resolved', count: d.resolved ?? 0 },
+        { date: d.date, series: 'Created',     count: d.created    ?? 0 },
+        { date: d.date, series: 'Resolved',    count: d.resolved   ?? 0 },
+        { date: d.date, series: 'In Progress', count: d.inProgress ?? 0 },
     ]);
 
     return {
@@ -17,7 +19,7 @@ function buildSpec(trends) {
         seriesField: 'series',
         stack:       false,
         smooth:      true,
-        color:       [CREATED_COLOR, RESOLVED_COLOR],
+        color:       [CREATED_COLOR, RESOLVED_COLOR, IN_PROGRESS_COLOR],
         legends:     { visible: false },
 
         /* ── lines ── */
@@ -25,10 +27,11 @@ function buildSpec(trends) {
             style: {
                 lineWidth:      2.5,
                 shadowBlur:     8,
-                shadowColor:    (d) =>
-                    d?.series === 'Resolved'
-                        ? 'rgba(16,185,129,.35)'
-                        : 'rgba(99,102,241,.35)',
+                shadowColor:    (d) => {
+                    if (d?.series === 'Resolved') return 'rgba(16,185,129,.35)';
+                    if (d?.series === 'In Progress') return 'rgba(245,158,11,.35)';
+                    return 'rgba(99,102,241,.35)';
+                },
                 shadowOffsetY:  3,
             },
         },
@@ -40,7 +43,9 @@ function buildSpec(trends) {
                 fill: (d) => {
                     const base = d?.series === 'Resolved'
                         ? RESOLVED_COLOR
-                        : CREATED_COLOR;
+                        : d?.series === 'In Progress'
+                            ? IN_PROGRESS_COLOR
+                            : CREATED_COLOR;
                     return {
                         gradient: 'linear',
                         x0: 0, y0: 0, x1: 0, y1: 1,

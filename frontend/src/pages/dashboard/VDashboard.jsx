@@ -288,6 +288,7 @@ export default function VDashboard() {
                     <div className="vd-trend-legend">
                         <span><i style={{ background: '#4F46E5' }} />Created</span>
                         <span><i style={{ background: '#10B981' }} />Resolved</span>
+                        <span><i style={{ background: '#F59E0B' }} />In Progress</span>
                     </div>
                     <TicketTrendChart trends={trends} loading={trendLoading} />
                 </div>
