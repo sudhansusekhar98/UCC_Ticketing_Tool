@@ -182,6 +182,11 @@ export default function ProjectDetail() {
 
     return (
         <div className="page-container animate-fade-in">
+            <div className="fieldops-breadcrumb">
+                <Link to="/fieldops/projects">Projects</Link>
+                <span className="fieldops-breadcrumb-sep">/</span>
+                <span className="fieldops-breadcrumb-current">{project.projectName}</span>
+            </div>
             {/* Header */}
             <div className="project-detail-header">
                 <div className="project-info">
@@ -383,12 +388,14 @@ export default function ProjectDetail() {
                         icon={<FileText size={22} />}
                         label="Daily Logs"
                         count={dashboard?.dailyLogs?.total || 0}
+                        highlight={project.status === 'Active' && schedStatus === 'Behind Schedule'}
                     />
                     <SectionCard
                         to={`/fieldops/projects/${id}/devices`}
                         icon={<Camera size={22} />}
                         label="Devices"
                         count={dashboard?.allocations?.totalInstalled || 0}
+                        highlight={(dashboard?.devices?.total || 0) > (dashboard?.devices?.assignedCount || 0)}
                     />
                     <SectionCard
                         to={`/fieldops/projects/${id}/vendor-work`}
