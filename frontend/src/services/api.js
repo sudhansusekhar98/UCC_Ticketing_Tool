@@ -403,6 +403,7 @@ export const stockApi = {
     getAllocations: (params) => api.get('/stock/allocations', { params }),
     allocateToProject: (data) => api.post('/stock/allocations', data),
     updateAllocation: (id, data) => api.put(`/stock/allocations/${id}`, data),
+    logAllocationReceipt: (id, data) => api.post(`/stock/allocations/${id}/receive`, data),
     deleteAllocation: (id) => api.delete(`/stock/allocations/${id}`),
     getProjectAllocatedStock: (projectId) => api.get('/stock/allocations/for-device-form', { params: { projectId } }),
     getProjectCableAllocations: (projectId, cableType) => api.get('/stock/allocations/cables', { params: { projectId, cableType } }),
@@ -425,6 +426,8 @@ export const fieldOpsApi = {
     updateProject: (id, data) => api.put(`/fieldops/projects/${id}`, data),
     deleteProject: (id) => api.delete(`/fieldops/projects/${id}`),
     getProjectDashboard: (id) => api.get(`/fieldops/projects/${id}/dashboard`),
+    exportMaterialReceiptReport: (projectId) =>
+        api.get(`/fieldops/projects/${projectId}/material-receipt-report`, { responseType: 'blob' }),
 
     // Project Zones
     getProjectZones: (projectId) => api.get(`/fieldops/projects/${projectId}/zones`),
