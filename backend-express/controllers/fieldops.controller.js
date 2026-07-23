@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import XLSX from 'xlsx';
 import Project, { ProjectStatuses } from '../models/Project.model.js';
 import ProjectZone from '../models/ProjectZone.model.js';
 import PMDailyLog, { PhotoTypes } from '../models/PMDailyLog.model.js';
@@ -1819,6 +1820,50 @@ export const exportProjectReportExcel = asyncHandler(async (req, res, next) => {
     success: false,
     message: 'Excel export not yet implemented. Install exceljs: npm install exceljs'
   });
+});
+
+/**
+ * @desc    Export material receipt summary (PO qty vs received vs extra qty per material)
+ * @route   GET /api/fieldops/projects/:projectId/material-receipt-report
+ * @access  Private
+ */
+export const exportMaterialReceiptReport = asyncHandler(async (req, res, next) => {
+  const { projectId } = req.params;
+
+  const project = await Project.findById(projectId);
+  if (!project || !project.isActive) {
+    return res.status(404).json({ success: false, message: 'Project not found' });
+  }
+  if (!canAccessProject(req.user, project)) {
+    return res.status(403).json({ success: false, message: 'Not authorized' });
+  }
+
+  const allocations = await ProjectStockAllocation.find({ projectId })
+    .populate('stockItemId', 'assetType deviceType make model unit')
+    .lean();
+
+  const rows = allocations.map((a, i) => ({
+    'SL NO': i + 1,
+    'Material Description': [a.stockItemId?.deviceType, a.stockItemId?.make, a.stockItemId?.model]
+      .filter(Boolean).join(' - ') || a.stockItemId?.assetType || 'Unknown',
+    'Material Qty in PO': a.allocatedQty || 0,
+    'UOM': a.stockItemId?.unit || 'Nos',
+    'Received Qty': a.receivedQty || 0,
+    'UOM ': a.stockItemId?.unit || 'Nos',
+    'Extra Qty': a.extraQty || 0,
+    'Received Date': a.lastReceivedDate ? new Date(a.lastReceivedDate).toISOString().slice(0, 10) : '',
+    'Mode of Transport': a.lastModeOfTransport || '',
+    'Remarks': a.lastReceiptRemarks || ''
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Material Receipt');
+  const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="material_receipt_${project.projectNumber}.xlsx"`);
+  res.status(200).send(buffer);
 });
 
 // ==================== DEVICE ASSIGNMENT CONTROLLERS ====================

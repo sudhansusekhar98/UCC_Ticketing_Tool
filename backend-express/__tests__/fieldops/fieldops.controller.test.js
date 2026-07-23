@@ -81,6 +81,10 @@ const mockChallengeLogModel = {
   countDocuments: jest.fn(),
 };
 
+const mockProjectStockAllocationModel = {
+  find: jest.fn(),
+};
+
 // ─────────────────────────────────────────────
 //  Mock modules BEFORE dynamic controller import
 // ─────────────────────────────────────────────
@@ -124,7 +128,7 @@ jest.unstable_mockModule('../../models/ChallengeLog.model.js', () => ({
 }));
 
 jest.unstable_mockModule('../../models/ProjectStockAllocation.model.js', () => ({
-  default: { find: jest.fn() },
+  default: mockProjectStockAllocationModel,
 }));
 
 jest.unstable_mockModule('../../config/cloudinary.js', () => ({
@@ -862,5 +866,80 @@ describe('Project Model – ProjectStatuses constants', () => {
     expect(ProjectStatuses.ON_HOLD).toBe('OnHold');
     expect(ProjectStatuses.COMPLETED).toBe('Completed');
     expect(ProjectStatuses.CANCELLED).toBe('Cancelled');
+  });
+});
+
+// ═══════════════════════════════════════════
+//  12. exportMaterialReceiptReport
+// ═══════════════════════════════════════════
+describe('exportMaterialReceiptReport', () => {
+  it('returns a 404 when the project does not exist', async () => {
+    mockProjectModel.findById.mockResolvedValueOnce(null);
+
+    const req = mockReq({ params: { projectId: objectId().toString() } });
+    const res = mockRes();
+    res.setHeader = jest.fn();
+    res.send = jest.fn();
+
+    await controller.exportMaterialReceiptReport(req, res, mockNext());
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('returns 403 when the user cannot access the project', async () => {
+    const project = mockProject({ isActive: true, teamMembers: [], assignedVendors: [] });
+    mockProjectModel.findById.mockResolvedValueOnce(project);
+
+    const outsider = { _id: objectId(), role: 'L1Engineer', rights: { siteRights: [], globalRights: [] } };
+    const req = mockReq({ user: outsider, params: { projectId: project._id.toString() } });
+    const res = mockRes();
+    res.setHeader = jest.fn();
+    res.send = jest.fn();
+
+    await controller.exportMaterialReceiptReport(req, res, mockNext());
+
+    expect(res.statusCode).toBe(403);
+  });
+
+  it('builds an xlsx buffer with one row per allocation for an authorized Admin', async () => {
+    const project = mockProject({ isActive: true });
+    mockProjectModel.findById.mockResolvedValueOnce(project);
+
+    const allocations = [
+      {
+        allocatedQty: 20,
+        receivedQty: 18,
+        extraQty: 2,
+        lastReceivedDate: new Date('2026-07-20'),
+        lastModeOfTransport: 'Road',
+        lastReceiptRemarks: '2 short-shipped, followed up',
+        stockItemId: { assetType: 'Camera', deviceType: 'Dome Camera', make: 'Hikvision', model: 'DS-2', unit: 'Nos' }
+      }
+    ];
+    mockProjectStockAllocationModel.find.mockReturnValue({
+      populate: jest.fn().mockReturnValue({
+        lean: jest.fn().mockResolvedValue(allocations)
+      })
+    });
+
+    const req = mockReq({ user: mockAdminUser(), params: { projectId: project._id.toString() } });
+    const res = mockRes();
+    res.setHeader = jest.fn();
+    res.send = jest.fn();
+
+    await controller.exportMaterialReceiptReport(req, res, mockNext());
+
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    expect(res.setHeader).toHaveBeenCalledWith(
+      'Content-Disposition',
+      expect.stringContaining(project.projectNumber)
+    );
+    expect(res.send).toHaveBeenCalled();
+    const buffer = res.send.mock.calls[0][0];
+    expect(Buffer.isBuffer(buffer)).toBe(true);
+    expect(buffer.length).toBeGreaterThan(0);
   });
 });

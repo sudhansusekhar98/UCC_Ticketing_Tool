@@ -53,6 +53,7 @@ import {
   getProjectReport,
   exportProjectReportPDF,
   exportProjectReportExcel,
+  exportMaterialReceiptReport,
   // Reconciliation
   getReconciliation,
   getReconciliationDevices,
@@ -394,5 +395,8 @@ router.get('/reports/project/:id/export/excel',
   adminSupervisorOnly,
   exportProjectReportExcel
 );
+
+// GET /api/fieldops/projects/:projectId/material-receipt-report - PO vs Received vs Extra qty summary
+router.get('/projects/:projectId/material-receipt-report', exportMaterialReceiptReport);
 
 export default router;
