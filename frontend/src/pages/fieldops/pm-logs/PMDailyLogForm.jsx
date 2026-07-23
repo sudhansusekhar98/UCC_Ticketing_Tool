@@ -655,6 +655,53 @@ export default function PMDailyLogForm() {
                                                         );
                                                     })}
                                                 </div>
+                                                {entry.deviceInstalls.length > 0 && (
+                                                    <div style={{ marginTop: '0.75rem', paddingTop: '0.6rem', borderTop: '1px solid var(--border-light,rgba(148,163,184,0.1))' }}>
+                                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                                                            Devices Installed Today
+                                                        </div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                            {entry.deviceInstalls.map(di => {
+                                                                const stockInfo = allocatedStockByAllocationId.get(di.allocationId);
+                                                                const remaining = stockInfo?.remainingQty;
+                                                                return (
+                                                                    <div key={di.allocationId} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                                                        <span style={{ fontSize: '0.82rem', flex: '1 1 160px', color: 'var(--text-primary)' }}>
+                                                                            {di.deviceTypeName}
+                                                                            {remaining !== undefined && (
+                                                                                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginLeft: 6 }}>
+                                                                                    ({remaining} remaining)
+                                                                                </span>
+                                                                            )}
+                                                                        </span>
+                                                                        <input
+                                                                            type="number"
+                                                                            className="form-input"
+                                                                            style={{ width: 72, fontSize: '0.8rem', padding: '0.3rem 0.5rem' }}
+                                                                            min="0"
+                                                                            max={remaining !== undefined ? remaining : undefined}
+                                                                            value={di.installedQty}
+                                                                            onChange={e => {
+                                                                                const raw = parseInt(e.target.value, 10);
+                                                                                const qty = Number.isNaN(raw) ? 0 : Math.max(0, remaining !== undefined ? Math.min(raw, remaining) : raw);
+                                                                                setDeviceInstallQty(activity._id, di.allocationId, qty);
+                                                                            }}
+                                                                        />
+                                                                        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={di.requiresConfiguration}
+                                                                                onChange={e => setDeviceRequiresConfiguration(activity._id, di.allocationId, e.target.checked)}
+                                                                                style={{ width: 14, height: 14 }}
+                                                                            />
+                                                                            Requires Configuration
+                                                                        </label>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <textarea
                                                     className="form-textarea"
                                                     style={{ marginTop: '0.5rem', fontSize: '0.8rem', rows: 2, minHeight: 48 }}
