@@ -54,6 +54,17 @@ export default function ProjectSectionLayout({ sectionTitle, sectionIcon, childr
 
     return (
         <div className="page-container animate-fade-in">
+            <div className="fieldops-breadcrumb">
+                <Link to="/fieldops/projects">Projects</Link>
+                <span className="fieldops-breadcrumb-sep">/</span>
+                <Link to={`/fieldops/projects/${id}`}>{project.projectName}</Link>
+                {sectionTitle && (
+                    <>
+                        <span className="fieldops-breadcrumb-sep">/</span>
+                        <span className="fieldops-breadcrumb-current">{sectionTitle}</span>
+                    </>
+                )}
+            </div>
             <div className="project-detail-header">
                 <div className="project-info">
                     <div className="header-left">

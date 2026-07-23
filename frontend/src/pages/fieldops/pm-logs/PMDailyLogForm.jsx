@@ -10,7 +10,6 @@ import {
     CheckSquare,
     Plus,
     X,
-    Image,
     AlertTriangle,
     Lock
 } from 'lucide-react';
@@ -52,9 +51,51 @@ export default function PMDailyLogForm() {
     const [openActivities, setOpenActivities] = useState([]);
     const [activityEntries, setActivityEntries] = useState([]);
 
+    // ponytail: drafts store formData/activityEntries only — File objects can't survive
+    // localStorage, so selected photos still need re-adding after a lost session.
+    const draftKey = `fieldops_pmlog_draft_${projectId}_${logId || 'new'}`;
+    const draftReadyRef = useRef(false);
+
     useEffect(() => {
         loadData();
     }, [projectId, logId]);
+
+    const restoreDraft = (draft) => {
+        setFormData(draft.formData);
+        setActivityEntries(draft.activityEntries || []);
+    };
+
+    const offerDraftRestore = () => {
+        const raw = localStorage.getItem(draftKey);
+        if (!raw) return;
+        let draft;
+        try {
+            draft = JSON.parse(raw);
+        } catch {
+            localStorage.removeItem(draftKey);
+            return;
+        }
+
+        toast((t) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <span>You have an unsaved draft from a previous session. Restore it?</span>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                    <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => { localStorage.removeItem(draftKey); toast.dismiss(t.id); }}
+                    >
+                        Discard
+                    </button>
+                    <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => { restoreDraft(draft); toast.dismiss(t.id); }}
+                    >
+                        Restore
+                    </button>
+                </div>
+            </div>
+        ), { duration: 20000 });
+    };
 
     const loadData = async () => {
         try {
@@ -113,8 +154,19 @@ export default function PMDailyLogForm() {
             console.error(error);
         } finally {
             setLoading(false);
+            offerDraftRestore();
+            draftReadyRef.current = true;
         }
     };
+
+    // Debounced autosave to localStorage so a lost connection in the field doesn't lose the entry
+    useEffect(() => {
+        if (!draftReadyRef.current) return;
+        const timer = setTimeout(() => {
+            localStorage.setItem(draftKey, JSON.stringify({ formData, activityEntries, savedAt: Date.now() }));
+        }, 800);
+        return () => clearTimeout(timer);
+    }, [formData, activityEntries]);
 
     const handleChange = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -250,13 +302,23 @@ export default function PMDailyLogForm() {
             return true;
         });
 
-        setSelectedFiles(prev => [...prev, ...validFiles]);
+        const withPreviews = validFiles.map(file => ({ file, previewUrl: URL.createObjectURL(file) }));
+        setSelectedFiles(prev => [...prev, ...withPreviews]);
         e.target.value = '';
     };
 
     const removeFile = (index) => {
-        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+        setSelectedFiles(prev => {
+            URL.revokeObjectURL(prev[index].previewUrl);
+            return prev.filter((_, i) => i !== index);
+        });
     };
+
+    // Revoke preview URLs on unmount to avoid leaking memory
+    useEffect(() => {
+        return () => selectedFiles.forEach(f => URL.revokeObjectURL(f.previewUrl));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -314,7 +376,7 @@ export default function PMDailyLogForm() {
             // Upload photos if any
             if (selectedFiles.length > 0) {
                 const photoFormData = new FormData();
-                selectedFiles.forEach(file => {
+                selectedFiles.forEach(({ file }) => {
                     photoFormData.append('photos', file);
                 });
                 photoFormData.append('photoType', 'Progress');
@@ -322,6 +384,7 @@ export default function PMDailyLogForm() {
                 await fieldOpsApi.uploadPMLogPhotos(savedLogId, photoFormData);
             }
 
+            localStorage.removeItem(draftKey);
             toast.success(isEditing ? 'Log updated successfully' : 'Daily log submitted successfully');
             navigate(`/fieldops/projects/${projectId}`);
         } catch (error) {
@@ -646,13 +709,17 @@ export default function PMDailyLogForm() {
 
                     {/* New photos preview */}
                     {selectedFiles.length > 0 && (
-                        <div className="selected-files">
-                            {selectedFiles.map((file, index) => (
-                                <div key={index} className="selected-file">
-                                    <Image size={14} />
-                                    <span>{file.name}</span>
-                                    <button type="button" onClick={() => removeFile(index)}>
-                                        <X size={12} />
+                        <div className="photo-gallery">
+                            {selectedFiles.map(({ file, previewUrl }, index) => (
+                                <div key={index} className="photo-item photo-item-pending">
+                                    <img src={previewUrl} alt={file.name} />
+                                    <button
+                                        type="button"
+                                        className="photo-item-remove"
+                                        onClick={() => removeFile(index)}
+                                        title={file.name}
+                                    >
+                                        <X size={14} />
                                     </button>
                                 </div>
                             ))}

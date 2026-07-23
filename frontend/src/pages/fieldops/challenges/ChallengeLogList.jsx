@@ -12,7 +12,8 @@ import {
     Eye,
     MessageSquare,
     Flag,
-    CheckCircle
+    CheckCircle,
+    Loader
 } from 'lucide-react';
 import { fieldOpsApi } from '../../../services/api';
 import useAuthStore from '../../../context/authStore';
@@ -57,6 +58,10 @@ export default function ChallengeLogList() {
     const [pagination, setPagination] = useState({ total: 0, pages: 1 });
     const pageSize = 20;
 
+    const [resolvingChallenge, setResolvingChallenge] = useState(null);
+    const [resolutionText, setResolutionText] = useState('');
+    const [resolving, setResolving] = useState(false);
+
     const canAdd = hasRole(['Admin', 'Supervisor', 'L1Engineer', 'L2Engineer']);
 
     useEffect(() => {
@@ -97,16 +102,32 @@ export default function ChallengeLogList() {
         }
     };
 
-    const handleResolve = async (id) => {
-        const resolution = prompt('Enter resolution description:');
-        if (!resolution) return;
+    const openResolveModal = (challenge) => {
+        setResolvingChallenge(challenge);
+        setResolutionText('');
+    };
 
+    const closeResolveModal = () => {
+        setResolvingChallenge(null);
+        setResolutionText('');
+    };
+
+    const handleResolve = async () => {
+        if (!resolutionText.trim()) {
+            toast.error('Please describe how this was resolved');
+            return;
+        }
+
+        setResolving(true);
         try {
-            await fieldOpsApi.resolveChallengeLog(id, resolution);
+            await fieldOpsApi.resolveChallengeLog(resolvingChallenge._id, resolutionText.trim());
             toast.success('Challenge marked as resolved');
+            closeResolveModal();
             fetchChallenges();
         } catch (error) {
             toast.error('Failed to resolve challenge');
+        } finally {
+            setResolving(false);
         }
     };
 
@@ -285,7 +306,7 @@ export default function ChallengeLogList() {
                                         </Link>
                                         {challenge.resolutionStatus !== 'Resolved' && challenge.resolutionStatus !== 'Closed' && (
                                             <button
-                                                onClick={() => handleResolve(challenge._id)}
+                                                onClick={() => openResolveModal(challenge)}
                                                 className="btn btn-ghost btn-sm"
                                             >
                                                 <CheckCircle size={16} /> Resolve
@@ -321,6 +342,60 @@ export default function ChallengeLogList() {
                     </>
                 )}
             </div>
+
+            {resolvingChallenge && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '480px' }}>
+                        <div className="modal-header">
+                            <h3>
+                                <CheckCircle size={20} />
+                                Resolve Challenge
+                            </h3>
+                            <button onClick={closeResolveModal} className="modal-close">
+                                &times;
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="device-info-card mb-4">
+                                <strong>{resolvingChallenge.challengeNumber}</strong> - {resolvingChallenge.title}
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label required">Resolution Description</label>
+                                <textarea
+                                    value={resolutionText}
+                                    onChange={(e) => setResolutionText(e.target.value)}
+                                    placeholder="Describe how this challenge was resolved..."
+                                    className="form-textarea"
+                                    rows={4}
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button onClick={closeResolveModal} className="btn btn-ghost" disabled={resolving}>
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleResolve}
+                                className="btn btn-primary"
+                                disabled={resolving || !resolutionText.trim()}
+                            >
+                                {resolving ? (
+                                    <>
+                                        <Loader size={16} className="spin" />
+                                        Resolving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle size={16} />
+                                        Mark Resolved
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
