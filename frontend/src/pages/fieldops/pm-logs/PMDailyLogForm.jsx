@@ -57,11 +57,6 @@ export default function PMDailyLogForm() {
     const draftKey = `fieldops_pmlog_draft_${projectId}_${logId || 'new'}`;
     const draftReadyRef = useRef(false);
 
-    // ponytail: drafts store formData/activityEntries only — File objects can't survive
-    // localStorage, so selected photos still need re-adding after a lost session.
-    const draftKey = `fieldops_pmlog_draft_${projectId}_${logId || 'new'}`;
-    const draftReadyRef = useRef(false);
-
     useEffect(() => {
         loadData();
     }, [projectId, logId]);
