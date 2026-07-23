@@ -428,6 +428,35 @@ export default function PMDailyLogForm() {
                 await fieldOpsApi.uploadPMLogPhotos(savedLogId, photoFormData);
             }
 
+            // Create device installation records for any devices logged as installed today
+            const devicesToCreate = activityEntries.flatMap(entry =>
+                (entry.deviceInstalls || [])
+                    .filter(di => di.installedQty > 0)
+                    .map(di => ({
+                        projectId,
+                        activityId: entry.activityId,
+                        deviceType: di.deviceTypeName,
+                        allocationId: di.allocationId,
+                        quantity: di.installedQty,
+                        status: di.requiresConfiguration ? 'Installed' : 'Deployed',
+                        requiresConfiguration: di.requiresConfiguration,
+                        linkedDailyLogId: savedLogId
+                    }))
+            );
+
+            if (devicesToCreate.length > 0) {
+                try {
+                    const deviceRes = await fieldOpsApi.createBulkDeviceInstallations({ devices: devicesToCreate });
+                    const errorCount = deviceRes.data.errors?.length || 0;
+                    if (errorCount > 0) {
+                        const failedTypes = deviceRes.data.errors.map(e => e.device?.deviceType || 'Unknown device').join(', ');
+                        toast.error(`${errorCount} device type(s) failed to log: ${failedTypes}`, { duration: 8000 });
+                    }
+                } catch {
+                    toast.error('Log saved, but device installs failed to record. Log them from the Devices section.');
+                }
+            }
+
             localStorage.removeItem(draftKey);
             toast.success(isEditing ? 'Log updated successfully' : 'Daily log submitted successfully');
             navigate(`/fieldops/projects/${projectId}`);
