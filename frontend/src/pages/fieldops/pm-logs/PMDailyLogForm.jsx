@@ -13,7 +13,7 @@ import {
     AlertTriangle,
     Lock
 } from 'lucide-react';
-import { fieldOpsApi } from '../../../services/api';
+import { fieldOpsApi, stockApi } from '../../../services/api';
 import useAuthStore from '../../../context/authStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -50,6 +50,7 @@ export default function PMDailyLogForm() {
     const [existingPhotos, setExistingPhotos] = useState([]);
     const [openActivities, setOpenActivities] = useState([]);
     const [activityEntries, setActivityEntries] = useState([]);
+    const [allocatedStockByAllocationId, setAllocatedStockByAllocationId] = useState(new Map());
 
     // ponytail: drafts store formData/activityEntries only — File objects can't survive
     // localStorage, so selected photos still need re-adding after a lost session.
@@ -147,6 +148,18 @@ export default function PMDailyLogForm() {
             try {
                 const prefillRes = await fieldOpsApi.getDailyLogPrefill(projectId);
                 setOpenActivities(prefillRes.data.data || []);
+            } catch { /* non-blocking */ }
+
+            // Load allocated stock for remaining-qty lookups (non-blocking)
+            try {
+                const stockRes = await stockApi.getProjectAllocatedStock(projectId);
+                const map = new Map(
+                    (stockRes.data.data || []).map(item => [
+                        item.allocationId,
+                        { remainingQty: item.remainingQty, unit: item.unit }
+                    ])
+                );
+                setAllocatedStockByAllocationId(map);
             } catch { /* non-blocking */ }
 
         } catch (error) {
@@ -250,7 +263,16 @@ export default function PMDailyLogForm() {
                     completed: false,
                     delayReason: ''
                 })),
-                progressNote: ''
+                progressNote: '',
+                deviceInstalls: (activity.requiredDevices || [])
+                    .filter(rd => rd.allocationId)
+                    .map(rd => ({
+                        deviceTypeId: rd.deviceTypeId,
+                        deviceTypeName: rd.deviceTypeName,
+                        allocationId: rd.allocationId,
+                        installedQty: 0,
+                        requiresConfiguration: true
+                    }))
             }]);
         }
     };
@@ -280,6 +302,28 @@ export default function PMDailyLogForm() {
     const setActivityProgressNote = (activityId, note) => {
         setActivityEntries(prev => prev.map(entry =>
             entry.activityId !== activityId ? entry : { ...entry, progressNote: note }
+        ));
+    };
+
+    const setDeviceInstallQty = (activityId, allocationId, qty) => {
+        setActivityEntries(prev => prev.map(entry =>
+            entry.activityId !== activityId ? entry : {
+                ...entry,
+                deviceInstalls: entry.deviceInstalls.map(di =>
+                    di.allocationId !== allocationId ? di : { ...di, installedQty: qty }
+                )
+            }
+        ));
+    };
+
+    const setDeviceRequiresConfiguration = (activityId, allocationId, requiresConfiguration) => {
+        setActivityEntries(prev => prev.map(entry =>
+            entry.activityId !== activityId ? entry : {
+                ...entry,
+                deviceInstalls: entry.deviceInstalls.map(di =>
+                    di.allocationId !== allocationId ? di : { ...di, requiresConfiguration }
+                )
+            }
         ));
     };
 
