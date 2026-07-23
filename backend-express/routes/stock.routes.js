@@ -30,6 +30,7 @@ import {
     getProjectAllocations,
     updateAllocation,
     deleteAllocation,
+    logMaterialReceipt,
     getProjectAllocatedStock,
     getProjectCableAllocations,
     exportStockSummary,
@@ -70,6 +71,7 @@ router.get('/allocations', getProjectAllocations);
 router.get('/allocations/for-device-form', getProjectAllocatedStock);
 router.get('/allocations/cables', getProjectCableAllocations);
 router.put('/allocations/:id', adminOnly, updateAllocation);
+router.post('/allocations/:id/receive', logMaterialReceipt);
 router.delete('/allocations/:id', adminOnly, deleteAllocation);
 
 // Stock management (Admin OR users with MANAGE_SITE_STOCK right)
