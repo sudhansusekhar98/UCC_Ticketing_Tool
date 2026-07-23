@@ -6,7 +6,9 @@ import {
     Package,
     AlertCircle,
     Plus,
-    Search
+    Search,
+    Download,
+    Truck
 } from 'lucide-react';
 import { fieldOpsApi, stockApi } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -22,6 +24,11 @@ export default function ProjectAllocatedStockList() {
     const [searchTerm, setSearchTerm] = useState('');
     const [assetTypeFilter, setAssetTypeFilter] = useState('');
     const [deviceTypeFilter, setDeviceTypeFilter] = useState('');
+
+    const [receivingAlloc, setReceivingAlloc] = useState(null);
+    const [receiptForm, setReceiptForm] = useState({ receivedQty: 0, extraQty: 0, receivedDate: '', modeOfTransport: '', remarks: '' });
+    const [savingReceipt, setSavingReceipt] = useState(false);
+    const [downloadingReport, setDownloadingReport] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -53,6 +60,61 @@ export default function ProjectAllocatedStockList() {
             toast.error('Failed to load allocations');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const openReceiptModal = (alloc) => {
+        setReceivingAlloc(alloc);
+        setReceiptForm({
+            receivedQty: 0,
+            extraQty: 0,
+            receivedDate: new Date().toISOString().slice(0, 10),
+            modeOfTransport: '',
+            remarks: ''
+        });
+    };
+
+    const closeReceiptModal = () => {
+        setReceivingAlloc(null);
+    };
+
+    const handleLogReceipt = async () => {
+        if (receiptForm.receivedQty <= 0 && receiptForm.extraQty <= 0) {
+            toast.error('Enter a Received Qty or Extra Qty greater than 0');
+            return;
+        }
+
+        setSavingReceipt(true);
+        try {
+            await stockApi.logAllocationReceipt(receivingAlloc._id, receiptForm);
+            toast.success('Receipt logged successfully');
+            closeReceiptModal();
+            loadAllocations();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to log receipt');
+        } finally {
+            setSavingReceipt(false);
+        }
+    };
+
+    const handleDownloadReport = async () => {
+        setDownloadingReport(true);
+        try {
+            const res = await fieldOpsApi.exportMaterialReceiptReport(id);
+            const blob = new Blob([res.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `material_receipt_${project?.projectNumber || id}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Failed to download report:', error);
+            toast.error('Failed to download report');
+        } finally {
+            setDownloadingReport(false);
         }
     };
 
@@ -98,6 +160,9 @@ export default function ProjectAllocatedStockList() {
                 <div className="header-actions">
                     <button onClick={loadAllocations} className="btn btn-ghost" title="Refresh">
                         <RefreshCw size={18} />
+                    </button>
+                    <button onClick={handleDownloadReport} className="btn btn-primary" disabled={downloadingReport}>
+                        <Download size={18} /> {downloadingReport ? 'Downloading...' : 'Download Report'}
                     </button>
                     <Link to="/stock" className="btn btn-ghost">
                         <Package size={18} /> View Inventory
@@ -210,10 +275,12 @@ export default function ProjectAllocatedStockList() {
                                 <tr>
                                     <th>Item</th>
                                     <th style={{ textAlign: 'center', width: '100px', padding: '1rem' }}>Allocated</th>
+                                    <th style={{ textAlign: 'center', width: '100px', padding: '1rem' }}>Received</th>
                                     <th style={{ textAlign: 'center', width: '100px', padding: '1rem' }}>Installed</th>
                                     <th style={{ textAlign: 'center', width: '100px', padding: '1rem' }}>Faulty</th>
                                     <th style={{ textAlign: 'center', width: '100px', padding: '1rem' }}>Remaining</th>
                                     <th style={{ textAlign: 'center', width: '140px', padding: '1rem' }}>Status</th>
+                                    <th style={{ textAlign: 'center', width: '100px', padding: '1rem' }}>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -234,6 +301,9 @@ export default function ProjectAllocatedStockList() {
                                             </td>
                                             <td style={{ textAlign: 'center', fontWeight: 600, padding: '1rem' }}>
                                                 {Math.round(alloc.allocatedQty || 0)}
+                                            </td>
+                                            <td style={{ textAlign: 'center', color: 'var(--primary-400)', padding: '1rem' }}>
+                                                {Math.round(alloc.receivedQty || 0)}
                                             </td>
                                             <td style={{ textAlign: 'center', color: 'var(--success-400)', padding: '1rem' }}>
                                                 {Math.round(alloc.installedQty || 0)}
@@ -257,6 +327,15 @@ export default function ProjectAllocatedStockList() {
                                                         alloc.status === 'PartiallyInstalled' ? 'Partially Installed' : 'Allocated'}
                                                 </span>
                                             </td>
+                                            <td style={{ textAlign: 'center', padding: '1rem' }}>
+                                                <button
+                                                    onClick={() => openReceiptModal(alloc)}
+                                                    className="btn btn-ghost btn-sm"
+                                                    title="Log Receipt"
+                                                >
+                                                    <Truck size={16} />
+                                                </button>
+                                            </td>
                                         </tr>
                                     );
                                 })}
@@ -265,6 +344,90 @@ export default function ProjectAllocatedStockList() {
                     </div>
                 )}
             </div>
+
+            {receivingAlloc && (
+                <div className="modal-overlay">
+                    <div className="modal-content" style={{ maxWidth: '480px' }}>
+                        <div className="modal-header">
+                            <h3>
+                                <Truck size={20} />
+                                Log Material Receipt
+                            </h3>
+                            <button onClick={closeReceiptModal} className="modal-close">
+                                &times;
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="device-info-card mb-4">
+                                <strong>{receivingAlloc.stockItemId?.deviceType || receivingAlloc.stockItemId?.assetType}</strong>
+                                {receivingAlloc.stockItemId?.make && ` - ${receivingAlloc.stockItemId.make} ${receivingAlloc.stockItemId.model || ''}`}
+                                <div className="text-sm text-secondary">
+                                    PO Qty: {receivingAlloc.allocatedQty} {receivingAlloc.stockItemId?.unit || 'Nos'} · Already Received: {receivingAlloc.receivedQty || 0}
+                                </div>
+                            </div>
+                            <div className="form-grid">
+                                <div className="form-group">
+                                    <label className="form-label required">Received Qty</label>
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        min="0"
+                                        value={receiptForm.receivedQty}
+                                        onChange={(e) => setReceiptForm(prev => ({ ...prev, receivedQty: parseInt(e.target.value, 10) || 0 }))}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Extra Qty</label>
+                                    <input
+                                        type="number"
+                                        className="form-input"
+                                        min="0"
+                                        value={receiptForm.extraQty}
+                                        onChange={(e) => setReceiptForm(prev => ({ ...prev, extraQty: parseInt(e.target.value, 10) || 0 }))}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Received Date</label>
+                                    <input
+                                        type="date"
+                                        className="form-input"
+                                        value={receiptForm.receivedDate}
+                                        onChange={(e) => setReceiptForm(prev => ({ ...prev, receivedDate: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label className="form-label">Mode of Transport</label>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        placeholder="e.g., Road, Air, Courier"
+                                        value={receiptForm.modeOfTransport}
+                                        onChange={(e) => setReceiptForm(prev => ({ ...prev, modeOfTransport: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="form-group full-width">
+                                    <label className="form-label">Remarks</label>
+                                    <textarea
+                                        className="form-textarea"
+                                        rows={3}
+                                        placeholder="e.g., 2 units short-shipped, packaging damaged..."
+                                        value={receiptForm.remarks}
+                                        onChange={(e) => setReceiptForm(prev => ({ ...prev, remarks: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button onClick={closeReceiptModal} className="btn btn-ghost" disabled={savingReceipt}>
+                                Cancel
+                            </button>
+                            <button onClick={handleLogReceipt} className="btn btn-primary" disabled={savingReceipt}>
+                                {savingReceipt ? 'Saving...' : 'Log Receipt'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
