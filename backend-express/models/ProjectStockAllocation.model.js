@@ -72,6 +72,51 @@ const projectStockAllocationSchema = new mongoose.Schema({
       type: String,
       maxlength: 500
     }
+  }],
+  // Material receipt tracking (goods dispatched from Head Office, received at site)
+  receivedQty: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  extraQty: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  lastReceivedDate: {
+    type: Date
+  },
+  lastModeOfTransport: {
+    type: String,
+    maxlength: 100,
+    trim: true
+  },
+  lastReceiptRemarks: {
+    type: String,
+    maxlength: 500,
+    trim: true
+  },
+  receiptLog: [{
+    recordedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    recordedAt: {
+      type: Date,
+      default: Date.now
+    },
+    receivedQty: Number,
+    extraQty: Number,
+    receivedDate: Date,
+    modeOfTransport: {
+      type: String,
+      maxlength: 100
+    },
+    remarks: {
+      type: String,
+      maxlength: 500
+    }
   }]
 }, {
   timestamps: true,
