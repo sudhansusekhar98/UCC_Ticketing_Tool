@@ -1866,6 +1866,65 @@ export const updateAllocation = asyncHandler(async (req, res, next) => {
     });
 });
 
+// @desc    Log a material receipt against a project stock allocation
+// @route   POST /api/stock/allocations/:id/receive
+// @access  Private (Admin, Supervisor, assigned PM/team members)
+export const logMaterialReceipt = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const { receivedQty = 0, extraQty = 0, receivedDate, modeOfTransport, remarks } = req.body;
+    const user = req.user;
+
+    if (receivedQty < 0 || extraQty < 0) {
+        return res.status(400).json({ success: false, message: 'Received Qty and Extra Qty cannot be negative' });
+    }
+
+    const allocation = await ProjectStockAllocation.findById(id);
+    if (!allocation) {
+        return res.status(404).json({ success: false, message: 'Allocation not found' });
+    }
+
+    const project = await Project.findById(allocation.projectId);
+    if (!project) {
+        return res.status(404).json({ success: false, message: 'Project not found' });
+    }
+
+    // Local access check: Admin/Supervisor, or the project's assigned PM/team member.
+    // (Controllers in this codebase don't import from each other, so this is kept
+    // self-contained rather than reusing fieldops.controller.js's canAccessProject.)
+    const isPrivileged = ['Admin', 'Supervisor'].includes(user.role);
+    const isProjectMember = project.assignedPM?.toString() === user._id.toString() ||
+        project.teamMembers?.some(tm => tm.toString() === user._id.toString());
+    if (!isPrivileged && !isProjectMember) {
+        return res.status(403).json({ success: false, message: 'Not authorized to log receipts for this project' });
+    }
+
+    allocation.receiptLog.push({
+        recordedBy: user._id,
+        receivedQty,
+        extraQty,
+        receivedDate: receivedDate || new Date(),
+        modeOfTransport,
+        remarks
+    });
+    allocation.receivedQty += receivedQty;
+    allocation.extraQty += extraQty;
+    allocation.lastReceivedDate = receivedDate || new Date();
+    allocation.lastModeOfTransport = modeOfTransport;
+    allocation.lastReceiptRemarks = remarks;
+
+    await allocation.save();
+
+    const populated = await ProjectStockAllocation.findById(allocation._id)
+        .populate('stockItemId', 'assetType deviceType make model serialNumber quantity unit')
+        .populate('allocatedBy', 'name');
+
+    res.json({
+        success: true,
+        data: populated,
+        message: 'Material receipt logged successfully'
+    });
+});
+
 // @desc    Delete an allocation (Admin only)
 // @route   DELETE /api/stock/allocations/:id
 // @access  Private (Admin)

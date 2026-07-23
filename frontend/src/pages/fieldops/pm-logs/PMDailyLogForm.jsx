@@ -13,7 +13,7 @@ import {
     AlertTriangle,
     Lock
 } from 'lucide-react';
-import { fieldOpsApi } from '../../../services/api';
+import { fieldOpsApi, stockApi } from '../../../services/api';
 import useAuthStore from '../../../context/authStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -50,6 +50,12 @@ export default function PMDailyLogForm() {
     const [existingPhotos, setExistingPhotos] = useState([]);
     const [openActivities, setOpenActivities] = useState([]);
     const [activityEntries, setActivityEntries] = useState([]);
+    const [allocatedStockByAllocationId, setAllocatedStockByAllocationId] = useState(new Map());
+
+    // ponytail: drafts store formData/activityEntries only — File objects can't survive
+    // localStorage, so selected photos still need re-adding after a lost session.
+    const draftKey = `fieldops_pmlog_draft_${projectId}_${logId || 'new'}`;
+    const draftReadyRef = useRef(false);
 
     // ponytail: drafts store formData/activityEntries only — File objects can't survive
     // localStorage, so selected photos still need re-adding after a lost session.
@@ -138,7 +144,8 @@ export default function PMDailyLogForm() {
                             completed: tw.completed || false,
                             delayReason: tw.delayReason || ''
                         })),
-                        progressNote: entry.progressNote || ''
+                        progressNote: entry.progressNote || '',
+                        deviceInstalls: entry.deviceInstalls || []
                     })));
                 }
             }
@@ -147,6 +154,18 @@ export default function PMDailyLogForm() {
             try {
                 const prefillRes = await fieldOpsApi.getDailyLogPrefill(projectId);
                 setOpenActivities(prefillRes.data.data || []);
+            } catch { /* non-blocking */ }
+
+            // Load allocated stock for remaining-qty lookups (non-blocking)
+            try {
+                const stockRes = await stockApi.getProjectAllocatedStock(projectId);
+                const map = new Map(
+                    (stockRes.data.data || []).map(item => [
+                        item.allocationId,
+                        { remainingQty: item.remainingQty, unit: item.unit }
+                    ])
+                );
+                setAllocatedStockByAllocationId(map);
             } catch { /* non-blocking */ }
 
         } catch (error) {
@@ -250,7 +269,16 @@ export default function PMDailyLogForm() {
                     completed: false,
                     delayReason: ''
                 })),
-                progressNote: ''
+                progressNote: '',
+                deviceInstalls: (activity.requiredDevices || [])
+                    .filter(rd => rd.allocationId)
+                    .map(rd => ({
+                        deviceTypeId: rd.deviceTypeId,
+                        deviceTypeName: rd.deviceTypeName,
+                        allocationId: rd.allocationId,
+                        installedQty: 0,
+                        requiresConfiguration: true
+                    }))
             }]);
         }
     };
@@ -280,6 +308,28 @@ export default function PMDailyLogForm() {
     const setActivityProgressNote = (activityId, note) => {
         setActivityEntries(prev => prev.map(entry =>
             entry.activityId !== activityId ? entry : { ...entry, progressNote: note }
+        ));
+    };
+
+    const setDeviceInstallQty = (activityId, allocationId, qty) => {
+        setActivityEntries(prev => prev.map(entry =>
+            entry.activityId !== activityId ? entry : {
+                ...entry,
+                deviceInstalls: entry.deviceInstalls.map(di =>
+                    di.allocationId !== allocationId ? di : { ...di, installedQty: qty }
+                )
+            }
+        ));
+    };
+
+    const setDeviceRequiresConfiguration = (activityId, allocationId, requiresConfiguration) => {
+        setActivityEntries(prev => prev.map(entry =>
+            entry.activityId !== activityId ? entry : {
+                ...entry,
+                deviceInstalls: entry.deviceInstalls.map(di =>
+                    di.allocationId !== allocationId ? di : { ...di, requiresConfiguration }
+                )
+            }
         ));
     };
 
@@ -382,6 +432,35 @@ export default function PMDailyLogForm() {
                 photoFormData.append('photoType', 'Progress');
 
                 await fieldOpsApi.uploadPMLogPhotos(savedLogId, photoFormData);
+            }
+
+            // Create device installation records for any devices logged as installed today
+            const devicesToCreate = activityEntries.flatMap(entry =>
+                (entry.deviceInstalls || [])
+                    .filter(di => di.installedQty > 0)
+                    .map(di => ({
+                        projectId,
+                        activityId: entry.activityId,
+                        deviceType: di.deviceTypeName,
+                        allocationId: di.allocationId,
+                        quantity: di.installedQty,
+                        status: di.requiresConfiguration ? 'Installed' : 'Deployed',
+                        requiresConfiguration: di.requiresConfiguration,
+                        linkedDailyLogId: savedLogId
+                    }))
+            );
+
+            if (devicesToCreate.length > 0) {
+                try {
+                    const deviceRes = await fieldOpsApi.createBulkDeviceInstallations({ devices: devicesToCreate });
+                    const errorCount = deviceRes.data.errors?.length || 0;
+                    if (errorCount > 0) {
+                        const failedTypes = deviceRes.data.errors.map(e => e.device?.deviceType || 'Unknown device').join(', ');
+                        toast.error(`${errorCount} device type(s) failed to log: ${failedTypes}`, { duration: 8000 });
+                    }
+                } catch {
+                    toast.error('Log saved, but device installs failed to record. Log them from the Devices section.');
+                }
             }
 
             localStorage.removeItem(draftKey);
@@ -611,6 +690,53 @@ export default function PMDailyLogForm() {
                                                         );
                                                     })}
                                                 </div>
+                                                {entry.deviceInstalls?.length > 0 && (
+                                                    <div style={{ marginTop: '0.75rem', paddingTop: '0.6rem', borderTop: '1px solid var(--border-light,rgba(148,163,184,0.1))' }}>
+                                                        <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
+                                                            Devices Installed Today
+                                                        </div>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                                            {entry.deviceInstalls.map(di => {
+                                                                const stockInfo = allocatedStockByAllocationId.get(di.allocationId);
+                                                                const remaining = stockInfo?.remainingQty;
+                                                                return (
+                                                                    <div key={di.allocationId} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+                                                                        <span style={{ fontSize: '0.82rem', flex: '1 1 160px', color: 'var(--text-primary)' }}>
+                                                                            {di.deviceTypeName}
+                                                                            {remaining !== undefined && (
+                                                                                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginLeft: 6 }}>
+                                                                                    ({remaining} remaining)
+                                                                                </span>
+                                                                            )}
+                                                                        </span>
+                                                                        <input
+                                                                            type="number"
+                                                                            className="form-input"
+                                                                            style={{ width: 72, fontSize: '0.8rem', padding: '0.3rem 0.5rem' }}
+                                                                            min="0"
+                                                                            max={remaining !== undefined ? remaining : undefined}
+                                                                            value={di.installedQty}
+                                                                            onChange={e => {
+                                                                                const raw = parseInt(e.target.value, 10);
+                                                                                const qty = Number.isNaN(raw) ? 0 : Math.max(0, remaining !== undefined ? Math.min(raw, remaining) : raw);
+                                                                                setDeviceInstallQty(activity._id, di.allocationId, qty);
+                                                                            }}
+                                                                        />
+                                                                        <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                checked={di.requiresConfiguration}
+                                                                                onChange={e => setDeviceRequiresConfiguration(activity._id, di.allocationId, e.target.checked)}
+                                                                                style={{ width: 14, height: 14 }}
+                                                                            />
+                                                                            Requires Configuration
+                                                                        </label>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <textarea
                                                     className="form-textarea"
                                                     style={{ marginTop: '0.5rem', fontSize: '0.8rem', rows: 2, minHeight: 48 }}
