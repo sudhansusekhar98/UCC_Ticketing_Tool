@@ -139,7 +139,8 @@ export default function PMDailyLogForm() {
                             completed: tw.completed || false,
                             delayReason: tw.delayReason || ''
                         })),
-                        progressNote: entry.progressNote || ''
+                        progressNote: entry.progressNote || '',
+                        deviceInstalls: entry.deviceInstalls || []
                     })));
                 }
             }
@@ -684,7 +685,7 @@ export default function PMDailyLogForm() {
                                                         );
                                                     })}
                                                 </div>
-                                                {entry.deviceInstalls.length > 0 && (
+                                                {entry.deviceInstalls?.length > 0 && (
                                                     <div style={{ marginTop: '0.75rem', paddingTop: '0.6rem', borderTop: '1px solid var(--border-light,rgba(148,163,184,0.1))' }}>
                                                         <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.5rem' }}>
                                                             Devices Installed Today
