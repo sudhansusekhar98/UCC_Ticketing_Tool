@@ -136,7 +136,7 @@ export const maskValue = (value, type = 'default') => {
             // Show first and last octets: "192.***.***.100"
             const ipParts = value.split('.');
             if (ipParts.length === 4) {
-                return `${ipParts[0]}.***.***. ${ipParts[3]}`;
+                return `${ipParts[0]}.***.***.${ipParts[3]}`;
             }
             return '***.***.***';
 

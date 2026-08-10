@@ -23,13 +23,13 @@ cd frontend && npm run dev
 
 ### Backend (`backend-express/`)
 ```bash
-npm run dev          # Start with nodemon (auto-reload)
-npm start            # Production start
-npm run seed         # Seed database with initial data (users, SLA policies)
-npm run seed:full    # Full database seed
-npm run migrate      # Migrate from SQL Server to MongoDB
+npm run dev              # Start with nodemon (auto-reload)
+npm start                # Production start
+npm run seed             # Seed database with initial data (users, SLA policies)
+npm run seed:full        # Full database seed
+npm run migrate          # Migrate from SQL Server to MongoDB
 npm run migrate:encrypt  # Encrypt existing asset sensitive fields (AES-256-GCM)
-npm test             # Run all Jest tests
+npm test                 # Run all Jest tests
 npm run test:fieldops    # Run field operations tests only
 npm run test:coverage    # Run tests with coverage report
 ```

@@ -281,7 +281,7 @@ export default function VDashboard() {
                     sub={stats?.slaCompliancePercent == null ? 'No SLA-tracked closed tickets' : stats.slaCompliancePercent >= 95 ? 'Target met (95%)' : 'Below target GOAL: 95%'} />
             </section>
 
-            {/* ── Trend + SLA ────────────────────────────────── */}
+            {/* ── Trend + SLA ── */}
             <section className="vd-grid-main">
                 <div className="vd-card">
                     <CardHead icon={Activity} title="Ticket Trend" />

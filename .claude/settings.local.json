@@ -122,7 +122,10 @@
       "Bash(node --check utils/sla.utils.js)",
       "Bash(node --check utils/email.utils.js)",
       "Bash(node --check controllers/rma.controller.js)",
-      "Bash(ssh administrator@VLAccess-cloud 'docker logs ticketops-backend --tail 100')"
+      "Bash(ssh administrator@VLAccess-cloud 'docker logs ticketops-backend --tail 100')",
+      "mcp__code-review-graph__get_architecture_overview_tool",
+      "Skill(impeccable:critique)",
+      "Bash(xargs -I{} wc -l {})"
     ]
   },
   "enableAllProjectMcpServers": true,
