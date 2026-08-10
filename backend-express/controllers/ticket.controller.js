@@ -8,6 +8,7 @@ import { sendTicketAssignmentEmail, sendTicketEscalationEmail, sendGeneralNotifi
 import DailyWorkLog from '../models/DailyWorkLog.model.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { createSystemNotification } from './notification.controller.js';
+import { resolveSlaPolicy } from '../utils/sla.utils.js';
 
 const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -918,6 +919,11 @@ export const closeTicket = asyncHandler(async (req, res, next) => {
       status: 'Closed',
       closedOn: now,
       isSLARestoreBreached: !!isBreached,
+      // ponytail: SLA is completed on close; clear notification flags to stop tracking
+      isBreachWarningSent: false,
+      slaWarning1hSent: false,
+      isSlaBreachedNotificationSent: false,
+      lastSlaReminderSentAt: null,
       updatedAt: now
     },
     { new: true }
@@ -963,6 +969,15 @@ export const closeTicket = asyncHandler(async (req, res, next) => {
 // @access  Private (Dispatcher, Supervisor)
 export const reopenTicket = asyncHandler(async (req, res, next) => {
   const { reason } = req.body;
+  const now = new Date();
+
+  // Fetch ticket to get priority and siteId for SLA recalculation
+  const existing = await Ticket.findById(req.params.id).select('priority siteId').lean();
+
+  // Recalculate SLA deadline from now
+  const policy = await resolveSlaPolicy(existing.priority, existing.siteId);
+  const restoreMins = policy?.restoreTimeMinutes || 480; // fallback to 8 hours
+  const newSlaRestoreDue = new Date(now.getTime() + restoreMins * 60 * 1000);
 
   const ticket = await Ticket.findByIdAndUpdate(
     req.params.id,
@@ -984,7 +999,15 @@ export const reopenTicket = asyncHandler(async (req, res, next) => {
       escalationReason: null,
       escalationAcceptedBy: null,
       escalationAcceptedOn: null,
-      updatedAt: new Date()
+      // ponytail: reset SLA deadline and tracking flags on reopen; ticket gets fresh SLA window
+      slaRestoreDue: newSlaRestoreDue,
+      isSLARestoreBreached: false,
+      isSLAResponseBreached: false,
+      isBreachWarningSent: false,
+      slaWarning1hSent: false,
+      isSlaBreachedNotificationSent: false,
+      lastSlaReminderSentAt: null,
+      updatedAt: now
     },
     { new: true }
   );
@@ -1029,6 +1052,7 @@ export const reopenTicket = asyncHandler(async (req, res, next) => {
 // @access  Private (Admin, Dispatcher, Supervisor)
 export const rejectResolution = asyncHandler(async (req, res, next) => {
   const { reason } = req.body;
+  const now = new Date();
 
   if (!reason || !reason.trim()) {
     return res.status(400).json({
@@ -1053,11 +1077,24 @@ export const rejectResolution = asyncHandler(async (req, res, next) => {
     });
   }
 
+  // Recalculate SLA deadline from now since resolution is being redone
+  const policy = await resolveSlaPolicy(ticket.priority, ticket.siteId);
+  const restoreMins = policy?.restoreTimeMinutes || 480; // fallback to 8 hours
+  const newSlaRestoreDue = new Date(now.getTime() + restoreMins * 60 * 1000);
+
   ticket.status = 'ResolutionRejected';
   ticket.resolvedOn = null;
   ticket.rootCause = null;
   ticket.resolutionSummary = null;
-  ticket.updatedAt = new Date();
+  // ponytail: reset SLA and flags when resolution is rejected; ticket gets fresh SLA window
+  ticket.slaRestoreDue = newSlaRestoreDue;
+  ticket.isSLARestoreBreached = false;
+  ticket.isSLAResponseBreached = false;
+  ticket.isBreachWarningSent = false;
+  ticket.slaWarning1hSent = false;
+  ticket.isSlaBreachedNotificationSent = false;
+  ticket.lastSlaReminderSentAt = null;
+  ticket.updatedAt = now;
   await ticket.save();
 
   await TicketActivity.create({
