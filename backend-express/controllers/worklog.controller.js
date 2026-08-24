@@ -22,6 +22,36 @@ const parseLocalEndOfDay = (dateStr) => {
     return new Date(dateStr + 'T23:59:59.999');
 };
 
+// Start of the current week (Monday, local midnight). Manual entries may only
+// be backdated within this window — never into a prior week.
+const getWeekStart = () => {
+    const d = getToday();
+    const day = d.getDay(); // 0=Sun..6=Sat
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diffToMonday);
+    return d;
+};
+
+// Resolves the target date for a manual entry write and rejects anything
+// outside "current week, not in the future". Returns { targetDate } or
+// { error } for the caller to respond with.
+const resolveEntryDate = (dateStr) => {
+    const today = getToday();
+    if (!dateStr) return { targetDate: today };
+
+    const targetDate = parseLocalDate(dateStr);
+    if (isNaN(targetDate.getTime())) {
+        return { error: 'Invalid date' };
+    }
+    if (targetDate > today) {
+        return { error: 'Cannot log activity for a future date' };
+    }
+    if (targetDate < getWeekStart()) {
+        return { error: 'Can only add or edit entries within the current week' };
+    }
+    return { targetDate };
+};
+
 // Work log confidentiality rules:
 // - Admin logs are private to that Admin only (no one else, not even other Admins).
 // - Supervisor logs are visible to that Supervisor and to Admins only (not other Supervisors).
@@ -230,7 +260,7 @@ export const getTeamLogs = async (req, res, next) => {
 // @access  Private
 export const addManualEntry = async (req, res, next) => {
     try {
-        const { category, description, duration, ticketRef, siteId, policeStation } = req.body;
+        const { category, description, duration, ticketRef, siteId, policeStation, customCategory, date } = req.body;
 
         if (!category || !description) {
             return res.status(400).json({
@@ -254,6 +284,20 @@ export const addManualEntry = async (req, res, next) => {
                 success: false,
                 message: 'Police Station is required for Investigation entries'
             });
+        }
+
+        // Validate customCategory is required when 'Other' is selected
+        if (category === 'Other' && (!customCategory || !customCategory.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please specify a category for "Other"'
+            });
+        }
+
+        // Resolve + validate target date: today or any day within the current week
+        const { targetDate, error: dateError } = resolveEntryDate(date);
+        if (dateError) {
+            return res.status(400).json({ success: false, message: dateError });
         }
 
         // Handle file uploads (photo attachments)
@@ -290,10 +334,10 @@ export const addManualEntry = async (req, res, next) => {
             }
         }
 
-        const today = getToday();
         const entry = {
             type: 'manual',
             category,
+            customCategory: category === 'Other' ? customCategory.trim() : undefined,
             description,
             duration: duration ? parseInt(duration) : undefined,
             ticketRef: ticketRef || undefined,
@@ -304,11 +348,11 @@ export const addManualEntry = async (req, res, next) => {
         };
 
         const log = await DailyWorkLog.findOneAndUpdate(
-            { userId: req.user._id, date: today },
+            { userId: req.user._id, date: targetDate },
             {
                 $push: { activities: entry },
                 $inc: { 'stats.manualEntries': 1 },
-                $setOnInsert: { userId: req.user._id, date: today }
+                $setOnInsert: { userId: req.user._id, date: targetDate }
             },
             { upsert: true, new: true }
         );
@@ -335,7 +379,10 @@ export const addManualEntry = async (req, res, next) => {
 export const updateSummary = async (req, res, next) => {
     try {
         const { summary, date } = req.body;
-        const targetDate = date ? parseLocalDate(date) : getToday();
+        const { targetDate, error: dateError } = resolveEntryDate(date);
+        if (dateError) {
+            return res.status(400).json({ success: false, message: dateError });
+        }
 
         const log = await DailyWorkLog.findOneAndUpdate(
             { userId: req.user._id, date: targetDate },
@@ -381,6 +428,13 @@ export const deleteManualEntry = async (req, res, next) => {
             return res.status(400).json({
                 success: false,
                 message: 'Can only delete manual entries'
+            });
+        }
+
+        if (log.date < getWeekStart()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Can only edit or delete entries within the current week'
             });
         }
 

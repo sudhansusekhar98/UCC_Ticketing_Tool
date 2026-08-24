@@ -24,6 +24,11 @@ const activityEntrySchema = new mongoose.Schema({
         enum: ACTIVITY_CATEGORIES,
         required: true
     },
+    // Free-text label typed by the user when category === 'Other'
+    customCategory: {
+        type: String,
+        maxlength: 100
+    },
     description: {
         type: String,
         required: true,

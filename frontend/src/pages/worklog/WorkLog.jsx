@@ -100,6 +100,7 @@ export default function WorkLog() {
     // Manual Entry Form State
     const [entryForm, setEntryForm] = useState({
         category: 'SiteVisit',
+        customCategory: '',
         description: '',
         duration: '',
         ticketRef: '',
@@ -113,7 +114,18 @@ export default function WorkLog() {
     const [tickets, setTickets] = useState([]);
     const fileInputRef = useRef(null);
 
-    const isToday = selectedDate === new Date().toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+    const isToday = selectedDate === todayStr;
+
+    // Monday of the current week (local), matching the backend's week boundary.
+    const weekStartStr = (() => {
+        const d = new Date();
+        const day = d.getDay(); // 0=Sun..6=Sat
+        d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+        return d.toISOString().split('T')[0];
+    })();
+    // Add/edit is only allowed for today or an earlier day in the current week.
+    const isEditableDate = selectedDate >= weekStartStr && selectedDate <= todayStr;
 
     // Fetch individual log (my or selected user)
     const fetchLog = useCallback(async () => {
@@ -204,10 +216,10 @@ export default function WorkLog() {
     }, [fetchOptions]);
 
     const handleSummaryUpdate = async () => {
-        if (!isToday || viewMode !== 'my') return;
+        if (!isEditableDate || viewMode !== 'my') return;
         try {
             setIsSavingSummary(true);
-            await worklogApi.updateSummary(summary);
+            await worklogApi.updateSummary(summary, selectedDate);
             toast.success('Summary updated');
             fetchLog();
         } catch (error) {
@@ -253,11 +265,17 @@ export default function WorkLog() {
             toast.error('Please enter the Police Station');
             return;
         }
+        if (entryForm.category === 'Other' && !entryForm.customCategory.trim()) {
+            toast.error('Please specify a category');
+            return;
+        }
         try {
             setSubmitting(true);
             const formData = new FormData();
             formData.append('category', entryForm.category);
             formData.append('description', entryForm.description);
+            formData.append('date', selectedDate);
+            if (entryForm.category === 'Other') formData.append('customCategory', entryForm.customCategory.trim());
             if (entryForm.duration) formData.append('duration', entryForm.duration);
             if (entryForm.ticketRef) formData.append('ticketRef', entryForm.ticketRef);
             if (entryForm.siteId) formData.append('siteId', entryForm.siteId);
@@ -269,6 +287,7 @@ export default function WorkLog() {
             toast.success('Activity logged successfully');
             setEntryForm({
                 category: 'SiteVisit',
+                customCategory: '',
                 description: '',
                 duration: '',
                 ticketRef: '',
@@ -327,7 +346,9 @@ export default function WorkLog() {
                         <div className="wl-tl-content">
                             <div className="wl-tl-row">
                                 <span className={`wl-tl-badge ${activity.type}`}>
-                                    {getCategoryLabel(activity.category)}
+                                    {activity.category === 'Other' && activity.customCategory
+                                        ? activity.customCategory
+                                        : getCategoryLabel(activity.category)}
                                 </span>
                                 <div className="wl-tl-actions">
                                     <span className="wl-tl-time">
@@ -493,10 +514,10 @@ export default function WorkLog() {
                                             e.target.style.height = 'auto';
                                             e.target.style.height = e.target.scrollHeight + 'px';
                                         }}
-                                        disabled={!isToday || viewMode !== 'my'}
+                                        disabled={!isEditableDate || viewMode !== 'my'}
                                         rows={1}
                                     />
-                                    {isToday && viewMode === 'my' && (
+                                    {isEditableDate && viewMode === 'my' && (
                                         <button
                                             className="wl-save-btn"
                                             onClick={handleSummaryUpdate}
@@ -509,9 +530,9 @@ export default function WorkLog() {
                                 </div>
 
                                 {/* Manual Entry Form */}
-                                {isToday && viewMode === 'my' && (
+                                {isEditableDate && viewMode === 'my' && (
                                     <div className="wl-card wl-form-card">
-                                        <h3><Plus size={15} /> Log Activity</h3>
+                                        <h3><Plus size={15} /> Log Activity {!isToday && <span className="wl-tl-badge manual" style={{ marginLeft: 6 }}>{selectedDate}</span>}</h3>
                                         <form onSubmit={handleAddEntry} className="wl-form">
                                             <div className="wl-form-row-2">
                                                 <div className="wl-field">
@@ -544,6 +565,20 @@ export default function WorkLog() {
                                                         placeholder="Enter Police Station name"
                                                         value={entryForm.policeStation}
                                                         onChange={(e) => setEntryForm({ ...entryForm, policeStation: e.target.value })}
+                                                        required
+                                                    />
+                                                </div>
+                                            )}
+
+                                            {entryForm.category === 'Other' && (
+                                                <div className="wl-field">
+                                                    <label>Custom Category <span style={{ color: 'var(--danger)' }}>*</span></label>
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter a category"
+                                                        value={entryForm.customCategory}
+                                                        onChange={(e) => setEntryForm({ ...entryForm, customCategory: e.target.value })}
+                                                        maxLength={100}
                                                         required
                                                     />
                                                 </div>
@@ -638,7 +673,7 @@ export default function WorkLog() {
                                     {loading ? (
                                         <div className="wl-empty-state">Loading...</div>
                                     ) : (
-                                        renderTimeline(log?.activities, isToday && viewMode === 'my')
+                                        renderTimeline(log?.activities, isEditableDate && viewMode === 'my')
                                     )}
                                 </div>
                             </div>

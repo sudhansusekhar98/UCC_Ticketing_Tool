@@ -331,7 +331,7 @@ export const worklogApi = {
     getMyLogs: (params) => api.get('/worklogs/my', { params }),
     getUserLogs: (userId, params) => api.get(`/worklogs/user/${userId}`, { params }),
     getTeamLogs: (params) => api.get('/worklogs/team', { params }),
-    updateSummary: (summary) => api.put('/worklogs/summary', { summary }),
+    updateSummary: (summary, date) => api.put('/worklogs/summary', { summary, date }),
     addManualEntry: (formData) => api.post('/worklogs/manual', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
     }),
