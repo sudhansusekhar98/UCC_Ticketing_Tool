@@ -593,6 +593,29 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
       };
     }
     if (shippingDetails) rma.shippingDetails = { ...rma.shippingDetails, ...shippingDetails };
+
+    // Auto: Mark faulty asset as InTransit toward HO
+    const faultyAssetSentToHO = await Asset.findById(rma.originalAssetId);
+    if (faultyAssetSentToHO) {
+      const fromStatusSentHO = faultyAssetSentToHO.status;
+      faultyAssetSentToHO.status = 'InTransit';
+      faultyAssetSentToHO.stockLocation = 'In Transit to HO';
+      faultyAssetSentToHO.locationDescription = `RMA ${rma.rmaNumber} - Faulty item dispatched to Head Office`;
+      await faultyAssetSentToHO.save();
+
+      await StockMovementLog.logMovement({
+        asset: faultyAssetSentToHO,
+        movementType: 'Transfer',
+        fromSiteId: faultyAssetSentToHO.siteId,
+        toSiteId: faultyAssetSentToHO.siteId,
+        fromStatus: fromStatusSentHO,
+        toStatus: 'InTransit',
+        performedBy: req.user._id,
+        rmaId: rma._id,
+        ticketId: rma.ticketId,
+        notes: `RMA ${rma.rmaNumber} - Faulty item dispatched from site to HO`
+      });
+    }
   }
 
   // ADMIN: Acknowledge receipt at HO
@@ -603,6 +626,36 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
     rma.receivedAtHODate = new Date();
     if (rma.logisticsToHO) {
       rma.logisticsToHO.receivedDate = new Date();
+    }
+
+    // Auto: Transfer faulty asset to HO stock
+    const hoSiteOnReceive = await Site.findOne({ isHeadOffice: true });
+    if (!hoSiteOnReceive) {
+      console.warn(`[RMA] ReceivedAtHO: No HO site found (isHeadOffice: true). Asset not moved.`);
+    } else {
+      const faultyAssetAtHO = await Asset.findById(rma.originalAssetId);
+      if (faultyAssetAtHO) {
+        const fromSiteIdHO = faultyAssetAtHO.siteId;
+        const fromStatusHO = faultyAssetAtHO.status;
+        faultyAssetAtHO.status = 'Spare';
+        faultyAssetAtHO.siteId = hoSiteOnReceive._id;
+        faultyAssetAtHO.stockLocation = 'HO Stock (RMA Received)';
+        faultyAssetAtHO.locationDescription = `RMA ${rma.rmaNumber} - Faulty item received at HO, pending repair dispatch`;
+        await faultyAssetAtHO.save();
+
+        await StockMovementLog.logMovement({
+          asset: faultyAssetAtHO,
+          movementType: 'Transfer',
+          fromSiteId: fromSiteIdHO,
+          toSiteId: hoSiteOnReceive._id,
+          fromStatus: fromStatusHO,
+          toStatus: 'Spare',
+          performedBy: req.user._id,
+          rmaId: rma._id,
+          ticketId: rma.ticketId,
+          notes: `RMA ${rma.rmaNumber} - Faulty item received at HO and added to HO stock`
+        });
+      }
     }
   }
 
@@ -623,19 +676,21 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
       rma.logisticsToServiceCenter.serviceCenterTicketRef = serviceCenterTicketRef;
     }
 
-    // Mark asset as in repair
+    // Auto: Mark asset as In Repair and update location to reflect it's now with the service center
     const faultyAsset = await Asset.findById(rma.originalAssetId);
     if (faultyAsset) {
-      const fromStatus = faultyAsset.status;
+      const fromStatusSentSC = faultyAsset.status;
       faultyAsset.status = 'In Repair';
+      faultyAsset.stockLocation = 'With Service Center';
+      faultyAsset.locationDescription = `RMA ${rma.rmaNumber} - Sent from HO to service center for repair`;
       await faultyAsset.save();
 
       await StockMovementLog.logMovement({
         asset: faultyAsset,
-        movementType: 'StatusChange',
+        movementType: 'Transfer',
         fromSiteId: faultyAsset.siteId,
         toSiteId: faultyAsset.siteId,
-        fromStatus,
+        fromStatus: fromStatusSentSC,
         toStatus: 'In Repair',
         performedBy: req.user._id,
         rmaId: rma._id,
@@ -654,25 +709,33 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
     rma.repairedItemReceivedAtHODate = new Date();
     rma.repairReceivedDate = new Date();
 
-    // Update asset status - use getFaultyAssetId to get the correct asset after swap
+    // Auto: Repaired item is back at HO — confirm in HO stock with correct siteId and location
     const faultyId = getFaultyAssetId(rma);
     const repairedAsset = await Asset.findById(faultyId);
+    const hoSiteRepaired = await Site.findOne({ isHeadOffice: true });
+    if (!hoSiteRepaired) {
+      console.warn(`[RMA] ItemRepairedAtHO: No HO site found (isHeadOffice: true). Asset siteId not updated.`);
+    }
     if (repairedAsset) {
-      const fromStatus = repairedAsset.status;
-      repairedAsset.status = 'Spare'; // Repaired, waiting to be shipped
+      const fromSiteIdRepaired = repairedAsset.siteId;
+      const fromStatusRepaired = repairedAsset.status;
+      repairedAsset.status = 'Spare'; // Repaired, waiting to be shipped back to site
+      if (hoSiteRepaired) repairedAsset.siteId = hoSiteRepaired._id;
+      repairedAsset.stockLocation = 'HO Stock (Repaired)';
+      repairedAsset.locationDescription = `RMA ${rma.rmaNumber} - Repaired item back at HO, awaiting dispatch to site`;
       await repairedAsset.save();
 
       await StockMovementLog.logMovement({
         asset: repairedAsset,
-        movementType: 'StatusChange',
-        fromSiteId: repairedAsset.siteId,
-        toSiteId: repairedAsset.siteId,
-        fromStatus,
+        movementType: 'Transfer',
+        fromSiteId: fromSiteIdRepaired,
+        toSiteId: hoSiteRepaired?._id || fromSiteIdRepaired,
+        fromStatus: fromStatusRepaired,
         toStatus: 'Spare',
         performedBy: req.user._id,
         rmaId: rma._id,
         ticketId: rma.ticketId,
-        notes: `RMA ${rma.rmaNumber} - Repaired item received back at HO`
+        notes: `RMA ${rma.rmaNumber} - Repaired item received back from service center, added to HO stock`
       });
     }
   }
@@ -738,6 +801,33 @@ export const updateRMAStatus = asyncHandler(async (req, res, next) => {
       if (rma.status !== 'Installed') {
         // Repair done but replacement still pending - keep a meaningful status
         rma.status = 'ItemRepairedAtHO';
+      }
+    }
+
+    // Auto: For BackToSite / OtherSite destination — mark asset as InTransit while shipping
+    if (repairedItemDestination !== 'HOStock') {
+      const faultyIdShipping = getFaultyAssetId(rma);
+      const shippingAsset = await Asset.findById(faultyIdShipping);
+      if (shippingAsset) {
+        const fromStatusShipping = shippingAsset.status;
+        const destSiteIdShipping = rma.overrideDestinationSiteId || rma.siteId;
+        shippingAsset.status = 'InTransit';
+        shippingAsset.stockLocation = 'In Transit to Site';
+        shippingAsset.locationDescription = `RMA ${rma.rmaNumber} - Repaired item dispatched from HO to site`;
+        await shippingAsset.save();
+
+        await StockMovementLog.logMovement({
+          asset: shippingAsset,
+          movementType: 'Transfer',
+          fromSiteId: shippingAsset.siteId,
+          toSiteId: destSiteIdShipping,
+          fromStatus: fromStatusShipping,
+          toStatus: 'InTransit',
+          performedBy: req.user._id,
+          rmaId: rma._id,
+          ticketId: rma.ticketId,
+          notes: `RMA ${rma.rmaNumber} - Repaired item dispatched from HO to ${repairedItemDestination === 'OtherSite' ? 'alternate site' : 'site'}`
+        });
       }
     }
   }
