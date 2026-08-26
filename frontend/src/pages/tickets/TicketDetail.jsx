@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft,
@@ -200,11 +200,21 @@ export default function TicketDetail() {
                 assignedToName: ticketData.assignedTo?.fullName || ticketData.assignedToName,
                 assignedTo: typeof ticketData.assignedTo === 'object' ? ticketData.assignedTo?._id : ticketData.assignedTo,
                 slaStatus: (() => {
+                    const FINAL_STATUSES = ['Resolved', 'Verified', 'Closed', 'Cancelled', 'Installed', 'Repaired', 'Replaced'];
+                    if (FINAL_STATUSES.includes(ticketData.status)) {
+                        return ticketData.isSLARestoreBreached ? 'Breached' : 'OnTrack';
+                    }
                     if (ticketData.status === 'OnHold') return 'Paused';
+                    const hasActiveRma = !!(ticketData.rmaId || ticketData.rmaNumber) && !ticketData.rmaFinalized;
+                    if (hasActiveRma) return 'Paused';
+
                     const restoreDue = ticketData.slaRestoreDue ? new Date(ticketData.slaRestoreDue) : null;
                     const now = new Date();
+                    // Only use isSLARestoreBreached flag (set by cron or on close/resolve).
+                    // Do NOT use isSLAResponseBreached — that field tracks response SLA only.
                     if (ticketData.isSLARestoreBreached || (restoreDue && restoreDue < now)) return 'Breached';
-                    if (ticketData.isSLAResponseBreached || (restoreDue && restoreDue < new Date(now.getTime() + 4 * 60 * 60 * 1000))) return 'AtRisk';
+                    // At Risk: within 4h of deadline (computed locally — never from a flag)
+                    if (restoreDue && restoreDue < new Date(now.getTime() + 4 * 60 * 60 * 1000)) return 'AtRisk';
                     return 'OnTrack';
                 })()
             });
@@ -982,8 +992,19 @@ export default function TicketDetail() {
                             <div className="policy-details">
                                 <span className="policy-name">
                                     <Shield size={12} />
-                                    Policy: {ticket.slaPolicyId?.policyName || 'Standard Policy'}
+                                    Policy: {ticket.effectiveSlaPolicy?.policyName || ticket.slaPolicyId?.policyName || `${ticket.priority} Standard Policy`}
+                                    {ticket.effectiveSlaPolicy?.source === 'Site' && (
+                                        <span style={{ fontSize: '0.65rem', marginLeft: 6, opacity: 0.7 }}>(Site SLA)</span>
+                                    )}
                                 </span>
+                                {ticket.effectiveSlaPolicy && (
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 8 }}>
+                                        Response: {ticket.effectiveSlaPolicy.responseTimeMinutes}min &nbsp;·&nbsp;
+                                        Restore: {ticket.effectiveSlaPolicy.restoreTimeMinutes >= 60
+                                            ? `${Math.round(ticket.effectiveSlaPolicy.restoreTimeMinutes / 60)}h`
+                                            : `${ticket.effectiveSlaPolicy.restoreTimeMinutes}min`}
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>

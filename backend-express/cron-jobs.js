@@ -25,38 +25,11 @@ export const setupCronJobs = (io) => {
     // Both check every 10 minutes, 24/7 (no office-hours gate - VPS timezone may differ)
     cron.schedule('*/10 * * * *', async () => {
         const now = new Date();
-        const in4h = new Date(now.getTime() + 4 * 60 * 60 * 1000);
 
         const ACTIVE_STATUSES = { $nin: ['Closed', 'Resolved', 'Cancelled', 'Verified', 'OnHold'] };
         const NO_ACTIVE_RMA = { $or: [{ rmaId: { $exists: false } }, { rmaId: null }, { rmaFinalized: true }] };
 
         try {
-            // ── Auto-update At Risk flag ──────────────────────────────────────
-            // Mark tickets as At Risk when slaRestoreDue is within 4 hours (fixed visual indicator, independent of escalation config)
-            const atRiskResult = await Ticket.updateMany(
-                {
-                    status: ACTIVE_STATUSES,
-                    slaRestoreDue: { $lte: in4h, $gt: now },
-                    isSLARestoreBreached: { $ne: true },
-                    isSLAResponseBreached: { $ne: true }
-                },
-                { $set: { isSLAResponseBreached: true } }
-            );
-            if (atRiskResult.modifiedCount > 0) {
-                console.log(`⏰ SLA At Risk: marked ${atRiskResult.modifiedCount} ticket(s) as At Risk`);
-            }
-
-            // Clear At Risk flag for tickets that are back on track (e.g. SLA extended / priority changed)
-            await Ticket.updateMany(
-                {
-                    status: ACTIVE_STATUSES,
-                    slaRestoreDue: { $gt: in4h },
-                    isSLARestoreBreached: { $ne: true },
-                    isSLAResponseBreached: true
-                },
-                { $set: { isSLAResponseBreached: false } }
-            );
-
             // Escalation warnings are gated by the "Enable Auto-Escalation" setting
             if (!(await isAutoEscalationEnabled())) return;
 

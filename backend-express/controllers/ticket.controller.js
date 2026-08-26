@@ -215,20 +215,13 @@ export const getTicketById = asyncHandler(async (req, res, next) => {
     });
   }
 
-  // Self-healing: If SLA data is missing, calculate it now
+  // Self-healing: If SLA data is missing, calculate it now using site-level policy first
   if (!ticket.slaResponseDue || !ticket.slaRestoreDue) {
     try {
-      const DEFAULT_SLA = { P1: { response: 15, restore: 60 }, P2: { response: 30, restore: 240 }, P3: { response: 60, restore: 480 }, P4: { response: 120, restore: 1440 } };
-      const slaPolicy = await SLAPolicy.findOne({ priority: ticket.priority, isActive: true });
-      const defaults = DEFAULT_SLA[ticket.priority] || DEFAULT_SLA['P3'];
-      const responseMins = slaPolicy?.responseTimeMinutes ?? defaults.response;
-      const restoreMins = slaPolicy?.restoreTimeMinutes ?? defaults.restore;
+      const policy = await resolveSlaPolicy(ticket.priority, ticket.siteId?._id || ticket.siteId);
       const baseDate = ticket.createdAt || new Date();
-
-      if (slaPolicy) ticket.slaPolicyId = slaPolicy._id;
-      if (!ticket.slaResponseDue) ticket.slaResponseDue = new Date(baseDate.getTime() + responseMins * 60 * 1000);
-      if (!ticket.slaRestoreDue) ticket.slaRestoreDue = new Date(baseDate.getTime() + restoreMins * 60 * 1000);
-
+      if (!ticket.slaResponseDue) ticket.slaResponseDue = new Date(baseDate.getTime() + policy.responseTimeMinutes * 60 * 1000);
+      if (!ticket.slaRestoreDue) ticket.slaRestoreDue = new Date(baseDate.getTime() + policy.restoreTimeMinutes * 60 * 1000);
       await ticket.save();
       await ticket.populate('slaPolicyId');
     } catch (slaError) {
@@ -264,9 +257,40 @@ export const getTicketById = asyncHandler(async (req, res, next) => {
     }
   }
 
+  // Resolve effective SLA policy: site-level override → global SLAPolicy → defaults
+  // Site-level policies are inline on Site.slaPolicies and don't have a policyName, so we
+  // build a display-friendly object so the frontend always gets a name + targets.
+  let effectiveSlaPolicy = null;
+  try {
+    const siteIdForSla = ticketObj.siteId?._id || ticketObj.siteId;
+    const Site = mongoose.model('Site');
+    const site = siteIdForSla ? await Site.findById(siteIdForSla).select('siteName slaPolicies').lean() : null;
+    const siteLevelPolicy = site?.slaPolicies?.find(p => p.priority === ticketObj.priority);
+    if (siteLevelPolicy) {
+      effectiveSlaPolicy = {
+        source: 'Site',
+        policyName: `${site.siteName} — ${ticketObj.priority} SLA`,
+        responseTimeMinutes: siteLevelPolicy.responseTimeMinutes,
+        restoreTimeMinutes: siteLevelPolicy.restoreTimeMinutes,
+        escalationLevel1Minutes: siteLevelPolicy.escalationLevel1Minutes,
+        escalationLevel2Minutes: siteLevelPolicy.escalationLevel2Minutes
+      };
+    } else if (ticketObj.slaPolicyId) {
+      const gp = ticketObj.slaPolicyId;
+      effectiveSlaPolicy = {
+        source: 'Global',
+        policyName: gp.policyName || `${ticketObj.priority} Policy`,
+        responseTimeMinutes: gp.responseTimeMinutes,
+        restoreTimeMinutes: gp.restoreTimeMinutes,
+        escalationLevel1Minutes: gp.escalationLevel1Minutes,
+        escalationLevel2Minutes: gp.escalationLevel2Minutes
+      };
+    }
+  } catch (e) { /* non-blocking */ }
+
   res.json({
     success: true,
-    data: ticketObj
+    data: { ...ticketObj, effectiveSlaPolicy }
   });
 });
 
@@ -909,9 +933,12 @@ export const closeTicket = asyncHandler(async (req, res, next) => {
   // (retroactively-set SLA dates don't count as a breach).
   const slaDeadline = existing?.slaRestoreDue ? new Date(existing.slaRestoreDue) : null;
   const assignedOn = existing?.assignedOn ? new Date(existing.assignedOn) : null;
-  const hadFairChance = slaDeadline && assignedOn && assignedOn <= slaDeadline;
-  const isBreached = existing?.isSLARestoreBreached ||
-    (hadFairChance && !existing?.resolvedOn && now > slaDeadline);
+  let isBreached = false;
+  if (existing?.resolvedOn) {
+    isBreached = !!existing.isSLARestoreBreached;
+  } else if (hadFairChance) {
+    isBreached = now > slaDeadline;
+  }
 
   const ticket = await Ticket.findByIdAndUpdate(
     req.params.id,

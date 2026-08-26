@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
     Plus,
@@ -147,8 +147,18 @@ export default function TicketsList() {
                 siteName: t.assetId?.siteId?.siteName || t.siteName,
                 assignedToName: t.assignedTo?.fullName || t.assignedToName,
                 slaStatus: (() => {
-                    if (t.isSLARestoreBreached || (t.slaRestoreDue && new Date(t.slaRestoreDue) < new Date())) return 'Breached';
-                    if (t.isSLAResponseBreached || (t.slaRestoreDue && new Date(t.slaRestoreDue) < new Date(Date.now() + 4 * 60 * 60 * 1000))) return 'AtRisk';
+                    const FINAL_STATUSES = ['Resolved', 'Verified', 'Closed', 'Cancelled', 'Installed', 'Repaired', 'Replaced'];
+                    if (FINAL_STATUSES.includes(t.status)) {
+                        return t.isSLARestoreBreached ? 'Breached' : 'OnTrack';
+                    }
+                    if (t.status === 'OnHold') return 'Paused';
+                    const hasActiveRma = !!(t.rmaId || t.rmaNumber) && !t.rmaFinalized;
+                    if (hasActiveRma) return 'Paused';
+
+                    const restoreDue = t.slaRestoreDue ? new Date(t.slaRestoreDue) : null;
+                    const now = new Date();
+                    if (t.isSLARestoreBreached || (restoreDue && restoreDue < now)) return 'Breached';
+                    if (restoreDue && restoreDue < new Date(now.getTime() + 4 * 60 * 60 * 1000)) return 'AtRisk';
                     return 'OnTrack';
                 })()
             })) : [];
