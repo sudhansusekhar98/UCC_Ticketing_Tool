@@ -23,6 +23,7 @@ import RMARequest from '../models/RMARequest.model.js';
 import Asset from '../models/Asset.model.js';
 import Site from '../models/Site.model.js';
 import StockMovementLog from '../models/StockMovementLog.model.js';
+import User from '../models/User.model.js';
 
 const isDryRun = process.argv.includes('--dry-run');
 
@@ -40,7 +41,17 @@ if (!hoSite) {
   await mongoose.disconnect();
   process.exit(1);
 }
-console.log(`🏢 HO Site: ${hoSite.siteName} (${hoSite._id})\n`);
+console.log(`🏢 HO Site: ${hoSite.siteName} (${hoSite._id})`);
+
+// ─── Find System Admin (used as performedBy in log entries) ───────────────────
+const systemAdmin = await User.findOne({ role: 'Admin', isActive: true }).select('_id fullName');
+if (!systemAdmin) {
+  console.error('❌ FATAL: No active Admin user found. Cannot create stock movement logs.');
+  await mongoose.disconnect();
+  process.exit(1);
+}
+console.log(`👤 System actor: ${systemAdmin.fullName} (${systemAdmin._id})\n`);
+const SYSTEM_ACTOR_ID = systemAdmin._id;
 
 // ─── Counters ─────────────────────────────────────────────────────────────────
 let total = 0;
@@ -64,11 +75,16 @@ const applyFix = async (asset, updates, logEntry, rmaNumber, phase) => {
     Object.assign(asset, updates);
     await asset.save();
 
-    await StockMovementLog.logMovement({
-      asset,
-      ...logEntry,
-      notes: `[BACKFILL] ${logEntry.notes}`
-    });
+    try {
+      await StockMovementLog.logMovement({
+        asset,
+        ...logEntry,
+        performedBy: SYSTEM_ACTOR_ID,
+        notes: `[BACKFILL] ${logEntry.notes}`
+      });
+    } catch (logErr) {
+      console.warn(`     ⚠️  Asset saved but log failed: ${logErr.message}`);
+    }
 
     console.log(`     ✅ Fixed`);
   } else {
