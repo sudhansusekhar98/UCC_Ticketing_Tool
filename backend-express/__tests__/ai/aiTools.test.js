@@ -29,10 +29,17 @@ const mockSiteModel = {
   findOne: jest.fn(() => ({ select: () => ({ lean: () => Promise.resolve(null) }) })),
 };
 
+const mockUserModel = {
+  findById: jest.fn(() => ({ select: () => ({ lean: () => Promise.resolve(null) }) })),
+  findOne: jest.fn(() => ({ select: () => ({ lean: () => Promise.resolve(null) }) })),
+  find: jest.fn(() => ({ select: () => ({ lean: () => Promise.resolve([]) }) })),
+};
+
 jest.unstable_mockModule('../../models/Ticket.model.js', () => ({ default: mockTicketModel }));
 jest.unstable_mockModule('../../models/Site.model.js', () => ({ default: mockSiteModel }));
 jest.unstable_mockModule('../../models/Asset.model.js', () => ({ default: {} }));
 jest.unstable_mockModule('../../models/RMARequest.model.js', () => ({ default: {} }));
+jest.unstable_mockModule('../../models/User.model.js', () => ({ default: mockUserModel }));
 
 let runTool;
 beforeAll(async () => {
@@ -48,6 +55,9 @@ beforeEach(() => {
   mockSiteModel.find.mockReturnValue({
     select: () => ({ limit: () => ({ lean: () => Promise.resolve([]) }), lean: () => Promise.resolve([]) })
   });
+  mockUserModel.findById.mockReturnValue({ select: () => ({ lean: () => Promise.resolve(null) }) });
+  mockUserModel.findOne.mockReturnValue({ select: () => ({ lean: () => Promise.resolve(null) }) });
+  mockUserModel.find.mockReturnValue({ select: () => ({ lean: () => Promise.resolve([]) }) });
 });
 
 const mockL1User = (overrides = {}) => ({
@@ -75,7 +85,70 @@ function mockSiteCandidates(sites) {
   });
 }
 
+// Helper: make User.findOne(...) resolve to the given user (name/email/username lookup).
+function mockUserFoundByName(userDoc) {
+  mockUserModel.findOne.mockReturnValue({ select: () => ({ lean: () => Promise.resolve(userDoc) }) });
+}
+
 describe('aiTools RBAC', () => {
+  it("includes the user's own tickets (created by / assigned to them) beyond their assigned sites", async () => {
+    const user = mockL1User({ assignedSites: [objectId()] });
+
+    await runTool(user, 'getTicketSummary', {});
+
+    const matchStage = mockTicketModel.aggregate.mock.calls[0][0][0].$match;
+    expect(matchStage.$or).toEqual(expect.arrayContaining([
+      { assignedTo: user._id },
+      { createdBy: user._id }
+    ]));
+  });
+
+  it('returns ticketNumber (not ticketId) on recent tickets', async () => {
+    mockTicketModel.find.mockReturnValue({
+      sort: () => ({ limit: () => ({ select: () => ({ lean: () => Promise.resolve([
+        { ticketNumber: 'TKT-20260101-0001', title: 'Camera down', status: 'Open', priority: 'P2' }
+      ]) }) }) })
+    });
+    const user = mockAdminUser();
+
+    const result = await runTool(user, 'getTicketSummary', {});
+
+    expect(result.recentTickets[0].ticketNumber).toBe('TKT-20260101-0001');
+    expect(result.recentTickets[0].ticketId).toBeUndefined();
+  });
+
+  it('denies an engineer asking about another user\'s tickets', async () => {
+    const user = mockL1User();
+
+    const result = await runTool(user, 'getTicketSummary', { forUser: 'Jane Doe' });
+
+    expect(result).toEqual({ error: 'not_authorized', message: expect.any(String) });
+    expect(mockUserModel.findOne).not.toHaveBeenCalled();
+  });
+
+  it('lets a Supervisor ask about another user\'s tickets', async () => {
+    const target = { _id: objectId(), fullName: 'Jane Doe' };
+    mockUserFoundByName(target);
+    const supervisor = mockL1User({ role: 'Supervisor' });
+
+    const result = await runTool(supervisor, 'getTicketSummary', { forUser: 'Jane Doe' });
+
+    expect(mockUserModel.findOne).toHaveBeenCalled();
+    expect(result.error).toBeUndefined();
+    const matchStage = mockTicketModel.aggregate.mock.calls[0][0][0].$match;
+    expect(matchStage.$or).toEqual(expect.arrayContaining([
+      { createdBy: target._id }, { assignedTo: target._id }
+    ]));
+  });
+
+  it('returns not_found when Admin asks about a user that does not exist', async () => {
+    const admin = mockAdminUser();
+
+    const result = await runTool(admin, 'getTicketSummary', { forUser: 'Nobody Here' });
+
+    expect(result.error).toBe('not_found');
+  });
+
   it('denies a non-admin asking (by id) about a site outside their assignedSites', async () => {
     const mySite = objectId();
     const otherSite = objectId();

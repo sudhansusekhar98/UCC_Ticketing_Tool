@@ -126,14 +126,15 @@ export async function askAssistant({ message, history = [], ticketContext, runTo
     }
 
     // Model requested tool call(s): execute them (RBAC-checked) and feed results back.
+    // Run them in parallel — a round asking for e.g. tickets + stock shouldn't pay
+    // for two sequential DB round-trips.
     requestBody.contents.push({ role: 'model', parts });
-    const responseParts = [];
-    for (const fc of functionCalls) {
-      const result = await runTool(fc.functionCall.name, fc.functionCall.args || {});
-      responseParts.push({
-        functionResponse: { name: fc.functionCall.name, response: result }
-      });
-    }
+    const results = await Promise.all(
+      functionCalls.map((fc) => runTool(fc.functionCall.name, fc.functionCall.args || {}))
+    );
+    const responseParts = functionCalls.map((fc, i) => ({
+      functionResponse: { name: fc.functionCall.name, response: results[i] }
+    }));
     requestBody.contents.push({ role: 'user', parts: responseParts });
   }
 
