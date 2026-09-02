@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Paperclip, X, FileText, Image, Cable, Info } from 'lucide-react';
 import { ticketsApi, assetsApi, sitesApi, lookupsApi, usersApi, activitiesApi } from '../../services/api';
 import useAuthStore from '../../context/authStore';
+import useAiAssistantStore from '../../context/aiAssistantStore';
 import SubmitButton from '../../components/ui/SubmitButton';
 import toast from 'react-hot-toast';
 import './Tickets.css';
@@ -83,6 +84,18 @@ export default function TicketForm() {
             loadTicket();
         }
     }, [id]);
+
+    // Feed the current draft to the floating AI assistant so it can suggest
+    // category/troubleshooting steps; cleared when leaving this page.
+    const { setTicketContext, clearTicketContext } = useAiAssistantStore();
+    useEffect(() => {
+        setTicketContext({
+            title: formData.title,
+            description: formData.description,
+            category: formData.category,
+        });
+        return () => clearTicketContext();
+    }, [formData.title, formData.description, formData.category]);
 
     useEffect(() => {
         if (isSiteClient && !selectedSiteId && sites.length > 0) {

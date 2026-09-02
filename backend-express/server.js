@@ -221,6 +221,7 @@ import stockRoutes from './routes/stock.routes.js';
 import worklogRoutes from './routes/worklog.routes.js';
 import clientRegistrationRoutes from './routes/clientRegistration.routes.js';
 import fieldopsRoutes from './routes/fieldops.routes.js';
+import aiRoutes from './routes/ai.routes.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/sites', siteRoutes);
@@ -239,6 +240,7 @@ app.use('/api/stock', stockRoutes);
 app.use('/api/worklogs', worklogRoutes);
 app.use('/api/client-registrations', clientRegistrationRoutes);
 app.use('/api/fieldops', fieldopsRoutes);
+app.use('/api/ai', aiRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -29,6 +29,7 @@ import { PERMISSIONS } from '../../constants/permissions';
 import { ticketsApi, assetsApi, sitesApi, usersApi } from '../../services/api';
 import NotificationBell from '../notifications/NotificationBell';
 import ErrorBoundary from '../common/ErrorBoundary';
+import AiChatWidget from '../ai/AiChatWidget';
 import TOpsLogo from '../../assets/TicketOps.png';
 import './Layout.css';
 
@@ -530,6 +531,8 @@ export default function Layout({ children }) {
                     </ErrorBoundary>
                 </main>
             </div>
+
+            <AiChatWidget />
         </div>
     );
 }

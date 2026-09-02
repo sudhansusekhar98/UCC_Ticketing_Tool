@@ -235,6 +235,12 @@ export const ticketsApi = {
     addActivity: (ticketId, data) => api.post(`/tickets/${ticketId}/activities`, data),
 };
 
+// AI Assistant API
+export const aiApi = {
+    suggest: (data) => api.post('/ai/suggest', data),
+    chat: (data) => api.post('/ai/chat', data),
+};
+
 // Lookups API
 export const lookupsApi = {
     getAll: () => api.get('/lookups'),

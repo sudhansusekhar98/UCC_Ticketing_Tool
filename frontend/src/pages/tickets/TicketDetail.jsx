@@ -29,6 +29,7 @@ import {
 import { ticketsApi, usersApi } from '../../services/api';
 import socketService from '../../services/socket';
 import useAuthStore from '../../context/authStore';
+import useAiAssistantStore from '../../context/aiAssistantStore';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import ActivitySection from './ActivitySection';
@@ -72,6 +73,16 @@ export default function TicketDetail() {
     const { user, hasRole, hasRight } = useAuthStore();
     const isSiteClient = hasRole('SiteClient');
     const [ticket, setTicket] = useState(null);
+
+    // Feed the loaded ticket to the floating AI assistant so it has context
+    // for suggestions/chat; cleared when leaving this page.
+    const { setTicketContext, clearTicketContext } = useAiAssistantStore();
+    useEffect(() => {
+        if (ticket) {
+            setTicketContext({ title: ticket.title, description: ticket.description, category: ticket.category });
+        }
+        return () => clearTicketContext();
+    }, [ticket?._id, ticket?.title, ticket?.description, ticket?.category]);
     const [auditTrail, setAuditTrail] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
