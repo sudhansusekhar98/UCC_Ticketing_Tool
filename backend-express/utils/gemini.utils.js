@@ -58,6 +58,24 @@ async function callGemini(body) {
   }
 }
 
+// Retries a Gemini call up to `attempts` times (fixed 1s gap) before giving up — a
+// slow/flaky response is fine to wait out, only report failure once every attempt fails.
+// A missing API key is a config error, not a transient one — don't waste retries on it.
+async function callGeminiWithRetry(body, attempts = 5) {
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await callGemini(body);
+    } catch (err) {
+      lastErr = err;
+      if (err.message === 'GEMINI_API_KEY not configured') throw err;
+      console.error(`[gemini] attempt ${i + 1}/${attempts} failed:`, err.message);
+      if (i < attempts - 1) await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+  throw lastErr;
+}
+
 // Suggested category/subcategory + troubleshooting steps for a ticket's title/description.
 export async function getTicketSuggestions({ title, description, category }) {
   const prompt = `Ticket title: ${title || '(none)'}\nDescription: ${description || '(none)'}\n` +
@@ -66,7 +84,7 @@ export async function getTicketSuggestions({ title, description, category }) {
     `troubleshooting/resolution steps a field engineer could try.`;
 
   try {
-    const data = await callGemini({
+    const data = await callGeminiWithRetry({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       systemInstruction: { parts: [{ text: GUARDRAIL_INSTRUCTION }] },
       generationConfig: {
@@ -111,11 +129,11 @@ export async function askAssistant({ message, history = [], ticketContext, runTo
   for (let round = 0; round < MAX_ROUNDS; round++) {
     let data;
     try {
-      data = await callGemini(requestBody);
+      data = await callGeminiWithRetry(requestBody);
     } catch (err) {
-      // Swallowed otherwise — log so a "having trouble reaching the AI service" report
-      // is diagnosable (rate limit, timeout, bad key) instead of a total guess.
-      console.error('[gemini] askAssistant call failed:', err.message);
+      // Every retry failed — log the final cause (rate limit, timeout, bad key) so
+      // "having trouble reaching the AI service" is diagnosable instead of a guess.
+      console.error('[gemini] askAssistant call failed after retries:', err.message);
       return { reply: "Sorry, I'm having trouble reaching the AI service right now. Please try again shortly." };
     }
 
