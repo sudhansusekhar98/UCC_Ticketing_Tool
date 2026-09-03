@@ -36,6 +36,15 @@ function renderWithBold(text) {
 
 const DRAG_THRESHOLD = 4; // px of movement before a mousedown counts as a drag, not a click
 
+// Picks a loading label that hints at what the assistant is doing, based on the
+// question's wording — not a real progress state, just a friendlier spinner caption.
+function loadingLabel(text) {
+    const t = (text || '').toLowerCase();
+    if (/\bhow many\b|\bcount\b|\btotal\b|\bnumber of\b/.test(t)) return 'Counting…';
+    if (/\bcheck\b|\bstatus\b|\bverify\b|\bis (it|this|that)\b/.test(t)) return 'Checking…';
+    return 'Searching…';
+}
+
 export default function AiChatWidget() {
     const { ticketContext } = useAiAssistantStore();
     const [open, setOpen] = useState(false);
@@ -208,7 +217,11 @@ export default function AiChatWidget() {
                 {messages.map((m, i) => (
                     <div key={i} className={`ai-widget-msg ${m.role}`}>{renderWithBold(m.text)}</div>
                 ))}
-                {sending && <div className="ai-widget-msg model"><Loader2 size={14} className="spin" /></div>}
+                {sending && (
+                    <div className="ai-widget-msg model ai-widget-loading">
+                        <Loader2 size={14} className="spin" /> {loadingLabel(messages[messages.length - 1]?.text)}
+                    </div>
+                )}
                 <div ref={messagesEndRef} />
             </div>
 

@@ -149,6 +149,12 @@ function ticketOwnershipScope(user) {
   };
 }
 
+// Adds a "created in the last N days" bound to a query in place, e.g. for
+// "past week" questions. No-op when days is falsy.
+function withinDays(query, days) {
+  if (days) query.createdAt = { $gte: new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000) };
+}
+
 function scopeErrorResult(scope, requestedSite) {
   if (scope.notFound) return { error: 'not_found', message: `No site found matching "${requestedSite}".` };
   return { error: 'not_authorized', message: 'You do not have access to that site.' };
@@ -166,7 +172,7 @@ function addOrClause(query, orClause) {
   }
 }
 
-async function getTicketSummary(user, { site, status, priority, search, forUser } = {}) {
+async function getTicketSummary(user, { site, status, priority, search, forUser, days, sortBy } = {}) {
   const scope = await resolveSiteScope(user, site);
   if (!scope.ok) return scopeErrorResult(scope, site);
 
@@ -196,12 +202,26 @@ async function getTicketSummary(user, { site, status, priority, search, forUser 
       { title: { $regex: escapeRegex(search), $options: 'i' } }
     ]);
   }
+  withinDays(query, days);
+
+  // "Which ticket took longest to close" needs the actual slowest ticket, not
+  // whatever happens to be in the 5 most recent — sort by closedOn - createdAt instead.
+  const wantsLongest = sortBy === 'longestToClose';
+  const sampleQuery = wantsLongest
+    ? Ticket.aggregate([
+      { $match: { ...query, closedOn: { $ne: null } } },
+      { $addFields: { durationHours: { $divide: [{ $subtract: ['$closedOn', '$createdAt'] }, 3600000] } } },
+      { $sort: { durationHours: -1 } },
+      { $limit: 5 },
+      { $project: { ticketNumber: 1, title: 1, status: 1, priority: 1, createdAt: 1, closedOn: 1, durationHours: 1 } }
+    ])
+    : Ticket.find(query).sort({ createdAt: -1 }).limit(5)
+      .select('ticketNumber title status priority siteId createdAt closedOn').lean();
 
   const [byStatus, slaBreached, sample] = await Promise.all([
     Ticket.aggregate([{ $match: query }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
     Ticket.countDocuments({ ...query, isSLABreached: true }),
-    Ticket.find(query).sort({ createdAt: -1 }).limit(5)
-      .select('ticketNumber title status priority siteId createdAt').lean()
+    sampleQuery
   ]);
 
   return {
@@ -209,6 +229,7 @@ async function getTicketSummary(user, { site, status, priority, search, forUser 
     countsByStatus: Object.fromEntries(byStatus.map((g) => [g._id, g.count])),
     slaBreachedCount: slaBreached,
     recentTickets: sample.map((t) => ({
+      ...(t.createdAt && t.closedOn ? { hoursToClose: Math.round((t.closedOn - t.createdAt) / 3600000 * 10) / 10 } : {}),
       ticketNumber: t.ticketNumber, title: t.title, status: t.status, priority: t.priority
     }))
   };
@@ -229,7 +250,7 @@ async function getSiteInfo(user, { site } = {}) {
   return { sites };
 }
 
-async function getAssetInfo(user, { site, search } = {}) {
+async function getAssetInfo(user, { site, search, days } = {}) {
   const scope = await resolveSiteScope(user, site);
   if (!scope.ok) return scopeErrorResult(scope, site);
 
@@ -241,6 +262,7 @@ async function getAssetInfo(user, { site, search } = {}) {
       { mac: { $regex: search, $options: 'i' } }
     ];
   }
+  withinDays(query, days);
 
   const [byStatus, sample] = await Promise.all([
     Asset.aggregate([{ $match: query }, { $group: { _id: '$status', count: { $sum: 1 } } }]),
@@ -270,18 +292,20 @@ async function getStockLevels(user, { site } = {}) {
   return { spareStockByType: Object.fromEntries(byType.map((g) => [g._id, g.count])) };
 }
 
-async function getRmaStatus(user, { site, status } = {}) {
+async function getRmaStatus(user, { site, status, days } = {}) {
   const scope = await resolveSiteScope(user, site);
   if (!scope.ok) return scopeErrorResult(scope, site);
 
   const query = { ...siteMatch(user, scope.siteId) };
   if (status) query.status = status;
+  withinDays(query, days);
 
   const rmas = await RMARequest.find(query).sort({ createdAt: -1 }).limit(5)
     .select('rmaNumber status siteId createdAt').lean();
   const byStatus = await RMARequest.aggregate([{ $match: query }, { $group: { _id: '$status', count: { $sum: 1 } } }]);
 
   return {
+    totalMatching: byStatus.reduce((sum, g) => sum + g.count, 0),
     countsByStatus: Object.fromEntries(byStatus.map((g) => [g._id, g.count])),
     recentRmas: rmas.map((r) => ({ rmaNumber: r.rmaNumber, status: r.status }))
   };
@@ -292,7 +316,7 @@ export const TOOL_DECLARATIONS = [
   {
     name: 'getTicketSummary',
     description: 'Get ticket counts, SLA breach counts and recent tickets (with their ticket numbers), optionally ' +
-      'filtered by site/status/priority/a keyword or ticket number search. With no filters, returns the ' +
+      'filtered by site/status/priority/a keyword or ticket number search/time window. With no filters, returns the ' +
       "current user's own tickets (created by or assigned to them) plus their sites.",
     parameters: {
       type: 'object',
@@ -301,7 +325,13 @@ export const TOOL_DECLARATIONS = [
         status: { type: 'string', description: 'Ticket status filter, e.g. Open, InProgress, Resolved' },
         priority: { type: 'string', description: 'Ticket priority filter, e.g. P1, P2, P3, P4' },
         search: { type: 'string', description: 'Keyword or ticket number to search titles/ticket numbers for' },
-        forUser: { type: 'string', description: "Another user's name, username or email, if asking about someone else's tickets. Admin/Supervisor only — do not pass this for other roles." }
+        forUser: { type: 'string', description: "Another user's name, username or email, if asking about someone else's tickets. Admin/Supervisor only — do not pass this for other roles." },
+        days: { type: 'number', description: 'Only count tickets created in the last N days, e.g. 7 for "past week"' },
+        sortBy: {
+          type: 'string', enum: ['newest', 'longestToClose'],
+          description: 'Use "longestToClose" for questions like "which ticket took the longest to close/resolve" — ' +
+            'returns the slowest closed tickets with hoursToClose. Default "newest" returns the most recent.'
+        }
       }
     }
   },
@@ -315,12 +345,13 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: 'getAssetInfo',
-    description: 'Get asset counts by status and recent assets, optionally filtered by site or a search term (code/serial/MAC).',
+    description: 'Get asset counts by status and recent assets, optionally filtered by site/a search term (code/serial/MAC)/time window.',
     parameters: {
       type: 'object',
       properties: {
         site: { type: 'string', description: 'Site name (e.g. "Head Office") or Mongo ObjectId' },
-        search: { type: 'string', description: 'Search term for asset code, serial number or MAC address' }
+        search: { type: 'string', description: 'Search term for asset code, serial number or MAC address' },
+        days: { type: 'number', description: 'Only count assets created in the last N days, e.g. 7 for "past week"' }
       }
     }
   },
@@ -334,12 +365,13 @@ export const TOOL_DECLARATIONS = [
   },
   {
     name: 'getRmaStatus',
-    description: 'Get RMA request counts by status and recent RMAs, optionally filtered by site/status.',
+    description: 'Get RMA request counts by status and recent RMAs, optionally filtered by site/status/time window.',
     parameters: {
       type: 'object',
       properties: {
         site: { type: 'string', description: 'Site name (e.g. "Head Office") or Mongo ObjectId' },
-        status: { type: 'string', description: 'RMA status filter' }
+        status: { type: 'string', description: 'RMA status filter' },
+        days: { type: 'number', description: 'Only count RMAs created in the last N days, e.g. 7 for "past week"' }
       }
     }
   }

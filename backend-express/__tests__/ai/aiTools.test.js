@@ -38,7 +38,14 @@ const mockUserModel = {
 jest.unstable_mockModule('../../models/Ticket.model.js', () => ({ default: mockTicketModel }));
 jest.unstable_mockModule('../../models/Site.model.js', () => ({ default: mockSiteModel }));
 jest.unstable_mockModule('../../models/Asset.model.js', () => ({ default: {} }));
-jest.unstable_mockModule('../../models/RMARequest.model.js', () => ({ default: {} }));
+const mockRmaModel = {
+  aggregate: jest.fn().mockResolvedValue([]),
+  find: jest.fn(() => ({
+    sort: () => ({ limit: () => ({ select: () => ({ lean: () => Promise.resolve([]) }) }) })
+  })),
+};
+
+jest.unstable_mockModule('../../models/RMARequest.model.js', () => ({ default: mockRmaModel }));
 jest.unstable_mockModule('../../models/User.model.js', () => ({ default: mockUserModel }));
 
 let runTool;
@@ -223,6 +230,45 @@ describe('aiTools RBAC', () => {
     const result = await runTool(admin, 'getSiteInfo', { site: String(someSite) });
 
     expect(result.error).toBeUndefined();
+  });
+
+  it('scopes getRmaStatus to a createdAt window when days is given', async () => {
+    const admin = mockAdminUser();
+
+    await runTool(admin, 'getRmaStatus', { days: 7 });
+
+    const matchStage = mockRmaModel.aggregate.mock.calls[0][0][0].$match;
+    expect(matchStage.createdAt.$gte).toBeInstanceOf(Date);
+  });
+
+  it('sorts getTicketSummary by duration when sortBy is longestToClose', async () => {
+    const target = { _id: objectId(), fullName: 'Sudhansu' };
+    mockUserFoundByName(target);
+    mockTicketModel.aggregate
+      .mockResolvedValueOnce([{ ticketNumber: 'TKT-1', title: 'Slow one', status: 'Closed', priority: 'P2',
+        createdAt: new Date('2026-01-01'), closedOn: new Date('2026-01-06'), durationHours: 120 }]) // sample query (longestToClose)
+      .mockResolvedValueOnce([]); // byStatus grouping
+    const admin = mockAdminUser();
+
+    const result = await runTool(admin, 'getTicketSummary', { forUser: 'Sudhansu', sortBy: 'longestToClose' });
+
+    expect(result.recentTickets[0]).toEqual(
+      expect.objectContaining({ ticketNumber: 'TKT-1', hoursToClose: 120 })
+    );
+    const sampleAggCall = mockTicketModel.aggregate.mock.calls[0][0];
+    expect(sampleAggCall).toEqual(expect.arrayContaining([
+      { $sort: { durationHours: -1 } }
+    ]));
+    expect(sampleAggCall[0].$match.closedOn).toEqual({ $ne: null });
+  });
+
+  it('scopes getTicketSummary to a createdAt window when days is given', async () => {
+    const admin = mockAdminUser();
+
+    await runTool(admin, 'getTicketSummary', { days: 7 });
+
+    const matchStage = mockTicketModel.aggregate.mock.calls[0][0][0].$match;
+    expect(matchStage.createdAt.$gte).toBeInstanceOf(Date);
   });
 
   it('returns unknown_tool for a tool name that is not declared', async () => {

@@ -113,6 +113,9 @@ export async function askAssistant({ message, history = [], ticketContext, runTo
     try {
       data = await callGemini(requestBody);
     } catch (err) {
+      // Swallowed otherwise — log so a "having trouble reaching the AI service" report
+      // is diagnosable (rate limit, timeout, bad key) instead of a total guess.
+      console.error('[gemini] askAssistant call failed:', err.message);
       return { reply: "Sorry, I'm having trouble reaching the AI service right now. Please try again shortly." };
     }
 
