@@ -54,6 +54,7 @@ export default function AiChatWidget() {
     const [sending, setSending] = useState(false);
     const [suggestions, setSuggestions] = useState(null);
     const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+    const [isIdle, setIsIdle] = useState(false);
 
     const elRef = useRef(null); // bubble or window, whichever is currently mounted
     const dragState = useRef(null);
@@ -68,6 +69,29 @@ export default function AiChatWidget() {
         setMessages([]);
         setSuggestions(null);
     }, [ticketContext?.title, ticketContext?.description]);
+
+    // Waving robot + "chat with me?" nudge — only once the page has been idle a while,
+    // and only while the widget is collapsed. Any activity cancels it immediately.
+    const IDLE_MS = 15000;
+    useEffect(() => {
+        if (open) {
+            setIsIdle(false);
+            return;
+        }
+        let timer;
+        const resetIdle = () => {
+            setIsIdle(false);
+            clearTimeout(timer);
+            timer = setTimeout(() => setIsIdle(true), IDLE_MS);
+        };
+        const events = ['mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+        events.forEach((evt) => window.addEventListener(evt, resetIdle));
+        resetIdle();
+        return () => {
+            clearTimeout(timer);
+            events.forEach((evt) => window.removeEventListener(evt, resetIdle));
+        };
+    }, [open]);
 
     // Shared drag handling for both the collapsed bubble and the open window header.
     // A mousedown that never moves past the threshold is treated as a click instead
@@ -161,15 +185,26 @@ export default function AiChatWidget() {
 
     if (!open) {
         return (
-            <button
-                className="ai-widget-bubble"
-                ref={elRef}
-                style={position.x != null ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' } : undefined}
-                onMouseDown={(e) => onDragStart(e, () => setOpen(true))}
-                title="Ask AI Assistant (drag to move)"
-            >
-                <Bot size={24} />
-            </button>
+            <>
+                {isIdle && (
+                    <div
+                        className="ai-widget-greeting"
+                        style={position.x != null ? { left: position.x, top: position.y - 46, right: 'auto', bottom: 'auto' } : undefined}
+                    >
+                        Need help? Chat with me!
+                    </div>
+                )}
+                <button
+                    className="ai-widget-bubble"
+                    ref={elRef}
+                    style={position.x != null ? { left: position.x, top: position.y, right: 'auto', bottom: 'auto' } : undefined}
+                    onMouseDown={(e) => onDragStart(e, () => setOpen(true))}
+                    title="Ask AI Assistant (drag to move)"
+                >
+                    <Bot size={24} />
+                    {isIdle && <span className="ai-widget-wave" aria-hidden="true">👋</span>}
+                </button>
+            </>
         );
     }
 

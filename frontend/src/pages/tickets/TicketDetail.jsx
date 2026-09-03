@@ -651,6 +651,21 @@ export default function TicketDetail() {
 
             <div className="detail-grid">
                 <div className="detail-main">
+                    {/* Device Replacement / RMA - pinned to the top while an RMA is ongoing */}
+                    {hasActiveRma && !isSiteClient && ticket.assetId && (
+                        <RMASection
+                            ticketId={ticket.ticketId}
+                            siteId={ticketSiteId}
+                            assetId={ticket.assetId?._id || ticket.assetId}
+                            ticketStatus={ticket.status}
+                            isLocked={FINAL_STATUSES.includes(ticket.status)}
+                            onUpdate={() => {
+                                fetchTicket();
+                                fetchAuditTrail();
+                            }}
+                        />
+                    )}
+
                     {/* Ticket Information */}
                     <div className="detail-section glass-card">
                         <div className="section-header">
@@ -801,8 +816,8 @@ export default function TicketDetail() {
                                 />
                             )}
 
-                            {/* RMA Information */}
-                            {ticket.assetId && (
+                            {/* RMA Information - already pinned to the top above when hasActiveRma */}
+                            {ticket.assetId && !hasActiveRma && (
                                 <RMASection
                                     ticketId={ticket.ticketId}
                                     siteId={ticketSiteId}

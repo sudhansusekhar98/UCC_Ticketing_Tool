@@ -37,7 +37,12 @@ const mockUserModel = {
 
 jest.unstable_mockModule('../../models/Ticket.model.js', () => ({ default: mockTicketModel }));
 jest.unstable_mockModule('../../models/Site.model.js', () => ({ default: mockSiteModel }));
-jest.unstable_mockModule('../../models/Asset.model.js', () => ({ default: {} }));
+const mockAssetModel = {
+  aggregate: jest.fn().mockResolvedValue([]),
+  findById: jest.fn(() => ({ select: () => ({ lean: () => Promise.resolve(null) }) })),
+  findOne: jest.fn(() => ({ select: () => ({ lean: () => Promise.resolve(null) }) })),
+};
+jest.unstable_mockModule('../../models/Asset.model.js', () => ({ default: mockAssetModel }));
 const mockRmaModel = {
   aggregate: jest.fn().mockResolvedValue([]),
   find: jest.fn(() => ({
@@ -47,6 +52,12 @@ const mockRmaModel = {
 
 jest.unstable_mockModule('../../models/RMARequest.model.js', () => ({ default: mockRmaModel }));
 jest.unstable_mockModule('../../models/User.model.js', () => ({ default: mockUserModel }));
+const mockWorkLogModel = {
+  find: jest.fn(() => ({
+    sort: () => ({ limit: () => ({ select: () => ({ lean: () => Promise.resolve([]) }) }) })
+  })),
+};
+jest.unstable_mockModule('../../models/DailyWorkLog.model.js', () => ({ default: mockWorkLogModel }));
 
 let runTool;
 beforeAll(async () => {
@@ -65,6 +76,8 @@ beforeEach(() => {
   mockUserModel.findById.mockReturnValue({ select: () => ({ lean: () => Promise.resolve(null) }) });
   mockUserModel.findOne.mockReturnValue({ select: () => ({ lean: () => Promise.resolve(null) }) });
   mockUserModel.find.mockReturnValue({ select: () => ({ lean: () => Promise.resolve([]) }) });
+  mockAssetModel.findById.mockReturnValue({ select: () => ({ lean: () => Promise.resolve(null) }) });
+  mockAssetModel.findOne.mockReturnValue({ select: () => ({ lean: () => Promise.resolve(null) }) });
 });
 
 const mockL1User = (overrides = {}) => ({
@@ -232,6 +245,30 @@ describe('aiTools RBAC', () => {
     expect(result.error).toBeUndefined();
   });
 
+  it('breaks down RMAs by site when no specific site was requested', async () => {
+    mockRmaModel.aggregate
+      .mockResolvedValueOnce([{ _id: 'RequestedForApproval', count: 3 }]) // byStatus
+      .mockResolvedValueOnce([{ siteName: 'Head Office', count: 5 }, { siteName: 'Downtown Depot', count: 2 }]); // bySite
+    const admin = mockAdminUser();
+
+    const result = await runTool(admin, 'getRmaStatus', {});
+
+    expect(result.countsBySite).toEqual([
+      { siteName: 'Head Office', count: 5 }, { siteName: 'Downtown Depot', count: 2 }
+    ]);
+  });
+
+  it('skips the site breakdown when a specific site was requested', async () => {
+    const mySite = objectId();
+    mockSiteExistsById(mySite);
+    const admin = mockAdminUser();
+
+    const result = await runTool(admin, 'getRmaStatus', { site: String(mySite) });
+
+    expect(result.countsBySite).toBeUndefined();
+    expect(mockRmaModel.aggregate).toHaveBeenCalledTimes(1); // just byStatus, no bySite call
+  });
+
   it('scopes getRmaStatus to a createdAt window when days is given', async () => {
     const admin = mockAdminUser();
 
@@ -269,6 +306,123 @@ describe('aiTools RBAC', () => {
 
     const matchStage = mockTicketModel.aggregate.mock.calls[0][0][0].$match;
     expect(matchStage.createdAt.$gte).toBeInstanceOf(Date);
+  });
+
+  it('breaks down tickets by site when no specific site was requested', async () => {
+    mockTicketModel.aggregate
+      .mockResolvedValueOnce([{ _id: 'Open', count: 4 }]) // byStatus
+      .mockResolvedValueOnce([{ siteName: 'Head Office', count: 4 }]); // bySite
+    const admin = mockAdminUser();
+
+    const result = await runTool(admin, 'getTicketSummary', {});
+
+    expect(result.countsBySite).toEqual([{ siteName: 'Head Office', count: 4 }]);
+  });
+
+  it('breaks down spare stock by site when no specific site was requested', async () => {
+    mockAssetModel.aggregate
+      .mockResolvedValueOnce([{ _id: 'IP Camera', count: 10 }]) // byType
+      .mockResolvedValueOnce([{ siteName: 'Head Office', count: 10 }]); // bySite
+    const admin = mockAdminUser();
+
+    const result = await runTool(admin, 'getStockLevels', {});
+
+    expect(result.spareStockBySite).toEqual([{ siteName: 'Head Office', count: 10 }]);
+  });
+
+  it('filters getRmaStatus to a specific asset', async () => {
+    const asset = { _id: objectId() };
+    mockAssetModel.findOne.mockReturnValue({ select: () => ({ lean: () => Promise.resolve(asset) }) });
+    const admin = mockAdminUser();
+
+    await runTool(admin, 'getRmaStatus', { asset: 'CAM-001' });
+
+    const matchStage = mockRmaModel.aggregate.mock.calls[0][0][0].$match;
+    expect(matchStage.originalAssetId).toEqual(asset._id);
+  });
+
+  it('returns not_found for getRmaStatus when the asset does not match anything', async () => {
+    const admin = mockAdminUser();
+
+    const result = await runTool(admin, 'getRmaStatus', { asset: 'NOPE-999' });
+
+    expect(result.error).toBe('not_found');
+  });
+
+  it('lets a user filter getRmaStatus to their own RMAs without extra permission', async () => {
+    const user = mockL1User();
+    mockUserFoundByName({ _id: user._id, fullName: 'Me' });
+
+    const result = await runTool(user, 'getRmaStatus', { forUser: 'Me' });
+
+    expect(result.error).toBeUndefined();
+    const matchStage = mockRmaModel.aggregate.mock.calls[0][0][0].$match;
+    expect(matchStage.requestedBy).toEqual(user._id);
+  });
+
+  it('denies an engineer filtering getRmaStatus to someone else', async () => {
+    const user = mockL1User();
+    mockUserFoundByName({ _id: objectId(), fullName: 'Someone Else' });
+
+    const result = await runTool(user, 'getRmaStatus', { forUser: 'Someone Else' });
+
+    expect(result).toEqual({ error: 'not_authorized', message: expect.any(String) });
+  });
+
+  it('defaults getWorkLogSummary to the current user\'s own log for today', async () => {
+    const user = mockL1User();
+
+    const result = await runTool(user, 'getWorkLogSummary', {});
+
+    expect(result.error).toBeUndefined();
+    expect(mockWorkLogModel.find).toHaveBeenCalledWith(expect.objectContaining({ userId: user._id }));
+    const query = mockWorkLogModel.find.mock.calls[0][0];
+    expect(query.date.$gte).toBeInstanceOf(Date); // defaults to "today" with no days/from/to
+  });
+
+  it('resolves from/to on getWorkLogSummary to local-midnight bounds on the date field', async () => {
+    const user = mockL1User();
+
+    await runTool(user, 'getWorkLogSummary', { from: '2026-08-01', to: '2026-08-31' });
+
+    const query = mockWorkLogModel.find.mock.calls[0][0];
+    expect(query.date).toEqual({ $gte: new Date('2026-08-01T00:00:00'), $lte: new Date('2026-08-31T23:59:59.999') });
+  });
+
+  it('lets anyone look up their own work log by name without extra permission', async () => {
+    const user = mockL1User({ role: 'L1Engineer' });
+    mockUserFoundByName({ _id: user._id, fullName: 'Me', role: 'L1Engineer' });
+
+    const result = await runTool(user, 'getWorkLogSummary', { forUser: 'Me' });
+
+    expect(result.error).toBeUndefined();
+  });
+
+  it('denies an engineer looking up another engineer\'s work log', async () => {
+    const user = mockL1User({ role: 'L1Engineer' });
+    mockUserFoundByName({ _id: objectId(), fullName: 'Coworker', role: 'L1Engineer' });
+
+    const result = await runTool(user, 'getWorkLogSummary', { forUser: 'Coworker' });
+
+    expect(result).toEqual({ error: 'not_authorized', message: expect.any(String) });
+  });
+
+  it('lets Admin view an engineer\'s work log', async () => {
+    mockUserFoundByName({ _id: objectId(), fullName: 'Field Engineer', role: 'L1Engineer' });
+    const admin = mockAdminUser();
+
+    const result = await runTool(admin, 'getWorkLogSummary', { forUser: 'Field Engineer', days: 30 });
+
+    expect(result.error).toBeUndefined();
+  });
+
+  it('denies Admin viewing another Admin\'s work log (private, even to other Admins)', async () => {
+    mockUserFoundByName({ _id: objectId(), fullName: 'Other Admin', role: 'Admin' });
+    const admin = mockAdminUser();
+
+    const result = await runTool(admin, 'getWorkLogSummary', { forUser: 'Other Admin' });
+
+    expect(result).toEqual({ error: 'not_authorized', message: expect.any(String) });
   });
 
   it('returns unknown_tool for a tool name that is not declared', async () => {

@@ -5,23 +5,37 @@
 const GEMINI_MODEL = 'gemini-flash-lite-latest';
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-const GUARDRAIL_INSTRUCTION = `You are the AI assistant embedded in TicketOps, an internal IT ticketing and asset
+// A function (not a static string) so "today" is resolved at request time —
+// the server process outlives midnight, a module-load-time date would go stale.
+function buildGuardrailInstruction() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const today = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const weekday = now.toLocaleDateString('en-US', { weekday: 'long' });
+  return `You are the AI assistant embedded in TicketOps, an internal IT ticketing and asset
 management system. You help staff with: ticket troubleshooting, and answering questions about
-tickets, sites, assets, stock and RMA requests using ONLY the tools provided to you.
+tickets, sites, assets, stock, RMA requests and staff work logs using ONLY the tools provided to you.
+
+Today's date is ${today} (${weekday}), in YYYY-MM-DD format.
 
 Rules you must always follow:
-1. Only answer questions about this organization's tickets, sites, assets, stock, RMA requests or
-   general IT troubleshooting. If asked anything else (general knowledge, personal topics, other
-   companies, coding help unrelated to a ticket, etc.), politely refuse and say you can only help
-   with TicketOps issues, then ask what ticket or site-related question they have.
-2. Never guess or fabricate data about tickets, sites, assets, stock or RMAs. Only state facts that
-   came from a tool result in this conversation.
+1. Only answer questions about this organization's tickets, sites, assets, stock, RMA requests, work
+   logs, or general IT troubleshooting. If asked anything else (general knowledge, personal topics,
+   other companies, coding help unrelated to a ticket, etc.), politely refuse and say you can only
+   help with TicketOps issues, then ask what ticket or site-related question they have.
+2. Never guess or fabricate data about tickets, sites, assets, stock, RMAs or work logs. Only state
+   facts that came from a tool result in this conversation.
 2b. Users often type with typos or bad grammar (e.g. "Hed Ofice", "acheive"). Silently interpret
    their intended meaning and correct spelling before answering or calling a tool — never point out
    or comment on the mistake, just understand it and proceed normally.
 3. If a tool result contains "error": "not_authorized", tell the user they don't have access to
    that site/data — do not speculate about what the data might be.
-4. Keep answers concise and practical.`;
+4. Keep answers concise and practical.
+5. When a question references a relative date or period — "today", "yesterday", "last week", "last
+   month", "on 3 August", "this quarter" — resolve it into concrete from/to dates (YYYY-MM-DD) yourself
+   using today's date above, and pass them as the tool's from/to arguments. Never ask the user to
+   restate the date in a specific format.`;
+}
 
 function buildSuggestionSchema() {
   return {
@@ -86,7 +100,7 @@ export async function getTicketSuggestions({ title, description, category }) {
   try {
     const data = await callGeminiWithRetry({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      systemInstruction: { parts: [{ text: GUARDRAIL_INSTRUCTION }] },
+      systemInstruction: { parts: [{ text: buildGuardrailInstruction() }] },
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema: buildSuggestionSchema()
@@ -121,7 +135,7 @@ export async function askAssistant({ message, history = [], ticketContext, runTo
 
   const requestBody = {
     contents,
-    systemInstruction: { parts: [{ text: GUARDRAIL_INSTRUCTION }] },
+    systemInstruction: { parts: [{ text: buildGuardrailInstruction() }] },
     tools: [{ functionDeclarations: toolDeclarations }]
   };
 
